@@ -1,0 +1,221 @@
+// Copyright (c) 2020, The OTNS Authors.
+// All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+// 1. Redistributions of source code must retain the above copyright
+//    notice, this list of conditions and the following disclaimer.
+// 2. Redistributions in binary form must reproduce the above copyright
+//    notice, this list of conditions and the following disclaimer in the
+//    documentation and/or other materials provided with the distribution.
+// 3. Neither the name of the copyright holder nor the
+//    names of its contributors may be used to endorse or promote products
+//    derived from this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+// ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+// POSSIBILITY OF SUCH DAMAGE.
+
+syntax = "proto3";
+
+package visualize_grpc_pb;
+
+
+message VisualizeRequest {
+
+}
+
+message VisualizeEvent {
+    oneof type {
+        AddNodeEvent add_node = 1;
+        DeleteNodeEvent delete_node = 2;
+        SetNodeRloc16Event set_node_rloc16 = 3;
+        SetNodeRoleEvent set_node_role = 4;
+        SetNodePosEvent set_node_pos = 5;
+        SetNodePartitionIdEvent set_node_partition_id = 6;
+        OnNodeFailEvent on_node_fail = 7;
+        OnNodeRecoverEvent on_node_recover = 8;
+        SetParentEvent set_parent = 9;
+        CountDownEvent count_down = 10;
+        ShowDemoLegendEvent show_demo_legend = 11;
+        AdvanceTimeEvent advance_time = 12;
+        AddRouterTableEvent add_router_table = 13;
+        RemoveRouterTableEvent remove_router_table = 14;
+        AddChildTableEvent add_child_table = 15;
+        RemoveChildTableEvent remove_child_table = 16;
+        SendEvent send = 17;
+        SetSpeedEvent set_speed = 18;
+        HeartbeatEvent heartbeat = 19;
+        OnExtAddrChangeEvent on_ext_addr_change = 20;
+    }
+}
+
+message SendEvent {
+    int32 src_id = 1;
+    int32 dst_id = 2;
+    MsgVisualizeInfo mv_info = 3;
+}
+
+message MsgVisualizeInfo {
+    uint32 channel = 1;
+    uint32 frame_control = 2;
+    uint32 seq = 3;
+    uint32 dst_addr_short = 4;
+    uint64 dst_addr_extended = 5;
+}
+
+message AddRouterTableEvent {
+    int32 node_id = 1;
+    uint64 ext_addr = 2;
+}
+
+message RemoveRouterTableEvent {
+    int32 node_id = 1;
+    uint64 ext_addr = 2;
+}
+message AddChildTableEvent {
+    int32 node_id = 1;
+    uint64 ext_addr = 2;
+}
+message RemoveChildTableEvent {
+    int32 node_id = 1;
+    uint64 ext_addr = 2;
+}
+
+message SetSpeedEvent {
+    double speed = 1;
+}
+
+message HeartbeatEvent {
+}
+
+message AdvanceTimeEvent {
+    uint64 ts = 1;
+    double speed = 2;
+}
+
+message SetParentEvent {
+    int32 node_id = 1;
+    uint64 ext_addr = 2;
+}
+
+message CountDownEvent {
+    int64 duration_ms = 1;
+    string text = 2;
+}
+
+message ShowDemoLegendEvent {
+    int32 x = 1;
+    int32 y = 2;
+    string title = 3;
+}
+
+message SetNodePosEvent {
+    int32 node_id = 1;
+    int32 x = 2;
+    int32 y = 3;
+}
+
+message SetNodeRoleEvent {
+    int32 node_id = 1;
+    OtDeviceRole role = 2;
+}
+
+message SetNodePartitionIdEvent {
+    int32 node_id = 1;
+    uint32 partition_id = 2;
+}
+
+message OnNodeFailEvent {
+    int32 node_id = 1;
+}
+
+message OnNodeRecoverEvent {
+    int32 node_id = 1;
+}
+
+message DeleteNodeEvent {
+    int32 node_id = 1;
+}
+
+enum OtDeviceRole {
+    OT_DEVICE_ROLE_DISABLED = 0; ///< The Thread stack is disabled.
+    OT_DEVICE_ROLE_DETACHED = 1; ///< Not currently participating in a Thread network/partition.
+    OT_DEVICE_ROLE_CHILD = 2; ///< The Thread Child role.
+    OT_DEVICE_ROLE_ROUTER = 3; ///< The Thread Router role.
+    OT_DEVICE_ROLE_LEADER = 4; ///< The Thread Leader role.
+}
+
+message AddNodeEvent {
+    int32 node_id = 1;
+    uint64 ext_addr = 2;
+    int32 x = 3;
+    int32 y = 4;
+    int32 radio_range = 5;
+    NodeMode node_mode = 6;
+}
+
+message NodeMode {
+    bool rx_on_when_idle = 1;
+    bool secure_data_requests = 2;
+    bool full_thread_device = 3;
+    bool full_network_data = 4;
+}
+
+message SetNodeRloc16Event {
+    int32 node_id = 1;
+    uint32 rloc16 = 2;
+}
+
+message OnExtAddrChangeEvent {
+    int32 node_id = 1;
+    uint64 ext_addr = 2;
+}
+
+service VisualizeGrpcService {
+    //    rpc Echo (EchoRequest) returns (EchoResponse);
+    rpc Visualize (VisualizeRequest) returns (stream VisualizeEvent);
+    rpc CtrlAddNode (AddNodeRequest) returns (Empty);
+    rpc CtrlDeleteNode (DeleteNodeRequest) returns (Empty);
+    rpc CtrlMoveNodeTo (MoveNodeToRequest) returns (Empty);
+    rpc CtrlSetNodeFailed (SetNodeFailedRequest) returns (Empty);
+    rpc CtrlSetSpeed (SetSpeedRequest) returns (Empty);
+}
+
+message AddNodeRequest {
+    int32 x = 1;
+    int32 y = 2;
+    bool is_router = 3;
+    NodeMode mode = 4;
+}
+
+message DeleteNodeRequest {
+    int32 node_id = 1;
+}
+
+message MoveNodeToRequest {
+    int32 node_id = 1;
+    int32 x = 2;
+    int32 y = 3;
+}
+
+message SetNodeFailedRequest {
+    int32 node_id = 1;
+    bool failed = 2;
+}
+
+message SetSpeedRequest {
+    double speed = 1;
+}
+
+message Empty {
+
+}

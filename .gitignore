@@ -1,0 +1,35 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, build with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+.idea/
+go.sum
+tmp/
+*.json
+log
+current.pcap
+/cmd/simulation_demo/openthread/
+*.rep
+openthread/
+ot-cli-ftd
+__pycache__
+node_modules/
+
+# Ignore any pcap
+*.pcap
+
+# ignore OTNS executives
+/cmd/otns/otns
+
+# ignore generated files
+/visualize/grpc/pb/*.pb.go
+/web/site/js/proto/*_pb.js
+/web/site/static/js/*.js

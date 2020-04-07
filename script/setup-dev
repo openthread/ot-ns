@@ -1,0 +1,96 @@
+#!/bin/bash
+# Copyright (c) 2020, The OTNS Authors.
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+# 3. Neither the name of the copyright holder nor the
+#    names of its contributors may be used to endorse or promote products
+#    derived from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+#
+# This script setup environment for OTNS development.
+
+. $(dirname $0)/common.sh
+
+function install_protoc() {
+  local protoc_download_url
+
+  if installed protoc; then
+    return 0
+  fi
+
+  if [[ $Darwin == 1 ]]; then
+    protoc_download_url=https://github.com/protocolbuffers/protobuf/releases/download/v3.11.3/protoc-3.11.3-osx-x86_64.zip
+  else
+    protoc_download_url=https://github.com/protocolbuffers/protobuf/releases/download/v3.11.3/protoc-3.11.3-linux-x86_64.zip
+  fi
+
+  wget $protoc_download_url -O /tmp/protoc.zip
+
+  cd /usr/local
+  sudo unzip /tmp/protoc.zip
+  sudo chmod a+x /usr/local/bin/protoc
+  sudo rm -rf protoc.zip
+
+  installed protoc || die "protoc-gen-go not found, make sure /usr/local/bin is included in $PATH"
+}
+
+install_protoc_gen_go() {
+  if installed protoc-gen-go; then
+    return 0
+  fi
+
+  go get -u github.com/golang/protobuf/protoc-gen-go
+  installed protoc-gen-go || die "protoc-gen-go not found, make sure $GOPATH/bin is included in $PATH"
+}
+
+install_protoc_gen_grpc_web() {
+  if installed protoc-gen-grpc-web; then
+    return 0
+  fi
+
+  local download_url
+
+  if [[ $Darwin == 1 ]]; then
+    download_url=https://github.com/grpc/grpc-web/releases/download/1.0.7/protoc-gen-grpc-web-1.0.7-darwin-x86_64
+  else
+    download_url=https://github.com/grpc/grpc-web/releases/download/1.0.7/protoc-gen-grpc-web-1.0.7-linux-x86_64
+  fi
+
+  wget $download_url -O /tmp/protoc-gen-grpc-web
+  sudo mv /tmp/protoc-gen-grpc-web /usr/local/bin/protoc-gen-grpc-web
+  sudo chmod a+x /usr/local/bin/protoc-gen-grpc-web
+
+  installed protoc-gen-grpc-web || die "protoc-gen-grpc-web not found, make sure /usr/local/bin is included in $PATH"
+}
+
+install_nodejs() {
+  sudo apt-get install nodejs npm -y
+}
+
+install_go_bindata() {
+  go get -u github.com/jteeuwen/go-bindata/...
+}
+
+install_protoc
+install_protoc_gen_go
+install_protoc_gen_grpc_web
+install_nodejs
+install_go_bindata

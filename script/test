@@ -1,0 +1,114 @@
+#!/bin/bash
+# Copyright (c) 2020, The OTNS Authors.
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+# 3. Neither the name of the copyright holder nor the
+#    names of its contributors may be used to endorse or promote products
+#    derived from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+
+. $(dirname $0)/common.sh
+
+set -e
+
+OT_DIR=$HOME/src/openthread
+if [[ $(uname) == "Darwin" ]]; then
+  OTBIN_DIR=$OT_DIR/output/x86_64-apple-darwin/bin
+else
+  OTBIN_DIR=$OT_DIR/output/x86_64-unknown-linux-gnu/bin
+fi
+
+installed() {
+  command -v $1 >/dev/null 2>&1
+}
+
+go_tests() {
+  install_deps
+  install
+
+  echo "" > coverage.txt
+
+  PKG=$(go list ./...)
+
+  for d in $PKG; do
+    go test -race -coverprofile=profile.out -covermode=atomic $d
+    if [ -f profile.out ]; then
+      cat profile.out >>coverage.txt
+      rm profile.out
+    fi
+  done
+}
+
+install_deps() {
+  ./script/install-deps
+}
+
+install() {
+  ./script/install
+}
+
+get_openthread() {
+  if ! [[ -x $OT_DIR ]]; then
+    mkdir -p "$(dirname $OT_DIR)"
+    git clone https://github.com/openthread/openthread.git $OT_DIR
+    cd $OT_DIR
+    ./bootstrap
+    cd -
+  fi
+}
+
+build_openthread() {
+  get_openthread
+  cd $OT_DIR
+  make -f $OT_DIR/examples/Makefile-simulation OTNS=1
+  cd -
+}
+
+py_unittests() {
+  install_deps
+  install
+  build_openthread
+  cd $OTBIN_DIR
+  export PYTHONPATH=$OTNSDIR/pylibs
+  python3 $OTNSDIR/pylibs/unittests/test_basic.py
+  python3 $OTNSDIR/pylibs/unittests/test_ping.py
+  python3 $OTNSDIR/pylibs/unittests/test_commissioning.py
+  cd -
+}
+
+do_go_tests=0
+do_py_unittests=0
+
+for var in "$@"; do
+  if [[ "$var" == "go-tests" ]]; then
+    do_go_tests=1
+  elif [[ "$var" == "py-unittests" ]]; then
+    do_py_unittests=1
+  fi
+done
+
+if [[ "$do_go_tests" == "1" ]]; then
+  go_tests
+fi
+
+if [[ "$do_py_unittests" == "1" ]]; then
+  py_unittests
+fi
