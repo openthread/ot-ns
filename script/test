@@ -89,6 +89,7 @@ py_unittests() {
   cd $OTBIN_DIR
   export PYTHONPATH=$OTNSDIR/pylibs
   python3 $OTNSDIR/pylibs/unittests/test_basic.py
+  python3 $OTNSDIR/pylibs/unittests/test_basic_raw.py
   python3 $OTNSDIR/pylibs/unittests/test_ping.py
   python3 $OTNSDIR/pylibs/unittests/test_commissioning.py
   cd -

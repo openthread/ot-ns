@@ -24,31 +24,12 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-import logging
-import tracemalloc
-import unittest
+#
 
-from otns.cli import OTNS
+"""
+This file contains definitions of OTNS constants
+"""
 
-
-class OTNSTestCase(unittest.TestCase):
-    def __init__(self, *args, **kwargs):
-        otns_args = kwargs.pop("otns_args", None)
-        super(OTNSTestCase, self).__init__(*args, **kwargs)
-        self._otns_args = list(otns_args or [])
-
-    @classmethod
-    def setUpClass(cls) -> None:
-        tracemalloc.start()
-        logging.basicConfig(level=logging.DEBUG)
-
-    def setUp(self) -> None:
-        self.ns = OTNS(otns_args=self._otns_args + ["-log", "debug"])
-        self.ns.speed = OTNS.MAX_SIMULATE_SPEED
-
-    def tearDown(self) -> None:
-        self.ns.close()
-
-    def assertFormPartitions(self, count: int):
-        pars = self.ns.partitions()
-        self.assertTrue(len(pars) == count and 0 not in pars, pars)
+DEFAULT_CHANNEL = 11
+DEFAULT_PANID = 0xface
+DEFAULT_NETWORK_NAME = "OpenThread"

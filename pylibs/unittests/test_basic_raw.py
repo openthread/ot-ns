@@ -24,31 +24,63 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-import logging
-import tracemalloc
+
 import unittest
 
-from otns.cli import OTNS
+from OTNSTestCase import OTNSTestCase
+from otns import consts
 
 
-class OTNSTestCase(unittest.TestCase):
+class BasicRawTests(OTNSTestCase):
     def __init__(self, *args, **kwargs):
-        otns_args = kwargs.pop("otns_args", None)
-        super(OTNSTestCase, self).__init__(*args, **kwargs)
-        self._otns_args = list(otns_args or [])
+        super(BasicRawTests, self).__init__(*args, **kwargs, otns_args=['-raw'])
 
-    @classmethod
-    def setUpClass(cls) -> None:
-        tracemalloc.start()
-        logging.basicConfig(level=logging.DEBUG)
+    def testInitialPanid(self):
+        r1 = self.ns.add("router")
+        self.assertEqual(self.ns.get_panid(r1), 0xffff)
 
-    def setUp(self) -> None:
-        self.ns = OTNS(otns_args=self._otns_args + ["-log", "debug"])
-        self.ns.speed = OTNS.MAX_SIMULATE_SPEED
+    def testSamePanid(self):
+        ns = self.ns
+        r1 = ns.add("router")
+        r2 = ns.add("router")
 
-    def tearDown(self) -> None:
-        self.ns.close()
+        ns.set_panid(r1, 0xface)
+        self.assertEqual(0xface, self.ns.get_panid(r1))
+        ns.set_panid(r2, 0xface)
+        self.assertEqual(0xface, self.ns.get_panid(r2))
 
-    def assertFormPartitions(self, count: int):
-        pars = self.ns.partitions()
-        self.assertTrue(len(pars) == count and 0 not in pars, pars)
+        for nid in [r1, r2]:
+            self.ns.ifconfig_up(nid)
+            self.ns.thread_start(nid)
+
+        ns.go(10)
+        self.assertFormPartitons(1)
+
+    def testDifferentPanid(self):
+        ns = self.ns
+        r1 = ns.add("router")
+        r2 = ns.add("router")
+
+        ns.set_panid(r1, 0xface)
+        self.assertEqual(0xface, self.ns.get_panid(r1))
+        ns.set_panid(r2, 0xabcd)
+        self.assertEqual(0xabcd, self.ns.get_panid(r2))
+
+        for nid in [r1, r2]:
+            self.ns.ifconfig_up(nid)
+            self.ns.thread_start(nid)
+
+        ns.go(10)
+        self.assertFormPartitons(2)
+
+    def testDefaultNetworkName(self):
+        r1 = self.ns.add("router")
+        self.assertEqual(consts.DEFAULT_NETWORK_NAME, self.ns.get_network_name(r1))
+
+    def testDefaultChannel(self):
+        r1 = self.ns.add("router")
+        self.assertEqual(consts.DEFAULT_CHANNEL, self.ns.get_channel(r1))
+
+
+if __name__ == '__main__':
+    unittest.main()

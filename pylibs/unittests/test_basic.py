@@ -29,6 +29,7 @@ import unittest
 from typing import Dict
 
 from OTNSTestCase import OTNSTestCase
+from otns import consts
 from otns.cli import OTNS
 
 
@@ -170,6 +171,19 @@ class BasicTests(OTNSTestCase):
         ns.go(10)
         c20 = ns.counters()
         assert_increasing(c10, c20)
+
+    def testDefaultPanid(self):
+        ns = self.ns
+        r1 = ns.add("router")
+        self.assertEqual(ns.get_panid(r1), consts.DEFAULT_PANID)
+
+    def testDefaultNetworkName(self):
+        r1 = self.ns.add("router")
+        self.assertEqual(self.ns.get_network_name(r1), consts.DEFAULT_NETWORK_NAME)
+
+    def testDefaultChannel(self):
+        r1 = self.ns.add("router")
+        self.assertEqual(consts.DEFAULT_CHANNEL, self.ns.get_channel(r1))
 
 
 if __name__ == '__main__':

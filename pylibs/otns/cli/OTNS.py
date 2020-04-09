@@ -439,7 +439,7 @@ class OTNS(object):
         :param nodeid: node ID
         :return: network name
         """
-        self._expect_str(self.node_cmd(nodeid, 'networkname'))
+        return self._expect_str(self.node_cmd(nodeid, 'networkname'))
 
     def set_panid(self, nodeid: int, panid: int):
         """
@@ -457,6 +457,25 @@ class OTNS(object):
         :param nodeid: node ID
         :return: pan ID
         """
+        return self._expect_hex(self.node_cmd(nodeid, f'panid'))
+
+    def get_channel(self, nodeid: int) -> int:
+        """
+        Get node channel.
+
+        :param nodeid: node ID
+        :return: channel
+        """
+        return self._expect_int(self.node_cmd(nodeid, f'channel'))
+
+    def set_channel(self, nodeid: int, channel: int):
+        """
+        Set node channel.
+        :param nodeid: node ID
+        :param channel: new channel
+        """
+        assert 11 <= channel <= 26
+        self.node_cmd(nodeid, f'channel {channel}')
 
     def get_masterkey(self, nodeid: int) -> str:
         """
@@ -546,6 +565,10 @@ class OTNS(object):
     def _expect_int(self, output: List[str]) -> int:
         assert len(output) == 1, output
         return int(output[0])
+
+    def _expect_hex(self, output: List[str]) -> int:
+        assert len(output) == 1, output
+        return int(output[0], 16)
 
     def _expect_float(self, output: List[str]) -> float:
         assert len(output) == 1, output
