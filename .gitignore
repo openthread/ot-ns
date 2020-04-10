@@ -33,3 +33,4 @@ node_modules/
 /visualize/grpc/pb/*.pb.go
 /web/site/js/proto/*_pb.js
 /web/site/static/js/*.js
+/pylibs/doc/_build/
