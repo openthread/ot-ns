@@ -297,6 +297,7 @@ func (d *Dispatcher) handleRecvEvent(evt *event) {
 		evtTime = d.CurTime + evt.Delay
 	}
 
+	d.setAlive(nodeid)
 	switch evt.Type {
 	case eventTypeAlarmFired:
 		d.Counters.AlarmEvents += 1
