@@ -25,6 +25,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 import logging
+import sys
 import unittest
 from typing import Dict
 
@@ -34,6 +35,19 @@ from otns.cli import OTNS
 
 
 class BasicTests(OTNSTestCase):
+
+    def testOneRouter(self):
+        for i in range(100):
+            print(f"testOneRouter round {i + 1}", file=sys.stderr)
+            r = self.ns.add("router")
+            self.assertEqual(1, r)
+            self.ns.go(3)
+            self.assertFormPartitons(1)
+            self.assertNodeState(r, "leader")
+            self.ns.delete(r)
+            self.tearDown()
+            self.setUp()
+
     def testGetSetSpeed(self):
         ns = self.ns
         self.assertEqual(ns.speed, OTNS.MAX_SIMULATE_SPEED)

@@ -52,3 +52,6 @@ class OTNSTestCase(unittest.TestCase):
     def assertFormPartitions(self, count: int):
         pars = self.ns.partitions()
         self.assertTrue(len(pars) == count and 0 not in pars, pars)
+
+    def assertNodeState(self, nodeid: int, state: str):
+        self.assertEqual(state, self.ns.get_state(nodeid))
