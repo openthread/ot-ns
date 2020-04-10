@@ -29,11 +29,14 @@
 * :ref:`search`
 
 
-otns.cli
+otns.cli.OTNS
 ================================
 
-.. automodule:: otns.cli
+.. autoclass:: otns.cli.OTNS
    :members:
+
+otns.cli.errors
+================================
 
 .. automodule:: otns.cli.errors
    :members:
