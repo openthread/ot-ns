@@ -32,21 +32,10 @@ from typing import Dict
 from OTNSTestCase import OTNSTestCase
 from otns import consts
 from otns.cli import OTNS
+from test_consts import FIRST_LEADER_TIMEOUT
 
 
 class BasicTests(OTNSTestCase):
-
-    def testOneRouter(self):
-        for i in range(100):
-            print(f"testOneRouter round {i + 1}", file=sys.stderr)
-            r = self.ns.add("router")
-            self.assertEqual(1, r)
-            self.ns.go(3)
-            self.assertFormPartitons(1)
-            self.assertNodeState(r, "leader")
-            self.ns.delete(r)
-            self.tearDown()
-            self.setUp()
 
     def testGetSetSpeed(self):
         ns = self.ns
@@ -71,7 +60,7 @@ class BasicTests(OTNSTestCase):
             logging.info("testOneNode round %d", i + 1)
             ns = self.ns
             ns.add("router")
-            ns.go(3)
+            ns.go(FIRST_LEADER_TIMEOUT)
             self.assertFormPartitions(1)
             self.tearDown()
             self.setUp()
@@ -79,7 +68,7 @@ class BasicTests(OTNSTestCase):
     def testAddNode(self):
         ns = self.ns
         ns.add("router")
-        ns.go(10)
+        ns.go(FIRST_LEADER_TIMEOUT)
         self.assertFormPartitions(1)
 
         ns.add("router")
@@ -93,7 +82,7 @@ class BasicTests(OTNSTestCase):
         ns = self.ns
         ns.add("router")
         ns.add("router")
-        ns.go(10)
+        ns.go(FIRST_LEADER_TIMEOUT)
         self.assertFormPartitions(1)
         ns.delete(1)
         ns.go(10)
@@ -159,7 +148,7 @@ class BasicTests(OTNSTestCase):
     def testCliCmd(self):
         ns = self.ns
         id = ns.add("router")
-        ns.go(10)
+        ns.go(FIRST_LEADER_TIMEOUT)
         self.assertTrue(ns.get_state(id), 'leader')
 
     def testCounters(self):
