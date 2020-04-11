@@ -41,7 +41,7 @@ class BasicTests(OTNSTestCase):
             r = self.ns.add("router")
             self.assertEqual(1, r)
             self.ns.go(3)
-            self.assertNodeState(r, "leader")
+            self.assertTrue(self.ns.get_state(r), 'leader')
             self.assertFormPartitons(1)
             self.ns.delete(r)
 
