@@ -284,8 +284,13 @@ func (d *Dispatcher) handleRecvEvent(evt *event) {
 		}
 	}
 
-	simplelogger.Warnf("Node %d <<< %+v, cur time %d, node time %d, delay %d", evt.NodeId, *evt,
-		d.CurTime, int64(d.nodes[nodeid].CurTime)-int64(d.CurTime), evt.Delay)
+	if evt.Type == eventTypeStatusPush {
+		simplelogger.Warnf("Node %d <<< %+v, status=%s, cur time %d, node time %d, delay %d", evt.NodeId, *evt,
+			string(evt.Data), d.CurTime, int64(d.nodes[nodeid].CurTime)-int64(d.CurTime), evt.Delay)
+	} else {
+		simplelogger.Warnf("Node %d <<< %+v, cur time %d, node time %d, delay %d", evt.NodeId, *evt,
+			d.CurTime, int64(d.nodes[nodeid].CurTime)-int64(d.CurTime), evt.Delay)
+	}
 
 	delay := evt.Delay
 	var evtTime uint64
@@ -820,7 +825,7 @@ func (d *Dispatcher) visSend(srcid NodeId, dstid NodeId, pktframe *wpan.MacFrame
 func (d *Dispatcher) advanceTime(ts uint64) {
 	simplelogger.AssertTrue(d.CurTime <= ts, "%v > %v", d.CurTime, ts)
 	if d.CurTime < ts {
-		simplelogger.Warnf("Dispatcher Advance Time To %v", ts)
+		simplelogger.Warnf("Dispatcher Advance Time: %v -> %v", d.CurTime, ts)
 		oldTime := d.CurTime
 		d.CurTime = ts
 		elapsedTime := int64(d.CurTime - d.speedStartTime)
