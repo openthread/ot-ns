@@ -29,6 +29,7 @@ package simulation
 import (
 	"bufio"
 	"fmt"
+	"github.com/pkg/errors"
 	"io"
 	"io/ioutil"
 	"os"
@@ -89,8 +90,8 @@ func newNode(s *Simulation, id NodeId, cfg *NodeConfig) (*Node, error) {
 		Id:           id,
 		cfg:          cfg,
 		cmd:          cmd,
-		Input:        pipeIn,
-		Output:       bufio.NewReader(pipeOut),
+		input:        pipeIn,
+		output:       bufio.NewReader(pipeOut),
 		outputErr:    pipeOutErr,
 		pendingLines: make(chan string, 100),
 	}
@@ -107,8 +108,8 @@ type Node struct {
 	cfg *NodeConfig
 
 	cmd       *exec.Cmd
-	Input     io.WriteCloser
-	Output    io.Reader
+	input     io.WriteCloser
+	output    io.Reader
 	outputErr io.Reader
 
 	pendingLines chan string
@@ -144,7 +145,7 @@ func (node *Node) Stop() {
 }
 
 func (node *Node) Exit() error {
-	_, _ = node.Input.Write([]byte("exit\n"))
+	node.inputCommand("exit")
 	node.expectEOF(DefaultCommandTimeout)
 	err := node.cmd.Wait()
 	if err != nil {
@@ -153,28 +154,35 @@ func (node *Node) Exit() error {
 	return err
 }
 
+func (node *Node) inputCommand(cmd string) {
+	if _, err := node.input.Write([]byte(cmd + "\n")); err != nil {
+		panic(errors.Wrap(err, "input command failed"))
+	}
+	node.S.Dispatcher().NotifyNodeUARTOutput(node.Id)
+}
+
 func (node *Node) AssurePrompt() {
-	_, _ = node.Input.Write([]byte("\n"))
+	node.inputCommand("")
 	if found, _ := node.TryExpectLine("", time.Second); found {
 		return
 	}
 
-	_, _ = node.Input.Write([]byte("\n"))
+	node.inputCommand("")
 	if found, _ := node.TryExpectLine("", time.Second); found {
 		return
 	}
 
-	_, _ = node.Input.Write([]byte("\n"))
+	node.inputCommand("")
 	node.expectLine("", DefaultCommandTimeout)
 }
 
 func (node *Node) CommandExpectNone(cmd string, timeout time.Duration) {
-	_, _ = node.Input.Write([]byte(cmd + "\n"))
+	node.inputCommand(cmd)
 	node.expectLine(cmd, timeout)
 }
 
 func (node *Node) Command(cmd string, timeout time.Duration) []string {
-	_, _ = node.Input.Write([]byte(cmd + "\n"))
+	node.inputCommand(cmd)
 	node.expectLine(cmd, timeout)
 	output := node.expectLine(DoneOrErrorRegexp, timeout)
 
@@ -462,14 +470,14 @@ func (node *Node) SetLeaderWeight(weight int) {
 
 func (node *Node) FactoryReset() {
 	simplelogger.Warnf("%v - factoryreset", node)
-	_, _ = node.Input.Write([]byte("factoryreset\n"))
+	node.inputCommand("factoryreset")
 	node.AssurePrompt()
 	simplelogger.Debugf("%v - ready", node)
 }
 
 func (node *Node) Reset() {
 	simplelogger.Warnf("%v - reset", node)
-	_, _ = node.Input.Write([]byte("reset\n"))
+	node.inputCommand("reset")
 	node.AssurePrompt()
 	simplelogger.Debugf("%v - ready", node)
 }
@@ -559,7 +567,7 @@ func (node *Node) lineReader() {
 	// close the line channel after line reader routine exit
 	defer close(node.pendingLines)
 
-	scanner := bufio.NewScanner(otoutfilter.NewOTOutFilter(node.Output, node.String()))
+	scanner := bufio.NewScanner(otoutfilter.NewOTOutFilter(node.output, node.String()))
 	scanner.Split(bufio.ScanLines)
 
 	defer func() {
@@ -667,7 +675,7 @@ func (node *Node) CommandExpectEnabledOrDisabled(cmd string, timeout time.Durati
 
 func (node *Node) Ping(addr string, payloadSize int, count int, interval int, hopLimit int) {
 	cmd := fmt.Sprintf("ping %s %d %d %d %d", addr, payloadSize, count, interval, hopLimit)
-	_, _ = node.Input.Write([]byte(cmd + "\n"))
+	node.inputCommand(cmd)
 	node.expectLine(cmd, DefaultCommandTimeout)
 	node.AssurePrompt()
 }
