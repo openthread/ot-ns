@@ -68,7 +68,7 @@ install() {
 get_openthread() {
   if ! [[ -x $OT_DIR ]]; then
     mkdir -p "$(dirname $OT_DIR)"
-    git clone https://github.com/openthread/openthread.git $OT_DIR
+    git clone https://github.com/simonlingoogle/openthread.git --depth 1 --branch fix/otns-no-post $OT_DIR
     cd $OT_DIR
     ./bootstrap
     cd -
