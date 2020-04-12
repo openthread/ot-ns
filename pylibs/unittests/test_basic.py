@@ -55,27 +55,27 @@ class BasicTests(OTNSTestCase):
         ns = self.ns
         ns.add("router")
         ns.go(10)
-        self.assertFormPartitons(1)
+        self.assertFormPartitions(1)
 
     def testAddNode(self):
         ns = self.ns
         ns.add("router")
         ns.go(10)
-        self.assertFormPartitons(1)
+        self.assertFormPartitions(1)
 
         ns.add("router")
         ns.add("fed")
         ns.add("med")
         ns.add("sed")
         ns.go(100)
-        self.assertFormPartitons(1)
+        self.assertFormPartitions(1)
 
     def testDelNode(self):
         ns = self.ns
         ns.add("router")
         ns.add("router")
         ns.go(10)
-        self.assertFormPartitons(1)
+        self.assertFormPartitions(1)
         ns.delete(1)
         ns.go(10)
         self.assertTrue(len(ns.nodes()) == 1 and 1 not in ns.nodes())
@@ -88,7 +88,7 @@ class BasicTests(OTNSTestCase):
         ns.add("router")
         ns.add("router")
         ns.go(1000)
-        self.assertFormPartitons(3)
+        self.assertFormPartitions(3)
 
     def testRadioInRange(self):
         ns = self.ns
@@ -96,7 +96,7 @@ class BasicTests(OTNSTestCase):
         ns.add("router", 0, 0, radio_range=radio_range)
         ns.add("router", 0, radio_range - 1, radio_range=radio_range)
         ns.go(100)
-        self.assertFormPartitons(1)
+        self.assertFormPartitions(1)
 
     def testRadioNotInRange(self):
         ns = self.ns
@@ -104,23 +104,23 @@ class BasicTests(OTNSTestCase):
         ns.add("router", 0, 0, radio_range=radio_range)
         ns.add("router", 0, radio_range + 1, radio_range=radio_range)
         ns.go(100)
-        self.assertFormPartitons(2)
+        self.assertFormPartitions(2)
 
     def testNodeFailRecover(self):
         ns = self.ns
         ns.add("router")
         fid = ns.add("router")
         ns.go(100)
-        self.assertFormPartitons(1)
+        self.assertFormPartitions(1)
 
         ns.radio_off(fid)
         ns.go(240)
         print(ns.partitions())
-        self.assertFormPartitons(2)
+        self.assertFormPartitions(2)
 
         ns.radio_on(fid)
         ns.go(100)
-        self.assertFormPartitons(1)
+        self.assertFormPartitions(1)
 
     def testFailTime(self):
         ns = self.ns

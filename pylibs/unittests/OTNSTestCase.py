@@ -45,6 +45,6 @@ class OTNSTestCase(unittest.TestCase):
     def tearDown(self) -> None:
         self.ns.close()
 
-    def assertFormPartitons(self, count: int):
+    def assertFormPartitions(self, count: int):
         pars = self.ns.partitions()
         self.assertTrue(len(pars) == count and 0 not in pars, pars)
