@@ -40,7 +40,7 @@ class BasicTests(OTNSTestCase):
             print(f"testOneRouter round {i + 1}", file=sys.stderr)
             r = self.ns.add("router")
             self.assertEqual(1, r)
-            self.ns.go(10)
+            self.ns.go(5)
             self.assertTrue(self.ns.get_state(r), 'leader')
             self.assertFormPartitons(1)
             self.ns.delete(r)
