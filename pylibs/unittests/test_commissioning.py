@@ -61,7 +61,7 @@ class BasicTests(OTNSTestCase):
             ns.thread_start(id)
 
         ns.go(100)
-        self.assertFormPartitons(1)
+        self.assertFormPartitions(1)
 
     def testCommissioning(self):
         ns = self.ns
@@ -87,7 +87,7 @@ class BasicTests(OTNSTestCase):
         print('countes', c)
         joins = ns.joins()
         print('joins', joins)
-        self.assertFormPartitons(1)
+        self.assertFormPartitions(1)
         self.assertTrue(joins and joins[0][1] > 0)  # assert join success
 
 

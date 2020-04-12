@@ -116,7 +116,7 @@ func (node *Node) String() string {
 func (node *Node) Send(elapsed uint64, data []byte) {
 	msg := make([]byte, len(data)+11)
 	binary.LittleEndian.PutUint64(msg[:8], elapsed)
-	msg[8] = entTypeRadioReceived
+	msg[8] = eventTypeRadioReceived
 	binary.LittleEndian.PutUint16(msg[9:11], uint16(len(data)))
 	n := copy(msg[11:], data)
 	simplelogger.AssertTrue(n == len(data))

@@ -29,9 +29,9 @@ package dispatcher
 import . "github.com/openthread/ot-ns/types"
 
 const (
-	eventTypeAlarmFired  = 0
-	entTypeRadioReceived = 1
-	eventTypeStatusPush  = 5
+	eventTypeAlarmFired    = 0
+	eventTypeRadioReceived = 1
+	eventTypeStatusPush    = 5
 )
 
 type eventType = uint8

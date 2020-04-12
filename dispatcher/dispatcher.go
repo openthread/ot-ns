@@ -302,7 +302,7 @@ func (d *Dispatcher) handleRecvEvent(evt *event) {
 		d.Counters.AlarmEvents += 1
 		d.setSleeping(nodeid)
 		d.alarmMgr.SetTimestamp(nodeid, evtTime)
-	case entTypeRadioReceived:
+	case eventTypeRadioReceived:
 		simplelogger.AssertTrue(evt.Delay == 1)
 		d.Counters.RadioEvents += 1
 		d.sendQueue.Add(evtTime, nodeid, evt.Data)
