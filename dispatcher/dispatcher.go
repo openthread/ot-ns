@@ -304,9 +304,7 @@ func (d *Dispatcher) handleRecvEvent(evt *event) {
 	switch evt.Type {
 	case eventTypeAlarmFired:
 		d.Counters.AlarmEvents += 1
-		if evtTime < Ever {
-			d.setSleeping(nodeid)
-		}
+		d.setSleeping(nodeid)
 		d.alarmMgr.SetTimestamp(nodeid, evtTime)
 	case entTypeRadioReceived:
 		simplelogger.AssertTrue(evt.Delay == 1)
