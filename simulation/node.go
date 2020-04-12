@@ -64,15 +64,6 @@ func newNode(s *Simulation, id NodeId, cfg *NodeConfig) (*Node, error) {
 	}
 	simplelogger.Debugf("node exe path: %s", exePath)
 	cmd := exec.CommandContext(s.ctx, exePath, strconv.Itoa(id))
-	pipeIn, err := cmd.StdinPipe()
-	if err != nil {
-		return nil, err
-	}
-
-	pipeOut, err := cmd.StdoutPipe()
-	if err != nil {
-		return nil, err
-	}
 
 	pipeOutErr, err := cmd.StderrPipe()
 	if err != nil {
@@ -84,20 +75,20 @@ func newNode(s *Simulation, id NodeId, cfg *NodeConfig) (*Node, error) {
 		return nil, err
 	}
 
+	uartReader, uartWriter := io.Pipe()
+
 	n := &Node{
 		S:            s,
 		Id:           id,
 		cfg:          cfg,
 		cmd:          cmd,
-		Input:        pipeIn,
-		Output:       bufio.NewReader(pipeOut),
+		uartReader:   uartReader,
+		uartWriter:   uartWriter,
 		outputErr:    pipeOutErr,
 		pendingLines: make(chan string, 100),
 	}
 
 	go n.lineReader()
-	n.AssurePrompt()
-
 	return n, nil
 }
 
@@ -107,11 +98,11 @@ type Node struct {
 	cfg *NodeConfig
 
 	cmd       *exec.Cmd
-	Input     io.WriteCloser
-	Output    io.Reader
 	outputErr io.Reader
 
 	pendingLines chan string
+	uartWriter   *io.PipeWriter
+	uartReader   *io.PipeReader
 }
 
 func (node *Node) String() string {
@@ -144,37 +135,43 @@ func (node *Node) Stop() {
 }
 
 func (node *Node) Exit() error {
-	_, _ = node.Input.Write([]byte("exit\n"))
+	node.inputCommand("exit")
+	_ = node.uartReader.Close()
 	node.expectEOF(DefaultCommandTimeout)
 	err := node.cmd.Wait()
 	if err != nil {
 		simplelogger.Warnf("%s exit error: %+v", node, err)
 	}
+	node.S.Dispatcher().NotifyExit(node.Id)
 	return err
 }
 
 func (node *Node) AssurePrompt() {
-	_, _ = node.Input.Write([]byte("\n"))
+	node.inputCommand("")
 	if found, _ := node.TryExpectLine("", time.Second); found {
 		return
 	}
 
-	_, _ = node.Input.Write([]byte("\n"))
+	node.inputCommand("")
 	if found, _ := node.TryExpectLine("", time.Second); found {
 		return
 	}
 
-	_, _ = node.Input.Write([]byte("\n"))
+	node.inputCommand("")
 	node.expectLine("", DefaultCommandTimeout)
 }
 
+func (node *Node) inputCommand(cmd string) {
+	node.S.Dispatcher().SendUART(node.Id, []byte(cmd+"\n"))
+}
+
 func (node *Node) CommandExpectNone(cmd string, timeout time.Duration) {
-	_, _ = node.Input.Write([]byte(cmd + "\n"))
+	node.inputCommand(cmd)
 	node.expectLine(cmd, timeout)
 }
 
 func (node *Node) Command(cmd string, timeout time.Duration) []string {
-	_, _ = node.Input.Write([]byte(cmd + "\n"))
+	node.inputCommand(cmd)
 	node.expectLine(cmd, timeout)
 	output := node.expectLine(DoneOrErrorRegexp, timeout)
 
@@ -462,14 +459,14 @@ func (node *Node) SetLeaderWeight(weight int) {
 
 func (node *Node) FactoryReset() {
 	simplelogger.Warnf("%v - factoryreset", node)
-	_, _ = node.Input.Write([]byte("factoryreset\n"))
+	node.inputCommand("factoryreset")
 	node.AssurePrompt()
 	simplelogger.Debugf("%v - ready", node)
 }
 
 func (node *Node) Reset() {
 	simplelogger.Warnf("%v - reset", node)
-	_, _ = node.Input.Write([]byte("reset\n"))
+	node.inputCommand("reset")
 	node.AssurePrompt()
 	simplelogger.Debugf("%v - ready", node)
 }
@@ -559,14 +556,8 @@ func (node *Node) lineReader() {
 	// close the line channel after line reader routine exit
 	defer close(node.pendingLines)
 
-	scanner := bufio.NewScanner(otoutfilter.NewOTOutFilter(node.Output, node.String()))
+	scanner := bufio.NewScanner(otoutfilter.NewOTOutFilter(node.uartReader, node.String()))
 	scanner.Split(bufio.ScanLines)
-
-	defer func() {
-		if scanner.Err() != nil {
-			simplelogger.Errorf("%v read input error: %v", node, scanner.Err())
-		}
-	}()
 
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -616,6 +607,8 @@ func (node *Node) TryExpectLine(line interface{}, timeout time.Duration) (bool, 
 					fmt.Printf("%s\n", readLine)
 				}
 			}
+		default:
+			node.S.Dispatcher().RecvEvents()
 		}
 	}
 }
@@ -661,7 +654,7 @@ func (node *Node) CommandExpectEnabledOrDisabled(cmd string, timeout time.Durati
 
 func (node *Node) Ping(addr string, payloadSize int, count int, interval int, hopLimit int) {
 	cmd := fmt.Sprintf("ping %s %d %d %d %d", addr, payloadSize, count, interval, hopLimit)
-	_, _ = node.Input.Write([]byte(cmd + "\n"))
+	node.inputCommand(cmd)
 	node.expectLine(cmd, DefaultCommandTimeout)
 	node.AssurePrompt()
 }
@@ -715,4 +708,8 @@ func (node *Node) setupMode() {
 	} else {
 		node.SetRouterSelectionJitter(1)
 	}
+}
+
+func (node *Node) onUartWrite(data []byte) {
+	_, _ = node.uartWriter.Write(data)
 }

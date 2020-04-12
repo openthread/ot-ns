@@ -26,12 +26,16 @@
 
 package types
 
+import "math"
+
 type NodeId = int
 
 const (
 	MaxNodeId       NodeId = 0xffff
 	InvalidNodeId   NodeId = 0
 	BroadcastNodeId NodeId = -1
+
+	InvalidExtAddr uint64 = math.MaxUint64
 )
 
 type NodeMode struct {

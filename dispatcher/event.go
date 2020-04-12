@@ -31,6 +31,7 @@ import . "github.com/openthread/ot-ns/types"
 const (
 	eventTypeAlarmFired    = 0
 	eventTypeRadioReceived = 1
+	eventTypeUartWrite     = 2
 	eventTypeStatusPush    = 5
 )
 

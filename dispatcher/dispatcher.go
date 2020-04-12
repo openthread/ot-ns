@@ -76,6 +76,7 @@ func DefaultConfig() *Config {
 type CallbackHandler interface {
 	OnNodeFail(nodeid NodeId)
 	OnNodeRecover(nodeid NodeId)
+	OnUartWrite(nodeid NodeId, data []byte)
 }
 
 type goDuration struct {
@@ -114,6 +115,7 @@ type Dispatcher struct {
 		AlarmEvents      uint64
 		RadioEvents      uint64
 		StatusPushEvents uint64
+		UartWriteEvents  uint64
 		// Packet dispatching counters
 		DispatchByExtAddrSucc   uint64
 		DispatchByExtAddrFail   uint64
@@ -257,7 +259,7 @@ func (d *Dispatcher) goUntilPauseTime() {
 			break
 		}
 
-		d.recvEvents()
+		d.RecvEvents()
 		d.syncAliveNodes()
 
 		// process the next event
@@ -275,9 +277,8 @@ func (d *Dispatcher) handleRecvEvent(evt *event) {
 	nodeid := evt.NodeId
 	if _, ok := d.nodes[nodeid]; !ok {
 		if _, deleted := d.deletedNodes[nodeid]; !deleted {
-			// TODO: node should push extaddr to dispatcher
 			// can not find the node, and the node is not registered (created by OTNS)
-			d.newNode(nodeid, 0, -1, -1, 10000, DefaultNodeMode())
+			d.newNode(nodeid, -1, -1, 10000, DefaultNodeMode())
 		} else {
 			// the node is already deleted, ignore this message
 			return
@@ -309,12 +310,15 @@ func (d *Dispatcher) handleRecvEvent(evt *event) {
 	case eventTypeStatusPush:
 		d.Counters.StatusPushEvents += 1
 		d.handleStatusPush(evt.NodeId, string(evt.Data))
+	case eventTypeUartWrite:
+		d.Counters.UartWriteEvents += 1
+		d.handleUartWrite(evt.NodeId, evt.Data)
 	default:
 		simplelogger.Panicf("event type not implemented: %v", evt.Type)
 	}
 }
 
-func (d *Dispatcher) recvEvents() int {
+func (d *Dispatcher) RecvEvents() int {
 	blockTimeout := time.After(time.Second * 5)
 	count := 0
 
@@ -503,6 +507,31 @@ func (d *Dispatcher) advanceNodeTime(id NodeId, timestamp uint64, force bool) {
 	}
 }
 
+func (d *Dispatcher) SendUART(id NodeId, data []byte) {
+	node := d.nodes[id]
+
+	oldTime := node.CurTime
+	timestamp := d.CurTime
+	simplelogger.AssertTrue(timestamp >= oldTime)
+	elapsed := timestamp - oldTime
+
+	msg := make([]byte, len(data)+11)
+	binary.LittleEndian.PutUint64(msg[:8], elapsed)
+	msg[8] = eventTypeUartWrite
+	binary.LittleEndian.PutUint16(msg[9:11], uint16(len(data)))
+	n := copy(msg[11:], data)
+	simplelogger.AssertTrue(n == len(data))
+	node.SendMessage(msg)
+
+	node.CurTime = timestamp
+	if timestamp > oldTime {
+		node.failureCtrl.OnTimeAdvanced(oldTime)
+	}
+
+	d.alarmMgr.SetNotified(node.Id)
+	d.setAlive(node.Id)
+}
+
 func (d *Dispatcher) sendNodeMessage(sit *sendItem) {
 	// send the message to all nodes
 	srcnodeid := sit.NodeId
@@ -633,15 +662,13 @@ func (d *Dispatcher) sendOneMessage(sit *sendItem, srcnode *Node, dstnode *Node)
 	}
 }
 
-func (d *Dispatcher) newNode(nodeid NodeId, extaddr uint64, x, y int, radioRange int, mode NodeMode) (node *Node) {
-	node = newNode(d, nodeid, extaddr, x, y, radioRange)
+func (d *Dispatcher) newNode(nodeid NodeId, x, y int, radioRange int, mode NodeMode) (node *Node) {
+	node = newNode(d, nodeid, x, y, radioRange)
 	d.nodes[nodeid] = node
-	simplelogger.AssertNil(d.extaddrMap[extaddr])
-	d.extaddrMap[extaddr] = node
 	d.alarmMgr.AddNode(nodeid)
 	d.setAlive(nodeid)
 
-	d.vis.AddNode(nodeid, extaddr, x, y, radioRange, mode)
+	d.vis.AddNode(nodeid, InvalidExtAddr, x, y, radioRange, mode)
 	return
 }
 
@@ -780,10 +807,18 @@ func (d *Dispatcher) handleStatusPush(srcid NodeId, data string) {
 	}
 }
 
-func (d *Dispatcher) AddNode(nodeid NodeId, extaddr uint64, x, y int, radioRange int, mode NodeMode) {
+func (d *Dispatcher) AddNode(nodeid NodeId, x, y int, radioRange int, mode NodeMode) {
 	simplelogger.AssertNil(d.nodes[nodeid])
 	simplelogger.Infof("dispatcher add node %d", nodeid)
-	d.newNode(nodeid, extaddr, x, y, radioRange, mode)
+	node := d.newNode(nodeid, x, y, radioRange, mode)
+	deadline := time.Now().Add(time.Second * 10)
+	for node.ExtAddr == InvalidExtAddr && time.Now().Before(deadline) {
+		d.RecvEvents()
+	}
+	if node.ExtAddr == InvalidExtAddr {
+		// wait for extaddr change failed
+		simplelogger.Panicf("Expect node %d to change extaddr, but failed", nodeid)
+	}
 }
 
 func (d *Dispatcher) setNodeRloc16(srcid NodeId, rloc16 uint16) {
@@ -986,10 +1021,22 @@ func (d *Dispatcher) convertNodeMilliTime(node *Node, milliTime uint32) uint64 {
 }
 
 func (d *Dispatcher) onStatusPushExtAddr(node *Node, oldExtAddr uint64) {
-	simplelogger.AssertTrue(d.extaddrMap[oldExtAddr] == node)
+	if oldExtAddr == InvalidExtAddr {
+		simplelogger.AssertTrue(d.extaddrMap[oldExtAddr] == nil)
+	} else {
+		simplelogger.AssertTrue(d.extaddrMap[oldExtAddr] == node)
+		delete(d.extaddrMap, oldExtAddr)
+	}
 	simplelogger.AssertNil(d.extaddrMap[node.ExtAddr])
 
-	delete(d.extaddrMap, oldExtAddr)
 	d.extaddrMap[node.ExtAddr] = node
 	d.vis.OnExtAddrChange(node.Id, node.ExtAddr)
+}
+
+func (d *Dispatcher) handleUartWrite(nodeid NodeId, data []byte) {
+	d.cbHandler.OnUartWrite(nodeid, data)
+}
+
+func (d *Dispatcher) NotifyExit(nodeid NodeId) {
+	d.setSleeping(nodeid)
 }

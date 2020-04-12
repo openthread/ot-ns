@@ -87,16 +87,15 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 
 	s.nodes[nodeid] = node
 
-	extaddr := node.GetExtAddr()
-
 	simplelogger.Infof("simulation:CtrlAddNode: %+v, rawMode=%v", cfg, s.rawMode)
-	s.d.AddNode(nodeid, extaddr, cfg.X, cfg.Y, cfg.RadioRange, NodeMode{
+	s.d.AddNode(nodeid, cfg.X, cfg.Y, cfg.RadioRange, NodeMode{
 		RxOnWhenIdle:       !cfg.RxOffWhenIdle,
 		SecureDataRequests: true,
 		FullThreadDevice:   !cfg.IsMtd,
 		FullNetworkData:    true,
 	})
 
+	node.AssurePrompt()
 	node.setupMode()
 
 	if !s.rawMode {
@@ -169,6 +168,16 @@ func (s *Simulation) OnNodeFail(nodeid NodeId) {
 func (s *Simulation) OnNodeRecover(nodeid NodeId) {
 	node := s.nodes[nodeid]
 	simplelogger.AssertNotNil(node)
+}
+
+func (s *Simulation) OnUartWrite(nodeid NodeId, data []byte) {
+	//simplelogger.Warnf("OnUartWrite: nodeid=%v, data=%v", nodeid, data)
+	node := s.nodes[nodeid]
+	if node == nil {
+		return
+	}
+
+	node.onUartWrite(data)
 }
 
 func (s *Simulation) PostAsync(trivial bool, f func()) {

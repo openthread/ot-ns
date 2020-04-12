@@ -52,10 +52,13 @@ class BasicTests(OTNSTestCase):
         assert ns.packet_loss_ratio == 1
 
     def testOneNode(self):
-        ns = self.ns
-        ns.add("router")
-        ns.go(10)
-        self.assertFormPartitions(1)
+        for i in range(1000):
+            ns = self.ns
+            ns.add("router")
+            ns.go(5)
+            self.assertFormPartitions(1)
+            self.tearDown()
+            self.setUp()
 
     def testAddNode(self):
         ns = self.ns
