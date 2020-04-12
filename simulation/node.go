@@ -590,6 +590,12 @@ func (node *Node) lineReader() {
 func (node *Node) TryExpectLine(line interface{}, timeout time.Duration) (bool, []string) {
 	var outputLines []string
 
+	defer func() {
+		if len(outputLines) > 0 {
+			node.S.Dispatcher().NotifyNodeUARTOutput(node.Id)
+		}
+	}()
+
 	deadline := time.After(timeout)
 
 	for {

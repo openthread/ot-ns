@@ -998,3 +998,7 @@ func (d *Dispatcher) onStatusPushExtAddr(node *Node, oldExtAddr uint64) {
 	d.extaddrMap[node.ExtAddr] = node
 	d.vis.OnExtAddrChange(node.Id, node.ExtAddr)
 }
+
+func (d *Dispatcher) NotifyNodeUARTOutput(nodeid NodeId) {
+	d.setAlive(nodeid)
+}
