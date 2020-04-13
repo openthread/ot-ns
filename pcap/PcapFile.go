@@ -24,6 +24,7 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+// Package pcap implements PCAP file generating.
 package pcap
 
 import (
@@ -41,10 +42,12 @@ const (
 	pcapFrameHeaderSize = 16
 )
 
+// File represents a PCAP file.
 type File struct {
 	fd *os.File
 }
 
+// NewFile creates a new empty PCAP file.
 func NewFile(filename string) (*File, error) {
 	fd, err := os.OpenFile(filename, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
 	if err != nil {
@@ -63,6 +66,7 @@ func NewFile(filename string) (*File, error) {
 	return pf, nil
 }
 
+// AppendFrame appends a new packet frame to the PCAP file.
 func (pf *File) AppendFrame(ustime uint64, frame []byte) error {
 	var header [pcapFrameHeaderSize]byte
 	sec := uint32(ustime / 1000000)
@@ -83,10 +87,12 @@ func (pf *File) AppendFrame(ustime uint64, frame []byte) error {
 	return err
 }
 
+// Sync commits the current contents of the PCAP file to stable storage.
 func (pf *File) Sync() error {
 	return pf.fd.Sync()
 }
 
+// Close closes the PCAP file.
 func (pf *File) Close() error {
 	return pf.fd.Close()
 }

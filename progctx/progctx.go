@@ -113,6 +113,7 @@ func (ctx *ProgCtx) Defer(f func()) {
 	ctx.deferred = append(ctx.deferred, f)
 }
 
+// New creates a new ProgCtx from the parent context.
 func New(parent context.Context) *ProgCtx {
 	if parent == nil {
 		parent = context.Background()
