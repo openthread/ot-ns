@@ -54,7 +54,7 @@ class BasicRawTests(OTNSTestCase):
             self.ns.thread_start(nid)
 
         ns.go(10)
-        self.assertFormPartitons(1)
+        self.assertFormPartitions(1)
 
     def testDifferentPanid(self):
         ns = self.ns
@@ -71,7 +71,7 @@ class BasicRawTests(OTNSTestCase):
             self.ns.thread_start(nid)
 
         ns.go(10)
-        self.assertFormPartitons(2)
+        self.assertFormPartitions(2)
 
     def testDefaultNetworkName(self):
         r1 = self.ns.add("router")
