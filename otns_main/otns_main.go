@@ -24,6 +24,7 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+// Package otns_main implements the main entry for OTNS simulation programs.
 package otns_main
 
 import (
@@ -55,6 +56,7 @@ import (
 	"github.com/simonlingoogle/go-simplelogger"
 )
 
+// MainArgs defines all parameters of the Main entry.
 type MainArgs struct {
 	Speed    string
 	BinDir   string
@@ -82,6 +84,8 @@ func parseArgs() {
 	flag.Args()
 }
 
+// Main is the main entry of an OTNS simulation program.
+// It parses arguments, creates simulation, dispatcher and visualizer, and runs them.
 func Main(visualizerCreator func(ctx *progctx.ProgCtx, args *MainArgs) visualize.Visualizer) {
 	parseArgs()
 
