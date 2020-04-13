@@ -24,7 +24,7 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-// Package otns_main implements the main entry for OTNS simulation programs.
+// Package otns_main implements the main entry for an OTNS programs.
 package otns_main
 
 import (
@@ -56,15 +56,15 @@ import (
 	"github.com/simonlingoogle/go-simplelogger"
 )
 
-// MainArgs defines all parameters of the Main entry.
+// MainArgs defines all parameters of the an OTNS program.
 type MainArgs struct {
-	Speed    string
-	BinDir   string
-	AutoGo   bool
-	ReadOnly bool
-	LogLevel string
-	OpenWeb  bool
-	RawMode  bool
+	Speed    string // the simulating speed (default: 1)
+	BinDir   string // the path to directory containing OpenThread binaries (defualt: ".")
+	AutoGo   bool   // simulation automatically goes in time (default: true)
+	ReadOnly bool   // whether or not the simulation can be altered in web visualization (default: false)
+	LogLevel string // specify logging level (default: warn)
+	OpenWeb  bool   // open web browser (default: true)
+	RawMode  bool   // use raw mode (default: false)
 }
 
 var (
