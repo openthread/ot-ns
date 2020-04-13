@@ -56,7 +56,7 @@ class BasicTests(OTNSTestCase):
             logging.info("testOneNode round %d", i + 1)
             ns = self.ns
             ns.add("router")
-            ns.go(5)
+            ns.go(3)
             self.assertFormPartitions(1)
             self.tearDown()
             self.setUp()
