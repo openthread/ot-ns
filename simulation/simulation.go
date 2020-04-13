@@ -119,6 +119,8 @@ func (s *Simulation) Run() {
 	defer s.ctx.WaitDone("simulation")
 	defer simplelogger.Infof("simulation exit.")
 
+	defer s.Stop()
+
 	s.d.Run()
 }
 
@@ -139,6 +141,10 @@ func (s *Simulation) Channel() int {
 }
 
 func (s *Simulation) Stop() {
+	if s.IsStopped() {
+		return
+	}
+
 	simplelogger.Infof("stopping simulation ...")
 	for _, node := range s.nodes {
 		_ = node.Exit()
@@ -171,7 +177,6 @@ func (s *Simulation) OnNodeRecover(nodeid NodeId) {
 }
 
 func (s *Simulation) OnUartWrite(nodeid NodeId, data []byte) {
-	//simplelogger.Warnf("OnUartWrite: nodeid=%v, data=%v", nodeid, data)
 	node := s.nodes[nodeid]
 	if node == nil {
 		return
@@ -248,4 +253,8 @@ func (s *Simulation) Go(duration time.Duration) <-chan struct{} {
 func (s *Simulation) removeTmpDir() error {
 	// tmp directory is used by nodes for saving *.flash files. Need to be removed when simulation started
 	return os.RemoveAll("tmp")
+}
+
+func (s *Simulation) IsStopped() bool {
+	return s.nodes == nil
 }

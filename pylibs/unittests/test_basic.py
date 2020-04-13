@@ -53,6 +53,7 @@ class BasicTests(OTNSTestCase):
 
     def testOneNode(self):
         for i in range(1000):
+            print("testOneNode round %d" % i)
             ns = self.ns
             ns.add("router")
             ns.go(5)

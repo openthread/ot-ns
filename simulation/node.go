@@ -135,13 +135,10 @@ func (node *Node) Stop() {
 }
 
 func (node *Node) Exit() error {
-	node.inputCommand("exit")
+	node.cmd.Process.Kill()
 	_ = node.uartReader.Close()
 	node.expectEOF(DefaultCommandTimeout)
 	err := node.cmd.Wait()
-	if err != nil {
-		simplelogger.Warnf("%s exit error: %+v", node, err)
-	}
 	node.S.Dispatcher().NotifyExit(node.Id)
 	return err
 }

@@ -235,7 +235,6 @@ func (node *Node) onStatusPushExtAddr(extaddr uint64) {
 
 	node.ExtAddr = extaddr
 	node.D.onStatusPushExtAddr(node, oldExtAddr)
-	simplelogger.Warnf("Node %d extaddr changed: %016x -> %016x !", node.Id, oldExtAddr, extaddr)
 }
 
 func (node *Node) onJoinerState(state OtJoinerState) {
