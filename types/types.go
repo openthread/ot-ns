@@ -35,6 +35,7 @@ const (
 	InvalidNodeId   NodeId = 0
 	BroadcastNodeId NodeId = -1
 
+	// InvalidExtAddr defines the invalid extended address for nodes.
 	InvalidExtAddr uint64 = math.MaxUint64
 )
 

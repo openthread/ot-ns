@@ -176,6 +176,8 @@ func (s *Simulation) OnNodeRecover(nodeid NodeId) {
 	simplelogger.AssertNotNil(node)
 }
 
+// OnUartWrite notifies the simulation that a node has received some data from UART.
+// It is part of implementation of dispatcher.CallbackHandler.
 func (s *Simulation) OnUartWrite(nodeid NodeId, data []byte) {
 	node := s.nodes[nodeid]
 	if node == nil {
@@ -255,6 +257,7 @@ func (s *Simulation) removeTmpDir() error {
 	return os.RemoveAll("tmp")
 }
 
+// IsStopped returns if the simulation is already stopped.
 func (s *Simulation) IsStopped() bool {
 	return s.nodes == nil
 }
