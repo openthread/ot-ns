@@ -70,7 +70,9 @@ func enterNodeContext(nodeid NodeId) bool {
 // Run runs the CLI console.
 func Run(ctx *progctx.ProgCtx, sim *simulation.Simulation) {
 	var err error
-	defer ctx.Cancel(errors.Wrapf(err, "console exit"))
+	defer func() {
+		ctx.Cancel(errors.Wrapf(err, "console exit"))
+	}()
 
 	ctx.WaitAdd("cli", 1)
 	defer ctx.WaitDone("cli")

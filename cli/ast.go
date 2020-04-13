@@ -24,6 +24,8 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+// This file defines the format of all CLI commands and their flags.
+
 package cli
 
 import (
@@ -32,7 +34,6 @@ import (
 	"github.com/alecthomas/participle"
 )
 
-//noinspection GoStructTag
 type command struct {
 	Add        *AddCmd        `  @@` //nolint
 	CountDown  *CountDownCmd  `| @@` //nolint
@@ -43,7 +44,7 @@ type command struct {
 	Exit       *ExitCmd       `| @@` //nolint
 	Go         *GoCmd         `| @@` //nolint
 	Joins      *JoinsCmd      `| @@` //nolint
-	Move       *Move          `| @@` //nolint
+	Move       *MoveCmd       `| @@` //nolint
 	Node       *NodeCmd       `| @@` //nolint
 	Nodes      *NodesCmd      `| @@` //nolint
 	Partitions *PartitionsCmd `| @@` //nolint
@@ -56,14 +57,14 @@ type command struct {
 	Web        *WebCmd        `| @@` //nolint
 }
 
-//noinspection GoStructTag
+// DebugCmd defines the `debug` command format.
 type DebugCmd struct {
 	Cmd  struct{} `"debug"`            //nolint
 	Fail *string  `[ @"fail" ]`        //nolint
 	Echo *string  `[ "echo" @String ]` //nolint
 }
 
-//noinspection GoStructTag
+// GoCmd defines the `go` command format.
 type GoCmd struct {
 	Cmd     struct{}  `"go"`                      //nolint
 	Seconds float64   `( (@Int|@Float)`           //nolint
@@ -71,7 +72,7 @@ type GoCmd struct {
 	Speed   *float64  `[ "speed" (@Int|@Float) ]` //nolint
 }
 
-//noinspection GoStructTag
+// NodeSelector defines the node selector format.
 type NodeSelector struct {
 	Id int `@Int` //nolint
 }
@@ -80,37 +81,37 @@ func (ns *NodeSelector) String() string {
 	return strconv.Itoa(ns.Id)
 }
 
-//noinspection GoStructTag
+// Ipv6Address defines the IPv6 address format.
 type Ipv6Address struct {
 	Addr string `@String` //nolint
 }
 
-//noinspection GoStructTag
+// AddrType defines the `address type` flag format for specifying address type.
 type AddrType struct {
 	Type string `@( "any" | "mleid" | "rloc" | "aloc" | "linklocal" )` //nolint
 }
 
-//noinspection GoStructTag
+// DataSizeFlag defines the `datasize` flag format for specifying data size.
 type DataSizeFlag struct {
 	Val int `("datasize"|"ds") @Int` //nolint
 }
 
-//noinspection GoStructTag
+// IntervalFlag defines the `interval` flag format for specifying time interval.
 type IntervalFlag struct {
 	Val int `("interval"|"itv") @Int` //nolint
 }
 
-//noinspection GoStructTag
+// CountFlag defines the `count` flag format for specifying count.
 type CountFlag struct {
 	Val int `("count" | "c") @Int` //nolint
 }
 
-//noinspection GoStructTag
+// HopLimitFlag defines the `hop limit` flag format for specifying hop limit.
 type HopLimitFlag struct {
 	Val int `("hoplimit" | "hl") @Int` //nolint
 }
 
-//noinspection GoStructTag
+// PingCmd defines the `ping` command format.
 type PingCmd struct {
 	Cmd      struct{}      `"ping"`   //nolint
 	Src      NodeSelector  `@@`       //nolint
@@ -123,14 +124,14 @@ type PingCmd struct {
 	HopLimit *HopLimitFlag `| @@ )*`  //nolint
 }
 
-//noinspection GoStructTag
+// NodeCmd defines `node` command format.
 type NodeCmd struct {
 	Cmd     struct{}     `"node"`      //nolint
 	Node    NodeSelector `@@`          //nolint
 	Command *string      `[ @String ]` //nolint
 }
 
-//noinspection GoStructTag
+// DemoLegendCmd defines the `demo_legend` command format.
 type DemoLegendCmd struct {
 	Cmd   struct{} `"demo_legend"` //nolint
 	Title string   `@String`       //nolint
@@ -138,27 +139,27 @@ type DemoLegendCmd struct {
 	Y     int      `@Int`          //nolint
 }
 
-//noinspection GoStructTag
+// CountDownCmd defines the `countdown` command format.
 type CountDownCmd struct {
 	Cmd     struct{} `"countdown"` //nolint
 	Seconds int      `@Int`        //nolint
 	Text    *string  `[ @String ]` //nolint
 }
 
-//noinspection GoStructTag
+// ScanCmd defines the `scan` command format.
 type ScanCmd struct {
 	Cmd  struct{}     `"scan"` //nolint
 	Node NodeSelector `@@`     // nolint
 }
 
-//noinspection GoStructTag
+// SpeedCmd defines the `speed` command format.
 type SpeedCmd struct {
 	Cmd   struct{}      `"speed"`               //nolint
 	Max   *MaxSpeedFlag `( @@`                  //nolint
 	Speed *float64      `| [ (@Int|@Float) ] )` //nolint
 }
 
-//noinspection GoStructTag
+// AddCmd defines the `add` command format.
 type AddCmd struct {
 	Cmd        struct{}        `"add"`                //nolint
 	Type       NodeType        `@@`                   //nolint
@@ -168,53 +169,48 @@ type AddCmd struct {
 	RadioRange *RadioRangeFlag `|@@ )*`               //nolint
 }
 
-//noinspection GoStructTag
+// RadioRangeFlag defines the `radio range` flag format.
 type RadioRangeFlag struct {
 	Val int `"rr" @Int` //nolint
 }
 
-//noinspection MaxSpeedFlag
+// MaxSpeedFlag defines the `max speed` flag format.
 type MaxSpeedFlag struct {
 	Dummy struct{} `( "max" | "inf")` //nolint
 }
 
-//noinspection GoStructTag
+// NodeType defines the `node type` flag for specifying node types.
 type NodeType struct {
 	Val string `@("router"|"fed"|"med"|"sed")` //nolint
 }
 
-//noinspection GoStructTag
+// AddNodeId defines the `id` flag format for specifying node ID.
 type AddNodeId struct {
 	Val int `"id" @Int` //nolint
 }
 
-//noinspection GoStructTag
+// DelCmd defines the `del` command format.
 type DelCmd struct {
 	Cmd   struct{}       `"del"`   //nolint
 	Nodes []NodeSelector `( @@ )+` //nolint
 }
 
-//noinspection GoStructTag
+// EverFlag defines the `ever` flag format.
 type EverFlag struct {
 	Dummy struct{} `"ever"` //nolint
 }
 
-//noinspection GoStructTag
-type Empty struct {
-	Empty struct{} `""` //nolint
-}
-
-//noinspection GoStructTag
+// ExitCmd defines the `exit` command format.
 type ExitCmd struct {
 	Cmd struct{} `"exit"` //nolint
 }
 
-//noinspection GoStructTag
+// WebCmd defines the `web` command format.
 type WebCmd struct {
 	Cmd struct{} `"web"` //nolint
 }
 
-//noinspection GoStructTag
+// RadioCmd defines the `radio` command format.
 type RadioCmd struct {
 	Cmd      struct{}        `"radio"` //nolint
 	Nodes    []NodeSelector  `( @@ )+` //nolint
@@ -223,70 +219,60 @@ type RadioCmd struct {
 	FailTime *FailTimeParams `| @@ )`  //nolint
 }
 
-//noinspection GoStructTag
+// OnFlag defines the `on` flag format.
 type OnFlag struct {
 	Dummy struct{} `"on"` //nolint
 }
 
-//noinspection GoStructTag
+// OffFlag defines the `off` flag format.
 type OffFlag struct {
 	Dummy struct{} `"off"` //nolint
 }
 
-//noinspection GoStructTag
-type Move struct {
+// MoveCmd defines the `move` command format.
+type MoveCmd struct {
 	Cmd    struct{}     `"move"` //nolint
 	Target NodeSelector `@@`     //nolint
 	X      int          `@Int`   //nolint
 	Y      int          `@Int`   //nolint
 }
 
-//noinspection GoStructTag
+// NodesCmd defines the `nodes` command format.
 type NodesCmd struct {
 	Cmd struct{} `"nodes"` //nolint
 }
 
-//noinspection GoStructTag
+// PartitionsCmd defines the `partitions` command format.
 type PartitionsCmd struct {
 	Cmd struct{} `( "partitions" | "pts")` //nolint
 }
 
-//noinspection GoStructTag
+// PingsCmd defines the `pings` command format.
 type PingsCmd struct {
 	Cmd struct{} `"pings"` //nolint
 }
 
-//noinspection GoStructTag
+// JoinsCmd defines the `joins` command format.
 type JoinsCmd struct {
 	Cmd struct{} `"joins"` //nolint
 }
 
-//noinspection GoStructTag
+// CountersCmd defies the `counters` command format.
 type CountersCmd struct {
 	Cmd struct{} `"counters"` //nolint
 }
 
-//noinspection GoStructTag
+// PlrCmd defines the `plr` command format.
 type PlrCmd struct {
 	Cmd struct{} `"plr"`             //nolint
 	Val *float64 `[ (@Int|@Float) ]` //nolint
 }
 
-//noinspection GoStructTag
+// FailTimeParams defines the fail time parameters format.
 type FailTimeParams struct {
 	Dummy        struct{} `"ft"`          //nolint
 	FailDuration float64  `(@Int|@Float)` //nolint
 	FailInterval float64  `(@Int|@Float)` //nolint
-}
-
-//noinspection GoStructTag
-type NoneFlag struct {
-	Dummy struct{} `"none"` //nolint
-}
-
-//noinspection GoStructTag
-type GuiFlag struct {
-	Dummy struct{} `"gui"` //nolint
 }
 
 var (

@@ -431,7 +431,7 @@ func (rt *cmdRunner) executeRadio(cc *commandContext, radio *RadioCmd) {
 	})
 }
 
-func (rt *cmdRunner) executeMoveNode(cc *commandContext, cmd *Move) {
+func (rt *cmdRunner) executeMoveNode(cc *commandContext, cmd *MoveCmd) {
 	rt.postAsyncWait(func(sim *simulation.Simulation) {
 		sim.MoveNodeTo(cmd.Target.Id, cmd.X, cmd.Y)
 	})
