@@ -24,7 +24,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-
+import logging
 import unittest
 from typing import Dict
 
@@ -53,7 +53,7 @@ class BasicTests(OTNSTestCase):
 
     def testOneNode(self):
         for i in range(1000):
-            print("testOneNode round %d" % i)
+            logging.info("testOneNode round %d", i + 1)
             ns = self.ns
             ns.add("router")
             ns.go(5)
