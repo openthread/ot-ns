@@ -41,8 +41,6 @@ import (
 
 	"github.com/openthread/ot-ns/web"
 
-	"github.com/pkg/errors"
-
 	"github.com/openthread/ot-ns/progctx"
 	"github.com/openthread/ot-ns/visualize"
 
@@ -115,11 +113,7 @@ func Main(visualizerCreator func(ctx *progctx.ProgCtx, args *MainArgs) visualize
 	sim := createSimulation(ctx)
 	sim.SetVisualizer(vis)
 	go sim.Run()
-	rt := cli.NewCmdRunner(ctx, sim)
-	go func() {
-		err := cli.Run(rt)
-		ctx.Cancel(errors.Wrapf(err, "console exit"))
-	}()
+	go cli.Run(ctx, sim)
 
 	go func() {
 		err := webSite.Serve()

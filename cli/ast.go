@@ -33,7 +33,7 @@ import (
 )
 
 //noinspection GoStructTag
-type Command struct {
+type command struct {
 	Add        *AddCmd        `  @@` //nolint
 	CountDown  *CountDownCmd  `| @@` //nolint
 	Counters   *CountersCmd   `| @@` //nolint
@@ -54,33 +54,6 @@ type Command struct {
 	Scan       *ScanCmd       `| @@` //nolint
 	Speed      *SpeedCmd      `| @@` //nolint
 	Web        *WebCmd        `| @@` //nolint
-}
-
-//noinspection GoStructTag
-type FullScreen struct {
-	FullScreen struct{} `"fs"` //nolint
-}
-
-//noinspection GoStructTag
-type RadioRange struct {
-	Val int `"rr" @Int` //nolint
-}
-
-//noinspection GoStructTag
-type FieldWidth struct {
-	Val int `"fw" @Int` //nolint
-}
-
-//noinspection GoStructTag
-type FieldHeight struct {
-	Val int `"fh" @Int` //nolint
-}
-
-//noinspection GoStructTag
-type VisualizeArg struct {
-	Flag struct{}  `"v"`    //nolint
-	None *NoneFlag `( @@`   //nolint
-	Gui  *GuiFlag  `| @@ )` //nolint
 }
 
 //noinspection GoStructTag
@@ -317,10 +290,10 @@ type GuiFlag struct {
 }
 
 var (
-	commandParser = participle.MustBuild(&Command{})
+	commandParser = participle.MustBuild(&command{})
 )
 
-func ParseBytes(b []byte, cmd *Command) error {
+func parseCmdBytes(b []byte, cmd *command) error {
 	err := commandParser.ParseBytes(b, cmd)
 	return err
 }

@@ -24,11 +24,15 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+// Package cli implements the OTNS-CLI. It parses and executes CLI commands.
 package cli
 
 import (
 	"fmt"
+	"github.com/openthread/ot-ns/progctx"
+	"github.com/openthread/ot-ns/simulation"
 	. "github.com/openthread/ot-ns/types"
+	"github.com/pkg/errors"
 	"github.com/simonlingoogle/go-simplelogger"
 	"io"
 	"os"
@@ -39,7 +43,7 @@ import (
 )
 
 const (
-	Prompt = "> "
+	prompt = "> " // the default CLI prompt
 )
 
 var (
@@ -56,18 +60,26 @@ func enterNodeContext(nodeid NodeId) bool {
 
 	contextNodeId = nodeid
 	if nodeid == InvalidNodeId {
-		readlineInstance.SetPrompt(Prompt)
+		readlineInstance.SetPrompt(prompt)
 	} else {
-		readlineInstance.SetPrompt(fmt.Sprintf("node %d%s", contextNodeId, Prompt))
+		readlineInstance.SetPrompt(fmt.Sprintf("node %d%s", contextNodeId, prompt))
 	}
 	return true
 }
 
-func Run(cr *CmdRunner) error {
-	ctx := cr.ctx
+// Run runs the CLI console.
+func Run(ctx *progctx.ProgCtx, sim *simulation.Simulation) {
+	var err error
+	defer ctx.Cancel(errors.Wrapf(err, "console exit"))
 
 	ctx.WaitAdd("cli", 1)
 	defer ctx.WaitDone("cli")
+
+	err = run(ctx, sim)
+}
+
+func run(ctx *progctx.ProgCtx, sim *simulation.Simulation) error {
+	cr := newCmdRunner(ctx, sim)
 
 	stdinFd := int(os.Stdin.Fd())
 	stdinIsTerminal := readline.IsTerminal(stdinFd)
@@ -95,7 +107,7 @@ func Run(cr *CmdRunner) error {
 	}
 
 	l, err := readline.NewEx(&readline.Config{
-		Prompt:          Prompt,
+		Prompt:          prompt,
 		HistoryFile:     "/tmp/otns-cmds.tmp",
 		InterruptPrompt: "^C",
 		EOFPrompt:       "exit",
@@ -146,7 +158,7 @@ func Run(cr *CmdRunner) error {
 
 		if contextNodeId != InvalidNodeId && !isContextlessCommand(line) {
 			// run the command in node context
-			cmd := &Command{
+			cmd := &command{
 				Node: &NodeCmd{
 					Node:    NodeSelector{Id: contextNodeId},
 					Command: &line,
@@ -165,8 +177,8 @@ func Run(cr *CmdRunner) error {
 			}
 		} else {
 			// run the OTNS-CLI command
-			cmd := &Command{}
-			if err := ParseBytes([]byte(line), cmd); err != nil {
+			cmd := &command{}
+			if err := parseCmdBytes([]byte(line), cmd); err != nil {
 				if _, err := fmt.Fprintf(os.Stdout, "Error: %v\n", err); err != nil {
 					return err
 				}

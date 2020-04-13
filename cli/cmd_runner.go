@@ -27,7 +27,6 @@
 package cli
 
 import (
-	"context"
 	"fmt"
 	"reflect"
 	"strings"
@@ -45,37 +44,37 @@ import (
 	"github.com/simonlingoogle/go-simplelogger"
 )
 
-type CommandContext struct {
-	context.Context
-	*Command
-	rt  *CmdRunner
-	err error
+// commandContext is the context of an executing command.
+type commandContext struct {
+	*command // the executing command
+	rt       *cmdRunner
+	err      error
 }
 
-func (cc *CommandContext) outputf(format string, args ...interface{}) {
+func (cc *commandContext) outputf(format string, args ...interface{}) {
 	fmt.Printf(format, args...)
 }
 
-func (cc *CommandContext) errorf(format string, args ...interface{}) {
+func (cc *commandContext) errorf(format string, args ...interface{}) {
 	cc.err = errors.Errorf(format, args...)
 }
 
-func (cc *CommandContext) error(err error) {
+func (cc *commandContext) error(err error) {
 	cc.err = err
 }
 
-func (cc *CommandContext) Err() error {
+func (cc *commandContext) Err() error {
 	return cc.err
 }
 
-type CmdRunner struct {
+type cmdRunner struct {
 	sim *simulation.Simulation
 	ctx *progctx.ProgCtx
 }
 
-func (rt *CmdRunner) Execute(cmd *Command) (cc *CommandContext) {
-	cc = &CommandContext{
-		Command: cmd,
+func (rt *cmdRunner) Execute(cmd *command) (cc *commandContext) {
+	cc = &commandContext{
+		command: cmd,
 		rt:      rt,
 	}
 
@@ -137,7 +136,7 @@ func (rt *CmdRunner) Execute(cmd *Command) (cc *CommandContext) {
 	return
 }
 
-func (rt *CmdRunner) executeGo(cc *CommandContext, cmd *GoCmd) {
+func (rt *cmdRunner) executeGo(cc *commandContext, cmd *GoCmd) {
 	if cmd.Speed != nil {
 		rt.postAsyncWait(func(sim *simulation.Simulation) {
 			sim.SetSpeed(*cmd.Speed)
@@ -161,7 +160,7 @@ func (rt *CmdRunner) executeGo(cc *CommandContext, cmd *GoCmd) {
 	}
 }
 
-func (rt *CmdRunner) executeSpeed(cc *CommandContext, cmd *SpeedCmd) {
+func (rt *cmdRunner) executeSpeed(cc *commandContext, cmd *SpeedCmd) {
 	rt.postAsyncWait(func(sim *simulation.Simulation) {
 		if cmd.Speed == nil && cmd.Max == nil {
 			cc.outputf("%v\n", sim.GetSpeed())
@@ -173,7 +172,7 @@ func (rt *CmdRunner) executeSpeed(cc *CommandContext, cmd *SpeedCmd) {
 	})
 }
 
-func (rt *CmdRunner) postAsyncWait(f func(sim *simulation.Simulation)) {
+func (rt *cmdRunner) postAsyncWait(f func(sim *simulation.Simulation)) {
 	done := make(chan struct{})
 	rt.sim.PostAsync(false, func() {
 		f(rt.sim)
@@ -182,7 +181,7 @@ func (rt *CmdRunner) postAsyncWait(f func(sim *simulation.Simulation)) {
 	<-done
 }
 
-func (rt *CmdRunner) executeAddNode(cc *CommandContext, cmd *AddCmd) {
+func (rt *cmdRunner) executeAddNode(cc *commandContext, cmd *AddCmd) {
 	simplelogger.Infof("Add: %#v", *cmd)
 	cfg := simulation.DefaultNodeConfig()
 	if cmd.X != nil {
@@ -231,7 +230,7 @@ func (rt *CmdRunner) executeAddNode(cc *CommandContext, cmd *AddCmd) {
 	})
 }
 
-func (rt *CmdRunner) executeDelNode(cc *CommandContext, cmd *DelCmd) {
+func (rt *cmdRunner) executeDelNode(cc *commandContext, cmd *DelCmd) {
 	rt.postAsyncWait(func(sim *simulation.Simulation) {
 		for _, sel := range cmd.Nodes {
 			node, _ := rt.getNode(sim, &sel)
@@ -245,7 +244,7 @@ func (rt *CmdRunner) executeDelNode(cc *CommandContext, cmd *DelCmd) {
 	})
 }
 
-func (rt *CmdRunner) executeExit(cc *CommandContext, cmd *ExitCmd) {
+func (rt *cmdRunner) executeExit(cc *commandContext, cmd *ExitCmd) {
 	if enterNodeContext(InvalidNodeId) {
 		return
 	}
@@ -256,7 +255,7 @@ func (rt *CmdRunner) executeExit(cc *CommandContext, cmd *ExitCmd) {
 	rt.ctx.Cancel("exit")
 }
 
-func (rt *CmdRunner) executePing(cc *CommandContext, cmd *PingCmd) {
+func (rt *cmdRunner) executePing(cc *commandContext, cmd *PingCmd) {
 	simplelogger.Debugf("ping %#v", cmd)
 	rt.postAsyncWait(func(sim *simulation.Simulation) {
 		src, _ := rt.getNode(sim, &cmd.Src)
@@ -308,7 +307,7 @@ func (rt *CmdRunner) executePing(cc *CommandContext, cmd *PingCmd) {
 	})
 }
 
-func (rt *CmdRunner) getNode(sim *simulation.Simulation, sel *NodeSelector) (*simulation.Node, *dispatcher.Node) {
+func (rt *cmdRunner) getNode(sim *simulation.Simulation, sel *NodeSelector) (*simulation.Node, *dispatcher.Node) {
 	if sel.Id > 0 {
 		return sim.Nodes()[sel.Id], sim.Dispatcher().Nodes()[sel.Id]
 	}
@@ -316,7 +315,7 @@ func (rt *CmdRunner) getNode(sim *simulation.Simulation, sel *NodeSelector) (*si
 	panic("node selector not implemented")
 }
 
-func (rt *CmdRunner) getAddrs(node *simulation.Node, addrType *AddrType) []string {
+func (rt *cmdRunner) getAddrs(node *simulation.Node, addrType *AddrType) []string {
 	if node == nil {
 		return nil
 	}
@@ -345,7 +344,7 @@ func (rt *CmdRunner) getAddrs(node *simulation.Node, addrType *AddrType) []strin
 	return addrs
 }
 
-func (rt *CmdRunner) executeDebug(cc *CommandContext, cmd *DebugCmd) {
+func (rt *cmdRunner) executeDebug(cc *commandContext, cmd *DebugCmd) {
 	simplelogger.Infof("debug %#v", *cmd)
 
 	if cmd.Echo != nil {
@@ -357,7 +356,7 @@ func (rt *CmdRunner) executeDebug(cc *CommandContext, cmd *DebugCmd) {
 	}
 }
 
-func (rt *CmdRunner) executeNode(cc *CommandContext, cmd *NodeCmd) {
+func (rt *cmdRunner) executeNode(cc *commandContext, cmd *NodeCmd) {
 	contextNodeId := InvalidNodeId
 	rt.postAsyncWait(func(sim *simulation.Simulation) {
 		node, _ := rt.getNode(sim, &cmd.Node)
@@ -389,13 +388,13 @@ func (rt *CmdRunner) executeNode(cc *CommandContext, cmd *NodeCmd) {
 	}
 }
 
-func (rt *CmdRunner) executeDemoLegend(cc *CommandContext, cmd *DemoLegendCmd) {
+func (rt *cmdRunner) executeDemoLegend(cc *commandContext, cmd *DemoLegendCmd) {
 	rt.postAsyncWait(func(sim *simulation.Simulation) {
 		sim.ShowDemoLegend(cmd.X, cmd.Y, cmd.Title)
 	})
 }
 
-func (rt *CmdRunner) executeCountDown(cc *CommandContext, cmd *CountDownCmd) {
+func (rt *cmdRunner) executeCountDown(cc *commandContext, cmd *CountDownCmd) {
 	title := "%v"
 	if cmd.Text != nil {
 		title = *cmd.Text
@@ -405,7 +404,7 @@ func (rt *CmdRunner) executeCountDown(cc *CommandContext, cmd *CountDownCmd) {
 	})
 }
 
-func (rt *CmdRunner) executeRadio(cc *CommandContext, radio *RadioCmd) {
+func (rt *cmdRunner) executeRadio(cc *commandContext, radio *RadioCmd) {
 	rt.postAsyncWait(func(sim *simulation.Simulation) {
 		for _, sel := range radio.Nodes {
 			node, dnode := rt.getNode(sim, &sel)
@@ -432,13 +431,13 @@ func (rt *CmdRunner) executeRadio(cc *CommandContext, radio *RadioCmd) {
 	})
 }
 
-func (rt *CmdRunner) executeMoveNode(cc *CommandContext, cmd *Move) {
+func (rt *cmdRunner) executeMoveNode(cc *commandContext, cmd *Move) {
 	rt.postAsyncWait(func(sim *simulation.Simulation) {
 		sim.MoveNodeTo(cmd.Target.Id, cmd.X, cmd.Y)
 	})
 }
 
-func (rt *CmdRunner) executeLsNodes(cc *CommandContext, cmd *NodesCmd) {
+func (rt *cmdRunner) executeLsNodes(cc *commandContext, cmd *NodesCmd) {
 	rt.postAsyncWait(func(sim *simulation.Simulation) {
 		for nodeid := range sim.Nodes() {
 			dnode := sim.Dispatcher().GetNode(nodeid)
@@ -450,7 +449,7 @@ func (rt *CmdRunner) executeLsNodes(cc *CommandContext, cmd *NodesCmd) {
 	})
 }
 
-func (rt *CmdRunner) executeLsPartitions(cc *CommandContext) {
+func (rt *cmdRunner) executeLsPartitions(cc *commandContext) {
 	pars := map[uint32][]NodeId{}
 
 	rt.postAsyncWait(func(sim *simulation.Simulation) {
@@ -472,7 +471,7 @@ func (rt *CmdRunner) executeLsPartitions(cc *CommandContext) {
 	}
 }
 
-func (rt *CmdRunner) executeCollectPings(cc *CommandContext, pings *PingsCmd) {
+func (rt *cmdRunner) executeCollectPings(cc *commandContext, pings *PingsCmd) {
 	allPings := make(map[NodeId][]*dispatcher.PingResult)
 	rt.postAsyncWait(func(sim *simulation.Simulation) {
 		d := sim.Dispatcher()
@@ -491,7 +490,7 @@ func (rt *CmdRunner) executeCollectPings(cc *CommandContext, pings *PingsCmd) {
 	}
 }
 
-func (rt *CmdRunner) executeCollectJoins(cc *CommandContext, joins *JoinsCmd) {
+func (rt *cmdRunner) executeCollectJoins(cc *commandContext, joins *JoinsCmd) {
 	allJoins := make(map[NodeId][]*dispatcher.JoinResult)
 
 	rt.postAsyncWait(func(sim *simulation.Simulation) {
@@ -511,7 +510,7 @@ func (rt *CmdRunner) executeCollectJoins(cc *CommandContext, joins *JoinsCmd) {
 	}
 }
 
-func (rt *CmdRunner) executeCounters(cc *CommandContext, counters *CountersCmd) {
+func (rt *cmdRunner) executeCounters(cc *commandContext, counters *CountersCmd) {
 	rt.postAsyncWait(func(sim *simulation.Simulation) {
 		d := sim.Dispatcher()
 		countersVal := reflect.ValueOf(d.Counters)
@@ -524,13 +523,13 @@ func (rt *CmdRunner) executeCounters(cc *CommandContext, counters *CountersCmd) 
 	})
 }
 
-func (rt *CmdRunner) executeWeb(cc *CommandContext, webcmd *WebCmd) {
+func (rt *cmdRunner) executeWeb(cc *commandContext, webcmd *WebCmd) {
 	if err := web.OpenWeb(rt.ctx); err != nil {
 		cc.error(err)
 	}
 }
 
-func (rt *CmdRunner) executePlr(cc *CommandContext, cmd *PlrCmd) {
+func (rt *cmdRunner) executePlr(cc *commandContext, cmd *PlrCmd) {
 	if cmd.Val == nil {
 		// get PLR
 		var plr float64
@@ -550,7 +549,7 @@ func (rt *CmdRunner) executePlr(cc *CommandContext, cmd *PlrCmd) {
 	}
 }
 
-func (rt *CmdRunner) executeScan(cc *CommandContext, cmd *ScanCmd) {
+func (rt *cmdRunner) executeScan(cc *commandContext, cmd *ScanCmd) {
 	rt.postAsyncWait(func(sim *simulation.Simulation) {
 		node, _ := rt.getNode(sim, &cmd.Node)
 		if node == nil {
@@ -574,8 +573,9 @@ func (rt *CmdRunner) executeScan(cc *CommandContext, cmd *ScanCmd) {
 	}
 }
 
-func NewCmdRunner(ctx *progctx.ProgCtx, sim *simulation.Simulation) *CmdRunner {
-	r := &CmdRunner{
+// newCmdRunner creates a command runner for a simulation.
+func newCmdRunner(ctx *progctx.ProgCtx, sim *simulation.Simulation) *cmdRunner {
+	r := &cmdRunner{
 		ctx: ctx,
 		sim: sim,
 	}
