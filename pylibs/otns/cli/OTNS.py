@@ -36,7 +36,7 @@ from .errors import OTNSCliError, OTNSCliEOFError
 
 class OTNS(object):
     """
-    OTNS represents a OTNS simulation.
+    OTNS represents an OTNS simulation.
     """
 
     MAX_SIMULATE_SPEED = 1000000  # Max simulating speed
@@ -60,7 +60,7 @@ class OTNS(object):
         """
         Close OTNS simulation.
 
-        :param timeout: timeout for waiting otns process to quit
+        :param timeout: timeout for waiting otns process to quit, or None to wait indefinitely.
         """
         logging.info("waiting for OTNS to close ...")
         self._otns.stdin.close()
@@ -101,6 +101,7 @@ class OTNS(object):
     def speed(self, speed: float):
         """
         Set simulating speed.
+
         :param speed: new simulating speed
         """
         if speed >= OTNS.MAX_SIMULATE_SPEED:

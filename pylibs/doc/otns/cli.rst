@@ -29,15 +29,8 @@
 * :ref:`search`
 
 
-otns.cli.OTNS
+OTNS-CLI Utilities
 ================================
 
-.. autoclass:: otns.cli.OTNS
-   :members:
-
-otns.cli.errors
-================================
-
-.. automodule:: otns.cli.errors
-   :members:
-
+.. automodule:: otns.cli
+    :members:

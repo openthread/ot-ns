@@ -29,8 +29,18 @@
 * :ref:`search`
 
 
-otns.errors
+OTNS errors
 ================================
+
+OTNS-CLI errors
+--------------------
+
+.. automodule:: otns.cli.errors
+   :members:
+
+OTNS base errors
+--------------------
 
 .. automodule:: otns.errors
    :members:
+

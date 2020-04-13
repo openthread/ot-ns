@@ -32,7 +32,7 @@ Welcome to otns's documentation!
 * :ref:`search`
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Contents:
 
    otns/cli
