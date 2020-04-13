@@ -82,7 +82,7 @@ class BasicTests(OTNSTestCase):
         ns = self.ns
         ns.add("router")
         ns.add("router")
-        ns.go(FIRST_LEADER_TIMEOUT)
+        ns.go(100)
         self.assertFormPartitions(1)
         ns.delete(1)
         ns.go(10)
