@@ -135,7 +135,7 @@ func (node *Node) Stop() {
 }
 
 func (node *Node) Exit() error {
-	node.cmd.Process.Kill()
+	_ = node.cmd.Process.Kill()
 	_ = node.uartReader.Close()
 	node.expectEOF(DefaultCommandTimeout)
 	err := node.cmd.Wait()
