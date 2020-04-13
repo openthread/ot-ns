@@ -37,15 +37,37 @@ from .errors import OTNSCliError, OTNSCliEOFError
 class OTNS(object):
     """
     OTNS represents an OTNS simulation.
+
+    :param otns_path: the path to the otns executable.
+    :param raw: use raw mode.
+    :param log: set logging level.
+    :param otns_args: extra program arguments for otns.
+
+    **Note that arguments `-autogo=false` and `-web=false` are always used.**
     """
 
     MAX_SIMULATE_SPEED = 1000000  # Max simulating speed
     PAUSE_SIMULATE_SPEED = 0
 
-    def __init__(self, otns_path: Optional[str] = None, otns_args: Optional[List[str]] = None):
+    def __init__(self, otns_path: Optional[str] = None, raw: bool = False, log: str = None,
+                 otns_args: Optional[List[str]] = None):
         self._otns_path = otns_path or self._detect_otns_path()
-        self._otns_args = list(otns_args or []) + ['-autogo=false', '-web=false']
         logging.info("otns found: %s", self._otns_path)
+
+        self._otns_args = []
+
+        if raw:
+            self._otns_args.append('-raw')
+
+        if log:
+            self._otns_args.append('-log')
+            self._otns_args.append(log)
+
+        if otns_args:
+            self._otns_args.extend(otns_args)
+
+        self._otns_args.extend(['-autogo=false', '-web=false'])
+
         self._launch_otns()
 
     def _launch_otns(self):
@@ -495,6 +517,8 @@ class OTNS(object):
         Turn up network interface.
 
         :param nodeid: target node ID
+
+        **Only required in raw mode.**
         """
         self.node_cmd(nodeid, 'ifconfig up')
 
@@ -503,6 +527,8 @@ class OTNS(object):
         Turn down network interface.
 
         :param nodeid: target node ID
+
+        **Only required in raw mode.**
         """
         self.node_cmd(nodeid, 'ifconfig down')
 
@@ -511,6 +537,8 @@ class OTNS(object):
         Start thread.
 
         :param nodeid: target node ID
+
+        **Only required in raw mode.**
         """
         self.node_cmd(nodeid, 'thread start')
 
@@ -519,6 +547,8 @@ class OTNS(object):
         Stop thread.
 
         :param nodeid: target node ID
+
+        **Only required in raw mode.**
         """
         self.node_cmd(nodeid, 'thread stop')
 
