@@ -24,6 +24,7 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+// Package progctx implements utilities for managing the context of a program.
 package progctx
 
 import (
@@ -34,15 +35,17 @@ import (
 	"github.com/simonlingoogle/go-simplelogger"
 )
 
+// ProgCtx represent the context of a program during it's lifetime.
 type ProgCtx struct {
-	context.Context
-	wg           sync.WaitGroup
-	cancel       context.CancelFunc
-	routinesLock sync.Mutex
-	routines     map[string]int
-	deferred     []func()
+	context.Context // the inner context of the program
+	wg              sync.WaitGroup
+	cancel          context.CancelFunc
+	routinesLock    sync.Mutex
+	routines        map[string]int
+	deferred        []func()
 }
 
+// WaitCount returns the number of goroutines to wait for.
 func (ctx *ProgCtx) WaitCount() int {
 	ctx.routinesLock.Lock()
 	defer ctx.routinesLock.Unlock()
@@ -54,6 +57,8 @@ func (ctx *ProgCtx) WaitCount() int {
 	return total
 }
 
+// Cancel cancel the program context with a given error.
+// It is only effective the first time it's called.
 func (ctx *ProgCtx) Cancel(err interface{}) {
 	if ctx.Err() != nil {
 		return
@@ -76,6 +81,7 @@ func (ctx *ProgCtx) Cancel(err interface{}) {
 	}
 }
 
+// WaitAdd adds a new goroutine to wait for.
 func (ctx *ProgCtx) WaitAdd(name string, delta int) {
 	ctx.routinesLock.Lock()
 	ctx.routines[name] += delta
@@ -84,6 +90,7 @@ func (ctx *ProgCtx) WaitAdd(name string, delta int) {
 	ctx.wg.Add(delta)
 }
 
+// WaitDone notifies that a goroutine has finished.
 func (ctx *ProgCtx) WaitDone(name string) {
 	ctx.routinesLock.Lock()
 	defer ctx.routinesLock.Unlock()
@@ -97,6 +104,7 @@ func (ctx *ProgCtx) WaitDone(name string) {
 	ctx.wg.Done()
 }
 
+// Wait waits for all goroutines to finish.
 func (ctx *ProgCtx) Wait() {
 	ctx.routinesLock.Lock()
 	simplelogger.Infof("program context waiting routines: %v", ctx.routines)
@@ -105,6 +113,8 @@ func (ctx *ProgCtx) Wait() {
 	ctx.wg.Wait()
 }
 
+// Defer registers a function to be called when the program context is cancelled.
+// The function will be called when `Cancel` is first called.
 func (ctx *ProgCtx) Defer(f func()) {
 	if ctx.Err() != nil {
 		panic(errors.Errorf("Can not `Defer` after context is done"))

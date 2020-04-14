@@ -27,6 +27,7 @@
 // Package types defines the common types used in OTNS.
 package types
 
+// NodeId represents a node ID which starts from 1.
 type NodeId = int
 
 const (
