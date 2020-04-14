@@ -29,7 +29,6 @@ package simulation
 
 import (
 	"os"
-	"sort"
 	"time"
 
 	"github.com/openthread/ot-ns/progctx"
@@ -41,6 +40,7 @@ import (
 	"github.com/simonlingoogle/go-simplelogger"
 )
 
+// Simulation manages a running simulation.
 type Simulation struct {
 	ctx     *progctx.ProgCtx
 	cfg     *Config
@@ -50,6 +50,7 @@ type Simulation struct {
 	rawMode bool
 }
 
+// NewSimulation creates a new simulation.
 func NewSimulation(ctx *progctx.ProgCtx, cfg *Config) (*Simulation, error) {
 	s := &Simulation{
 		ctx:     ctx,
@@ -69,6 +70,7 @@ func NewSimulation(ctx *progctx.ProgCtx, cfg *Config) (*Simulation, error) {
 	return s, nil
 }
 
+// AddNode adds a new node to the simulation.
 func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 	if cfg == nil {
 		cfg = DefaultNodeConfig()
@@ -116,6 +118,7 @@ func (s *Simulation) genNodeId() NodeId {
 	return nodeid
 }
 
+// Run runs the simulation until exit.
 func (s *Simulation) Run() {
 	s.ctx.WaitAdd("simulation", 1)
 	defer s.ctx.WaitDone("simulation")
@@ -124,22 +127,27 @@ func (s *Simulation) Run() {
 	s.d.Run()
 }
 
+// Nodes returns all nodes of the simulation.
 func (s *Simulation) Nodes() map[NodeId]*Node {
 	return s.nodes
 }
 
+// MasterKey returns the default Master Key of the simulation.
 func (s *Simulation) MasterKey() string {
 	return s.cfg.MasterKey
 }
 
+// Panid gets the default Pan ID of the simulation.
 func (s *Simulation) Panid() uint16 {
 	return s.cfg.Panid
 }
 
+// Channel gets the default channel of the simulation.
 func (s *Simulation) Channel() int {
 	return s.cfg.Channel
 }
 
+// Stop stops the simulation.
 func (s *Simulation) Stop() {
 	simplelogger.Infof("stopping simulation ...")
 	for _, node := range s.nodes {
@@ -151,10 +159,12 @@ func (s *Simulation) Stop() {
 	s.d.Stop()
 }
 
+// BinDir gets the binary directory for searching OpenThread executables.
 func (s *Simulation) BinDir() string {
 	return s.cfg.BinDir
 }
 
+// SetVisualizer sets the visualizer for the simulation.
 func (s *Simulation) SetVisualizer(vis visualize.Visualizer) {
 	simplelogger.AssertNotNil(vis)
 	s.vis = vis
@@ -162,35 +172,31 @@ func (s *Simulation) SetVisualizer(vis visualize.Visualizer) {
 	vis.SetController(NewSimulationController(s))
 }
 
+// OnNodeFail notifies the simulation of the failed node.
+// It is part of the implementation of dispatcher.CallbackHandler.
 func (s *Simulation) OnNodeFail(nodeid NodeId) {
 	node := s.nodes[nodeid]
 	simplelogger.AssertNotNil(node)
 }
 
+// OnNodeRecover notifies the simulation of the recovered node.
+// It is part of the implementation of dispatcher.CallbackHandler.
 func (s *Simulation) OnNodeRecover(nodeid NodeId) {
 	node := s.nodes[nodeid]
 	simplelogger.AssertNotNil(node)
 }
 
+// PostAsync posts a asynchronous task to be executed in the simulation goroutine.
 func (s *Simulation) PostAsync(trivial bool, f func()) {
 	s.d.PostAsync(trivial, f)
 }
 
+// Dispatcher gets the dispatcher of the simulation.
 func (s *Simulation) Dispatcher() *dispatcher.Dispatcher {
 	return s.d
 }
 
-func (s *Simulation) VisitNodesInOrder(cb func(node *Node)) {
-	var nodeids []NodeId
-	for nodeid := range s.nodes {
-		nodeids = append(nodeids, nodeid)
-	}
-	sort.Ints(nodeids)
-	for _, nodeid := range nodeids {
-		cb(s.nodes[nodeid])
-	}
-}
-
+// MoveNodeTo moves a node to the target position.
 func (s *Simulation) MoveNodeTo(nodeid NodeId, x, y int) {
 	dn := s.d.GetNode(nodeid)
 	if dn == nil {
@@ -200,6 +206,7 @@ func (s *Simulation) MoveNodeTo(nodeid NodeId, x, y int) {
 	s.d.SetNodePos(nodeid, x, y)
 }
 
+// DeleteNode deletes a node from the simulation.
 func (s *Simulation) DeleteNode(nodeid NodeId) error {
 	node := s.nodes[nodeid]
 	if node == nil {
@@ -213,26 +220,34 @@ func (s *Simulation) DeleteNode(nodeid NodeId) error {
 	return nil
 }
 
+// SetNodeFailed sets if the node radio is failed.
 func (s *Simulation) SetNodeFailed(id NodeId, failed bool) {
 	s.d.SetNodeFailed(id, failed)
 }
 
+// ShowDemoLegend shows a demo legend in the visualization.
+// It is not implemented yet.
 func (s *Simulation) ShowDemoLegend(x int, y int, title string) {
 	s.vis.ShowDemoLegend(x, y, title)
 }
 
+// SetSpeed sets the simulating speed.
 func (s *Simulation) SetSpeed(speed float64) {
 	s.d.SetSpeed(speed)
 }
 
+// GetSpeed gets the simulating speed.
 func (s *Simulation) GetSpeed() float64 {
 	return s.Dispatcher().GetSpeed()
 }
 
+// CountDown shows a count down in the visualization.
 func (s *Simulation) CountDown(duration time.Duration, text string) {
 	s.vis.CountDown(duration, text)
 }
 
+// Go continues the simulation for a given time duration in simulating time.
+// It returns a channel for notifying that the duration is elapsed in simulation.
 func (s *Simulation) Go(duration time.Duration) <-chan struct{} {
 	return s.d.Go(duration)
 }

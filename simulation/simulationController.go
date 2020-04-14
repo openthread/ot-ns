@@ -113,6 +113,7 @@ func (r readonlySimulationController) CtrlDeleteNode(nodeid NodeId) error {
 	return readonlySimulationError
 }
 
+// NewSimulationController creates a simulation controller for simulation management in visualization.
 func NewSimulationController(sim *Simulation) visualize.SimulationController {
 	if !sim.cfg.ReadOnly {
 		return &simulationController{sim}

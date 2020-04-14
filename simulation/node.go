@@ -103,9 +103,10 @@ func newNode(s *Simulation, id NodeId, cfg *NodeConfig) (*Node, error) {
 	return n, nil
 }
 
+// Node represents a running OpenThread virtual time simulation instance.
 type Node struct {
-	S   *Simulation
-	Id  int
+	S   *Simulation // The simulation of node
+	Id  int         // The node ID
 	cfg *NodeConfig
 
 	cmd       *exec.Cmd
@@ -116,16 +117,19 @@ type Node struct {
 	pendingLines chan string
 }
 
+// String returns a string representing the node.
 func (node *Node) String() string {
 	return fmt.Sprintf("Node<%d>", node.Id)
 }
 
+// SetupNetworkParameters sets the network related configuration on node according to the simulation.
 func (node *Node) SetupNetworkParameters(sim *Simulation) {
 	node.SetMasterKey(node.S.MasterKey())
 	node.SetPanid(node.S.Panid())
 	node.SetChannel(node.S.Channel())
 }
 
+// Start starts the Thread stack on the node.
 func (node *Node) Start() {
 	node.IfconfigUp()
 	node.ThreadStart()
@@ -135,16 +139,19 @@ func (node *Node) Start() {
 		node.GetMasterKey(), node.GetMode())
 }
 
+// IsFED returns if the node is Full Thread Device.
 func (node *Node) IsFED() bool {
 	return !node.cfg.IsMtd
 }
 
+// Stop stops the Thread stack on the node.
 func (node *Node) Stop() {
 	node.ThreadStop()
 	node.IfconfigDown()
 	simplelogger.Debugf("%v - stopped, state = %s", node, node.GetState())
 }
 
+// Exit terminates the node process.
 func (node *Node) Exit() error {
 	_, _ = node.Input.Write([]byte("exit\n"))
 	node.expectEOF(DefaultCommandTimeout)
@@ -155,14 +162,15 @@ func (node *Node) Exit() error {
 	return err
 }
 
+// AssurePrompt make sure that the node CLI is interactive.
 func (node *Node) AssurePrompt() {
 	_, _ = node.Input.Write([]byte("\n"))
-	if found, _ := node.TryExpectLine("", time.Second); found {
+	if found, _ := node.tryExpectLine("", time.Second); found {
 		return
 	}
 
 	_, _ = node.Input.Write([]byte("\n"))
-	if found, _ := node.TryExpectLine("", time.Second); found {
+	if found, _ := node.tryExpectLine("", time.Second); found {
 		return
 	}
 
@@ -170,11 +178,14 @@ func (node *Node) AssurePrompt() {
 	node.expectLine("", DefaultCommandTimeout)
 }
 
+// CommandExpectNone sends a command to node CLI but does not expect any output.
 func (node *Node) CommandExpectNone(cmd string, timeout time.Duration) {
 	_, _ = node.Input.Write([]byte(cmd + "\n"))
 	node.expectLine(cmd, timeout)
 }
 
+// Command sends a command to node CLI and captures all output until `Done` or `Error ...`
+// It returns all output (not including `Done`) as a slice of strings.
 func (node *Node) Command(cmd string, timeout time.Duration) []string {
 	_, _ = node.Input.Write([]byte(cmd + "\n"))
 	node.expectLine(cmd, timeout)
@@ -188,6 +199,7 @@ func (node *Node) Command(cmd string, timeout time.Duration) []string {
 	return output
 }
 
+// CommandExpectString sends a command to node CLI and expects output of a line of string.
 func (node *Node) CommandExpectString(cmd string, timeout time.Duration) string {
 	output := node.Command(cmd, timeout)
 	if len(output) != 1 {
@@ -197,6 +209,7 @@ func (node *Node) CommandExpectString(cmd string, timeout time.Duration) string 
 	return output[0]
 }
 
+// CommandExpectInt sends a command to node CLI and expects output of an integer.
 func (node *Node) CommandExpectInt(cmd string, timeout time.Duration) int {
 	s := node.CommandExpectString(cmd, DefaultCommandTimeout)
 	var iv int64
@@ -214,6 +227,7 @@ func (node *Node) CommandExpectInt(cmd string, timeout time.Duration) int {
 	return int(iv)
 }
 
+// CommandExpectHex sends a command to node CLI and expects output as a hexadecimal integer.
 func (node *Node) CommandExpectHex(cmd string, timeout time.Duration) int {
 	s := node.CommandExpectString(cmd, DefaultCommandTimeout)
 	var iv int64
@@ -227,15 +241,18 @@ func (node *Node) CommandExpectHex(cmd string, timeout time.Duration) int {
 	return int(iv)
 }
 
+// SetChannel sets the node radio channel.
 func (node *Node) SetChannel(ch int) {
 	simplelogger.AssertTrue(11 <= ch && ch <= 26)
 	node.Command(fmt.Sprintf("channel %d", ch), DefaultCommandTimeout)
 }
 
+// GetChannel gets the node radio channel.
 func (node *Node) GetChannel() int {
 	return node.CommandExpectInt("channel", DefaultCommandTimeout)
 }
 
+// GetChildList gets the child list.
 func (node *Node) GetChildList() (childlist []int) {
 	s := node.CommandExpectString("child list", DefaultCommandTimeout)
 	ss := strings.Split(s, " ")
@@ -250,42 +267,47 @@ func (node *Node) GetChildList() (childlist []int) {
 	return
 }
 
-func (node *Node) GetChildTable() {
-	// todo: not implemented yet
-}
-
+// GetChildTimeout gets the child timeout.
 func (node *Node) GetChildTimeout() int {
 	return node.CommandExpectInt("childtimeout", DefaultCommandTimeout)
 }
 
+// SetChildTimeout sets the child timeout.
 func (node *Node) SetChildTimeout(timeout int) {
 	node.Command(fmt.Sprintf("childtimeout %d", timeout), DefaultCommandTimeout)
 }
 
+// GetContextReuseDelay gets the context reuse delay.
 func (node *Node) GetContextReuseDelay() int {
 	return node.CommandExpectInt("contextreusedelay", DefaultCommandTimeout)
 }
 
+// SetContextReuseDelay sets the context reuse delay.
 func (node *Node) SetContextReuseDelay(delay int) {
 	node.Command(fmt.Sprintf("contextreusedelay %d", delay), DefaultCommandTimeout)
 }
 
+// GetNetworkName gets the network name.
 func (node *Node) GetNetworkName() string {
 	return node.CommandExpectString("networkname", DefaultCommandTimeout)
 }
 
+// SetNetworkName sets the network name.
 func (node *Node) SetNetworkName(name string) {
 	node.Command(fmt.Sprintf("networkname %s", name), DefaultCommandTimeout)
 }
 
+// GetEui64 gets the EUI64.
 func (node *Node) GetEui64() string {
 	return node.CommandExpectString("eui64", DefaultCommandTimeout)
 }
 
+// SetEui64 sets the EUI64.
 func (node *Node) SetEui64(eui64 string) {
 	node.Command(fmt.Sprintf("eui64 %s", eui64), DefaultCommandTimeout)
 }
 
+// GetExtAddr gets the Extended Address.
 func (node *Node) GetExtAddr() uint64 {
 	s := node.CommandExpectString("extaddr", DefaultCommandTimeout)
 	v, err := strconv.ParseUint(s, 16, 64)
@@ -293,127 +315,155 @@ func (node *Node) GetExtAddr() uint64 {
 	return v
 }
 
+// SetExtAddr sets the Extended Address.
 func (node *Node) SetExtAddr(extaddr uint64) {
 	node.Command(fmt.Sprintf("extaddr %016x", extaddr), DefaultCommandTimeout)
 }
 
+// GetExtPanid gets the Extended Pan ID.
 func (node *Node) GetExtPanid() string {
 	return node.CommandExpectString("extpanid", DefaultCommandTimeout)
 }
 
+// SetExtPanid sets the Extended Pan ID.
 func (node *Node) SetExtPanid(extpanid string) {
 	node.Command(fmt.Sprintf("extpanid %s", extpanid), DefaultCommandTimeout)
 }
 
+// GetIfconfig gets `ifconfig` result.
 func (node *Node) GetIfconfig() string {
 	return node.CommandExpectString("ifconfig", DefaultCommandTimeout)
 }
 
+// IfconfigUp turns on the Thread network interface.
 func (node *Node) IfconfigUp() {
 	node.Command("ifconfig up", DefaultCommandTimeout)
 }
 
+// IfconfigDown turns off the Thread network interface.
 func (node *Node) IfconfigDown() {
 	node.Command("ifconfig down", DefaultCommandTimeout)
 }
 
+// GetIpAddr gets all IPv6 addresses.
 func (node *Node) GetIpAddr() []string {
 	// todo: parse IPv6 addresses
 	addrs := node.Command("ipaddr", DefaultCommandTimeout)
 	return addrs
 }
 
+// GetIpAddrLinkLocal gets all link-local IPv6 addresses
 func (node *Node) GetIpAddrLinkLocal() []string {
 	// todo: parse IPv6 addresses
 	addrs := node.Command("ipaddr linklocal", DefaultCommandTimeout)
 	return addrs
 }
 
+// GetIpAddrLinkLocal gets all MLEID IPv6 addresses.
 func (node *Node) GetIpAddrMleid() []string {
 	// todo: parse IPv6 addresses
 	addrs := node.Command("ipaddr mleid", DefaultCommandTimeout)
 	return addrs
 }
 
+// GetIpAddrRloc gets all RLOC IPv6 addresses.
 func (node *Node) GetIpAddrRloc() []string {
 	addrs := node.Command("ipaddr rloc", DefaultCommandTimeout)
 	return addrs
 }
 
+// GetIpMaddr gets all multicast IPv6 addresses.
 func (node *Node) GetIpMaddr() []string {
 	// todo: parse IPv6 addresses
 	addrs := node.Command("ipmaddr", DefaultCommandTimeout)
 	return addrs
 }
 
+// GetIpMaddrPromiscuous gets if `ipmaddr promiscuous` is enabled.
 func (node *Node) GetIpMaddrPromiscuous() bool {
 	return node.CommandExpectEnabledOrDisabled("ipmaddr promiscuous", DefaultCommandTimeout)
 }
 
+// IpMaddrPromiscuousEnable enables `ipmaddr promiscuous`.
 func (node *Node) IpMaddrPromiscuousEnable() {
 	node.Command("ipmaddr promiscuous enable", DefaultCommandTimeout)
 }
 
+// IpMaddrPromiscuousDisable disables `ipmaddr promiscuous`.
 func (node *Node) IpMaddrPromiscuousDisable() {
 	node.Command("ipmaddr promiscuous disable", DefaultCommandTimeout)
 }
 
+// GetPromiscuous checks if `promiscuous` is enabled.
 func (node *Node) GetPromiscuous() bool {
 	return node.CommandExpectEnabledOrDisabled("promiscuous", DefaultCommandTimeout)
 }
 
+// PromiscuousEnable enables `promiscuous`.
 func (node *Node) PromiscuousEnable() {
 	node.Command("promiscuous enable", DefaultCommandTimeout)
 }
 
+// PromiscuousDisable disables `promiscuous`.
 func (node *Node) PromiscuousDisable() {
 	node.Command("promiscuous disable", DefaultCommandTimeout)
 }
 
+// GetRouterEligible gets if `routereligible` is enabled.
 func (node *Node) GetRouterEligible() bool {
 	return node.CommandExpectEnabledOrDisabled("routereligible", DefaultCommandTimeout)
 }
 
+// RouterEligibleEnable enables `routereligible`.
 func (node *Node) RouterEligibleEnable() {
 	node.Command("routereligible enable", DefaultCommandTimeout)
 }
 
+// RouterEligibleDisable disables `routereligible`.
 func (node *Node) RouterEligibleDisable() {
 	node.Command("routereligible disable", DefaultCommandTimeout)
 }
 
+// GetJoinerPort gets the joiner port.
 func (node *Node) GetJoinerPort() int {
 	return node.CommandExpectInt("joinerport", DefaultCommandTimeout)
 }
 
+// SetJoinerPort sets the joiner port.
 func (node *Node) SetJoinerPort(port int) {
 	node.Command(fmt.Sprintf("joinerport %d", port), DefaultCommandTimeout)
 }
 
+// GetKeySequenceCounter gets the Key Sequence Counter.
 func (node *Node) GetKeySequenceCounter() int {
 	return node.CommandExpectInt("keysequence counter", DefaultCommandTimeout)
 }
 
+// SetKeySequenceCounter sets the Key Sequence Counter.
 func (node *Node) SetKeySequenceCounter(counter int) {
 	node.Command(fmt.Sprintf("keysequence counter %d", counter), DefaultCommandTimeout)
 }
 
+// GetKeySequenceGuardTime gets the Key Sequence Guard Time.
 func (node *Node) GetKeySequenceGuardTime() int {
 	return node.CommandExpectInt("keysequence guardtime", DefaultCommandTimeout)
 }
 
+// SetKeySequenceGuardTime sets the Key Sequence Guard Time.
 func (node *Node) SetKeySequenceGuardTime(guardtime int) {
 	node.Command(fmt.Sprintf("keysequence guardtime %d", guardtime), DefaultCommandTimeout)
 }
 
+// LeaderData represents the Leader Data.
 type LeaderData struct {
-	PartitionID       int
-	Weighting         int
-	DataVersion       int
-	StableDataVersion int
-	LeaderRouterID    int
+	PartitionID       int // Partition ID
+	Weighting         int // Weighting
+	DataVersion       int // Data version
+	StableDataVersion int // Stable data version
+	LeaderRouterID    int // Leader router ID
 }
 
+// GetLeaderData gets the Leader Data.
 func (node *Node) GetLeaderData() (leaderData LeaderData) {
 	var err error
 	output := node.Command("leaderdata", DefaultCommandTimeout)
@@ -446,22 +496,27 @@ func (node *Node) GetLeaderData() (leaderData LeaderData) {
 	return
 }
 
+// GetLeaderPartitionId gets the leader partition ID.
 func (node *Node) GetLeaderPartitionId() int {
 	return node.CommandExpectInt("leaderpartitionid", DefaultCommandTimeout)
 }
 
+// SetLeaderPartitionId sets the leader partition ID.
 func (node *Node) SetLeaderPartitionId(partitionid int) {
 	node.Command(fmt.Sprintf("leaderpartitionid 0x%x", partitionid), DefaultCommandTimeout)
 }
 
+// GetLeaderWeight gets the leader weight.
 func (node *Node) GetLeaderWeight() int {
 	return node.CommandExpectInt("leaderweight", DefaultCommandTimeout)
 }
 
+// SetLeaderWeight sets the leader weight.
 func (node *Node) SetLeaderWeight(weight int) {
 	node.Command(fmt.Sprintf("leaderweight 0x%x", weight), DefaultCommandTimeout)
 }
 
+// FactoryReset factory resets the node.
 func (node *Node) FactoryReset() {
 	simplelogger.Warnf("%v - factoryreset", node)
 	_, _ = node.Input.Write([]byte("factoryreset\n"))
@@ -469,6 +524,7 @@ func (node *Node) FactoryReset() {
 	simplelogger.Debugf("%v - ready", node)
 }
 
+// Reset resets the node.
 func (node *Node) Reset() {
 	simplelogger.Warnf("%v - reset", node)
 	_, _ = node.Input.Write([]byte("reset\n"))
@@ -476,75 +532,94 @@ func (node *Node) Reset() {
 	simplelogger.Debugf("%v - ready", node)
 }
 
+// GetMasterKey gets the Master Key.
 func (node *Node) GetMasterKey() string {
 	return node.CommandExpectString("masterkey", DefaultCommandTimeout)
 }
 
+// SetMasterKey sets the Master Key.
 func (node *Node) SetMasterKey(key string) {
 	node.Command(fmt.Sprintf("masterkey %s", key), DefaultCommandTimeout)
 }
 
+// GetMode gets the node mode.
 func (node *Node) GetMode() string {
 	// todo: return Mode type rather than just string
 	return node.CommandExpectString("mode", DefaultCommandTimeout)
 }
 
+// SetMode sets the node mode.
 func (node *Node) SetMode(mode string) {
 	node.Command(fmt.Sprintf("mode %s", mode), DefaultCommandTimeout)
 }
 
+// GetPanid gets the Pan ID.
 func (node *Node) GetPanid() uint16 {
 	// todo: return Mode type rather than just string
 	return uint16(node.CommandExpectInt("panid", DefaultCommandTimeout))
 }
 
+// SetPanid sets the Pan ID.
 func (node *Node) SetPanid(panid uint16) {
 	node.Command(fmt.Sprintf("panid 0x%x", panid), DefaultCommandTimeout)
 }
 
+// GetRloc16 gets the RLOC16.
 func (node *Node) GetRloc16() uint16 {
 	return uint16(node.CommandExpectHex("rloc16", DefaultCommandTimeout))
 }
 
+// GetRouterSelectionJitter gets the Router Selection Jitter.
 func (node *Node) GetRouterSelectionJitter() int {
 	return node.CommandExpectInt("routerselectionjitter", DefaultCommandTimeout)
 }
 
+// SetRouterSelectionJitter sets the Router Selection Jitter.
 func (node *Node) SetRouterSelectionJitter(timeout int) {
 	node.Command(fmt.Sprintf("routerselectionjitter %d", timeout), DefaultCommandTimeout)
 }
 
+// GetRouterUpgradeThreshold gets the Router Upgrade Threshold.
 func (node *Node) GetRouterUpgradeThreshold() int {
 	return node.CommandExpectInt("routerupgradethreshold", DefaultCommandTimeout)
 }
 
+// SetRouterUpgradeThreshold sets the Router Upgrade Threshold.
 func (node *Node) SetRouterUpgradeThreshold(timeout int) {
 	node.Command(fmt.Sprintf("routerupgradethreshold %d", timeout), DefaultCommandTimeout)
 }
 
+// GetRouterDowngradeThreshold gets the Router Downgrade Threshold.
 func (node *Node) GetRouterDowngradeThreshold() int {
 	return node.CommandExpectInt("routerdowngradethreshold", DefaultCommandTimeout)
 }
 
+// SetRouterDowngradeThreshold sets the Router Downgrade Threshold.
 func (node *Node) SetRouterDowngradeThreshold(timeout int) {
 	node.Command(fmt.Sprintf("routerdowngradethreshold %d", timeout), DefaultCommandTimeout)
 }
 
+// GetState gets the node state.
 func (node *Node) GetState() string {
 	return node.CommandExpectString("state", DefaultCommandTimeout)
 }
 
+// ThreadStart starts the Thread stack on node.
 func (node *Node) ThreadStart() {
 	node.Command("thread start", DefaultCommandTimeout)
 }
+
+// ThreadStop stops the Thread stack on node.
 func (node *Node) ThreadStop() {
 	node.Command("thread stop", DefaultCommandTimeout)
 }
 
+// GetVersion gets the node version.
 func (node *Node) GetVersion() string {
 	return node.CommandExpectString("version", DefaultCommandTimeout)
 }
 
+// GetSingleton gets if it's a singleton partition.
 func (node *Node) GetSingleton() bool {
 	s := node.CommandExpectString("singleton", DefaultCommandTimeout)
 	if s == "true" {
@@ -589,7 +664,7 @@ func (node *Node) lineReader() {
 	}
 }
 
-func (node *Node) TryExpectLine(line interface{}, timeout time.Duration) (bool, []string) {
+func (node *Node) tryExpectLine(line interface{}, timeout time.Duration) (bool, []string) {
 	var outputLines []string
 
 	deadline := time.After(timeout)
@@ -623,7 +698,7 @@ func (node *Node) TryExpectLine(line interface{}, timeout time.Duration) (bool, 
 }
 
 func (node *Node) expectLine(line interface{}, timeout time.Duration) []string {
-	found, output := node.TryExpectLine(line, timeout)
+	found, output := node.tryExpectLine(line, timeout)
 	if !found {
 		simplelogger.Panicf("expect line timeout: %#v", line)
 	}
@@ -649,6 +724,8 @@ func (node *Node) expectEOF(timeout time.Duration) {
 	}
 }
 
+// CommandExpectEnabledOrDisabled sends a command to node CLI and expects output of "Enabled" or "Disabled"
+// It converts "Enabled" to true and "Disabled" to false.
 func (node *Node) CommandExpectEnabledOrDisabled(cmd string, timeout time.Duration) bool {
 	output := node.CommandExpectString(cmd, timeout)
 	if output == "Enabled" {
@@ -661,6 +738,7 @@ func (node *Node) CommandExpectEnabledOrDisabled(cmd string, timeout time.Durati
 	return false
 }
 
+// Ping pings the destination address.
 func (node *Node) Ping(addr string, payloadSize int, count int, interval int, hopLimit int) {
 	cmd := fmt.Sprintf("ping %s %d %d %d %d", addr, payloadSize, count, interval, hopLimit)
 	_, _ = node.Input.Write([]byte(cmd + "\n"))
@@ -684,10 +762,6 @@ func (node *Node) isLineMatch(line string, _expectedLine interface{}) bool {
 		simplelogger.Panic("unknown expected string")
 	}
 	return false
-}
-
-func (node *Node) DumpStat() string {
-	return fmt.Sprintf("extaddr %016x, addr %04x, state %-6s", node.GetExtAddr(), node.GetRloc16(), node.GetState())
 }
 
 func (node *Node) setupMode() {
