@@ -24,6 +24,8 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+// This file implements the Node that manages a OpenThread virtual time simulation instance.
+
 package simulation
 
 import (
@@ -45,11 +47,11 @@ import (
 )
 
 const (
-	DefaultCommandTimeout = time.Second * 10
+	DefaultCommandTimeout = time.Second * 10 // Default node command timeout
 )
 
 var (
-	DoneOrErrorRegexp = regexp.MustCompile(`(Done|Error \d+: .*)`)
+	doneOrErrorRegexp = regexp.MustCompile(`(Done|Error \d+: .*)`)
 )
 
 func newNode(s *Simulation, id NodeId, cfg *NodeConfig) (*Node, error) {
@@ -176,7 +178,7 @@ func (node *Node) CommandExpectNone(cmd string, timeout time.Duration) {
 func (node *Node) Command(cmd string, timeout time.Duration) []string {
 	_, _ = node.Input.Write([]byte(cmd + "\n"))
 	node.expectLine(cmd, timeout)
-	output := node.expectLine(DoneOrErrorRegexp, timeout)
+	output := node.expectLine(doneOrErrorRegexp, timeout)
 
 	var result string
 	output, result = output[:len(output)-1], output[len(output)-1]

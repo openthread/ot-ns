@@ -26,17 +26,14 @@
 
 package simulation
 
-import (
-	"runtime"
-)
-
+// NodeConfig represents the node configuration.
 type NodeConfig struct {
-	ID            int
-	X, Y          int
-	IsMtd         bool
-	IsRouter      bool
-	RxOffWhenIdle bool
-	RadioRange    int
+	ID            int  // Node ID (default: next available)
+	X, Y          int  // Node position: (X, Y) (default: 0, 0)
+	IsMtd         bool // Whether the node is MTD (default: false)
+	IsRouter      bool // Whether the node is Router (default: true)
+	RxOffWhenIdle bool // RX off when idle (default: false)
+	RadioRange    int  // Node radio range (default: 160)
 }
 
 func DefaultNodeConfig() *NodeConfig {
@@ -48,13 +45,5 @@ func DefaultNodeConfig() *NodeConfig {
 		IsMtd:         false,
 		RxOffWhenIdle: false,
 		RadioRange:    160,
-	}
-}
-
-func (nc *NodeConfig) Executive() string {
-	if runtime.GOOS == "windows" {
-		return "ot-cli-ftd.exe"
-	} else {
-		return "ot-cli-ftd"
 	}
 }
