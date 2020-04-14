@@ -75,7 +75,7 @@ func (mv *multiVisualizer) SetNodeRloc16(nodeid NodeId, rloc16 uint16) {
 	}
 }
 
-func (mv *multiVisualizer) SetNodeRole(nodeid NodeId, role visualize.OtDeviceRole) {
+func (mv *multiVisualizer) SetNodeRole(nodeid NodeId, role OtDeviceRole) {
 	for _, v := range mv.vs {
 		v.SetNodeRole(nodeid, role)
 	}
@@ -171,6 +171,7 @@ func (mv *multiVisualizer) SetParent(id NodeId, extaddr uint64) {
 	}
 }
 
+// NewMultiVisualizer combines multiple Visualizer as one Visualizer.
 func NewMultiVisualizer(vs ...visualize.Visualizer) visualize.Visualizer {
 	return &multiVisualizer{vs: vs}
 }

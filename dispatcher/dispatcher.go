@@ -715,7 +715,7 @@ func (d *Dispatcher) handleStatusPush(srcid NodeId, data string) {
 		if sp[0] == "role" {
 			role, err := strconv.Atoi(sp[1])
 			simplelogger.PanicIfError(err)
-			d.vis.SetNodeRole(srcid, visualize.OtDeviceRole(role))
+			d.vis.SetNodeRole(srcid, OtDeviceRole(role))
 		} else if sp[0] == "rloc16" {
 			rloc16, err := strconv.Atoi(sp[1])
 			simplelogger.PanicIfError(err)
