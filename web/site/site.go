@@ -24,6 +24,7 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+// Package web_site implements a web server for hosting OTNS-Web site.
 package web_site
 
 import (
@@ -36,6 +37,7 @@ import (
 	"github.com/simonlingoogle/go-simplelogger"
 )
 
+// Serve runs a local server for hosting the OTNS-Web site.
 func Serve() error {
 
 	assetDir := os.Getenv("HOME")
