@@ -68,7 +68,7 @@ func (sq sendQueue) NextTimestamp() uint64 {
 	if len(sq.q) > 0 {
 		return sq.q[0].Timestamp
 	} else {
-		return Ever
+		return ever
 	}
 }
 

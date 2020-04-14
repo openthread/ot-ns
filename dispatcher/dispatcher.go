@@ -24,6 +24,7 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+// Package dispatcher implements the virtual time event dispatcher.
 package dispatcher
 
 import (
@@ -50,12 +51,13 @@ import (
 )
 
 const (
-	Ever uint64 = math.MaxUint64 / 2
+	// MaxSimulateSpeed is the max simulating time
+	MaxSimulateSpeed = 1000000
 )
 
 const (
-	ProcessEventTimeErrorUs = 0
-	MaxSimulateSpeed        = 1000000
+	ever                    uint64 = math.MaxUint64 / 2
+	processEventTimeErrorUs uint64 = 0
 )
 
 type pcapFrameItem struct {
@@ -63,18 +65,23 @@ type pcapFrameItem struct {
 	Data   []byte
 }
 
+// Config represents a Dispatcher config.
 type Config struct {
 	Speed float64
 }
 
+// DefaultConfig returns the default Dispatcher config.
 func DefaultConfig() *Config {
 	return &Config{
 		Speed: 1,
 	}
 }
 
+// CallbackHandler defines the callback interface of the Dispatcher.
 type CallbackHandler interface {
+	// OnNodeFail notifies of a failed node.
 	OnNodeFail(nodeid NodeId)
+	// OnNodeRecover notifies of a recovered node.
 	OnNodeRecover(nodeid NodeId)
 }
 
@@ -83,6 +90,7 @@ type goDuration struct {
 	done     chan struct{}
 }
 
+// Dispatcher receives events from nodes and dispatches events according to their timestamps.
 type Dispatcher struct {
 	ctx                   *progctx.ProgCtx
 	cfg                   Config
@@ -90,7 +98,7 @@ type Dispatcher struct {
 	udpln                 *net.UDPConn
 	eventChan             chan *event
 	waitGroup             sync.WaitGroup
-	CurTime               uint64
+	CurTime               uint64 // The current time.
 	pauseTime             uint64
 	alarmMgr              *alarmMgr
 	sendQueue             *sendQueue
@@ -109,22 +117,22 @@ type Dispatcher struct {
 	goDurationChan        chan goDuration
 	globalPacketLossRatio float64
 
+	// Counters records the dispatcher runtime counts.
 	Counters struct {
-		// Event counters
-		AlarmEvents      uint64
-		RadioEvents      uint64
-		StatusPushEvents uint64
-		// Packet dispatching counters
-		DispatchByExtAddrSucc   uint64
-		DispatchByExtAddrFail   uint64
-		DispatchByShortAddrSucc uint64
-		DispatchByShortAddrFail uint64
-		DispatchAllInRange      uint64
+		AlarmEvents             uint64 // Alarm event count
+		RadioEvents             uint64 // Radio event count
+		StatusPushEvents        uint64 // Status push event count
+		DispatchByExtAddrSucc   uint64 // Packet count dispatched by Extended Address successfully
+		DispatchByExtAddrFail   uint64 // Packet count dispatched by Extended Address unsuccessfully
+		DispatchByShortAddrSucc uint64 // Packet count dispatched by Short Address successfully
+		DispatchByShortAddrFail uint64 // Packet count dispatched by Short Address unsuccessfully
+		DispatchAllInRange      uint64 // Packet count dispatched to all nodes in range
 	}
 	watchingNodes map[NodeId]struct{}
 	stopped       bool
 }
 
+// NewDispatcher creates a new Dispatcher.
 func NewDispatcher(ctx *progctx.ProgCtx, cfg *Config, cbHandler CallbackHandler) *Dispatcher {
 	udpAddr, err := net.ResolveUDPAddr("udp4", "127.0.0.1:9000")
 	simplelogger.FatalIfError(err, err)
@@ -172,6 +180,7 @@ func NewDispatcher(ctx *progctx.ProgCtx, cfg *Config, cbHandler CallbackHandler)
 	return d
 }
 
+// Stop stops the Dispatcher.
 func (d *Dispatcher) Stop() {
 	if d.stopped {
 		return
@@ -182,10 +191,12 @@ func (d *Dispatcher) Stop() {
 	d.waitGroup.Wait()
 }
 
+// Nodes returns all nodes of the Dispatcher.
 func (d *Dispatcher) Nodes() map[NodeId]*Node {
 	return d.nodes
 }
 
+// Go continues the dispatcher for a given duration.
 func (d *Dispatcher) Go(duration time.Duration) <-chan struct{} {
 	done := make(chan struct{})
 	d.goDurationChan <- goDuration{
@@ -195,6 +206,7 @@ func (d *Dispatcher) Go(duration time.Duration) <-chan struct{} {
 	return done
 }
 
+// Run runs the Dispatcher until exit.
 func (d *Dispatcher) Run() {
 	d.ctx.WaitAdd("dispatcher", 1)
 	defer d.ctx.WaitDone("dispatcher")
@@ -226,8 +238,8 @@ loop:
 			simplelogger.AssertTrue(d.CurTime == d.pauseTime)
 			oldPauseTime := d.pauseTime
 			d.pauseTime += uint64(duration.duration / time.Microsecond)
-			if d.pauseTime > Ever || d.pauseTime < oldPauseTime {
-				d.pauseTime = Ever
+			if d.pauseTime > ever || d.pauseTime < oldPauseTime {
+				d.pauseTime = ever
 			}
 
 			simplelogger.AssertTrue(d.CurTime <= d.pauseTime)
@@ -292,7 +304,7 @@ func (d *Dispatcher) handleRecvEvent(evt *event) {
 	delay := evt.Delay
 	var evtTime uint64
 	if delay >= 2147483647 {
-		evtTime = Ever
+		evtTime = ever
 	} else {
 		evtTime = d.CurTime + evt.Delay
 	}
@@ -394,9 +406,9 @@ func (d *Dispatcher) processNextEvent() bool {
 	simplelogger.AssertTrue(nextAlarmTime >= d.CurTime && nextSendtime >= d.CurTime)
 	var procUntilTime uint64
 	if nextAlarmTime <= nextSendtime {
-		procUntilTime = nextAlarmTime + ProcessEventTimeErrorUs
+		procUntilTime = nextAlarmTime + processEventTimeErrorUs
 	} else {
-		procUntilTime = nextSendtime + ProcessEventTimeErrorUs
+		procUntilTime = nextSendtime + processEventTimeErrorUs
 	}
 
 	if procUntilTime > d.pauseTime {
@@ -688,12 +700,14 @@ func (d *Dispatcher) pcapFrameWriter() {
 	}
 }
 
+// SetVisualizer sets the Visualizer.
 func (d *Dispatcher) SetVisualizer(vis visualize.Visualizer) {
 	simplelogger.AssertNotNil(vis)
 	d.vis = vis
 	d.vis.SetSpeed(d.speed)
 }
 
+// GetVisualizer gets the current Visualizer.
 func (d *Dispatcher) GetVisualizer() visualize.Visualizer {
 	return d.vis
 }
@@ -780,6 +794,7 @@ func (d *Dispatcher) handleStatusPush(srcid NodeId, data string) {
 	}
 }
 
+// AddNode adds a new node to the Dispatcher.
 func (d *Dispatcher) AddNode(nodeid NodeId, extaddr uint64, x, y int, radioRange int, mode NodeMode) {
 	simplelogger.AssertNil(d.nodes[nodeid])
 	simplelogger.Infof("dispatcher add node %d", nodeid)
@@ -829,6 +844,7 @@ func (d *Dispatcher) advanceTime(ts uint64) {
 	}
 }
 
+// PostAsync posts an asynchronous task to be executed in the Dispatcher's goroutine.
 func (d *Dispatcher) PostAsync(trivial bool, task func()) {
 	if trivial {
 		select {
@@ -862,10 +878,12 @@ loop:
 	}
 }
 
+// WatchNode sets the node as watched.
 func (d *Dispatcher) WatchNode(nodeid NodeId) {
 	d.watchingNodes[nodeid] = struct{}{}
 }
 
+// UnwatchNode sets the node as unwatched.
 func (d *Dispatcher) UnwatchNode(nodeid NodeId) {
 	delete(d.watchingNodes, nodeid)
 }
@@ -875,14 +893,17 @@ func (d *Dispatcher) isWatching(nodeid NodeId) bool {
 	return ok
 }
 
+// GetAliveCount gets the number of alive nodes.
 func (d *Dispatcher) GetAliveCount() int {
 	return len(d.aliveNodes)
 }
 
+// GetNode gets the node of a given ID.
 func (d *Dispatcher) GetNode(id NodeId) *Node {
 	return d.nodes[id]
 }
 
+// GetFailedCount gets the number of failed nodes.
 func (d *Dispatcher) GetFailedCount() int {
 	failCount := 0
 	for _, dn := range d.nodes {
@@ -893,6 +914,7 @@ func (d *Dispatcher) GetFailedCount() int {
 	return failCount
 }
 
+// SetNodePos sets the node position.
 func (d *Dispatcher) SetNodePos(id NodeId, x, y int) {
 	node := d.nodes[id]
 	simplelogger.AssertNotNil(node)
@@ -901,6 +923,7 @@ func (d *Dispatcher) SetNodePos(id NodeId, x, y int) {
 	d.vis.SetNodePos(id, x, y)
 }
 
+// DeleteNode deletes the node.
 func (d *Dispatcher) DeleteNode(id NodeId) {
 	node := d.nodes[id]
 	simplelogger.AssertNotNil(node)
@@ -919,6 +942,7 @@ func (d *Dispatcher) DeleteNode(id NodeId) {
 	d.vis.DeleteNode(id)
 }
 
+// SetNodeFailed sets the node as failed or recovered.
 func (d *Dispatcher) SetNodeFailed(id NodeId, fail bool) {
 	node := d.nodes[id]
 	simplelogger.AssertNotNil(node)
@@ -933,6 +957,7 @@ func (d *Dispatcher) SetNodeFailed(id NodeId, fail bool) {
 	}
 }
 
+// SetSpeed sets the simulating speed.
 func (d *Dispatcher) SetSpeed(f float64) {
 	ns := d.normalizeSpeed(f)
 	if ns == d.speed {
@@ -955,14 +980,17 @@ func (d *Dispatcher) normalizeSpeed(f float64) float64 {
 	return f
 }
 
+// GetSpeed gets the simulating speed.
 func (d *Dispatcher) GetSpeed() float64 {
 	return d.speed
 }
 
+// GetGlobalMessageDropRatio gets the Global Message Drop Ratio.
 func (d *Dispatcher) GetGlobalMessageDropRatio() float64 {
 	return d.globalPacketLossRatio
 }
 
+// SetGlobalPacketLossRatio sets the Global Message Drop Ratio
 func (d *Dispatcher) SetGlobalPacketLossRatio(plr float64) {
 	if plr > 1 {
 		plr = 1

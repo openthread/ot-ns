@@ -63,3 +63,15 @@ const (
 	OtDeviceRoleRouter   OtDeviceRole = 3 // The Thread Router role.
 	OtDeviceRoleLeader   OtDeviceRole = 4 // The Thread Leader role.
 )
+
+// OtJoinerState represents a joiner state.
+type OtJoinerState int
+
+const (
+	OtJoinerStateIdle      OtJoinerState = 0 // Joiner is idle
+	OtJoinerStateDiscover  OtJoinerState = 1 // Joiner is discovering
+	OtJoinerStateConnect   OtJoinerState = 2 // Joiner is connecting
+	OtJoinerStateConnected OtJoinerState = 3 // Joiner is connected
+	OtJoinerStateEntrust   OtJoinerState = 4 // Joiner is entrusted
+	OtJoinerStateJoined    OtJoinerState = 5 // Joiner is joined
+)

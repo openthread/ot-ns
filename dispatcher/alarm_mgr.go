@@ -89,7 +89,7 @@ func newAlarmMgr() *alarmMgr {
 }
 
 func (am *alarmMgr) SetNotified(id NodeId) {
-	am.SetTimestamp(id, Ever)
+	am.SetTimestamp(id, ever)
 }
 
 func (am *alarmMgr) AddNode(nodeid NodeId) {
@@ -98,7 +98,7 @@ func (am *alarmMgr) AddNode(nodeid NodeId) {
 
 	e = &alarmEvent{
 		NodeId:    nodeid,
-		Timestamp: Ever,
+		Timestamp: ever,
 	}
 	heap.Push(&am.q, e)
 	am.events[nodeid] = e
@@ -131,7 +131,7 @@ func (am *alarmMgr) NextAlarm() *alarmEvent {
 
 func (am *alarmMgr) NextTimestamp() uint64 {
 	if len(am.q) == 0 {
-		return Ever
+		return ever
 	}
 
 	return am.q[0].Timestamp

@@ -47,10 +47,12 @@ type pingRequest struct {
 	Dst       string
 	DataSize  int
 }
+
+// PingResult represents a `ping` result.
 type PingResult struct {
-	Dst      string
-	DataSize int
-	Delay    uint64
+	Dst      string // Ping destination
+	DataSize int    // Ping data size
+	Delay    uint64 // Ping delay
 }
 
 type joinerSession struct {
@@ -59,23 +61,25 @@ type joinerSession struct {
 	StopTime   uint64
 }
 
+// JoinResult represents a `join` result
 type JoinResult struct {
-	JoinDuration    uint64
-	SessionDuration uint64
+	JoinDuration    uint64 // Join duration or 0 if join failed
+	SessionDuration uint64 // Session duration
 }
 
+// Node represents a node in dispatcher.
 type Node struct {
-	D           *Dispatcher
-	Id          NodeId
-	X, Y        int
-	PartitionId uint32
-	ExtAddr     uint64
-	Rloc16      uint16
-	CreateTime  uint64
-	CurTime     uint64
+	D           *Dispatcher // Dispatcher
+	Id          NodeId      // Node ID
+	X, Y        int         // Position
+	PartitionId uint32      // partition ID
+	ExtAddr     uint64      // Extended Address
+	Rloc16      uint16      // RLOC16
+	CreateTime  uint64      // Create time
+	CurTime     uint64      // Current time
 
 	addr          *net.UDPAddr
-	failureCtrl   *FailureCtrl
+	failureCtrl   *failureCtrl
 	isFailed      bool
 	radioRange    int
 	pendingPings  []*pingRequest
@@ -109,10 +113,12 @@ func newNode(d *Dispatcher, nodeid NodeId, extaddr uint64, x, y int, radioRange 
 	return nc
 }
 
+// String returns a string representation of the node.
 func (node *Node) String() string {
 	return fmt.Sprintf("Node<%016x@%d,%d>", node.ExtAddr, node.X, node.Y)
 }
 
+// Send sends a radio event to the node.
 func (node *Node) Send(elapsed uint64, data []byte) {
 	msg := make([]byte, len(data)+11)
 	binary.LittleEndian.PutUint64(msg[:8], elapsed)
@@ -124,12 +130,14 @@ func (node *Node) Send(elapsed uint64, data []byte) {
 	node.SendMessage(msg)
 }
 
+// SendMessage sends a event to the node.
 func (node *Node) SendMessage(msg []byte) {
 	n, err := node.D.udpln.WriteToUDP(msg, node.addr)
 	simplelogger.AssertEqual(n, len(msg))
 	simplelogger.AssertNil(err, err)
 }
 
+// GetDistanceTo gets the distance to another node.
 func (node *Node) GetDistanceTo(other *Node) (dist int) {
 	dx := other.X - node.X
 	dy := other.Y - node.Y
@@ -137,10 +145,12 @@ func (node *Node) GetDistanceTo(other *Node) (dist int) {
 	return
 }
 
+// IsFailed returns if the node is failed.
 func (node *Node) IsFailed() bool {
 	return node.isFailed
 }
 
+// Fail set the node as failed.
 func (node *Node) Fail() {
 	if !node.isFailed {
 		node.isFailed = true
@@ -149,6 +159,7 @@ func (node *Node) Fail() {
 	}
 }
 
+// Recover set the node as not failed.
 func (node *Node) Recover() {
 	if node.isFailed {
 		node.isFailed = false
@@ -157,12 +168,7 @@ func (node *Node) Recover() {
 	}
 }
 
-func (node *Node) DumpStat() string {
-	d := node.D
-	alarmTs := d.alarmMgr.GetTimestamp(node.Id)
-	return fmt.Sprintf("CurTime=%v, AlarmTs=%v, Failed=%-5v, RecoverTS=%v", node.CurTime, alarmTs, node.isFailed, node.failureCtrl.recoverTs)
-}
-
+// SetFailTime sets the fail time configuration.
 func (node *Node) SetFailTime(failTime FailTime) {
 	node.failureCtrl.SetFailTime(failTime)
 }
@@ -214,12 +220,14 @@ func (node *Node) addPingResult(dst string, datasize int, delay uint64) {
 	}
 }
 
+// CollectPings return the collected ping results
 func (node *Node) CollectPings() []*PingResult {
 	ret := node.pingResults
 	node.pingResults = nil
 	return ret
 }
 
+// CollectJoins return the collected join results.
 func (node *Node) CollectJoins() []*JoinResult {
 	ret := node.joinResults
 	node.joinResults = nil
