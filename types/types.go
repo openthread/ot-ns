@@ -24,23 +24,25 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+// Package types defines the common types used in OTNS.
 package types
 
 type NodeId = int
 
 const (
-	MaxNodeId       NodeId = 0xffff
-	InvalidNodeId   NodeId = 0
-	BroadcastNodeId NodeId = -1
+	InvalidNodeId   NodeId = 0  // invalid node ID.
+	BroadcastNodeId NodeId = -1 // node ID for broadcasting messages.
 )
 
+// NodeMode defines node mode.
 type NodeMode struct {
-	RxOnWhenIdle       bool
-	SecureDataRequests bool
-	FullThreadDevice   bool
-	FullNetworkData    bool
+	RxOnWhenIdle       bool // radio RX on when idle
+	SecureDataRequests bool // secure data requests
+	FullThreadDevice   bool // full Thread device
+	FullNetworkData    bool // full network data
 }
 
+// DefaultNodeMode returns a default NodeMode.
 func DefaultNodeMode() NodeMode {
 	return NodeMode{
 		RxOnWhenIdle:       true,
