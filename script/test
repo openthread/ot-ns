@@ -29,7 +29,7 @@
 
 set -e
 
-OT_DIR=$HOME/src/openthread
+OT_DIR=${OT_DIR:-$HOME/src/openthread}
 if [[ $(uname) == "Darwin" ]]; then
   OTBIN_DIR=$OT_DIR/output/x86_64-apple-darwin/bin
 else
