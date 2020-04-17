@@ -50,4 +50,5 @@ jobs:
       - uses: actions/checkout@v2
       - name: Build
         run: |
+          ./script/install-deps
           ./script/install

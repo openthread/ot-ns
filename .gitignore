@@ -20,6 +20,7 @@ current.pcap
 *.rep
 openthread/
 ot-cli-ftd
+*.pyc
 __pycache__
 node_modules/
 
@@ -33,3 +34,8 @@ node_modules/
 /visualize/grpc/pb/*.pb.go
 /web/site/js/proto/*_pb.js
 /web/site/static/js/*.js
+
+# pylibs installation files
+pylibs/build/
+pylibs/dist/
+pylibs/otns.egg-info/

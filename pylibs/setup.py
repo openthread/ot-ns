@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env python3
 # Copyright (c) 2020, The OTNS Authors.
 # All rights reserved.
 #
@@ -24,25 +24,20 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-#
-# This script installs OTNS.
 
-. "$(dirname $0)"/common.sh
+import setuptools
 
-install_otns() {
-    go get ./cmd/otns
-    echo "otns installed: $(command -v otns)"
-}
-
-install_pylibs() {
-    cd pylibs
-    python3 setup.py install --user
-    cd -
-}
-
-main() {
-    install_pylibs
-    install_otns
-}
-
-main
+setuptools.setup(
+    name="otns",
+    version="0.0.0",
+    author="OpenThread Authors",
+    description="Run OpenThread simulation using OTNS",
+    url="https://github.com/openthread/ot-ns",
+    packages=setuptools.find_packages(),
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: BSD 3-Clause License",
+        "Operating System :: OS Independent",
+    ],
+    python_requires='>=3.7',
+)
