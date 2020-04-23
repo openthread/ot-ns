@@ -71,7 +71,9 @@ class OTNS(object):
         """
         Continue the simulation for a period of time.
 
-        :param duration: the time duration (in simulating time) for the simulation to continue. Continue forever if duration is not specified.
+        :param duration: the time duration (in simulating time) for the simulation to continue,
+                         or continue forever if duration is not specified.
+
         :param speed: simulating speed. Use current simulating speed if not specified.
         """
         if duration is None:

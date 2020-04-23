@@ -75,13 +75,11 @@ See [OTNS CLI Reference](cli/README.md).
 
 [pylibs/otns library](pylibs/otns) provides utilities to create and manage simulations through OTNS CLI. 
 
-**Check `pylibs/otns` document**
+To review the `pylibs/otns` documentation:
 1. Start `pydoc3` document server:
     ```bash
     pydoc3 -p 8080
     ```
 2. Open a web browser and navigate to http://localhost:8080/otns.html.
 
-**Check examples:**
-
-Check the scripts in [pylibs/examples](pylibs/examples) for examples.
+For example test scripts, see [pylibs/examples](pylibs/examples).
