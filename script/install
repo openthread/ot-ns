@@ -34,14 +34,14 @@ install_otns() {
     echo "otns installed: $(command -v otns)"
 }
 
-install_pylibs() {
+install_pyotns() {
     cd pylibs
     python3 setup.py install --user
     cd -
 }
 
 main() {
-    install_pylibs
+    install_pyotns
     install_otns
 }
 
