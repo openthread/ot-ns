@@ -31,6 +31,7 @@ import shutil
 import signal
 import subprocess
 from typing import List, Union, Optional, Tuple, Dict, Any, Collection
+import ipaddress
 
 from .errors import OTNSCliError, OTNSExitedError
 
@@ -120,6 +121,14 @@ class OTNS(object):
 
         self._do_command(f'speed {speed}')
 
+    def set_poll_period(self, nodeid: int, period: float) -> None:
+        ms = int(period * 1000)
+        self.node_cmd(nodeid, f'pollperiod {ms}')
+
+    def get_poll_period(self, nodeid: int) -> float:
+        ms = self._expect_int(self.node_cmd(nodeid, 'pollperiod'))
+        return ms / 1000.0
+
     @staticmethod
     def _detect_otns_path() -> str:
         env_otns_path = os.getenv('OTNS')
@@ -201,7 +210,9 @@ class OTNS(object):
         cmd = f'move {nodeid} {x} {y}'
         self._do_command(cmd)
 
-    def ping(self, srcid: int, dst: Union[int, str], addrtype='any', datasize=0) -> None:
+    def ping(self, srcid: int, dst: Union[int, str, ipaddress.IPv6Address], addrtype: str = 'any', datasize: int = 0,
+             count: int = 1,
+             interval: float = 1) -> None:
         """
         Ping from source node to destination node.
 
@@ -212,10 +223,13 @@ class OTNS(object):
 
         Use pings() to get ping results.
         """
-        if isinstance(dst, str):
+        if isinstance(dst, (str, ipaddress.IPv6Address)):
             addrtype = ''  # addrtype only appliable for dst ID
 
-        cmd = f'ping {srcid} {dst!r} {addrtype} datasize {datasize}'
+        if isinstance(dst, ipaddress.IPv6Address):
+            dst = dst.compressed
+
+        cmd = f'ping {srcid} {dst!r} {addrtype} datasize {datasize} count {count} interval {interval}'
         self._do_command(cmd)
 
     @property
@@ -398,6 +412,7 @@ class OTNS(object):
 
         :return: lines of command output
         """
+        assert nodeid >= 0, f'invalid node ID: {nodeid}'
         cmd = f'node {nodeid} "{cmd}"'
         output = self._do_command(cmd)
         return output
@@ -411,7 +426,7 @@ class OTNS(object):
         output = self.node_cmd(nodeid, "state")
         return self._expect_str(output)
 
-    def get_ipaddrs(self, nodeid: int, addrtype: str = None) -> List[str]:
+    def get_ipaddrs(self, nodeid: int, addrtype: str = None) -> List[ipaddress.IPv6Address]:
         """
         Get node ipaddrs.
 
@@ -424,7 +439,27 @@ class OTNS(object):
         if addrtype:
             cmd += f' {addrtype}'
 
-        return self.node_cmd(nodeid, cmd)
+        return [ipaddress.IPv6Address(a) for a in self.node_cmd(nodeid, cmd)]
+
+    def get_mleid(self, nodeid: int) -> ipaddress.IPv6Address:
+        """
+        Get the MLEID of a node.
+
+        :param nodeid: the node ID
+        :return: the MLEID
+        """
+        ips = self.get_ipaddrs(nodeid, 'mleid')
+        return ips[0] if ips else None
+
+    def get_rloc(self, nodeid: int) -> ipaddress.IPv6Address:
+        """
+        Get the RLOC of a node.
+
+        :param nodeid: the node ID
+        :return: the RLOC
+        """
+        ips = self.get_ipaddrs(nodeid, 'rloc')
+        return ips[0] if ips else None
 
     def set_network_name(self, nodeid: int, name: str = None) -> None:
         """
@@ -602,6 +637,42 @@ class OTNS(object):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
+
+    def get_router_upgrade_threshold(self, nodeid: int) -> int:
+        """
+        Get Router upgrade threshold.
+
+        :param nodeid: the node ID
+        :return: the Router upgrade threshold
+        """
+        return self._expect_int(self.node_cmd(nodeid, 'routerupgradethreshold'))
+
+    def set_router_upgrade_threshold(self, nodeid: int, val: int) -> None:
+        """
+        Set Router upgrade threshold.
+
+        :param nodeid: the node ID
+        :param val: the Router upgrade threshold
+        """
+        self.node_cmd(nodeid, f'routerupgradethreshold {val}')
+
+    def get_router_downgrade_threshold(self, nodeid: int) -> int:
+        """
+        Get Router downgrade threshold.
+
+        :param nodeid: the node ID
+        :return: the Router downgrade threshold
+        """
+        return self._expect_int(self.node_cmd(nodeid, 'routerdowngradethreshold'))
+
+    def set_router_downgrade_threshold(self, nodeid: int, val: int) -> None:
+        """
+        Set Router downgrade threshold.
+
+        :param nodeid: the node ID
+        :param val: the Router downgrade threshold
+        """
+        self.node_cmd(nodeid, f'routerdowngradethreshold {val}')
 
     @staticmethod
     def _expect_int(output: List[str]) -> int:

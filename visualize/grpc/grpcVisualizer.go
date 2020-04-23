@@ -89,7 +89,7 @@ func (gv *grpcVisualizer) SetNodeRloc16(nodeid NodeId, rloc16 uint16) {
 	}}}, false)
 }
 
-func (gv *grpcVisualizer) SetNodeRole(nodeid NodeId, role visualize.OtDeviceRole) {
+func (gv *grpcVisualizer) SetNodeRole(nodeid NodeId, role OtDeviceRole) {
 	gv.f.setNodeRole(nodeid, role)
 	gv.server.SendEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_SetNodeRole{SetNodeRole: &pb.SetNodeRoleEvent{
 		NodeId: int32(nodeid),

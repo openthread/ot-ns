@@ -24,31 +24,13 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-import logging
-import tracemalloc
-import unittest
+#
+import ipaddress
 
-from otns.cli import OTNS
+MESH_LOCAL_PREFIX = ipaddress.IPv6Network('fdde:ad00:beef:0::/64', strict=True)
+MESH_LOCAL_LOCATOR_PREFIX = ipaddress.IPv6Network('fdde:ad00:beef:0:0:ff:fe00::/112', strict=True)
 
-
-class OTNSTestCase(unittest.TestCase):
-
-    @classmethod
-    def setUpClass(cls) -> None:
-        tracemalloc.start()
-        logging.basicConfig(level=logging.DEBUG)
-
-    def setUp(self) -> None:
-        self.ns = OTNS(otns_args=['-log', 'debug'])
-        self.ns.speed = OTNS.MAX_SIMULATE_SPEED
-
-    def tearDown(self) -> None:
-        self.ns.close()
-
-    def assertFormPartitions(self, count: int):
-        pars = self.ns.partitions()
-        self.assertTrue(len(pars) == count and 0 not in pars, pars)
-
-    def assertNodeState(self, nodeid: int, state: str):
-        cur_state = self.ns.get_state(nodeid)
-        self.assertEqual(state, cur_state, f"Node {nodeid} state mismatch: expected {state}, but is {cur_state}")
+if __name__ == '__main__':
+    assert ipaddress.IPv6Address('fdde:ad00:beef:0:9999:dbec:4ff9:410c') in MESH_LOCAL_PREFIX
+    assert ipaddress.IPv6Address('fdde:ad00:beef:0:0:ff:fe00:8800') in MESH_LOCAL_LOCATOR_PREFIX
+    assert ipaddress.IPv6Address('fdde:ad00:beef:0:0:ff:fe00:fc00') in MESH_LOCAL_LOCATOR_PREFIX

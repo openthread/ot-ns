@@ -660,8 +660,8 @@ func (node *Node) CommandExpectEnabledOrDisabled(cmd string, timeout time.Durati
 	return false
 }
 
-func (node *Node) Ping(addr string, payloadSize int, count int, interval int, hopLimit int) {
-	cmd := fmt.Sprintf("ping %s %d %d %d %d", addr, payloadSize, count, interval, hopLimit)
+func (node *Node) Ping(addr string, payloadSize int, count int, interval float64, hopLimit int) {
+	cmd := fmt.Sprintf("ping %s %d %d %f %d", addr, payloadSize, count, interval, hopLimit)
 	_, _ = node.Input.Write([]byte(cmd + "\n"))
 	node.expectLine(cmd, DefaultCommandTimeout)
 	node.AssurePrompt()

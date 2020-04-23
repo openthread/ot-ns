@@ -71,6 +71,7 @@ type Node struct {
 	PartitionId uint32
 	ExtAddr     uint64
 	Rloc16      uint16
+	Role        OtDeviceRole
 	CreateTime  uint64
 	CurTime     uint64
 
@@ -99,6 +100,7 @@ func newNode(d *Dispatcher, nodeid NodeId, x, y int, radioRange int) *Node {
 		Y:           y,
 		ExtAddr:     InvalidExtAddr,
 		Rloc16:      threadconst.InvalidRloc16,
+		Role:        OtDeviceRoleDisabled,
 		addr:        addr,
 		radioRange:  radioRange,
 		joinerState: OtJoinerStateIdle,

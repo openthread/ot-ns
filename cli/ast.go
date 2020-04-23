@@ -122,12 +122,12 @@ type AddrTypeFlag struct {
 
 //noinspection GoStructTag
 type DataSizeFlag struct {
-	Val int `("datasize"|"ds") @Int` //nolint
+	Val int `"datasize" @Int` //nolint
 }
 
 //noinspection GoStructTag
 type IntervalFlag struct {
-	Val int `("interval"|"itv") @Int` //nolint
+	Val float64 `"interval" (@Int|@Float)` //nolint
 }
 
 //noinspection GoStructTag

@@ -24,31 +24,53 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-import logging
-import tracemalloc
-import unittest
+import time
 
-from otns.cli import OTNS
+from BaseStressTest import BaseStressTest
+from config import DEBUG
+
+XGAP = 100
+YGAP = 100
+RADIO_RANGE = int(XGAP * 1.5)
+
+LARGE_N = 8
+
+SIMULATE_TIME = 60
+REPEAT = 1 if DEBUG else 100
 
 
-class OTNSTestCase(unittest.TestCase):
+class StressTest(BaseStressTest):
+    SUITE = 'robustness'
 
-    @classmethod
-    def setUpClass(cls) -> None:
-        tracemalloc.start()
-        logging.basicConfig(level=logging.DEBUG)
+    def __init__(self):
+        super(StressTest, self).__init__("Large Network Formation Test",
+                                         ["Simulation Time", "Execution Time", "Average Partition Count in 60s"])
 
-    def setUp(self) -> None:
-        self.ns = OTNS(otns_args=['-log', 'debug'])
-        self.ns.speed = OTNS.MAX_SIMULATE_SPEED
+    def run(self):
+        self.ns.packet_loss_ratio = 0.2
 
-    def tearDown(self) -> None:
-        self.ns.close()
+        durations = []
+        partition_counts = []
+        for _ in range(REPEAT):
+            dt, par_cnt = self.test_n(LARGE_N)
+            durations.append(dt)
+            partition_counts.append(par_cnt)
 
-    def assertFormPartitions(self, count: int):
-        pars = self.ns.partitions()
-        self.assertTrue(len(pars) == count and 0 not in pars, pars)
+        self.result.append_row('%ds' % (SIMULATE_TIME * REPEAT), '%ds' % sum(durations),
+                               '%d' % (sum(partition_counts) / len(partition_counts)))
 
-    def assertNodeState(self, nodeid: int, state: str):
-        cur_state = self.ns.get_state(nodeid)
-        self.assertEqual(state, cur_state, f"Node {nodeid} state mismatch: expected {state}, but is {cur_state}")
+    def test_n(self, n):
+        self.reset()
+
+        for r in range(n):
+            for c in range(n):
+                self.ns.add("router", 50 + XGAP * c, 50 + YGAP * r, radio_range=RADIO_RANGE)
+
+        t0 = time.time()
+        self.ns.go(SIMULATE_TIME)
+        dt = time.time() - t0
+        return dt, len(self.ns.partitions())
+
+
+if __name__ == '__main__':
+    StressTest().run()

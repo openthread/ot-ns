@@ -25,30 +25,27 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 import logging
-import tracemalloc
-import unittest
+import os
 
-from otns.cli import OTNS
+from stess_report_bot import StressReportBot
 
 
-class OTNSTestCase(unittest.TestCase):
+def main():
+    logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.DEBUG)
 
-    @classmethod
-    def setUpClass(cls) -> None:
-        tracemalloc.start()
-        logging.basicConfig(level=logging.DEBUG)
+    installid, owner, repo, issue_number = None, None, None, None
+    if os.getenv('GITHUB_ACTIONS'):
+        installid = int(os.environ['OT_STRESS_REPORT_INSTALL_ID'])
+    else:
+        installid = 8493459
+        owner, repo, issue_number = 'simonlingoogle', 'ot-ns', 1
 
-    def setUp(self) -> None:
-        self.ns = OTNS(otns_args=['-log', 'debug'])
-        self.ns.speed = OTNS.MAX_SIMULATE_SPEED
+    bot = StressReportBot(installid=installid, owner=owner, repo=repo, issue_number=issue_number)
+    report = bot.report_suite_results()
+    logging.debug("Report commented: %s", report)
 
-    def tearDown(self) -> None:
-        self.ns.close()
+    exit(report['fail_count'])
 
-    def assertFormPartitions(self, count: int):
-        pars = self.ns.partitions()
-        self.assertTrue(len(pars) == count and 0 not in pars, pars)
 
-    def assertNodeState(self, nodeid: int, state: str):
-        cur_state = self.ns.get_state(nodeid)
-        self.assertEqual(state, cur_state, f"Node {nodeid} state mismatch: expected {state}, but is {cur_state}")
+if __name__ == '__main__':
+    main()

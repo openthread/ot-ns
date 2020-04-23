@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # Copyright (c) 2020, The OTNS Authors.
 # All rights reserved.
 #
@@ -24,31 +23,50 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-import logging
-import tracemalloc
-import unittest
 
-from otns.cli import OTNS
+name: Stress
 
+on: [pull_request]
 
-class OTNSTestCase(unittest.TestCase):
+env:
+  OT_STRESS_REPORT_INSTALL_ID: 8493459
 
-    @classmethod
-    def setUpClass(cls) -> None:
-        tracemalloc.start()
-        logging.basicConfig(level=logging.DEBUG)
+jobs:
+  cancel-previous-runs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: rokroskar/workflow-run-cleanup-action@master
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+        if: "github.ref != 'refs/heads/master'"
 
-    def setUp(self) -> None:
-        self.ns = OTNS(otns_args=['-log', 'debug'])
-        self.ns.speed = OTNS.MAX_SIMULATE_SPEED
-
-    def tearDown(self) -> None:
-        self.ns.close()
-
-    def assertFormPartitions(self, count: int):
-        pars = self.ns.partitions()
-        self.assertTrue(len(pars) == count and 0 not in pars, pars)
-
-    def assertNodeState(self, nodeid: int, state: str):
-        cur_state = self.ns.get_state(nodeid)
-        self.assertEqual(state, cur_state, f"Node {nodeid} state mismatch: expected {state}, but is {cur_state}")
+  stress-tests:
+    name: "Test Suite ${{ matrix.suite }}"
+    strategy:
+      matrix:
+        python-version: [3.8]
+        go-version: [1.14]
+        suite: ["commissioning", "performance", "connectivity", "robustness"]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-go@v1
+        with:
+          go-version: ${{ matrix.go-version }}
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v1
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: |
+          mkdir -p /home/runner/work/_temp/_github_home
+      - uses: actions/checkout@v2
+      - name: Stress Test
+        run: |
+          ./script/test stress-tests ${{ matrix.suite }}
+  stress-report:
+    name: Generate Report
+    runs-on: ubuntu-latest
+    needs: [stress-tests]
+    steps:
+      - uses: actions/checkout@v2
+      - run: |
+          ./script/test gen-stress-tests-report

@@ -219,6 +219,37 @@ class BasicTests(OTNSTestCase):
         with OTNS(otns_args=['-log', 'debug']) as ns:
             ns.add("router")
 
+    def testSetRouterUpgradeThreshold(self):
+        ns: OTNS = self.ns
+        nid = ns.add("router")
+        self.assertEqual(16, ns.get_router_upgrade_threshold(nid))
+        for val in range(0, 33):
+            ns.set_router_upgrade_threshold(nid, val)
+            self.assertEqual(val, ns.get_router_upgrade_threshold(nid))
+
+    def testSetRouterUpgradeThresholdEffective(self):
+        ns: OTNS = self.ns
+        nid = ns.add("router")
+        ns.go(3)
+        self.assertNodeState(nid, 'leader')
+
+        reed = ns.add("router")
+        ns.set_router_upgrade_threshold(reed, 1)
+        ns.go(100)
+        self.assertNodeState(reed, 'child')
+
+        ns.set_router_upgrade_threshold(reed, 2)
+        ns.go(100)
+        self.assertNodeState(reed, 'router')
+
+    def testSetRouterDowngradeThreshold(self):
+        ns: OTNS = self.ns
+        nid = ns.add("router")
+        self.assertEqual(23, ns.get_router_downgrade_threshold(nid))
+        for val in range(0, 33):
+            ns.set_router_downgrade_threshold(nid, val)
+            self.assertEqual(val, ns.get_router_downgrade_threshold(nid))
+
 
 if __name__ == '__main__':
     unittest.main()
