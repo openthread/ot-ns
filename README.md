@@ -1,6 +1,7 @@
 [![Build Status][build-actions-svg]][build-actions]
 [![Lint Status][lint-actions-svg]][lint-actions]
 [![Test Status][test-actions-svg]][test-actions]
+[![codecov][codecov-svg]][codecov-url]
 ---
 
 # OpenThread Network Simulator
@@ -19,6 +20,8 @@ To learn more about OpenThread, visit [openthread.io](https://openthread.io).
 [lint-actions]: https://github.com/openthread/ot-ns/actions?query=workflow%3ALint+branch%3Amaster+event%3Apush
 [test-actions-svg]: https://github.com/openthread/ot-ns/workflows/Test/badge.svg?branch=master&event=push
 [test-actions]: https://github.com/openthread/ot-ns/actions?query=workflow%3ATest+branch%3Amaster+event%3Apush
+[codecov-svg]: https://codecov.io/gh/openthread/ot-ns/branch/master/graph/badge.svg
+[codecov-url]: https://codecov.io/gh/openthread/ot-ns
 
 ## Get started
 See [GUIDE](GUIDE.md) to get started. 
