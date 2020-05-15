@@ -76,10 +76,10 @@ class BasicTests(OTNSTestCase):
         ns.go(100)
         self.assertTrue(ns.get_state(n1) == "leader")
         ns.commissioner_start(n1)
-        ns.commissioner_joiner_add(n1, "*", "test123")
+        ns.commissioner_joiner_add(n1, "*", "TEST123")
 
         ns.ifconfig_up(n2)
-        ns.joiner_start(n2, "test123")
+        ns.joiner_start(n2, "TEST123")
         ns.go(100)
         ns.thread_start(n2)
         ns.go(100)
