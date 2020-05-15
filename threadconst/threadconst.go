@@ -24,9 +24,10 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+// Package threadconst defines Thread related constants.
 package threadconst
 
 const (
-	InvalidRloc16   uint16 = 0xfffe
-	BroadcastRloc16 uint16 = 0xffff
+	InvalidRloc16   uint16 = 0xfffe // Invalid RLOC16
+	BroadcastRloc16 uint16 = 0xffff // The broadcast RLOC16
 )

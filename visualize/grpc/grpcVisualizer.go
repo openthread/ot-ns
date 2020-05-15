@@ -90,7 +90,7 @@ func (gv *grpcVisualizer) SetNodeRloc16(nodeid NodeId, rloc16 uint16) {
 	}}}, false)
 }
 
-func (gv *grpcVisualizer) SetNodeRole(nodeid NodeId, role visualize.OtDeviceRole) {
+func (gv *grpcVisualizer) SetNodeRole(nodeid NodeId, role OtDeviceRole) {
 	gv.f.setNodeRole(nodeid, role)
 	gv.server.SendEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_SetNodeRole{SetNodeRole: &pb.SetNodeRoleEvent{
 		NodeId: int32(nodeid),
@@ -348,6 +348,8 @@ func (gv *grpcVisualizer) prepareStream(stream *grpcStream) error {
 	return nil
 }
 
+// NewGrpcVisualizer creates a gRPC visualization server.
+// The gRPC visualization server accepts gRPC connections and sends visualization events to these clients.
 func NewGrpcVisualizer(address string) visualize.Visualizer {
 	gsv := &grpcVisualizer{
 		simctrl: nil,

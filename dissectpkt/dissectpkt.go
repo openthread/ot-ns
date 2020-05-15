@@ -24,23 +24,19 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+// Package dissectpkt provides utilities for dissecting packets.
 package dissectpkt
 
 import (
 	"github.com/openthread/ot-ns/dissectpkt/wpan"
 )
 
-type WpanFrameType int
-
-const (
-	MLE WpanFrameType = iota
-	MAC               = iota
-)
-
+// PktInfo contains all packet information.
 type PktInfo struct {
-	MacFrame *wpan.MacFrame
+	MacFrame *wpan.MacFrame // MAC frame information
 }
 
+// Dissect dissects a MAC frame and returns the packet information.
 func Dissect(data []byte) *PktInfo {
 	macFrame := wpan.Dissect(data)
 

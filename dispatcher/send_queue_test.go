@@ -51,7 +51,7 @@ func TestSendQueue_Len(t *testing.T) {
 
 func TestSendQueue_NextTimestamp(t *testing.T) {
 	q := newSendQueue()
-	assert.Equal(t, Ever, q.NextTimestamp())
+	assert.Equal(t, ever, q.NextTimestamp())
 	q.Add(2, 2, nil)
 	assert.Equal(t, uint64(2), q.NextTimestamp())
 	q.Add(1, 1, nil)

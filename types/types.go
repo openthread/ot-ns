@@ -24,23 +24,26 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+// Package types defines the common types used in OTNS.
 package types
 
+// NodeId represents a node ID which starts from 1.
 type NodeId = int
 
 const (
-	MaxNodeId       NodeId = 0xffff
-	InvalidNodeId   NodeId = 0
-	BroadcastNodeId NodeId = -1
+	InvalidNodeId   NodeId = 0  // invalid node ID.
+	BroadcastNodeId NodeId = -1 // node ID for broadcasting messages.
 )
 
+// NodeMode defines node mode.
 type NodeMode struct {
-	RxOnWhenIdle       bool
-	SecureDataRequests bool
-	FullThreadDevice   bool
-	FullNetworkData    bool
+	RxOnWhenIdle       bool // radio RX on when idle
+	SecureDataRequests bool // secure data requests
+	FullThreadDevice   bool // full Thread device
+	FullNetworkData    bool // full network data
 }
 
+// DefaultNodeMode returns a default NodeMode.
 func DefaultNodeMode() NodeMode {
 	return NodeMode{
 		RxOnWhenIdle:       true,
@@ -49,3 +52,26 @@ func DefaultNodeMode() NodeMode {
 		FullNetworkData:    true,
 	}
 }
+
+// OtDeviceRole represents the device role.
+type OtDeviceRole int
+
+const (
+	OtDeviceRoleDisabled OtDeviceRole = 0 // The Thread stack is disabled.
+	OtDeviceRoleDetached OtDeviceRole = 1 // Not currently participating in a Thread network/partition.
+	OtDeviceRoleChild    OtDeviceRole = 2 // The Thread Child role.
+	OtDeviceRoleRouter   OtDeviceRole = 3 // The Thread Router role.
+	OtDeviceRoleLeader   OtDeviceRole = 4 // The Thread Leader role.
+)
+
+// OtJoinerState represents a joiner state.
+type OtJoinerState int
+
+const (
+	OtJoinerStateIdle      OtJoinerState = 0 // Joiner is idle
+	OtJoinerStateDiscover  OtJoinerState = 1 // Joiner is discovering
+	OtJoinerStateConnect   OtJoinerState = 2 // Joiner is connecting
+	OtJoinerStateConnected OtJoinerState = 3 // Joiner is connected
+	OtJoinerStateEntrust   OtJoinerState = 4 // Joiner is entrusted
+	OtJoinerStateJoined    OtJoinerState = 5 // Joiner is joined
+)

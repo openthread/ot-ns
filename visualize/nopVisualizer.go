@@ -112,6 +112,7 @@ func (nv nopVisualizer) OnNodeRecover(NodeId) {
 
 }
 
+// NewNopVisualizer creates a visualizer of no visualization.
 func NewNopVisualizer() Visualizer {
 	return nopVisualizer{}
 }

@@ -24,6 +24,7 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+// Package otns_main implements the main entry for an OTNS programs.
 package otns_main
 
 import (
@@ -40,8 +41,6 @@ import (
 
 	"github.com/openthread/ot-ns/web"
 
-	"github.com/pkg/errors"
-
 	"github.com/openthread/ot-ns/progctx"
 	"github.com/openthread/ot-ns/visualize"
 
@@ -55,14 +54,15 @@ import (
 	"github.com/simonlingoogle/go-simplelogger"
 )
 
+// MainArgs defines all parameters of the an OTNS program.
 type MainArgs struct {
-	Speed    string
-	BinDir   string
-	AutoGo   bool
-	ReadOnly bool
-	LogLevel string
-	OpenWeb  bool
-	RawMode  bool
+	Speed    string // the simulating speed (default: 1)
+	BinDir   string // the path to directory containing OpenThread binaries (defualt: ".")
+	AutoGo   bool   // simulation automatically goes in time (default: true)
+	ReadOnly bool   // whether or not the simulation can be altered in web visualization (default: false)
+	LogLevel string // specify logging level (default: warn)
+	OpenWeb  bool   // open web browser (default: true)
+	RawMode  bool   // use raw mode (default: false)
 }
 
 var (
@@ -82,6 +82,8 @@ func parseArgs() {
 	flag.Args()
 }
 
+// Main is the main entry of an OTNS simulation program.
+// It parses arguments, creates simulation, dispatcher and visualizer, and runs them.
 func Main(visualizerCreator func(ctx *progctx.ProgCtx, args *MainArgs) visualize.Visualizer) {
 	parseArgs()
 
@@ -111,11 +113,7 @@ func Main(visualizerCreator func(ctx *progctx.ProgCtx, args *MainArgs) visualize
 	sim := createSimulation(ctx)
 	sim.SetVisualizer(vis)
 	go sim.Run()
-	rt := cli.NewCmdRunner(ctx, sim)
-	go func() {
-		err := cli.Run(rt)
-		ctx.Cancel(errors.Wrapf(err, "console exit"))
-	}()
+	go cli.Run(ctx, sim)
 
 	go func() {
 		err := webSite.Serve()

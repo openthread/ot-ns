@@ -24,6 +24,7 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+// Package otoutfilter implements an output filter to make it easier to parse output from OpenThread CLI programs.
 package otoutfilter
 
 import (
@@ -129,6 +130,9 @@ func (cc *otOutFilter) printLog(logStr string) {
 	}
 }
 
+// NewOTOutFilter filters the output from OpenThread CLI program by removing prompt "> " and logs.
+// It returns a Reader for reading the filtered output.
+// It also redirect OpenThread CLI logs according to their logging level.
 func NewOTOutFilter(reader io.Reader, logPrintPrefix string) io.Reader {
 	return &otOutFilter{subr: reader, logPrintPrefix: logPrintPrefix}
 }

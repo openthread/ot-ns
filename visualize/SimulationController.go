@@ -30,10 +30,16 @@ import (
 	. "github.com/openthread/ot-ns/types"
 )
 
+// SimulationController defines the interfaces for operating the simulation in visualization.
 type SimulationController interface {
+	// CtrlAddNode notifies the simulation to add a new node.
 	CtrlAddNode(x, y int, router bool, mode NodeMode) error
+	// CtrlMoveNodeTo notifies the simulation to move node to a given position.
 	CtrlMoveNodeTo(nodeid NodeId, x, y int) error
+	// CtrlDeleteNode notifies the simulation to delete a node.
 	CtrlDeleteNode(nodeid NodeId) error
+	// CtrlSetNodeFailed notifies the simulation to set node failed.
 	CtrlSetNodeFailed(nodeid NodeId, failed bool) error
+	// CtrlSetSpeed notifies the simulation to set speed.
 	CtrlSetSpeed(speed float64) error
 }

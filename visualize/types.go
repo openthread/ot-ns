@@ -24,6 +24,7 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+// Package visualize implements the web visualization.
 package visualize
 
 import (
@@ -34,41 +35,63 @@ import (
 	. "github.com/openthread/ot-ns/types"
 )
 
+// Visualizer defines the interface of a visualizer.
 type Visualizer interface {
+	// Run runs the visualizer.
 	Run()
+	// Stop stops the visualizer.
 	Stop()
-
+	// AddNode adds a new node.
 	AddNode(nodeid NodeId, extaddr uint64, x int, y int, radioRange int, mode NodeMode)
+	// SetNodeRloc16 sets the node RLOC16.
 	SetNodeRloc16(nodeid NodeId, rloc16 uint16)
+	// SetNodeRole sets the node role.
 	SetNodeRole(nodeid NodeId, role OtDeviceRole)
 	Send(srcid NodeId, dstid NodeId, mvinfo *MsgVisualizeInfo)
+	// SetNodePartitionId sets the node partition ID.
 	SetNodePartitionId(nodeid NodeId, parid uint32)
+	// SetSpeed sets the simulating speed.
 	SetSpeed(speed float64)
+	// AdvanceTime sets time to new timestamp.
 	AdvanceTime(ts uint64, speed float64)
-
+	// OnNodeFail notifies of a failed node.
 	OnNodeFail(nodeId NodeId)
+	// OnNodeRecover notifies of a recovered node.
 	OnNodeRecover(nodeId NodeId)
+	// SetController sets the simulation controller.
 	SetController(ctrl SimulationController)
+	// SetNodePos
 	SetNodePos(nodeid NodeId, x, y int)
+	// DeleteNode deletes a node.
 	DeleteNode(id NodeId)
+	// AddRouterTable adds a new router to the router table of a node.
 	AddRouterTable(id NodeId, extaddr uint64)
+	// RemoveRouterTable removes a router from the router table of a node.
 	RemoveRouterTable(id NodeId, extaddr uint64)
+	// AddChildTable adds a child to the child table of a node.
 	AddChildTable(id NodeId, extaddr uint64)
+	// RemoveChildTable removes a child from the child table of a node.
 	RemoveChildTable(id NodeId, extaddr uint64)
+	// ShowDemoLegend shows the demo legend.
 	ShowDemoLegend(x int, y int, title string)
+	// CountDown creates a new countdown with specified text and duration.
 	CountDown(duration time.Duration, text string)
+	// SetParent sets the parent of a node.
 	SetParent(id NodeId, extaddr uint64)
+	// OnExtAddrChange notifies of Extended Address change of a node.
 	OnExtAddrChange(id NodeId, extaddr uint64)
 }
 
+// MsgVisualizeInfo contains visualization information of a message.
 type MsgVisualizeInfo struct {
-	Channel         uint8
-	FrameControl    wpan.FrameControl
-	Seq             uint8
-	DstAddrShort    uint16
-	DstAddrExtended uint64
+	Channel         uint8             // Message channel
+	FrameControl    wpan.FrameControl // WPAN Frame Control
+	Seq             uint8             // WPAN Sequence
+	DstAddrShort    uint16            // Destination Short Address
+	DstAddrExtended uint64            // Destination Extended Address
 }
 
+// MsgVisualizeInfo returns a short string label for the message.
 func (info *MsgVisualizeInfo) Label() string {
 	frameType := info.FrameControl.FrameType()
 	if frameType == wpan.FrameTypeAck {
@@ -79,24 +102,3 @@ func (info *MsgVisualizeInfo) Label() string {
 		return fmt.Sprintf("MLE%03d", info.Seq)
 	}
 }
-
-func (info *MsgVisualizeInfo) FormatDstAddr() interface{} {
-	dstaddrmode := info.FrameControl.DstAddrMode()
-	if dstaddrmode == wpan.DstAddrModeShort {
-		return fmt.Sprintf("%04x", info.DstAddrShort)
-	} else if dstaddrmode == wpan.DstAddrModeExtended {
-		return fmt.Sprintf("%016x", info.DstAddrExtended)
-	} else {
-		return "@"
-	}
-}
-
-type OtDeviceRole int
-
-const (
-	OtDeviceRoleDisabled OtDeviceRole = 0 ///< The Thread stack is disabled.
-	OtDeviceRoleDetached OtDeviceRole = 1 ///< Not currently participating in a Thread network/partition.
-	OtDeviceRoleChild    OtDeviceRole = 2 ///< The Thread Child role.
-	OtDeviceRoleRouter   OtDeviceRole = 3 ///< The Thread Router role.
-	OtDeviceRoleLeader   OtDeviceRole = 4 ///< The Thread Leader role.
-)

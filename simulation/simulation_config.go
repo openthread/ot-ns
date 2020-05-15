@@ -27,23 +27,25 @@
 package simulation
 
 const (
-	DefaultNetworkName = "OTSIM"
-	DefaultMasterKey   = "00112233445566778899aabbccddeeff"
-	DefaultPanid       = 0xface
-	DefaultChannel     = 11
+	DefaultNetworkName = "OTSIM"                            // The default network name
+	DefaultMasterKey   = "00112233445566778899aabbccddeeff" // The default Master Key
+	DefaultPanid       = 0xface                             // The default Pan ID
+	DefaultChannel     = 11                                 // The default channel
 )
 
+// Config represents a simulation configuration.
 type Config struct {
-	NetworkName string
-	MasterKey   string
-	Panid       uint16
-	Channel     int
-	BinDir      string
-	Speed       float64
-	ReadOnly    bool
-	RawMode     bool
+	NetworkName string  // Network Name
+	MasterKey   string  // Master Key
+	Panid       uint16  // Pan ID
+	Channel     int     // Channel
+	BinDir      string  // OpenThread Binary Directory
+	Speed       float64 // Simulating speed
+	ReadOnly    bool    // If the simulation is readonly
+	RawMode     bool    // If the simulation is using raw mode
 }
 
+// DefaultConfig returns the default configuration for a simulation.
 func DefaultConfig() *Config {
 	return &Config{
 		NetworkName: DefaultNetworkName,

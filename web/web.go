@@ -24,6 +24,7 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+// Package web implements utilities for OTNS-Web.
 package web
 
 import (
@@ -39,6 +40,7 @@ var (
 	grpcWebProxyProc *exec.Cmd
 )
 
+// OpenWeb opens a web browser for visualization.
 func OpenWeb(ctx *progctx.ProgCtx) error {
 	if err := assureGrpcWebProxyRunning(ctx); err != nil {
 		simplelogger.Errorf("start grpcwebproxy failed: %v", err)

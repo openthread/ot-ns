@@ -32,34 +32,37 @@ import (
 	"github.com/simonlingoogle/go-simplelogger"
 )
 
+// FailTime represents a node fail time configuration.
 type FailTime struct {
-	FailDuration uint64
-	FailInterval uint64
+	FailDuration uint64 // Expected fail duration (us)
+	FailInterval uint64 // Expected fail interval (us)
 }
 
+// CanFail returns if the node can ever fail using this configuration.
 func (ft FailTime) CanFail() bool {
 	return ft.FailDuration > 0
 }
 
 var (
+	// NonFailTime is a fail time configuration that never fail.
 	NonFailTime = FailTime{0, 0}
 )
 
-type FailureCtrl struct {
+type failureCtrl struct {
 	owner            *Node
 	failTime         FailTime
 	recoverTs        uint64
 	elapsedTimeAccum uint64
 }
 
-func newFailureCtrl(owner *Node, failTime FailTime) *FailureCtrl {
-	return &FailureCtrl{
+func newFailureCtrl(owner *Node, failTime FailTime) *failureCtrl {
+	return &failureCtrl{
 		owner:    owner,
 		failTime: failTime,
 	}
 }
 
-func (fc *FailureCtrl) SetFailTime(failTime FailTime) {
+func (fc *failureCtrl) SetFailTime(failTime FailTime) {
 	fc.failTime = failTime
 	if !failTime.CanFail() && fc.owner.IsFailed() {
 		fc.recoverTs = 0
@@ -67,7 +70,7 @@ func (fc *FailureCtrl) SetFailTime(failTime FailTime) {
 	}
 }
 
-func (fc *FailureCtrl) OnTimeAdvanced(oldTime uint64) {
+func (fc *failureCtrl) OnTimeAdvanced(oldTime uint64) {
 	if !fc.failTime.CanFail() {
 		return
 	}
@@ -91,7 +94,7 @@ func (fc *FailureCtrl) OnTimeAdvanced(oldTime uint64) {
 	}
 }
 
-func (fc *FailureCtrl) tryRecoverNode() {
+func (fc *failureCtrl) tryRecoverNode() {
 	simplelogger.AssertTrue(fc.owner.IsFailed())
 	if fc.owner.CurTime >= fc.recoverTs {
 		fc.recoverTs = 0
@@ -99,7 +102,7 @@ func (fc *FailureCtrl) tryRecoverNode() {
 	}
 }
 
-func (fc *FailureCtrl) failNode() {
+func (fc *failureCtrl) failNode() {
 	simplelogger.AssertTrue(!fc.owner.IsFailed())
 
 	fc.recoverTs = fc.owner.CurTime + fc.failTime.FailDuration

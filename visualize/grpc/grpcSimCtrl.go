@@ -85,6 +85,7 @@ func (gsc *grpcSimCtrl) CtrlDeleteNode(nodeid NodeId) error {
 	return err
 }
 
+// NewGrpcSimulationController creates a Simulation Controller from a gRPC visualization client.
 func NewGrpcSimulationController(ctx context.Context, client pb.VisualizeGrpcServiceClient) visualize.SimulationController {
 	return &grpcSimCtrl{
 		ctx:    ctx,
