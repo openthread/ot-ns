@@ -31,76 +31,81 @@ import random
 
 from otns.cli import OTNS
 
-ns = OTNS(otns_args=['-log', 'info'])
-ns.speed = 1
+def main():
+    ns = OTNS(otns_args=['-log', 'info'])
+    ns.speed = 1
 
-ns.web()
+    ns.web()
 
-R = 6
-RECEIVER_RADIO_RANGE = 300 * R
-HORSE_RADIO_RANGE = 80 * R
-HORSE_NUM = 10
-FARM_RECT = [10 * R, 10 * R, 210 * R, 110 * R]
+    R = 6
+    RECEIVER_RADIO_RANGE = 300 * R
+    HORSE_RADIO_RANGE = 80 * R
+    HORSE_NUM = 10
+    FARM_RECT = [10 * R, 10 * R, 210 * R, 110 * R]
 
-gateway = ns.add("router", FARM_RECT[0], FARM_RECT[1], radio_range=RECEIVER_RADIO_RANGE)
-ns.add("router", FARM_RECT[0], FARM_RECT[3], radio_range=RECEIVER_RADIO_RANGE)
-ns.add("router", FARM_RECT[2], FARM_RECT[1], radio_range=RECEIVER_RADIO_RANGE)
-ns.add("router", FARM_RECT[2], FARM_RECT[3], radio_range=RECEIVER_RADIO_RANGE)
-ns.add("router", (FARM_RECT[0] + FARM_RECT[2]) // 2, FARM_RECT[1], radio_range=RECEIVER_RADIO_RANGE)
-ns.add("router", (FARM_RECT[0] + FARM_RECT[2]) // 2, FARM_RECT[3], radio_range=RECEIVER_RADIO_RANGE)
+    gateway = ns.add("router", FARM_RECT[0], FARM_RECT[1], radio_range=RECEIVER_RADIO_RANGE)
+    ns.add("router", FARM_RECT[0], FARM_RECT[3], radio_range=RECEIVER_RADIO_RANGE)
+    ns.add("router", FARM_RECT[2], FARM_RECT[1], radio_range=RECEIVER_RADIO_RANGE)
+    ns.add("router", FARM_RECT[2], FARM_RECT[3], radio_range=RECEIVER_RADIO_RANGE)
+    ns.add("router", (FARM_RECT[0] + FARM_RECT[2]) // 2, FARM_RECT[1], radio_range=RECEIVER_RADIO_RANGE)
+    ns.add("router", (FARM_RECT[0] + FARM_RECT[2]) // 2, FARM_RECT[3], radio_range=RECEIVER_RADIO_RANGE)
 
-horse_pos = {}
-horse_move_dir = {}
+    horse_pos = {}
+    horse_move_dir = {}
 
-for i in range(HORSE_NUM):
-    rx = random.randint(FARM_RECT[0] + 20, FARM_RECT[2] - 20)
-    ry = random.randint(FARM_RECT[1] + 20, FARM_RECT[3] - 20)
-    sid = ns.add("sed", rx, ry, radio_range=HORSE_RADIO_RANGE)
-    horse_pos[sid] = (rx, ry)
-    horse_move_dir[sid] = random.uniform(0, math.pi * 2)
+    for i in range(HORSE_NUM):
+        rx = random.randint(FARM_RECT[0] + 20, FARM_RECT[2] - 20)
+        ry = random.randint(FARM_RECT[1] + 20, FARM_RECT[3] - 20)
+        sid = ns.add("sed", rx, ry, radio_range=HORSE_RADIO_RANGE)
+        horse_pos[sid] = (rx, ry)
+        horse_move_dir[sid] = random.uniform(0, math.pi * 2)
 
 
-def blocked(sid, x, y):
-    if not (FARM_RECT[0] + 20 < x < FARM_RECT[2] - 20) or not (FARM_RECT[1] + 20 < y < FARM_RECT[3] - 20):
-        return True
-
-    for oid, (ox, oy) in horse_pos.items():
-        if oid == sid:
-            continue
-
-        dist2 = (x - ox) ** 2 + (y - oy) ** 2
-        if dist2 <= 1600:
+    def blocked(sid, x, y):
+        if not (FARM_RECT[0] + 20 < x < FARM_RECT[2] - 20) or not (FARM_RECT[1] + 20 < y < FARM_RECT[3] - 20):
             return True
 
-    return False
-
-
-time_accum = 0
-while True:
-    dt = 1
-    ns.go(dt)
-    time_accum += dt
-
-    for sid, (sx, sy) in horse_pos.items():
-
-        for i in range(10):
-            mdist = random.uniform(0, 2 * R * dt)
-
-            sx = int(sx + mdist * math.cos(horse_move_dir[sid]))
-            sy = int(sy + mdist * math.sin(horse_move_dir[sid]))
-
-            if blocked(sid, sx, sy):
-                horse_move_dir[sid] += random.uniform(0, math.pi * 2)
+        for oid, (ox, oy) in horse_pos.items():
+            if oid == sid:
                 continue
 
-            sx = min(max(sx, FARM_RECT[0]), FARM_RECT[2])
-            sy = min(max(sy, FARM_RECT[1]), FARM_RECT[3])
-            ns.move(sid, sx, sy)
+            dist2 = (x - ox) ** 2 + (y - oy) ** 2
+            if dist2 <= 1600:
+                return True
 
-            horse_pos[sid] = (sx, sy)
-            break
+        return False
 
-    if time_accum >= 10:
-        for sid in horse_pos:
-            ns.ping(sid, gateway)
-        time_accum -= 10
+
+    time_accum = 0
+    while True:
+        dt = 1
+        ns.go(dt)
+        time_accum += dt
+
+        for sid, (sx, sy) in horse_pos.items():
+
+            for i in range(10):
+                mdist = random.uniform(0, 2 * R * dt)
+
+                sx = int(sx + mdist * math.cos(horse_move_dir[sid]))
+                sy = int(sy + mdist * math.sin(horse_move_dir[sid]))
+
+                if blocked(sid, sx, sy):
+                    horse_move_dir[sid] += random.uniform(0, math.pi * 2)
+                    continue
+
+                sx = min(max(sx, FARM_RECT[0]), FARM_RECT[2])
+                sy = min(max(sy, FARM_RECT[1]), FARM_RECT[3])
+                ns.move(sid, sx, sy)
+
+                horse_pos[sid] = (sx, sy)
+                break
+
+        if time_accum >= 10:
+            for sid in horse_pos:
+                ns.ping(sid, gateway)
+            time_accum -= 10
+
+
+if __name__ == '__main__':
+    main()
