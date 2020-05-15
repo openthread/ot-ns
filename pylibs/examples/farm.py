@@ -26,6 +26,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 # This script simulates a farm in in which sensors are installed on horses.
+# See also: https://www.threadgroup.org/Farm-Jenny
+
 import math
 import random
 
