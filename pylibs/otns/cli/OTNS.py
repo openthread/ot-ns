@@ -48,7 +48,7 @@ class OTNS(object):
         logging.info("otns found: %s", self._otns_path)
         self._launch_otns()
 
-    def _launch_otns(self):
+    def _launch_otns(self) -> None:
         logging.info("launching otns: %s %s", self._otns_path, ' '.join(self._otns_args))
         self._otns = subprocess.Popen([self._otns_path] + self._otns_args,
                                       bufsize=16384,
@@ -56,7 +56,7 @@ class OTNS(object):
                                       stdout=subprocess.PIPE)
         logging.info("otns process launched: %s", self._otns)
 
-    def close(self, timeout=None):
+    def close(self, timeout=None) -> None:
         """
         Close OTNS simulation.
 
@@ -67,13 +67,12 @@ class OTNS(object):
         self._otns.stdout.close()
         self._otns.wait(timeout=timeout)
 
-    def go(self, duration: float = None, speed: float = None):
+    def go(self, duration: float = None, speed: float = None) -> None:
         """
         Continue the simulation for a period of time.
 
         :param duration: the time duration (in simulating time) for the simulation to continue,
                          or continue forever if duration is not specified.
-
         :param speed: simulating speed. Use current simulating speed if not specified.
         """
         if duration is None:
@@ -100,9 +99,10 @@ class OTNS(object):
             return speed
 
     @speed.setter
-    def speed(self, speed: float):
+    def speed(self, speed: float) -> None:
         """
         Set simulating speed.
+
         :param speed: new simulating speed
         """
         if speed >= OTNS.MAX_SIMULATE_SPEED:
@@ -112,7 +112,8 @@ class OTNS(object):
 
         self._do_command(f'speed {speed}')
 
-    def _detect_otns_path(self) -> str:
+    @staticmethod
+    def _detect_otns_path() -> str:
         env_otns_path = os.getenv('OTNS')
         if env_otns_path:
             return env_otns_path
@@ -151,6 +152,7 @@ class OTNS(object):
         :param y: node position Y
         :param id: node ID, or None to use next available node ID
         :param radio_range: node radio range or None for default
+
         :return: added node ID
         """
         cmd = f'add {type}'
@@ -167,7 +169,7 @@ class OTNS(object):
 
         return self._expect_int(self._do_command(cmd))
 
-    def delete(self, *nodeids: int):
+    def delete(self, *nodeids: int) -> None:
         """
         Delete nodes from simulation by IDs.
 
@@ -176,7 +178,7 @@ class OTNS(object):
         cmd = f'del {" ".join(map(str, nodeids))}'
         self._do_command(cmd)
 
-    def move(self, nodeid: int, x: int, y: int):
+    def move(self, nodeid: int, x: int, y: int) -> None:
         """
         Move node to the target position.
 
@@ -187,7 +189,7 @@ class OTNS(object):
         cmd = f'move {nodeid} {x} {y}'
         self._do_command(cmd)
 
-    def ping(self, srcid: int, dst: Union[int, str], addrtype='any', datasize=0):
+    def ping(self, srcid: int, dst: Union[int, str], addrtype='any', datasize=0) -> None:
         """
         Ping from source node to destination node.
 
@@ -215,7 +217,7 @@ class OTNS(object):
         return self._expect_float(self._do_command('plr'))
 
     @packet_loss_ratio.setter
-    def packet_loss_ratio(self, value: float):
+    def packet_loss_ratio(self, value: float) -> None:
         """
         Set the message drop rate of 128 byte packet.
         Smaller packet has lower drop rate.
@@ -271,7 +273,7 @@ class OTNS(object):
 
         return partitions
 
-    def radio_on(self, *nodeids: int):
+    def radio_on(self, *nodeids: int) -> None:
         """
         Turn on node radio.
 
@@ -279,7 +281,7 @@ class OTNS(object):
         """
         self._do_command(f'radio {" ".join(map(str, nodeids))} on')
 
-    def radio_off(self, *nodeids: int):
+    def radio_off(self, *nodeids: int) -> None:
         """
         Turn off node radio.
 
@@ -287,7 +289,7 @@ class OTNS(object):
         """
         self._do_command(f'radio {" ".join(map(str, nodeids))} off')
 
-    def radio_set_fail_time(self, *nodeids: int, fail_time: Optional[Tuple[int, int]]):
+    def radio_set_fail_time(self, *nodeids: int, fail_time: Optional[Tuple[int, int]]) -> None:
         """
         Set node radio fail time parameters.
 
@@ -351,7 +353,7 @@ class OTNS(object):
         return counters
 
     def prefix_add(self, nodeid: int, prefix: str, preferred=True, slaac=True, dhcp=False, dhcp_other=False,
-                   default_route=True, on_mesh=True, stable=True, prf='med'):
+                   default_route=True, on_mesh=True, stable=True, prf='med') -> None:
         flags = ''
         if preferred:
             flags += 'p'
@@ -381,6 +383,7 @@ class OTNS(object):
 
         :param nodeid: target node ID
         :param cmd: command to execute
+
         :return: lines of command output
         """
         cmd = f'node {nodeid} "{cmd}"'
@@ -411,7 +414,7 @@ class OTNS(object):
 
         return self.node_cmd(nodeid, cmd)
 
-    def set_network_name(self, nodeid: int, name: str = None):
+    def set_network_name(self, nodeid: int, name: str = None) -> None:
         """
         Set network name.
 
@@ -426,11 +429,12 @@ class OTNS(object):
         Get network name.
 
         :param nodeid: node ID
+
         :return: network name
         """
-        self._expect_str(self.node_cmd(nodeid, 'networkname'))
+        return self._expect_str(self.node_cmd(nodeid, 'networkname'))
 
-    def set_panid(self, nodeid: int, panid: int):
+    def set_panid(self, nodeid: int, panid: int) -> None:
         """
         Set node pan ID.
 
@@ -456,7 +460,7 @@ class OTNS(object):
         """
         return self._expect_str(self.node_cmd(nodeid, 'masterkey'))
 
-    def set_masterkey(self, nodeid: int, key: str):
+    def set_masterkey(self, nodeid: int, key: str) -> None:
         """
         Set masterkey
 
@@ -465,13 +469,13 @@ class OTNS(object):
         """
         self.node_cmd(nodeid, f'masterkey {key}')
 
-    def web(self):
+    def web(self) -> None:
         """
         Open web browser for visualization.
         """
         self._do_command('web')
 
-    def ifconfig_up(self, nodeid: int):
+    def ifconfig_up(self, nodeid: int) -> None:
         """
         Turn up network interface.
 
@@ -479,7 +483,7 @@ class OTNS(object):
         """
         self.node_cmd(nodeid, 'ifconfig up')
 
-    def ifconfig_down(self, nodeid: int):
+    def ifconfig_down(self, nodeid: int) -> None:
         """
         Turn down network interface.
 
@@ -487,7 +491,7 @@ class OTNS(object):
         """
         self.node_cmd(nodeid, 'ifconfig down')
 
-    def thread_start(self, nodeid: int):
+    def thread_start(self, nodeid: int) -> None:
         """
         Start thread.
 
@@ -495,7 +499,7 @@ class OTNS(object):
         """
         self.node_cmd(nodeid, 'thread start')
 
-    def thread_stop(self, nodeid: int):
+    def thread_stop(self, nodeid: int) -> None:
         """
         Stop thread.
 
@@ -503,7 +507,7 @@ class OTNS(object):
         """
         self.node_cmd(nodeid, 'thread stop')
 
-    def commissioner_start(self, nodeid: int):
+    def commissioner_start(self, nodeid: int) -> None:
         """
         Start commissioner.
 
@@ -511,7 +515,7 @@ class OTNS(object):
         """
         self.node_cmd(nodeid, "commissioner start")
 
-    def joiner_start(self, nodeid: int, pwd: str):
+    def joiner_start(self, nodeid: int, pwd: str) -> None:
         """
         Start joiner.
 
@@ -520,7 +524,7 @@ class OTNS(object):
         """
         self.node_cmd(nodeid, f"joiner start {pwd}")
 
-    def commissioner_joiner_add(self, nodeid: int, usr: str, pwd: str, timeout=None):
+    def commissioner_joiner_add(self, nodeid: int, usr: str, pwd: str, timeout=None) -> None:
         """
         Add joiner to commissioner.
 
@@ -532,15 +536,18 @@ class OTNS(object):
         timeout_s = f" {timeout}" if timeout is not None else ""
         self.node_cmd(nodeid, f"commissioner joiner add {usr} {pwd}{timeout_s}")
 
-    def _expect_int(self, output: List[str]) -> int:
+    @staticmethod
+    def _expect_int(output: List[str]) -> int:
         assert len(output) == 1, output
         return int(output[0])
 
-    def _expect_float(self, output: List[str]) -> float:
+    @staticmethod
+    def _expect_float(output: List[str]) -> float:
         assert len(output) == 1, output
         return float(output[0])
 
-    def _expect_str(self, output: List[str]) -> str:
+    @staticmethod
+    def _expect_str(output: List[str]) -> str:
         assert len(output) == 1, output
         return output[0].strip()
 
@@ -550,6 +557,7 @@ class OTNS(object):
         Escape string by replace <whitespace> by \\<whitespace>.
 
         :param s: string to escape
+
         :return: the escaped string
         """
         for c in "\\ \t\r\n":
