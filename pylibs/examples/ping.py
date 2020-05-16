@@ -37,7 +37,6 @@ ns.web()
 RADIO_RANGE = 460
 
 ns.speed = 4
-ns.demo_legend(title="Legend: Node Types & Links", x=850, y=10)
 
 
 def add_node(*args, **kwargs):
@@ -81,7 +80,6 @@ def ping(src: int, dst: int, duration: float):
 
 
 while True:
-    ns.countdown(30, "Ping from node 1 to node 11 ... %v left")
     ping(1, 11, 30)
     c1_rlocs = ns.get_ipaddrs(C1, "rloc")
     if c1_rlocs:
@@ -90,15 +88,12 @@ while True:
                 ns.ping(id, c1_rlocs[0])
 
     ns.delete(C1)
-    ns.countdown(30, "Switch routing path after removing router 21 ... %v left")
     ping(1, 11, 30)
     ns.delete(C2)
     ns.delete(C3)
-    ns.countdown(130, "Waiting for network to form 2 partitions ... %v left")
     ns.go(130)
 
     add_node("router", 950, 300, id=C1)
     add_node("router", 800, 700, id=C2)
     add_node("router", 1100, 700, id=C3)
-    ns.countdown(10, "Restore 3 routers, wait for network to stabilize - %v left")
     ns.go(10)

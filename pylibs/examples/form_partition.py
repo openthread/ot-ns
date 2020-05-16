@@ -51,7 +51,6 @@ def test_nxn(ns, n):
     for id in nodes:
         ns.delete(id)
 
-    ns.countdown(n * n, f"Testing {n}x{n} nodes ... %v seconds left")
     for r in range(n):
         for c in range(n):
             ns.add("router", 100 + XGAP * c, 100 + YGAP * r, radio_range=RADIO_RANGE)

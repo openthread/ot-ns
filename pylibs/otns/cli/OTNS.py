@@ -204,26 +204,6 @@ class OTNS(object):
         cmd = f'ping {srcid} {dst!r} {addrtype} datasize {datasize}'
         self._do_command(cmd)
 
-    def demo_legend(self, title: str, x: int, y: int):
-        """Show demo legend.
-
-        Not implemented yet.
-        """
-        cmd = f"demo_legend {title!r} {x} {y}"
-        self._do_command(cmd)
-
-    def countdown(self, secs: int, text: str):
-        """
-        Show countdown
-
-        :param secs: countdown seconds
-        :param text: countdown text
-
-        Not implemented yet.
-        """
-        cmd = f'countdown {secs} {text!r}'
-        self._do_command(cmd)
-
     @property
     def packet_loss_ratio(self) -> float:
         """
