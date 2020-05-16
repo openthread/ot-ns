@@ -454,18 +454,20 @@ class OTNS(object):
 
     def get_masterkey(self, nodeid: int) -> str:
         """
-        Get masterkey.
+        Get master key.
 
         :param nodeid: target node ID
+
+        :return: master key as a hex string
         """
         return self._expect_str(self.node_cmd(nodeid, 'masterkey'))
 
     def set_masterkey(self, nodeid: int, key: str) -> None:
         """
-        Set masterkey
+        Set master key.
 
         :param nodeid: target node ID
-        :param key: masterkey to set
+        :param key: master key as a hex string
         """
         self.node_cmd(nodeid, f'masterkey {key}')
 
