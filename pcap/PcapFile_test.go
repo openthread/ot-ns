@@ -61,7 +61,6 @@ func TestPcapFile(t *testing.T) {
 			t.Fatal(err)
 		}
 		assert.True(t, pcapFileHeaderSize+(pcapFrameHeaderSize+1)*(i+1) == getFileSize(t, "test.pcap"))
-
 	}
 }
 

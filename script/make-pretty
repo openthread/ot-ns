@@ -32,7 +32,7 @@ lint() {
     curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.23.6
   fi
   cd $OTNSDIR
-  golangci-lint run "${GOLINT_ARGS[@]}" || die "check pretty failed"
+  golangci-lint run "${GOLINT_ARGS[@]}" --fix || die "check pretty failed"
   echo "Congratulations! Your Go code is pretty."
 }
 

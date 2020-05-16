@@ -49,3 +49,12 @@ func DefaultNodeMode() NodeMode {
 		FullNetworkData:    true,
 	}
 }
+
+type AddrType string
+
+const (
+	AddrTypeAny       AddrType = "any"
+	AddrTypeMleid     AddrType = "mleid"
+	AddrTypeRloc      AddrType = "rloc"
+	AddrTypeLinkLocal AddrType = "linklocal"
+)

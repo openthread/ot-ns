@@ -27,8 +27,9 @@
 package dispatcher
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 var (
@@ -75,5 +76,4 @@ func TestRloc16Map_Remove(t *testing.T) {
 	assert.False(t, rm.Contains(node2.Rloc16, node2))
 	rm.Remove(node3.Rloc16, node3)
 	assert.False(t, rm.Contains(node3.Rloc16, node3))
-
 }

@@ -28,12 +28,13 @@ package cli
 
 import (
 	"fmt"
-	. "github.com/openthread/ot-ns/types"
-	"github.com/simonlingoogle/go-simplelogger"
 	"io"
 	"os"
 	"regexp"
 	"strings"
+
+	. "github.com/openthread/ot-ns/types"
+	"github.com/simonlingoogle/go-simplelogger"
 
 	"github.com/chzyer/readline"
 )

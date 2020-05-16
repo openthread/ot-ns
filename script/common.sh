@@ -42,3 +42,5 @@ readonly OTNSDIR=$(realpath $SCRIPTDIR/..)
 readonly GOPATH=$(go env GOPATH)
 export PATH=$PATH:$GOPATH/bin
 mkdir -p $GOPATH/bin
+
+GOLINT_ARGS=(-E goimports -E whitespace -E goconst -E scopelint -E unconvert)

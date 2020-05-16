@@ -238,7 +238,7 @@ func (rt *CmdRunner) executeAddNode(cc *CommandContext, cmd *AddCmd) {
 func (rt *CmdRunner) executeDelNode(cc *CommandContext, cmd *DelCmd) {
 	rt.postAsyncWait(func(sim *simulation.Simulation) {
 		for _, sel := range cmd.Nodes {
-			node, _ := rt.getNode(sim, &sel)
+			node, _ := rt.getNode(sim, sel)
 			if node == nil {
 				cc.errorf("node %v not found", sel)
 				continue
@@ -263,7 +263,7 @@ func (rt *CmdRunner) executeExit(cc *CommandContext, cmd *ExitCmd) {
 func (rt *CmdRunner) executePing(cc *CommandContext, cmd *PingCmd) {
 	simplelogger.Debugf("ping %#v", cmd)
 	rt.postAsyncWait(func(sim *simulation.Simulation) {
-		src, _ := rt.getNode(sim, &cmd.Src)
+		src, _ := rt.getNode(sim, cmd.Src)
 		if src == nil {
 			cc.errorf("src node not found")
 			return
@@ -271,7 +271,7 @@ func (rt *CmdRunner) executePing(cc *CommandContext, cmd *PingCmd) {
 
 		var dstaddr string
 		if cmd.Dst != nil {
-			dst, _ := rt.getNode(sim, cmd.Dst)
+			dst, _ := rt.getNode(sim, *cmd.Dst)
 
 			if dst == nil {
 				cc.errorf("dst node not found")
@@ -312,7 +312,7 @@ func (rt *CmdRunner) executePing(cc *CommandContext, cmd *PingCmd) {
 	})
 }
 
-func (rt *CmdRunner) getNode(sim *simulation.Simulation, sel *NodeSelector) (*simulation.Node, *dispatcher.Node) {
+func (rt *CmdRunner) getNode(sim *simulation.Simulation, sel NodeSelector) (*simulation.Node, *dispatcher.Node) {
 	if sel.Id > 0 {
 		return sim.Nodes()[sel.Id], sim.Dispatcher().Nodes()[sel.Id]
 	}
@@ -320,13 +320,13 @@ func (rt *CmdRunner) getNode(sim *simulation.Simulation, sel *NodeSelector) (*si
 	panic("node selector not implemented")
 }
 
-func (rt *CmdRunner) getAddrs(node *simulation.Node, addrType *AddrType) []string {
+func (rt *CmdRunner) getAddrs(node *simulation.Node, addrType *AddrTypeFlag) []string {
 	if node == nil {
 		return nil
 	}
 
 	var addrs []string
-	if (addrType == nil || addrType.Type == "any") || addrType.Type == "mleid" {
+	if (addrType == nil || addrType.Type == AddrTypeAny) || addrType.Type == AddrTypeMleid {
 		addrs = append(addrs, node.GetIpAddrMleid()...)
 	}
 
@@ -334,7 +334,7 @@ func (rt *CmdRunner) getAddrs(node *simulation.Node, addrType *AddrType) []strin
 		return addrs
 	}
 
-	if (addrType == nil || addrType.Type == "any") || addrType.Type == "rloc" {
+	if (addrType == nil || addrType.Type == AddrTypeAny) || addrType.Type == AddrTypeRloc {
 		addrs = append(addrs, node.GetIpAddrRloc()...)
 	}
 
@@ -342,7 +342,7 @@ func (rt *CmdRunner) getAddrs(node *simulation.Node, addrType *AddrType) []strin
 		return addrs
 	}
 
-	if (addrType == nil || addrType.Type == "any") || addrType.Type == "linklocal" {
+	if (addrType == nil || addrType.Type == AddrTypeAny) || addrType.Type == AddrTypeLinkLocal {
 		addrs = append(addrs, node.GetIpAddrLinkLocal()...)
 	}
 
@@ -364,7 +364,7 @@ func (rt *CmdRunner) executeDebug(cc *CommandContext, cmd *DebugCmd) {
 func (rt *CmdRunner) executeNode(cc *CommandContext, cmd *NodeCmd) {
 	contextNodeId := InvalidNodeId
 	rt.postAsyncWait(func(sim *simulation.Simulation) {
-		node, _ := rt.getNode(sim, &cmd.Node)
+		node, _ := rt.getNode(sim, cmd.Node)
 		if node == nil {
 			cc.errorf("node not found")
 			return
@@ -412,7 +412,7 @@ func (rt *CmdRunner) executeCountDown(cc *CommandContext, cmd *CountDownCmd) {
 func (rt *CmdRunner) executeRadio(cc *CommandContext, radio *RadioCmd) {
 	rt.postAsyncWait(func(sim *simulation.Simulation) {
 		for _, sel := range radio.Nodes {
-			node, dnode := rt.getNode(sim, &sel)
+			node, dnode := rt.getNode(sim, sel)
 			if node == nil {
 				cc.errorf("node %d not found", sel.Id)
 				continue
@@ -556,7 +556,7 @@ func (rt *CmdRunner) executePlr(cc *CommandContext, cmd *PlrCmd) {
 
 func (rt *CmdRunner) executeScan(cc *CommandContext, cmd *ScanCmd) {
 	rt.postAsyncWait(func(sim *simulation.Simulation) {
-		node, _ := rt.getNode(sim, &cmd.Node)
+		node, _ := rt.getNode(sim, cmd.Node)
 		if node == nil {
 			cc.errorf("node not found")
 			return
@@ -569,7 +569,7 @@ func (rt *CmdRunner) executeScan(cc *CommandContext, cmd *ScanCmd) {
 	deadline := time.Now().Add(timeout)
 	for time.Now().Before(deadline) {
 		rt.postAsyncWait(func(sim *simulation.Simulation) {
-			node, _ := rt.getNode(sim, &cmd.Node)
+			node, _ := rt.getNode(sim, cmd.Node)
 			if node == nil {
 				return
 			}
