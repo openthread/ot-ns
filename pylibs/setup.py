@@ -28,9 +28,9 @@
 import setuptools
 
 setuptools.setup(
-    name="otns",
+    name="pyOTNS",
     version="0.0.0",
-    author="OpenThread Authors",
+    author="The OTNS Authors",
     description="Run OpenThread simulation using OTNS",
     url="https://github.com/openthread/ot-ns",
     packages=setuptools.find_packages(),
