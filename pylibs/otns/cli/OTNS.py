@@ -451,6 +451,7 @@ class OTNS(object):
 
         :return: pan ID
         """
+        return self._expect_hex(self.node_cmd(nodeid, 'panid'))
 
     def get_masterkey(self, nodeid: int) -> str:
         """
@@ -542,6 +543,11 @@ class OTNS(object):
     def _expect_int(output: List[str]) -> int:
         assert len(output) == 1, output
         return int(output[0])
+
+    @staticmethod
+    def _expect_hex(output: List[str]) -> int:
+        assert len(output) == 1, output
+        return int(output[0], 16)
 
     @staticmethod
     def _expect_float(output: List[str]) -> float:
