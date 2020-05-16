@@ -36,7 +36,7 @@ from .errors import OTNSCliError, OTNSCliEOFError
 
 class OTNS(object):
     """
-    OTNS represents a OTNS simulation.
+    OTNS creates and manages an OTNS simulation through CLI.
     """
 
     MAX_SIMULATE_SPEED = 1000000  # Max simulating speed
