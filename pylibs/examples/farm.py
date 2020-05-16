@@ -26,24 +26,32 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 # This script simulates a farm in in which sensors are installed on horses.
-# See also: https://www.threadgroup.org/Farm-Jenny
+# 6 Routers are installed at the borders of the farm which has a transmission range of 300m.
+# One of the Routers is specifieid as the Gateway.
+# An SED sensor is installed on each horse to collect and transmit information to the Gateway.
+# The horses moves randomly in the farm, thus SED sensors lose connectivity to their parents constantly
+# and reattaches to new parents in range.
+# This example shows that SED devices can handle parent loss gracefully to retain connectivity.
+# The messages dropped due to parent connectivity loss can also be observed in the simulation.
+#
+# See also: https://www.threadgroup.org/Farm-Jennys
 
 import math
 import random
 
 from otns.cli import OTNS
 
+R = 6
+RECEIVER_RADIO_RANGE = 300 * R
+HORSE_RADIO_RANGE = 80 * R
+HORSE_NUM = 10
+FARM_RECT = [10 * R, 10 * R, 210 * R, 110 * R]
+
+
 def main():
     ns = OTNS(otns_args=['-log', 'info'])
     ns.speed = 1
-
     ns.web()
-
-    R = 6
-    RECEIVER_RADIO_RANGE = 300 * R
-    HORSE_RADIO_RANGE = 80 * R
-    HORSE_NUM = 10
-    FARM_RECT = [10 * R, 10 * R, 210 * R, 110 * R]
 
     gateway = ns.add("router", FARM_RECT[0], FARM_RECT[1], radio_range=RECEIVER_RADIO_RANGE)
     ns.add("router", FARM_RECT[0], FARM_RECT[3], radio_range=RECEIVER_RADIO_RANGE)
@@ -62,7 +70,6 @@ def main():
         horse_pos[sid] = (rx, ry)
         horse_move_dir[sid] = random.uniform(0, math.pi * 2)
 
-
     def blocked(sid, x, y):
         if not (FARM_RECT[0] + 20 < x < FARM_RECT[2] - 20) or not (FARM_RECT[1] + 20 < y < FARM_RECT[3] - 20):
             return True
@@ -76,7 +83,6 @@ def main():
                 return True
 
         return False
-
 
     time_accum = 0
     while True:
