@@ -234,6 +234,7 @@ loop:
 			d.goUntilPauseTime()
 
 			if d.ctx.Err() != nil {
+				close(duration.done)
 				break loop
 			}
 
