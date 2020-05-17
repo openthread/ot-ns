@@ -132,7 +132,7 @@ class OTNS(object):
         while True:
             line = self._otns.stdout.readline()
             if line == b'':
-                raise OTNSCliEOFError()
+                self._on_otns_eof()
 
             line = line.strip().decode('utf-8')
             logging.info(f"OTNS >>> {line}")
@@ -571,6 +571,11 @@ class OTNS(object):
         for c in "\\ \t\r\n":
             s = s.replace(c, '\\' + c)
         return s
+
+    def _on_otns_eof(self):
+        exit_code = self._otns.wait()
+        logging.warning("otns exited: code = %d", exit_code)
+        raise OTNSCliEOFError()
 
 
 if __name__ == '__main__':
