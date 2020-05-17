@@ -25,16 +25,16 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-# This script simulates a farm in in which sensors are installed on horses.
+# This script simulates a farm where sensors are installed on horses.
 # 6 Routers are installed at the borders of the farm which has a transmission range of 300m.
-# One of the Routers is specifieid as the Gateway.
-# An SED sensor is installed on each horse to collect and transmit information to the Gateway.
+# One of the Routers is selected as the Gateway.
+# A SED sensor is installed on each horse to collect and transmit information to the Gateway.
 # The horses moves randomly in the farm, thus SED sensors lose connectivity to their parents constantly
 # and reattaches to new parents in range.
 # This example shows that SED devices can handle parent loss gracefully to retain connectivity.
 # The messages dropped due to parent connectivity loss can also be observed in the simulation.
 #
-# See also: https://www.threadgroup.org/Farm-Jennys
+# Inspired by https://www.threadgroup.org/Farm-Jenny
 
 import math
 import random
