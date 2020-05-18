@@ -28,8 +28,9 @@ package progctx
 
 import (
 	"context"
-	"github.com/pkg/errors"
 	"sync"
+
+	"github.com/pkg/errors"
 
 	"github.com/simonlingoogle/go-simplelogger"
 )

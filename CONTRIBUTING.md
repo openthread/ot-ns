@@ -105,7 +105,7 @@ Refer to [go fmt your code](https://blog.golang.org/go-fmt-your-code) for furthe
 All style and coding suggestions in [Effective Go](https://golang.org/doc/effective_go.html) should be followed, subject to the above rules.
 
 OTNS uses [golangci-lint](https://golangci.com/) in continuous-integration checks. 
-You can run `./script/check-pretty` to check your code before pushing.
+You can run `./script/make-pretty` and `./script/check-pretty` to automatically reformat code and check for code-style compliance, respectively.
 
 #### Push and test
 

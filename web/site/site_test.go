@@ -27,10 +27,11 @@
 package web_site
 
 import (
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestServe(t *testing.T) {

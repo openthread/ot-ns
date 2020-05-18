@@ -29,6 +29,8 @@ package cli
 import (
 	"strconv"
 
+	. "github.com/openthread/ot-ns/types"
+
 	"github.com/alecthomas/participle"
 )
 
@@ -113,8 +115,8 @@ type Ipv6Address struct {
 }
 
 //noinspection GoStructTag
-type AddrType struct {
-	Type string `@( "any" | "mleid" | "rloc" | "aloc" | "linklocal" )` //nolint
+type AddrTypeFlag struct {
+	Type AddrType `@( "any" | "mleid" | "rloc" | "aloc" | "linklocal" )` //nolint
 }
 
 //noinspection GoStructTag
@@ -142,7 +144,7 @@ type PingCmd struct {
 	Cmd      struct{}      `"ping"`   //nolint
 	Src      NodeSelector  `@@`       //nolint
 	Dst      *NodeSelector `( @@`     //nolint
-	AddrType *AddrType     `  [ @@ ]` //nolint
+	AddrType *AddrTypeFlag `  [ @@ ]` //nolint
 	DstAddr  *Ipv6Address  `| @@)`    //nolint
 	DataSize *DataSizeFlag `( @@`     //nolint
 	Count    *CountFlag    `| @@`     //nolint

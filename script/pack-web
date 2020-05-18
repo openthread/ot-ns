@@ -31,3 +31,5 @@
 
 cd $OTNSDIR/web/site
 ./pack-bindata.sh
+cd -
+golangci-lint run "${GOLINT_ARGS[@]}" --fix $OTNSDIR/web/site/bindata.go

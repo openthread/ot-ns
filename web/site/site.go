@@ -37,7 +37,6 @@ import (
 )
 
 func Serve() error {
-
 	assetDir := os.Getenv("HOME")
 	if assetDir == "" {
 		assetDir = "/tmp"

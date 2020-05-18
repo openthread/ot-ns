@@ -27,8 +27,9 @@
 package dispatcher
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestSendQueue_Add(t *testing.T) {

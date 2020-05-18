@@ -29,7 +29,6 @@ package otns_main
 import (
 	"context"
 	"flag"
-	"github.com/openthread/ot-ns/dispatcher"
 	"math/rand"
 	"os"
 	"os/signal"
@@ -37,6 +36,8 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/openthread/ot-ns/dispatcher"
 
 	webSite "github.com/openthread/ot-ns/web/site"
 
