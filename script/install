@@ -29,5 +29,20 @@
 
 . "$(dirname $0)"/common.sh
 
-go get ./cmd/otns
-echo "otns installed: $(command -v otns)"
+install_otns() {
+    go get ./cmd/otns
+    echo "otns installed: $(command -v otns)"
+}
+
+install_pyotns() {
+    cd pylibs
+    python3 setup.py install --user
+    cd -
+}
+
+main() {
+    install_pyotns
+    install_otns
+}
+
+main

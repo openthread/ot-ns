@@ -25,46 +25,19 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-import time
+import setuptools
 
-from otns.cli import OTNS
-
-XGAP = 100
-YGAP = 100
-RADIO_RANGE = 150
-
-
-def main():
-    ns = OTNS()
-    ns.web()
-    ns.speed = float('inf')
-
-    while True:
-        # wait until next time
-        for n in (2, 3, 4, 5, 6, 7, 8):
-            test_nxn(ns, n)
-            time.sleep(1)
-
-
-def test_nxn(ns, n):
-    nodes = ns.nodes()
-    for id in nodes:
-        ns.delete(id)
-
-    for r in range(n):
-        for c in range(n):
-            ns.add("router", 100 + XGAP * c, 100 + YGAP * r, radio_range=RADIO_RANGE)
-
-    secs = 0
-    while True:
-        ns.go(1)
-        secs += 1
-
-        partitions = ns.partitions()
-        if len(partitions) == 1 and 0 not in partitions:
-            # all nodes converged into one partition
-            break
-
-
-if __name__ == '__main__':
-    main()
+setuptools.setup(
+    name="pyOTNS",
+    version="0.0.0",
+    author="The OTNS Authors",
+    description="Run OpenThread simulation using OTNS",
+    url="https://github.com/openthread/ot-ns",
+    packages=setuptools.find_packages(),
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: BSD 3-Clause License",
+        "Operating System :: OS Independent",
+    ],
+    python_requires='>=3.6',
+)

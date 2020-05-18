@@ -20,7 +20,7 @@ cd otns
 ./script/install-deps
 ```
 
-## Install `otns`
+## Install OTNS
 
 ```bash
 ./script/install
@@ -71,7 +71,15 @@ Use a web browser to manage the simulated Thread network:
 
 See [OTNS CLI Reference](cli/README.md). 
 
-### OTNS Python scripting
+## OTNS Python Scripting
 
-[pylibs/otns](pylibs/otns) provides utilities to create and manage simulations through OTNS CLI. 
-Check the test scripts in [pylibs/examples](pylibs/examples) for examples of how to use otnscli.py. 
+[pyOTNS](pylibs/otns) library provides utilities to create and manage simulations through OTNS CLI. 
+
+To review the `pyOTNS` documentation:
+1. Start `pydoc3` document server:
+    ```bash
+    pydoc3 -p 8080
+    ```
+2. Open a web browser and navigate to http://localhost:8080/otns.html.
+
+For example test scripts, see [pylibs/examples](pylibs/examples).

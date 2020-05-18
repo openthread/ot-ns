@@ -51,11 +51,18 @@ jobs:
 
   py-unittests:
     name: Python Unittests
+    strategy:
+      matrix:
+        python-version: [3.6, 3.7, 3.8]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/setup-go@v1
         with:
           go-version: '1.13' # The Go version to download (if necessary) and use.
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v1
+        with:
+          python-version: ${{ matrix.python-version }}
       - uses: actions/checkout@v2
       - name: Test
         run: |

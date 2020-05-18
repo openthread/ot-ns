@@ -43,4 +43,13 @@ install_grpcwebproxy() {
   fi
 }
 
-install_grpcwebproxy
+install_python_libs() {
+    python3 -m pip install --user setuptools
+}
+
+main() {
+    install_grpcwebproxy
+    install_python_libs
+}
+
+main
