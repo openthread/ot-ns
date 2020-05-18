@@ -157,6 +157,10 @@ func (rt *CmdRunner) executeGo(cc *CommandContext, cmd *GoCmd) {
 				done = sim.Go(time.Hour) // run for ever
 			})
 			<-done
+
+			if rt.ctx.Err() != nil {
+				break
+			}
 		}
 	}
 }

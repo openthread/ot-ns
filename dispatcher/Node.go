@@ -125,9 +125,7 @@ func (node *Node) Send(elapsed uint64, data []byte) {
 }
 
 func (node *Node) SendMessage(msg []byte) {
-	n, err := node.D.udpln.WriteToUDP(msg, node.addr)
-	simplelogger.AssertEqual(n, len(msg))
-	simplelogger.AssertNil(err, err)
+	_, _ = node.D.udpln.WriteToUDP(msg, node.addr)
 }
 
 func (node *Node) GetDistanceTo(other *Node) (dist int) {

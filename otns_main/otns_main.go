@@ -32,8 +32,10 @@ import (
 	"github.com/openthread/ot-ns/dispatcher"
 	"math/rand"
 	"os"
+	"os/signal"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	webSite "github.com/openthread/ot-ns/web/site"
@@ -94,6 +96,8 @@ func Main(visualizerCreator func(ctx *progctx.ProgCtx, args *MainArgs) visualize
 		_ = os.Stdin.Close()
 	})
 
+	handleSignals(ctx)
+
 	var vis visualize.Visualizer
 	if visualizerCreator != nil {
 		vis = visualizerCreator(ctx, &args)
@@ -138,6 +142,27 @@ func Main(visualizerCreator func(ctx *progctx.ProgCtx, args *MainArgs) visualize
 	simplelogger.Infof("waiting for OTNS to stop gracefully ...")
 	ctx.Wait()
 	os.Exit(0)
+}
+
+func handleSignals(ctx *progctx.ProgCtx) {
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGINT, syscall.SIGHUP)
+	signal.Ignore(syscall.SIGALRM, syscall.SIGCHLD)
+
+	ctx.WaitAdd("handleSignals", 1)
+	go func() {
+		defer ctx.WaitDone("handleSignals")
+
+		for {
+			select {
+			case sig := <-c:
+				simplelogger.Infof("signal received: %v", sig)
+				ctx.Cancel(nil)
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
 }
 
 func autoGo(prog *progctx.ProgCtx, sim *simulation.Simulation) {
