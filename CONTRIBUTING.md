@@ -34,8 +34,6 @@ The OTNS Project follows the "Fork-and-Pull" model for accepting contributions.
 Setup your GitHub fork and continuous integration services:
 
 1. Fork the [otns repository](https://github.com/openthread/ot-ns) by clicking **Fork** on the web UI.
-1. Enable [Travis CI](https://travis-ci.org/) by logging into the respective service with your GitHub account and enabling your newly created fork. 
-We use Travis CI for Linux-based continuous integration checks. All contributions must pass these checks to be accepted.
 
 Setup your local development environment:
 
@@ -106,7 +104,7 @@ Refer to [go fmt your code](https://blog.golang.org/go-fmt-your-code) for furthe
 
 All style and coding suggestions in [Effective Go](https://golang.org/doc/effective_go.html) should be followed, subject to the above rules.
 
-OTNS uses [golangci-lint](https://golangci.com/) in Travis tests. 
+OTNS uses [golangci-lint](https://golangci.com/) in continuous-integration checks. 
 You can run `./script/check-pretty` to check your code before pushing.
 
 #### Push and test
@@ -119,8 +117,8 @@ git checkout <branch-name>
 git push origin <branch-name>
 ```
 
-This will trigger the Travis Continuous Integration (CI) checks. You can view the results in the respective services. Note that the integration checks will report failures on occasion. If a failure occurs, you may try rerunning the test using the Travis web UI.
+This will trigger continuous-integration checks using GitHub Actions. You can view the status and logs via the "Actions" tab in your fork.
 
 #### Submit the pull request
 
-Once you've validated the Travis CI results, go to the page for your fork on GitHub, select your development branch, and click the **Pull Request** button. If you need to make any adjustments to your pull request, push the updates to GitHub. Your pull request will automatically track the changes on your development branch and update.
+Once you've validated that all continuous-integration checks have passed, go to the page for your fork on GitHub, select your development branch, and click the **Pull Request** button. If you need to make any adjustments to your pull request, push the updates to GitHub. Your pull request will automatically track the changes on your development branch and update.
