@@ -109,7 +109,6 @@ py_examples() {
   install
   build_openthread
   cd $OTBIN_DIR
-  export PYTHONPATH=$OTNSDIR/pylibs
   check_py_example $OTNSDIR/pylibs/examples/simple.py
   check_py_example $OTNSDIR/pylibs/examples/ping.py
   check_py_example $OTNSDIR/pylibs/examples/form_partition.py
