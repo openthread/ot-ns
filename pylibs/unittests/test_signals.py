@@ -36,6 +36,8 @@ from subprocess import TimeoutExpired
 from OTNSTestCase import OTNSTestCase
 from otns.cli.errors import OTNSCliEOFError
 
+from otns.cli.errors import OTNSExitedError
+
 
 class SignalsTest(OTNSTestCase):
     """
@@ -92,7 +94,7 @@ class SignalsTest(OTNSTestCase):
         self.ns.add("router")
         try:
             self.ns.go()
-        except OTNSCliEOFError:
+        except OTNSExitedError:
             return
 
     def _send_signal(self, delay: float, sig: int):
