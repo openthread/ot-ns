@@ -31,7 +31,7 @@ import shutil
 import subprocess
 from typing import List, Union, Optional, Tuple, Dict, Any, Collection
 
-from .errors import OTNSCliError, OTNSCliEOFError
+from .errors import OTNSCliError, OTNSExitedError
 
 
 class OTNS(object):
@@ -126,8 +126,12 @@ class OTNS(object):
 
     def _do_command(self, cmd: str) -> List[str]:
         logging.info("OTNS <<< %s", cmd)
-        self._otns.stdin.write(cmd.encode('ascii') + b'\n')
-        self._otns.stdin.flush()
+        try:
+            self._otns.stdin.write(cmd.encode('ascii') + b'\n')
+            self._otns.stdin.flush()
+        except BrokenPipeError:
+            self._on_otns_eof()
+
         output = []
         while True:
             line = self._otns.stdout.readline()
@@ -575,7 +579,7 @@ class OTNS(object):
     def _on_otns_eof(self):
         exit_code = self._otns.wait()
         logging.warning("otns exited: code = %d", exit_code)
-        raise OTNSCliEOFError()
+        raise OTNSExitedError(exit_code)
 
 
 if __name__ == '__main__':

@@ -28,72 +28,79 @@
 import logging
 
 from otns.cli import OTNS
-
-logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.DEBUG)
-
-ns = OTNS()
-ns.web()
+from otns.cli.errors import OTNSExitedError
 
 RADIO_RANGE = 460
 
-ns.speed = 4
+
+def main():
+    logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.DEBUG)
+
+    ns = OTNS()
+    ns.web()
+
+    ns.speed = 4
+
+    def add_node(*args, **kwargs):
+        return ns.add(*args, **kwargs, radio_range=RADIO_RANGE)
+
+    add_node("fed", 100, 100)
+    add_node("fed", 100, 300)
+    add_node("fed", 100, 500)
+    add_node("fed", 100, 700)
+    add_node("fed", 100, 900)
+
+    add_node("router", 450, 100)
+    add_node("router", 550, 300)
+    add_node("router", 450, 500)
+    add_node("router", 550, 700)
+    add_node("router", 450, 900)
+
+    add_node("fed", 1800, 100)
+    add_node("fed", 1800, 300)
+    add_node("fed", 1800, 500)
+    add_node("fed", 1800, 700)
+    add_node("fed", 1800, 900)
+
+    add_node("router", 1450, 100)
+    add_node("router", 1350, 300)
+    add_node("router", 1450, 500)
+    add_node("router", 1350, 700)
+    add_node("router", 1450, 900)
+
+    C1 = add_node("router", 950, 300)
+    C2 = add_node("router", 800, 700)
+    C3 = add_node("router", 1100, 700)
+
+    def ping(src: int, dst: int, duration: float):
+        while duration > 0:
+            ns.ping(src, dst)
+            ns.go(1)
+            duration -= 1
+
+    while True:
+        ping(1, 11, 30)
+        c1_rlocs = ns.get_ipaddrs(C1, "rloc")
+        if c1_rlocs:
+            for i in range(4):
+                for id in (6, 7, 8, 9, 16, 17, 18, 19, C2, C3):
+                    ns.ping(id, c1_rlocs[0])
+
+        ns.delete(C1)
+        ping(1, 11, 30)
+        ns.delete(C2)
+        ns.delete(C3)
+        ns.go(130)
+
+        add_node("router", 950, 300, id=C1)
+        add_node("router", 800, 700, id=C2)
+        add_node("router", 1100, 700, id=C3)
+        ns.go(10)
 
 
-def add_node(*args, **kwargs):
-    return ns.add(*args, **kwargs, radio_range=RADIO_RANGE)
-
-
-add_node("fed", 100, 100)
-add_node("fed", 100, 300)
-add_node("fed", 100, 500)
-add_node("fed", 100, 700)
-add_node("fed", 100, 900)
-
-add_node("router", 450, 100)
-add_node("router", 550, 300)
-add_node("router", 450, 500)
-add_node("router", 550, 700)
-add_node("router", 450, 900)
-
-add_node("fed", 1800, 100)
-add_node("fed", 1800, 300)
-add_node("fed", 1800, 500)
-add_node("fed", 1800, 700)
-add_node("fed", 1800, 900)
-
-add_node("router", 1450, 100)
-add_node("router", 1350, 300)
-add_node("router", 1450, 500)
-add_node("router", 1350, 700)
-add_node("router", 1450, 900)
-
-C1 = add_node("router", 950, 300)
-C2 = add_node("router", 800, 700)
-C3 = add_node("router", 1100, 700)
-
-
-def ping(src: int, dst: int, duration: float):
-    while duration > 0:
-        ns.ping(src, dst)
-        ns.go(1)
-        duration -= 1
-
-
-while True:
-    ping(1, 11, 30)
-    c1_rlocs = ns.get_ipaddrs(C1, "rloc")
-    if c1_rlocs:
-        for i in range(4):
-            for id in (6, 7, 8, 9, 16, 17, 18, 19, C2, C3):
-                ns.ping(id, c1_rlocs[0])
-
-    ns.delete(C1)
-    ping(1, 11, 30)
-    ns.delete(C2)
-    ns.delete(C3)
-    ns.go(130)
-
-    add_node("router", 950, 300, id=C1)
-    add_node("router", 800, 700, id=C2)
-    add_node("router", 1100, 700, id=C3)
-    ns.go(10)
+if __name__ == '__main__':
+    try:
+        main()
+    except OTNSExitedError as ex:
+        if ex.exit_code != 0:
+            raise

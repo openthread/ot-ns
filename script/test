@@ -99,9 +99,9 @@ check_py_example() {
   echo "Checking pyOTNS example: $1 ..."
   python3 $1 &
   local pid=$!
-  sleep 10
-  killall -10 otns || true
-  wait $pid
+  sleep 3
+  killall otns || true
+  wait $pid || die "Run pyOTNS example failed :$1"
 }
 
 py_examples() {
@@ -113,6 +113,7 @@ py_examples() {
   check_py_example $OTNSDIR/pylibs/examples/simple.py
   check_py_example $OTNSDIR/pylibs/examples/ping.py
   check_py_example $OTNSDIR/pylibs/examples/form_partition.py
+  check_py_example $OTNSDIR/pylibs/examples/farm.py
   cd -
 }
 

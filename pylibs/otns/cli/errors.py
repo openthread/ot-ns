@@ -32,15 +32,16 @@ This file contains definitions of OTNS CLI errors
 from otns.errors import OTNSError
 
 
-class OTNSCliEOFError(OTNSError):
-    """
-    Read EOF from node CLI.
-    """
-
-    def __init__(self):
-        super(OTNSCliEOFError, self).__init__("EOF")
-
-
 class OTNSCliError(OTNSError):
     def __init__(self, error: str):
         super(OTNSCliError, self).__init__(error)
+
+
+class OTNSExitedError(OTNSCliError):
+    """
+    OTNS exited.
+    """
+
+    def __init__(self, exit_code: int):
+        super(OTNSExitedError, self).__init__(f"exited: {exit_code}")
+        self.exit_code = exit_code
