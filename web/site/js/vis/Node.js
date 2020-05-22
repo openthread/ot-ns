@@ -35,11 +35,11 @@ const NODE_LABEL_FONT_FAMILY = 'Comic Sans MS';
 let vis = Visualizer();
 
 export default class Node extends VObject {
-    constructor(nodeId, x, y, extAddr, radioRange, nodeMode) {
+    constructor(nodeId, x, y, radioRange, nodeMode) {
         super();
 
         this.id = nodeId;
-        this.extAddr = extAddr;
+        this.extAddr = 0xFFFFFFFFFFFFFFFF;
         this.radioRange = radioRange;
         this.nodeMode = nodeMode;
         this.rloc16 = 0xfffe;

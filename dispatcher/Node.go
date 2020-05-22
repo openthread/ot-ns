@@ -85,7 +85,7 @@ type Node struct {
 	joinResults   []*JoinResult
 }
 
-func newNode(d *Dispatcher, nodeid NodeId, extaddr uint64, x, y int, radioRange int) *Node {
+func newNode(d *Dispatcher, nodeid NodeId, x, y int, radioRange int) *Node {
 	simplelogger.AssertTrue(radioRange >= 0)
 	addr, err := net.ResolveUDPAddr("udp4", fmt.Sprintf("127.0.0.1:%d", 9000+nodeid))
 	simplelogger.AssertNil(err)
@@ -97,7 +97,7 @@ func newNode(d *Dispatcher, nodeid NodeId, extaddr uint64, x, y int, radioRange 
 		CreateTime:  d.CurTime,
 		X:           x,
 		Y:           y,
-		ExtAddr:     extaddr,
+		ExtAddr:     InvalidExtAddr,
 		Rloc16:      threadconst.InvalidRloc16,
 		addr:        addr,
 		radioRange:  radioRange,
@@ -225,6 +225,7 @@ func (node *Node) CollectJoins() []*JoinResult {
 }
 
 func (node *Node) onStatusPushExtAddr(extaddr uint64) {
+	simplelogger.AssertTrue(extaddr != InvalidExtAddr)
 	oldExtAddr := node.ExtAddr
 	if oldExtAddr == extaddr {
 		return
@@ -232,7 +233,6 @@ func (node *Node) onStatusPushExtAddr(extaddr uint64) {
 
 	node.ExtAddr = extaddr
 	node.D.onStatusPushExtAddr(node, oldExtAddr)
-	simplelogger.Warnf("Node %d extaddr changed: %016x -> %016x !", node.Id, oldExtAddr, extaddr)
 }
 
 func (node *Node) onJoinerState(state OtJoinerState) {

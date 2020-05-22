@@ -109,7 +109,7 @@ function loadOk() {
                 break;
             case VisualizeEvent.TypeCase.ADD_NODE:
                 e = resp.getAddNode();
-                vis.visAddNode(e.getNodeId(), e.getX(), e.getY(), e.getExtAddr(), e.getRadioRange(), e.getNodeMode());
+                vis.visAddNode(e.getNodeId(), e.getX(), e.getY(), e.getRadioRange(), e.getNodeMode());
                 break;
             case VisualizeEvent.TypeCase.DELETE_NODE:
                 e = resp.getDeleteNode();

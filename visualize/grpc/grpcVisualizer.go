@@ -56,11 +56,10 @@ func (gv *grpcVisualizer) Stop() {
 	gv.server.stop()
 }
 
-func (gv *grpcVisualizer) AddNode(nodeid NodeId, extaddr uint64, x int, y int, radioRange int, mode types.NodeMode) {
-	gv.f.addNode(nodeid, extaddr, x, y, radioRange, mode)
+func (gv *grpcVisualizer) AddNode(nodeid NodeId, x int, y int, radioRange int, mode types.NodeMode) {
+	gv.f.addNode(nodeid, x, y, radioRange, mode)
 	gv.server.SendEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_AddNode{AddNode: &pb.AddNodeEvent{
 		NodeId:     int32(nodeid),
-		ExtAddr:    extaddr,
 		X:          int32(x),
 		Y:          int32(y),
 		RadioRange: int32(radioRange),
@@ -74,7 +73,7 @@ func (gv *grpcVisualizer) AddNode(nodeid NodeId, extaddr uint64, x int, y int, r
 }
 
 func (gv *grpcVisualizer) OnExtAddrChange(nodeid NodeId, extaddr uint64) {
-	simplelogger.Warnf("extaddr changed: node=%d, extaddr=%016x, old extaddr=%016x", nodeid, extaddr, gv.f.nodes[nodeid].extaddr)
+	simplelogger.Debugf("extaddr changed: node=%d, extaddr=%016x, old extaddr=%016x", nodeid, extaddr, gv.f.nodes[nodeid].extaddr)
 	gv.f.onExtAddrChange(nodeid, extaddr)
 	gv.server.SendEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_OnExtAddrChange{OnExtAddrChange: &pb.OnExtAddrChangeEvent{
 		NodeId:  int32(nodeid),
@@ -255,7 +254,6 @@ func (gv *grpcVisualizer) prepareStream(stream *grpcStream) error {
 	for nodeid, node := range gv.f.nodes {
 		addNodeEvent := &pb.VisualizeEvent{Type: &pb.VisualizeEvent_AddNode{AddNode: &pb.AddNodeEvent{
 			NodeId:     int32(nodeid),
-			ExtAddr:    node.extaddr,
 			X:          int32(node.x),
 			Y:          int32(node.y),
 			RadioRange: int32(node.radioRange),
@@ -274,6 +272,15 @@ func (gv *grpcVisualizer) prepareStream(stream *grpcStream) error {
 
 	// draw node attributes
 	for nodeid, node := range gv.f.nodes {
+		// extaddr
+		if err := stream.Send(&pb.VisualizeEvent{
+			Type: &pb.VisualizeEvent_OnExtAddrChange{OnExtAddrChange: &pb.OnExtAddrChangeEvent{
+				NodeId:  int32(nodeid),
+				ExtAddr: node.extaddr,
+			}},
+		}); err != nil {
+			return err
+		}
 		// rloc16
 		if err := stream.Send(&pb.VisualizeEvent{
 			Type: &pb.VisualizeEvent_SetNodeRloc16{SetNodeRloc16: &pb.SetNodeRloc16Event{

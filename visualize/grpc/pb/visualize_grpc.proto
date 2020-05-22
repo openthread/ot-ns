@@ -156,11 +156,10 @@ enum OtDeviceRole {
 
 message AddNodeEvent {
     int32 node_id = 1;
-    uint64 ext_addr = 2;
-    int32 x = 3;
-    int32 y = 4;
-    int32 radio_range = 5;
-    NodeMode node_mode = 6;
+    int32 x = 2;
+    int32 y = 3;
+    int32 radio_range = 4;
+    NodeMode node_mode = 5;
 }
 
 message NodeMode {
