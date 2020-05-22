@@ -277,7 +277,7 @@ func (d *Dispatcher) handleRecvEvent(evt *event) {
 		if _, deleted := d.deletedNodes[nodeid]; !deleted {
 			// TODO: node should push extaddr to dispatcher
 			// can not find the node, and the node is not registered (created by OTNS)
-			d.newNode(nodeid, 0, -1, 10000, DefaultNodeMode())
+			d.newNode(nodeid, -1, -1, 10000, DefaultNodeMode())
 		} else {
 			// the node is already deleted, ignore this message
 			return
