@@ -37,7 +37,7 @@ RADIO_RANGE = 150
 
 
 def main():
-    ns = OTNS()
+    ns = OTNS(otns_args=["-log", "debug"])
     ns.web()
     ns.speed = float('inf')
 

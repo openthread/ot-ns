@@ -24,7 +24,9 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-
+#
+import logging
+import os
 import unittest
 from typing import Dict
 
@@ -51,33 +53,41 @@ class BasicTests(OTNSTestCase):
         ns.packet_loss_ratio = 2
         assert ns.packet_loss_ratio == 1
 
-    def testOneNode(self):
-        ns = self.ns
-        ns.add("router")
-        ns.go(10)
-        self.assertFormPartitions(1)
+    def testOneNodex100(self):
+        if os.getenv("VIRTUAL_TIME_UART") != "1":
+            self.skipTest("VIRTUAL_TIME_UART not enabled")
+            return
+
+        for i in range(100):
+            logging.info("testOneNode round %d", i + 1)
+            ns = self.ns
+            ns.add("router")
+            ns.go(3)
+            self.assertFormPartitions(1)
+            self.tearDown()
+            self.setUp()
 
     def testAddNode(self):
         ns = self.ns
         ns.add("router")
-        ns.go(10)
+        self.goConservative(3)
         self.assertFormPartitions(1)
 
         ns.add("router")
         ns.add("fed")
         ns.add("med")
         ns.add("sed")
-        ns.go(100)
+        self.goConservative(33)
         self.assertFormPartitions(1)
 
     def testDelNode(self):
         ns = self.ns
         ns.add("router")
         ns.add("router")
-        ns.go(10)
+        self.goConservative(10)
         self.assertFormPartitions(1)
         ns.delete(1)
-        ns.go(10)
+        self.goConservative(10)
         self.assertTrue(len(ns.nodes()) == 1 and 1 not in ns.nodes())
 
     def testDelManyNodes(self):
@@ -100,7 +110,7 @@ class BasicTests(OTNSTestCase):
         ns.add("router")
         ns.add("router")
         ns.add("router")
-        ns.go(1000)
+        self.goConservative(100)
         self.assertFormPartitions(3)
 
     def testRadioInRange(self):
@@ -108,7 +118,7 @@ class BasicTests(OTNSTestCase):
         radio_range = 100
         ns.add("router", 0, 0, radio_range=radio_range)
         ns.add("router", 0, radio_range - 1, radio_range=radio_range)
-        ns.go(100)
+        self.goConservative(10)
         self.assertFormPartitions(1)
 
     def testRadioNotInRange(self):
@@ -116,23 +126,23 @@ class BasicTests(OTNSTestCase):
         radio_range = 100
         ns.add("router", 0, 0, radio_range=radio_range)
         ns.add("router", 0, radio_range + 1, radio_range=radio_range)
-        ns.go(100)
+        self.goConservative(10)
         self.assertFormPartitions(2)
 
     def testNodeFailRecover(self):
         ns = self.ns
         ns.add("router")
         fid = ns.add("router")
-        ns.go(100)
+        self.goConservative(10)
         self.assertFormPartitions(1)
 
         ns.radio_off(fid)
-        ns.go(240)
+        self.goConservative(240)
         print(ns.partitions())
         self.assertFormPartitions(2)
 
         ns.radio_on(fid)
-        ns.go(100)
+        self.goConservative(100)
         self.assertFormPartitions(1)
 
     def testFailTime(self):
@@ -153,7 +163,7 @@ class BasicTests(OTNSTestCase):
     def testCliCmd(self):
         ns = self.ns
         id = ns.add("router")
-        ns.go(10)
+        self.goConservative(3)
         self.assertTrue(ns.get_state(id), 'leader')
 
     def testCounters(self):
@@ -172,11 +182,11 @@ class BasicTests(OTNSTestCase):
         ns.add("router")
         ns.add("router")
 
-        ns.go(10)
+        self.goConservative(10)
         c10 = ns.counters()
         assert_increasing(c0, c10)
 
-        ns.go(10)
+        self.goConservative(10)
         c20 = ns.counters()
         assert_increasing(c10, c20)
 

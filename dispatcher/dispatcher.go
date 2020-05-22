@@ -64,20 +64,25 @@ type pcapFrameItem struct {
 }
 
 type Config struct {
-	Speed float64
-	Real  bool
+	Speed           float64
+	Real            bool
+	VirtualTimeUART bool
 }
 
 func DefaultConfig() *Config {
 	return &Config{
-		Speed: 1,
-		Real:  false,
+		Speed:           1,
+		Real:            false,
+		VirtualTimeUART: false,
 	}
 }
 
 type CallbackHandler interface {
 	OnNodeFail(nodeid NodeId)
 	OnNodeRecover(nodeid NodeId)
+
+	// Notifies that the node's UART was written with data.
+	OnUartWrite(nodeid NodeId, data []byte)
 }
 
 type goDuration struct {
@@ -117,6 +122,7 @@ type Dispatcher struct {
 		AlarmEvents      uint64
 		RadioEvents      uint64
 		StatusPushEvents uint64
+		UartWriteEvents  uint64
 		// Packet dispatching counters
 		DispatchByExtAddrSucc   uint64
 		DispatchByExtAddrFail   uint64
@@ -219,7 +225,7 @@ loop:
 			// sync the speed start time with the current time
 			if len(d.nodes) == 0 {
 				// no nodes, sleep for a small duration to avoid high cpu
-				d.recvEvents()
+				d.RecvEvents()
 				time.Sleep(time.Millisecond * 10)
 				close(duration.done)
 				break
@@ -262,7 +268,7 @@ func (d *Dispatcher) goUntilPauseTime() {
 			break
 		}
 
-		d.recvEvents()
+		d.RecvEvents()
 		d.syncAliveNodes()
 
 		// process the next event
@@ -280,7 +286,6 @@ func (d *Dispatcher) handleRecvEvent(evt *event) {
 	nodeid := evt.NodeId
 	if _, ok := d.nodes[nodeid]; !ok {
 		if _, deleted := d.deletedNodes[nodeid]; !deleted {
-			// TODO: node should push extaddr to dispatcher
 			// can not find the node, and the node is not registered (created by OTNS)
 			d.newNode(nodeid, -1, -1, 10000, DefaultNodeMode())
 		} else {
@@ -320,12 +325,16 @@ func (d *Dispatcher) handleRecvEvent(evt *event) {
 	case eventTypeStatusPush:
 		d.Counters.StatusPushEvents += 1
 		d.handleStatusPush(evt.NodeId, string(evt.Data))
+	case eventTypeUartWrite:
+		d.Counters.UartWriteEvents += 1
+		d.handleUartWrite(evt.NodeId, evt.Data)
 	default:
 		simplelogger.Panicf("event type not implemented: %v", evt.Type)
 	}
 }
 
-func (d *Dispatcher) recvEvents() int {
+// RecvEvents receives events from nodes until there is no more alive node.
+func (d *Dispatcher) RecvEvents() int {
 	blockTimeout := time.After(time.Second * 5)
 	count := 0
 
@@ -524,6 +533,34 @@ func (d *Dispatcher) advanceNodeTime(id NodeId, timestamp uint64, force bool) {
 	if d.isWatching(id) {
 		simplelogger.Warnf("Node %d >>> advance time %v -> %v", id, oldTime, timestamp)
 	}
+}
+
+// SendUART sends data to virtual time UART of the target node.
+func (d *Dispatcher) SendUART(id NodeId, data []byte) {
+	simplelogger.AssertTrue(d.cfg.VirtualTimeUART)
+
+	node := d.nodes[id]
+
+	oldTime := node.CurTime
+	timestamp := d.CurTime
+	simplelogger.AssertTrue(timestamp >= oldTime)
+	elapsed := timestamp - oldTime
+
+	msg := make([]byte, len(data)+11)
+	binary.LittleEndian.PutUint64(msg[:8], elapsed)
+	msg[8] = eventTypeUartWrite
+	binary.LittleEndian.PutUint16(msg[9:11], uint16(len(data)))
+	n := copy(msg[11:], data)
+	simplelogger.AssertTrue(n == len(data))
+	node.SendMessage(msg)
+
+	node.CurTime = timestamp
+	if timestamp > oldTime {
+		node.failureCtrl.OnTimeAdvanced(oldTime)
+	}
+
+	d.alarmMgr.SetNotified(node.Id)
+	d.setAlive(node.Id)
 }
 
 func (d *Dispatcher) sendNodeMessage(sit *sendItem) {
@@ -821,7 +858,22 @@ func (d *Dispatcher) handleStatusPush(srcid NodeId, data string) {
 func (d *Dispatcher) AddNode(nodeid NodeId, x, y int, radioRange int, mode NodeMode) {
 	simplelogger.AssertNil(d.nodes[nodeid])
 	simplelogger.Infof("dispatcher add node %d", nodeid)
-	d.newNode(nodeid, x, y, radioRange, mode)
+	node := d.newNode(nodeid, x, y, radioRange, mode)
+
+	// Wait until node's extended address is emitted
+	// This helps OTNS to make sure that the child process is ready to receive UDP events
+	t0 := time.Now()
+	deadline := t0.Add(time.Second * 10)
+	for node.ExtAddr == InvalidExtAddr && time.Now().Before(deadline) {
+		d.RecvEvents()
+	}
+
+	if node.ExtAddr == InvalidExtAddr {
+		simplelogger.Panicf("expect node %d's extaddr to be valid, but failed", nodeid)
+	} else {
+		takeTime := time.Since(t0)
+		simplelogger.Debugf("node %d's extaddr becomes valid in %v", nodeid, takeTime)
+	}
 }
 
 func (d *Dispatcher) setNodeRloc16(srcid NodeId, rloc16 uint16) {
@@ -1070,4 +1122,16 @@ func (d *Dispatcher) GetVisualizationOptions() VisualizationOptions {
 func (d *Dispatcher) SetVisualizationOptions(opts VisualizationOptions) {
 	simplelogger.Debugf("dispatcher set visualization options: %+v", opts)
 	d.visOptions = opts
+}
+
+func (d *Dispatcher) handleUartWrite(nodeid NodeId, data []byte) {
+	if !d.cfg.VirtualTimeUART {
+		simplelogger.Fatalf("should use Virtual Time UART: -virtual-time-uart=true")
+	}
+	d.cbHandler.OnUartWrite(nodeid, data)
+}
+
+// NotifyExit notifies the dispatcher that the node process has exit.
+func (d *Dispatcher) NotifyExit(nodeid NodeId) {
+	d.setSleeping(nodeid)
 }
