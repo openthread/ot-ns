@@ -38,11 +38,17 @@ jobs:
         if: "github.ref != 'refs/heads/master'"
 
   build:
-    name: Build with Go ${{ matrix.go }}
-    runs-on: ubuntu-latest
+    name: Build (Go ${{ matrix.go }}, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        go: [ '1.14', '1.13', '1.12', '1.11' ]
+        include:
+          - go: 1.11
+            os: ubuntu-latest
+          - go: 1.14
+            os: ubuntu-latest
+          - go: 1.14
+            os: macos-10.15
     steps:
       - uses: actions/setup-go@v1
         with:
