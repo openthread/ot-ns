@@ -80,6 +80,19 @@ class BasicTests(OTNSTestCase):
         ns.go(10)
         self.assertTrue(len(ns.nodes()) == 1 and 1 not in ns.nodes())
 
+    def testDelManyNodes(self):
+        ns = self.ns
+        many = 32
+        for i in range(many):
+            ns.add("router", x=(i % 6) * 100, y=(i // 6) * 150)
+
+        ns.go(10)
+        for i in range(1, many + 1):
+            ns.delete(i)
+            ns.go(5)
+
+        self.assertTrue(ns.nodes() == {})
+
     def testMDREffective(self):
         ns = self.ns
         ns.packet_loss_ratio = 1
