@@ -550,6 +550,8 @@ class OTNS(object):
         :param ack_message: whether or not to visualize ACK messages
         :param router_table: whether or not to visualize router tables
         :param child_table: whether or not to visualize child tables
+
+        :return: the active visualization options
         """
         cmd = "cv"
         if broadcast_message is not None:
