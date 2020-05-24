@@ -750,19 +750,27 @@ func (d *Dispatcher) handleStatusPush(srcid NodeId, data string) {
 		} else if sp[0] == "router_added" {
 			extaddr, err := strconv.ParseUint(sp[1], 16, 64)
 			simplelogger.PanicIfError(err)
-			d.vis.AddRouterTable(srcid, extaddr)
+			if d.visOptions.RouterTable {
+				d.vis.AddRouterTable(srcid, extaddr)
+			}
 		} else if sp[0] == "router_removed" {
 			extaddr, err := strconv.ParseUint(sp[1], 16, 64)
 			simplelogger.PanicIfError(err)
-			d.vis.RemoveRouterTable(srcid, extaddr)
+			if d.visOptions.RouterTable {
+				d.vis.RemoveRouterTable(srcid, extaddr)
+			}
 		} else if sp[0] == "child_added" {
 			extaddr, err := strconv.ParseUint(sp[1], 16, 64)
 			simplelogger.PanicIfError(err)
-			d.vis.AddChildTable(srcid, extaddr)
+			if d.visOptions.ChildTable {
+				d.vis.AddChildTable(srcid, extaddr)
+			}
 		} else if sp[0] == "child_removed" {
 			extaddr, err := strconv.ParseUint(sp[1], 16, 64)
 			simplelogger.PanicIfError(err)
-			d.vis.RemoveChildTable(srcid, extaddr)
+			if d.visOptions.ChildTable {
+				d.vis.RemoveChildTable(srcid, extaddr)
+			}
 		} else if sp[0] == "parent" {
 			extaddr, err := strconv.ParseUint(sp[1], 16, 64)
 			simplelogger.PanicIfError(err)
