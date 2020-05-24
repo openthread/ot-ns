@@ -576,6 +576,7 @@ func (d *Dispatcher) sendNodeMessage(sit *sendItem) {
 	}
 
 	if !dispatchedByDstAddr {
+		// TODO: optimize ACK message dispatching by sending it only to the correct node(s)
 		for _, dstnode := range d.nodes {
 			if d.checkRadioReachable(srcnode, dstnode) {
 				d.sendOneMessage(sit, srcnode, dstnode)
@@ -807,6 +808,22 @@ func (d *Dispatcher) setNodeRloc16(srcid NodeId, rloc16 uint16) {
 }
 
 func (d *Dispatcher) visSend(srcid NodeId, dstid NodeId, pktframe *wpan.MacFrame) {
+	if dstid == BroadcastNodeId {
+		if pktframe.FrameControl.FrameType() == wpan.FrameTypeAck {
+			if !d.visOptions.AckMessage {
+				return
+			}
+		} else {
+			if !d.visOptions.BroadcastMessage {
+				return
+			}
+		}
+	} else {
+		if !d.visOptions.UnicastMessage {
+			return
+		}
+	}
+
 	d.vis.Send(srcid, dstid, &visualize.MsgVisualizeInfo{
 		Channel:         pktframe.Channel,
 		FrameControl:    pktframe.FrameControl,

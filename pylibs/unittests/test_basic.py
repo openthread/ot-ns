@@ -185,7 +185,7 @@ class BasicTests(OTNSTestCase):
         vopts = ns.config_visualization()
         print('vopts', vopts)
         for opt in ('broadcast_message', 'unicast_message', 'ack_message', 'router_table', 'child_table'):
-            self.assertTrue(vopts[opt])
+            self.assertTrue(opt in vopts)
 
         vopts = ns.config_visualization(broadcast_message=False)
         self.assertFalse(vopts['broadcast_message'])

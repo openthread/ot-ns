@@ -12,7 +12,7 @@ func defaultVisualizationOptions() VisualizationOptions {
 	return VisualizationOptions{
 		BroadcastMessage: true,
 		UnicastMessage:   true,
-		AckMessage:       true,
+		AckMessage:       false,
 		RouterTable:      true,
 		ChildTable:       true,
 	}
