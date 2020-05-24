@@ -36,26 +36,27 @@ import (
 
 //noinspection GoStructTag
 type Command struct {
-	Add        *AddCmd        `  @@` //nolint
-	CountDown  *CountDownCmd  `| @@` //nolint
-	Counters   *CountersCmd   `| @@` //nolint
-	Debug      *DebugCmd      `| @@` //nolint
-	Del        *DelCmd        `| @@` //nolint
-	DemoLegend *DemoLegendCmd `| @@` //nolint
-	Exit       *ExitCmd       `| @@` //nolint
-	Go         *GoCmd         `| @@` //nolint
-	Joins      *JoinsCmd      `| @@` //nolint
-	Move       *Move          `| @@` //nolint
-	Node       *NodeCmd       `| @@` //nolint
-	Nodes      *NodesCmd      `| @@` //nolint
-	Partitions *PartitionsCmd `| @@` //nolint
-	Ping       *PingCmd       `| @@` //nolint
-	Pings      *PingsCmd      `| @@` //nolint
-	Plr        *PlrCmd        `| @@` //nolint
-	Radio      *RadioCmd      `| @@` //nolint
-	Scan       *ScanCmd       `| @@` //nolint
-	Speed      *SpeedCmd      `| @@` //nolint
-	Web        *WebCmd        `| @@` //nolint
+	Add                 *AddCmd                 `  @@` //nolint
+	ConfigVisualization *ConfigVisualizationCmd `| @@` //nolint
+	CountDown           *CountDownCmd           `| @@` //nolint
+	Counters            *CountersCmd            `| @@` //nolint
+	Debug               *DebugCmd               `| @@` //nolint
+	Del                 *DelCmd                 `| @@` //nolint
+	DemoLegend          *DemoLegendCmd          `| @@` //nolint
+	Exit                *ExitCmd                `| @@` //nolint
+	Go                  *GoCmd                  `| @@` //nolint
+	Joins               *JoinsCmd               `| @@` //nolint
+	Move                *Move                   `| @@` //nolint
+	Node                *NodeCmd                `| @@` //nolint
+	Nodes               *NodesCmd               `| @@` //nolint
+	Partitions          *PartitionsCmd          `| @@` //nolint
+	Ping                *PingCmd                `| @@` //nolint
+	Pings               *PingsCmd               `| @@` //nolint
+	Plr                 *PlrCmd                 `| @@` //nolint
+	Radio               *RadioCmd               `| @@` //nolint
+	Scan                *ScanCmd                `| @@` //nolint
+	Speed               *SpeedCmd               `| @@` //nolint
+	Web                 *WebCmd                 `| @@` //nolint
 }
 
 //noinspection GoStructTag
@@ -168,6 +169,46 @@ type DemoLegendCmd struct {
 }
 
 //noinspection GoStructTag
+type ConfigVisualizationCmd struct {
+	Cmd              struct{}            `"cv"`    //nolint
+	BroadcastMessage *CVBroadcastMessage `( @@`    //nolint
+	UnicastMessage   *CVUnicastMessage   `| @@`    //nolint
+	AckMessage       *CVAckMessage       `| @@`    //nolint
+	RouterTable      *CVRouterTable      `| @@`    //nolint
+	ChildTable       *CVChildTable       `| @@ )*` //nolint
+}
+
+//noinspection GoStructTag
+type CVBroadcastMessage struct {
+	Flag    struct{}    `"bro"` //nolint
+	OnOrOff OnOrOffFlag `@@`    //nolint
+}
+
+//noinspection GoStructTag
+type CVUnicastMessage struct {
+	Flag    struct{}    `"uni"` //nolint
+	OnOrOff OnOrOffFlag `@@`    //nolint
+}
+
+//noinspection GoStructTag
+type CVAckMessage struct {
+	Flag    struct{}    `"ack"` //nolint
+	OnOrOff OnOrOffFlag `@@`    //nolint
+}
+
+//noinspection GoStructTag
+type CVRouterTable struct {
+	Flag    struct{}    `"rtb"` //nolint
+	OnOrOff OnOrOffFlag `@@`    //nolint
+}
+
+//noinspection GoStructTag
+type CVChildTable struct {
+	Flag    struct{}    `"ctb"` //nolint
+	OnOrOff OnOrOffFlag `@@`    //nolint
+}
+
+//noinspection GoStructTag
 type CountDownCmd struct {
 	Cmd     struct{} `"countdown"` //nolint
 	Seconds int      `@Int`        //nolint
@@ -260,6 +301,12 @@ type OnFlag struct {
 //noinspection GoStructTag
 type OffFlag struct {
 	Dummy struct{} `"off"` //nolint
+}
+
+//noinspection GoStructTag
+type OnOrOffFlag struct {
+	On  *OnFlag  `( @@`   //nolint
+	Off *OffFlag `| @@ )` //nolint
 }
 
 //noinspection GoStructTag

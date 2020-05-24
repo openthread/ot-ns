@@ -123,6 +123,8 @@ func (rt *CmdRunner) Execute(cmd *Command) (cc *CommandContext) {
 		rt.executeCollectJoins(cc, cc.Joins)
 	} else if cmd.Scan != nil {
 		rt.executeScan(cc, cc.Scan)
+	} else if cmd.ConfigVisualization != nil {
+		rt.executeConfigVisualization(cc, cc.ConfigVisualization)
 	} else if cmd.Debug != nil {
 		rt.executeDebug(cc, cmd.Debug)
 	} else if cmd.DemoLegend != nil {
@@ -576,6 +578,48 @@ func (rt *CmdRunner) executeScan(cc *CommandContext, cmd *ScanCmd) {
 			node.AssurePrompt()
 		})
 	}
+}
+
+func (rt *CmdRunner) executeConfigVisualization(cc *CommandContext, cmd *ConfigVisualizationCmd) {
+	var opts dispatcher.VisualizationOptions
+	rt.postAsyncWait(func(sim *simulation.Simulation) {
+		opts = sim.Dispatcher().GetVisualizationOptions()
+
+		if cmd.BroadcastMessage != nil {
+			opts.BroadcastMessage = cmd.BroadcastMessage.OnOrOff.On != nil
+		}
+
+		if cmd.UnicastMessage != nil {
+			opts.UnicastMessage = cmd.UnicastMessage.OnOrOff.On != nil
+		}
+
+		if cmd.AckMessage != nil {
+			opts.AckMessage = cmd.AckMessage.OnOrOff.On != nil
+		}
+
+		if cmd.RouterTable != nil {
+			opts.RouterTable = cmd.RouterTable.OnOrOff.On != nil
+		}
+
+		if cmd.ChildTable != nil {
+			opts.ChildTable = cmd.ChildTable.OnOrOff.On != nil
+		}
+
+		sim.Dispatcher().SetVisualizationOptions(opts)
+	})
+
+	bool_to_onoroff := func(on bool) string {
+		if on {
+			return "on"
+		} else {
+			return "off"
+		}
+	}
+	cc.outputf("bro=%s\n", bool_to_onoroff(opts.BroadcastMessage))
+	cc.outputf("uni=%s\n", bool_to_onoroff(opts.UnicastMessage))
+	cc.outputf("ack=%s\n", bool_to_onoroff(opts.AckMessage))
+	cc.outputf("rtb=%s\n", bool_to_onoroff(opts.RouterTable))
+	cc.outputf("ctb=%s\n", bool_to_onoroff(opts.ChildTable))
 }
 
 func NewCmdRunner(ctx *progctx.ProgCtx, sim *simulation.Simulation) *CmdRunner {

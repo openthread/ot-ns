@@ -108,6 +108,7 @@ type Dispatcher struct {
 	rloc16Map             rloc16Map
 	goDurationChan        chan goDuration
 	globalPacketLossRatio float64
+	visOptions            VisualizationOptions
 
 	Counters struct {
 		// Event counters
@@ -158,6 +159,7 @@ func NewDispatcher(ctx *progctx.ProgCtx, cfg *Config, cbHandler CallbackHandler)
 		taskChan:           make(chan func(), 100),
 		watchingNodes:      map[NodeId]struct{}{},
 		goDurationChan:     make(chan goDuration, 10),
+		visOptions:         defaultVisualizationOptions(),
 	}
 	d.speed = d.normalizeSpeed(d.speed)
 	d.pcap, err = pcap.NewFile("current.pcap")
@@ -994,4 +996,13 @@ func (d *Dispatcher) onStatusPushExtAddr(node *Node, oldExtAddr uint64) {
 
 	d.extaddrMap[node.ExtAddr] = node
 	d.vis.OnExtAddrChange(node.Id, node.ExtAddr)
+}
+
+func (d *Dispatcher) GetVisualizationOptions() VisualizationOptions {
+	return d.visOptions
+}
+
+func (d *Dispatcher) SetVisualizationOptions(opts VisualizationOptions) {
+	simplelogger.Debugf("dispatcher set visualization options: %+v", opts)
+	d.visOptions = opts
 }

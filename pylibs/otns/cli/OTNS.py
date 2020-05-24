@@ -539,6 +539,20 @@ class OTNS(object):
         timeout_s = f" {timeout}" if timeout is not None else ""
         self.node_cmd(nodeid, f"commissioner joiner add {usr} {pwd}{timeout_s}")
 
+    def config_visualization(self, broadcast_message: bool = None, unicast_message: bool = None,
+                             ack_message: bool = None, router_table: bool = None, child_table: bool = None) \
+            -> Dict[str, bool]:
+        """
+        Configure the visualization options.
+
+        :param broadcast_messages: whether or not to visualize broadcast messages
+        :param unicast_messages: whether or not to visualize unicast messages
+        :param ack_messages: whether or not to visualize ACK messages
+        :param router_table: whether or not to visualize router tables
+        :param child_table: whether or not to visualize child tables
+        """
+        pass
+
     @staticmethod
     def _expect_int(output: List[str]) -> int:
         assert len(output) == 1, output
