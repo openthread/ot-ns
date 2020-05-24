@@ -545,13 +545,43 @@ class OTNS(object):
         """
         Configure the visualization options.
 
-        :param broadcast_messages: whether or not to visualize broadcast messages
-        :param unicast_messages: whether or not to visualize unicast messages
-        :param ack_messages: whether or not to visualize ACK messages
+        :param broadcast_message: whether or not to visualize broadcast messages
+        :param unicast_message: whether or not to visualize unicast messages
+        :param ack_message: whether or not to visualize ACK messages
         :param router_table: whether or not to visualize router tables
         :param child_table: whether or not to visualize child tables
         """
-        pass
+        cmd = "cv"
+        if broadcast_message is not None:
+            cmd += " bro " + ("on" if broadcast_message else "off")
+
+        if unicast_message is not None:
+            cmd += " uni " + ("on" if unicast_message else "off")
+
+        if ack_message is not None:
+            cmd += " ack " + ("on" if ack_message else "off")
+
+        if router_table is not None:
+            cmd += " rtb " + ("on" if router_table else "off")
+
+        if child_table is not None:
+            cmd += " ctb " + ("on" if child_table else "off")
+
+        output = self._do_command(cmd)
+        vopts = {}
+        for line in output:
+            line = line.split('=')
+            assert len(line) == 2 and line[1] in ('on', 'off'), line
+            vopts[line[0]] = (line[1] == "on")
+
+        # convert command options to python options
+        vopts['broadcast_message'] = vopts.pop('bro')
+        vopts['unicast_message'] = vopts.pop('uni')
+        vopts['ack_message'] = vopts.pop('ack')
+        vopts['router_table'] = vopts.pop('rtb')
+        vopts['child_table'] = vopts.pop('ctb')
+
+        return vopts
 
     @staticmethod
     def _expect_int(output: List[str]) -> int:

@@ -180,6 +180,38 @@ class BasicTests(OTNSTestCase):
         c20 = ns.counters()
         assert_increasing(c10, c20)
 
+    def testConfigVisualization(self):
+        ns = self.ns
+        vopts = ns.config_visualization()
+        print('vopts', vopts)
+        for opt in ('broadcast_message', 'unicast_message', 'ack_message', 'router_table', 'child_table'):
+            self.assertTrue(vopts[opt])
+
+        vopts = ns.config_visualization(broadcast_message=False)
+        self.assertFalse(vopts['broadcast_message'])
+
+        vopts = ns.config_visualization(unicast_message=False)
+        self.assertFalse(vopts['broadcast_message'])
+        self.assertFalse(vopts['unicast_message'])
+
+        vopts = ns.config_visualization(ack_message=False)
+        self.assertFalse(vopts['ack_message'])
+        vopts = ns.config_visualization(ack_message=True)
+        self.assertTrue(vopts['ack_message'])
+
+        vopts = ns.config_visualization(router_table=False)
+        self.assertFalse(vopts['router_table'])
+
+        vopts = ns.config_visualization(child_table=False)
+        self.assertFalse(vopts['child_table'])
+
+        vopts = ns.config_visualization(broadcast_message=True, unicast_message=True, ack_message=True,
+                                        router_table=True,
+                                        child_table=True)
+
+        for opt in ('broadcast_message', 'unicast_message', 'ack_message', 'router_table', 'child_table'):
+            self.assertTrue(vopts[opt])
+
 
 if __name__ == '__main__':
     unittest.main()
