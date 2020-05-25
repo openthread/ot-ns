@@ -148,7 +148,7 @@ func Main(visualizerCreator func(ctx *progctx.ProgCtx, args *MainArgs) visualize
 func handleSignals(ctx *progctx.ProgCtx) {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGINT, syscall.SIGHUP)
-	signal.Ignore(syscall.SIGALRM, syscall.SIGCHLD)
+	signal.Ignore(syscall.SIGALRM)
 
 	ctx.WaitAdd("handleSignals", 1)
 	go func() {

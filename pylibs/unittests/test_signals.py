@@ -32,8 +32,8 @@ import time
 import unittest
 from subprocess import TimeoutExpired
 
-from otns.cli.errors import OTNSCliEOFError
 from OTNSTestCase import OTNSTestCase
+from otns.cli.errors import OTNSCliEOFError
 
 
 class SignalsTest(OTNSTestCase):
@@ -58,9 +58,6 @@ class SignalsTest(OTNSTestCase):
 
     def testSIGALRM(self):
         self._test_signal_ignore(signal.SIGALRM)
-
-    def testSIGCHLD(self):
-        self._test_signal_ignore(signal.SIGCHLD)
 
     def _test_signal_ignore(self, sig: int):
         t = threading.Thread(target=self._send_signal, args=(1, sig))
