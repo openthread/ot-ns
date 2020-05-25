@@ -39,10 +39,10 @@ jobs:
 
   go-tests:
     name: Go Tests on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest, macos-10.15]
-    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/setup-go@v1
         with:
@@ -54,11 +54,11 @@ jobs:
 
   py-unittests:
     name: Python${{ matrix.python-version }} Unittests on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         python-version: [3.8]
         os: [ubuntu-latest, macos-10.15]
-    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/setup-go@v1
         with:
