@@ -79,7 +79,7 @@ class SignalsTest(OTNSTestCase):
         t.start()
         self._run_simulation()
         t.join()
-        exit_code = self.ns._otns.wait()
+        exit_code = self.ns._otns.wait(timeout=60)
         if sig == signal.SIGKILL:
             self.assertNotEqual(0, exit_code, "exit code should not be 0")
         else:
