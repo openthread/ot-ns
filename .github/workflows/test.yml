@@ -46,7 +46,7 @@ jobs:
     steps:
       - uses: actions/setup-go@v1
         with:
-          go-version: 1.14
+          go-version: 1.11
       - uses: actions/checkout@v2
       - name: Test
         run: |
@@ -57,12 +57,12 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        python-version: [3.8]
+        python-version: [3.6]
         os: [ubuntu-latest, macos-10.15]
     steps:
       - uses: actions/setup-go@v1
         with:
-          go-version: 1.14
+          go-version: 1.11
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v1
         with:

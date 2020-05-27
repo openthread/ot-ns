@@ -47,7 +47,7 @@ jobs:
             os: ubuntu-latest
           - go: 1.14
             os: ubuntu-latest
-          - go: 1.14
+          - go: 1.11
             os: macos-10.15
     steps:
       - uses: actions/setup-go@v1
