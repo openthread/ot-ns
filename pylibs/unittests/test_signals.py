@@ -26,6 +26,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+import logging
 import signal
 import threading
 import time
@@ -95,9 +96,9 @@ class SignalsTest(OTNSTestCase):
             return
 
     def _send_signal(self, delay: float, sig: int):
-        print(f"sleep {delay} ...")
+        logging.info(f"sleep {delay} ...")
         time.sleep(delay)
-        print(f'sending signal {sig}')
+        logging.info(f'sending signal {sig}')
         self.ns._otns.send_signal(sig)
 
 
