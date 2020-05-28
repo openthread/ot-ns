@@ -45,6 +45,10 @@ jobs:
         include:
           - go: 1.11
             os: ubuntu-latest
+          - go: 1.12
+            os: ubuntu-latest
+          - go: 1.13
+            os: ubuntu-latest
           - go: 1.14
             os: ubuntu-latest
           - go: 1.11
