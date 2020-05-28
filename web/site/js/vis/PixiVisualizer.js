@@ -30,7 +30,7 @@ import ActionBar from "./ActionBar";
 import {Text} from "./wrapper";
 import {MAX_SPEED, PAUSE_SPEED} from "./consts";
 import Node from "./Node"
-import {BroadcastMessage, UnicastMessage} from "./message";
+import {BroadcastMessage, UnicastMessage, AckMessage} from "./message";
 
 const {
     VisualizeRequest, VisualizeEvent, OtDeviceRole, NodeMode,
@@ -235,7 +235,12 @@ export default class PixiVisualizer extends VObject {
         }
 
         let src = this.nodes[srcId];
-        if (dstId == -1) {
+
+        let frameType = mvInfo.getFrameControl() & 0x0007;
+        if (frameType === 2) {
+            // ACK
+            this.createAckMessage(src, mvInfo)
+        } else if (dstId == -1) {
             // broadcast
             this.createBroadcastMessage(src, mvInfo)
         } else {
@@ -456,6 +461,12 @@ export default class PixiVisualizer extends VObject {
     createBroadcastMessage(src, mvInfo) {
         let msg = new BroadcastMessage(src, mvInfo);
         this._broadcastMessagesStage.addChild(msg._root);
+        this._messages[msg.id] = msg;
+    }
+
+    createAckMessage(src, mvInfo) {
+        let msg = new AckMessage(src, mvInfo);
+        this._unicastMessagesStage.addChild(msg._root);
         this._messages[msg.id] = msg;
     }
 
