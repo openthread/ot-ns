@@ -39,9 +39,9 @@ type grpcField struct {
 	speed    float64
 }
 
-func (f *grpcField) addNode(id NodeId, extaddr uint64, x int, y int, radioRange int, mode NodeMode) *grpcNode {
+func (f *grpcField) addNode(id NodeId, x int, y int, radioRange int, mode NodeMode) *grpcNode {
 	simplelogger.AssertNil(f.nodes[id])
-	gn := newGprcNode(id, extaddr, x, y, radioRange, mode)
+	gn := newGprcNode(id, x, y, radioRange, mode)
 	f.nodes[id] = gn
 	return gn
 }

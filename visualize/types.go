@@ -38,7 +38,7 @@ type Visualizer interface {
 	Run()
 	Stop()
 
-	AddNode(nodeid NodeId, extaddr uint64, x int, y int, radioRange int, mode NodeMode)
+	AddNode(nodeid NodeId, x int, y int, radioRange int, mode NodeMode)
 	SetNodeRloc16(nodeid NodeId, rloc16 uint16)
 	SetNodeRole(nodeid NodeId, role OtDeviceRole)
 	Send(srcid NodeId, dstid NodeId, mvinfo *MsgVisualizeInfo)

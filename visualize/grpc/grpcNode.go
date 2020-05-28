@@ -48,10 +48,10 @@ type grpcNode struct {
 	childTable  map[uint64]struct{}
 }
 
-func newGprcNode(id NodeId, extaddr uint64, x int, y int, radioRange int, mode NodeMode) *grpcNode {
+func newGprcNode(id NodeId, x int, y int, radioRange int, mode NodeMode) *grpcNode {
 	gn := &grpcNode{
 		nodeid:      id,
-		extaddr:     extaddr,
+		extaddr:     InvalidExtAddr,
 		x:           x,
 		y:           y,
 		radioRange:  radioRange,
