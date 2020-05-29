@@ -34,8 +34,6 @@ import unittest
 from subprocess import TimeoutExpired
 
 from OTNSTestCase import OTNSTestCase
-from otns.cli.errors import OTNSCliEOFError
-
 from otns.cli.errors import OTNSExitedError
 
 
