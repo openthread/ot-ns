@@ -94,7 +94,7 @@ func assureGrpcWebProxyRunning(ctx *progctx.ProgCtx) error {
 				simplelogger.Errorf("grpcwebproxy exit unexpectedly: %v", err)
 			}
 		}()
-		simplelogger.Infof("grpcwebproxy started: %v ...", grpcWebProxyProc)
+		simplelogger.Infof("grpcwebproxy started.")
 	}
 
 	return nil

@@ -70,6 +70,7 @@ get_openthread() {
     mkdir -p "$(dirname $OT_DIR)"
     git clone https://github.com/openthread/openthread.git $OT_DIR
     cd $OT_DIR
+    ./script/bootstrap
     ./bootstrap
     cd -
   fi

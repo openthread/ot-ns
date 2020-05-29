@@ -38,27 +38,31 @@ jobs:
         if: "github.ref != 'refs/heads/master'"
 
   go-tests:
-    name: Go Tests
-    runs-on: ubuntu-latest
+    name: Go Tests on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-10.15]
     steps:
       - uses: actions/setup-go@v1
         with:
-          go-version: '1.13' # The Go version to download (if necessary) and use.
+          go-version: 1.11
       - uses: actions/checkout@v2
       - name: Test
         run: |
           ./script/test go-tests
 
   py-unittests:
-    name: Python Unittests
+    name: Python${{ matrix.python-version }} Unittests on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        python-version: [3.6, 3.7, 3.8]
-    runs-on: ubuntu-latest
+        python-version: [3.6]
+        os: [ubuntu-latest, macos-10.15]
     steps:
       - uses: actions/setup-go@v1
         with:
-          go-version: '1.13' # The Go version to download (if necessary) and use.
+          go-version: 1.11
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v1
         with:
