@@ -95,6 +95,8 @@ func Main(visualizerCreator func(ctx *progctx.ProgCtx, args *MainArgs) visualize
 	ctx := progctx.New(context.Background())
 	ctx.Defer(func() {
 		_ = os.Stdin.Close()
+		_ = os.Stdout.Close()
+		_ = os.Stderr.Close()
 	})
 
 	handleSignals(ctx)
@@ -153,6 +155,7 @@ func handleSignals(ctx *progctx.ProgCtx) {
 	ctx.WaitAdd("handleSignals", 1)
 	go func() {
 		defer ctx.WaitDone("handleSignals")
+		defer simplelogger.Debugf("handleSignals exit.")
 
 		for {
 			select {

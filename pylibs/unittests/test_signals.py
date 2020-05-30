@@ -27,6 +27,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 import logging
+import os
 import signal
 import threading
 import time
@@ -35,6 +36,8 @@ from subprocess import TimeoutExpired
 
 from OTNSTestCase import OTNSTestCase
 from otns.cli.errors import OTNSExitedError
+
+WAIT_OTNS_TIMEOUT = 3
 
 
 class SignalsTest(OTNSTestCase):
@@ -47,6 +50,15 @@ class SignalsTest(OTNSTestCase):
 
     def testSIGTERM(self):
         self._test_signal_exit(signal.SIGTERM)
+
+    def testSIGTERMx100(self):
+        N = 1000
+        for i in range(N):
+            logging.info("round %d", i + 1)
+            self._test_signal_exit(signal.SIGTERM, 0)
+
+            self.tearDown(timeout=WAIT_OTNS_TIMEOUT)
+            self.setUp()
 
     def testSIGQUIT(self):
         self._test_signal_exit(signal.SIGQUIT)
@@ -93,25 +105,37 @@ class SignalsTest(OTNSTestCase):
         exit_code = self.ns._otns.wait()
         self.assertNotEqual(0, exit_code, "exit code should not be 0")
 
-    def _test_signal_exit(self, sig: int):
-        t = threading.Thread(target=self._send_signal, args=(1, sig))
+    def _test_signal_exit(self, sig: int, duration: float = 1):
+        self._setup_simulation()
+
+        t = threading.Thread(target=self._send_signal, args=(duration, sig))
         t.start()
         self._run_simulation()
         t.join()
-        exit_code = self.ns._otns.wait(timeout=60)
+        try:
+            exit_code = self.ns._otns.wait(timeout=WAIT_OTNS_TIMEOUT)
+        except TimeoutExpired:
+            logging.error('OTNS error code: %s', self.ns._otns.returncode)
+            os.system(f"curl http://localhost:8997/debug/pprof/goroutine?debug=2")
+            raise
+
         if sig == signal.SIGKILL:
             self.assertNotEqual(0, exit_code, "exit code should not be 0")
         else:
             self.assertEqual(0, exit_code, "exit code should be 0")
 
-    def _run_simulation(self):
+    def _setup_simulation(self):
         self.ns.speed = float('inf')
         self.ns.add("router")
         self.ns.add("router")
         self.ns.add("router")
+
+    def _run_simulation(self):
         try:
             self.ns.go()
         except OTNSExitedError:
+            return
+        except BrokenPipeError:
             return
 
     def _send_signal(self, delay: float, sig: int):
