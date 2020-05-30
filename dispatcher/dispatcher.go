@@ -198,7 +198,7 @@ func (d *Dispatcher) Go(duration time.Duration) <-chan struct{} {
 func (d *Dispatcher) Run() {
 	d.ctx.WaitAdd("dispatcher", 1)
 	defer d.ctx.WaitDone("dispatcher")
-	defer simplelogger.Infof("dispatcher exit.")
+	defer simplelogger.Debugf("dispatcher exit.")
 	d.ctx.Defer(func() {
 		_ = d.udpln.Close()
 	})
@@ -318,6 +318,7 @@ func (d *Dispatcher) handleRecvEvent(evt *event) {
 func (d *Dispatcher) recvEvents() int {
 	blockTimeout := time.After(time.Second * 5)
 	count := 0
+	progExit := d.ctx.Done()
 
 loop:
 	for {
@@ -330,6 +331,9 @@ loop:
 				d.handleRecvEvent(evt)
 			case <-blockTimeout:
 				// timeout
+				break loop
+			case <-progExit:
+				// program exit
 				break loop
 			}
 		} else {
@@ -652,7 +656,7 @@ func (d *Dispatcher) setSleeping(nodeid NodeId) {
 }
 
 func (d *Dispatcher) syncAliveNodes() {
-	if len(d.aliveNodes) == 0 {
+	if len(d.aliveNodes) == 0 || d.ctx.Err() != nil {
 		return
 	}
 
