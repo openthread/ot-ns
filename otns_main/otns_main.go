@@ -95,8 +95,6 @@ func Main(visualizerCreator func(ctx *progctx.ProgCtx, args *MainArgs) visualize
 	ctx := progctx.New(context.Background())
 	ctx.Defer(func() {
 		_ = os.Stdin.Close()
-		_ = os.Stdout.Close()
-		_ = os.Stderr.Close()
 	})
 
 	handleSignals(ctx)
