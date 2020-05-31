@@ -183,7 +183,6 @@ func (rt *CmdRunner) postAsyncWait(f func(sim *simulation.Simulation)) {
 		f(rt.sim)
 		close(done)
 	})
-
 	<-done
 }
 
