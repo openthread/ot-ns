@@ -28,6 +28,7 @@ import * as PIXI from "pixi.js";
 import VObject from "./VObject";
 import {Visualizer} from "./PixiVisualizer";
 import {Resources} from "./resources";
+import {COLOR_ACK_MESSAGE} from "./consts";
 
 let nextMessageId = 1;
 
@@ -152,7 +153,7 @@ export class AckMessage extends VObject {
     }
 
     getColor() {
-        return 0xaee571;
+        return COLOR_ACK_MESSAGE;
     }
 
     update(dt) {

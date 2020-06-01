@@ -29,3 +29,6 @@ export const MAX_SPEED = 1000000;
 
 export const FRAME_CONTROL_MASK_FRAME_TYPE = 0x7;
 export const FRAME_TYPE_ACK = 2;
+
+// colors
+export const COLOR_ACK_MESSAGE = 0xaee571;
