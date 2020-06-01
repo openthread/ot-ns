@@ -28,6 +28,7 @@ import * as PIXI from "pixi.js";
 import VObject from "./VObject";
 import {Visualizer} from "./PixiVisualizer";
 import {Resources} from "./resources";
+import {COLOR_ACK_MESSAGE} from "./consts";
 
 let nextMessageId = 1;
 
@@ -104,6 +105,55 @@ export class UnicastMessage extends VObject {
 
     getColor() {
         return 0xff8f00
+    }
+
+    update(dt) {
+        super.update(dt);
+
+        if (this._leftFlyTime <= 0) {
+            Visualizer().deleteMessage(this);
+            return
+        }
+
+        let leftTime = this._leftFlyTime;
+        dt = Math.min(dt, leftTime);
+        let mx, my;
+        let dx = this.dstPos.x - this.position.x;
+        let dy = this.dstPos.y - this.position.y;
+        let r = dt / leftTime;
+        mx = dx * r;
+        my = dy * r;
+        this.position.set(this.position.x + mx, this.position.y + my);
+        this._leftFlyTime -= dt
+    }
+}
+
+export class AckMessage extends VObject {
+
+    constructor(src, mvInfo) {
+        super();
+
+        this.id = nextMessageId;
+        nextMessageId += 1;
+        this.dstPos = new PIXI.Point(src.position.x, src.position.y + 50)
+        this.mvInfo = mvInfo;
+
+        let size = 10;
+        let sprite = new PIXI.Sprite(Resources().WhiteSolidTriangle32.texture);
+        sprite.tint = this.getColor();
+        sprite.scale.set(size / 32, size / 32);
+        sprite.anchor.set(0.5, 0.5);
+        sprite.position = src.position;
+        this._root = this.sprite = sprite;
+        this._leftFlyTime = 0.7
+    }
+
+    isBroadcast() {
+        return false;
+    }
+
+    getColor() {
+        return COLOR_ACK_MESSAGE;
     }
 
     update(dt) {
