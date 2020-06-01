@@ -36,10 +36,11 @@
 #
 # Inspired by https://www.threadgroup.org/Farm-Jenny
 
-import math
 import random
 
+import math
 from otns.cli import OTNS
+from otns.cli.errors import OTNSExitedError
 
 R = 6
 RECEIVER_RADIO_RANGE = 300 * R
@@ -116,4 +117,8 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except OTNSExitedError as ex:
+        if ex.exit_code != 0:
+            raise

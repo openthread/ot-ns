@@ -95,21 +95,53 @@ py_unittests() {
   cd -
 }
 
-do_go_tests=0
-do_py_unittests=0
+check_py_example() {
+  echo "Checking pyOTNS example: $1 ..."
+  python3 $1 &
+  local pid=$!
+  sleep 10
+  killall otns || true
+  wait $pid || die "Run pyOTNS example failed :$1"
+}
 
-for var in "$@"; do
-  if [[ "$var" == "go-tests" ]]; then
-    do_go_tests=1
-  elif [[ "$var" == "py-unittests" ]]; then
-    do_py_unittests=1
+py_examples() {
+  install_deps
+  install
+  build_openthread
+  cd $OTBIN_DIR
+  check_py_example $OTNSDIR/pylibs/examples/simple.py
+  check_py_example $OTNSDIR/pylibs/examples/ping.py
+  check_py_example $OTNSDIR/pylibs/examples/form_partition.py
+  check_py_example $OTNSDIR/pylibs/examples/farm.py
+  cd -
+}
+
+main() {
+  do_go_tests=0
+  do_py_unittests=0
+  do_py_examples=0
+
+  for var in "$@"; do
+    if [[ "$var" == "go-tests" ]]; then
+      do_go_tests=1
+    elif [[ "$var" == "py-unittests" ]]; then
+      do_py_unittests=1
+    elif [[ "$var" == "py-examples" ]]; then
+      do_py_examples=1
+    fi
+  done
+
+  if [[ "$do_go_tests" == "1" ]]; then
+    go_tests
   fi
-done
 
-if [[ "$do_go_tests" == "1" ]]; then
-  go_tests
-fi
+  if [[ "$do_py_unittests" == "1" ]]; then
+    py_unittests
+  fi
 
-if [[ "$do_py_unittests" == "1" ]]; then
-  py_unittests
-fi
+  if [[ "$do_py_examples" == "1" ]]; then
+    py_examples
+  fi
+}
+
+main "$@"

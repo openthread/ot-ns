@@ -29,6 +29,8 @@ import time
 
 from otns.cli import OTNS
 
+from otns.cli.errors import OTNSExitedError
+
 XGAP = 100
 YGAP = 100
 RADIO_RANGE = 150
@@ -67,4 +69,8 @@ def test_nxn(ns, n):
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except OTNSExitedError as ex:
+        if ex.exit_code != 0:
+            raise

@@ -24,16 +24,28 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+
 from otns.cli import OTNS
+from otns.cli.errors import OTNSExitedError
 
-ns = OTNS(otns_args=["-log", "debug"])
 
-ns.web()
+def main():
+    ns = OTNS(otns_args=["-log", "debug"])
 
-ns.add("router", x=300, y=300)
-ns.add("router", x=200, y=300)
-ns.add("fed", x=300, y=200)
-ns.add("med", x=400, y=300)
-ns.add("sed", x=300, y=400)
+    ns.web()
 
-ns.go()
+    ns.add("router", x=300, y=300)
+    ns.add("router", x=200, y=300)
+    ns.add("fed", x=300, y=200)
+    ns.add("med", x=400, y=300)
+    ns.add("sed", x=300, y=400)
+
+    ns.go()
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except OTNSExitedError as ex:
+        if ex.exit_code != 0:
+            raise
