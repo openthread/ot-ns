@@ -97,6 +97,7 @@ uni=on
 ack=on
 rtb=on
 ctb=on
+Done
 ```
 
 ### del \<node-id\> \[<node-id> ...\]
