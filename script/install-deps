@@ -34,45 +34,66 @@ set -e
 apt_update_once=0
 
 install_package() {
-  local cmd=$1
-  local apt_pkg=$2
-  local brew_pkg=$3
+    local cmd=$1
+    shift 1
 
-  # install if command not available
-  if installed "$cmd"; then
-    return 0
-  fi
-
-  if installed apt-get; then
-    if [ "$apt_update_once" -eq "0" ]; then
-      sudo apt-get update || die "apt-get update failed"
-      apt_update_once=1
+    # only install if command not available
+    if installed "$cmd"; then
+        return 0
     fi
 
-    sudo apt-get install -y --no-install-recommends "$apt_pkg"
-  elif installed brew; then
-    brew install "$brew_pkg"
-  else
+    while (("$#")); do
+        case "$1" in
+        --apt)
+            if installed apt-get; then
+                if [ "$apt_update_once" -eq "0" ]; then
+                    sudo apt-get update || die "apt-get update failed"
+                    apt_update_once=1
+                fi
+
+                sudo apt-get install -y --no-install-recommends "$apt_pkg"
+                return 0
+            fi
+
+            shift 2
+            ;;
+        --brew)
+
+            if installed brew; then
+                brew install "$brew_pkg"
+                return 0
+            fi
+
+            shift 2
+            ;;
+        *)
+            PARAMS="$PARAMS $1"
+            echo "Error: Unsupported flag $1" >&2
+            return 1
+            ;;
+        esac
+    done
+
     die "Can not install $cmd on your system, please retry after installing $cmd."
-  fi
+
 }
 
 install_packages() {
-  install_package wget wget wget
+    install_package wget --apt wget --brew wget
 }
 
 install_grpcwebproxy() {
-  if ! installed grpcwebproxy; then
-    if [[ $Darwin == 1 ]]; then
-      wget https://github.com/improbable-eng/grpc-web/releases/download/v0.12.0/grpcwebproxy-v0.12.0-osx-x86_64.zip -O /tmp/grpcwebproxy.zip && cd /tmp/ && unzip grpcwebproxy.zip && mv dist/grpcwebproxy* $GOPATH/bin/grpcwebproxy
+    if ! installed grpcwebproxy; then
+        if [[ $Darwin == 1 ]]; then
+            wget https://github.com/improbable-eng/grpc-web/releases/download/v0.12.0/grpcwebproxy-v0.12.0-osx-x86_64.zip -O /tmp/grpcwebproxy.zip && cd /tmp/ && unzip grpcwebproxy.zip && mv dist/grpcwebproxy* $GOPATH/bin/grpcwebproxy
+        else
+            wget https://github.com/improbable-eng/grpc-web/releases/download/v0.12.0/grpcwebproxy-v0.12.0-linux-x86_64.zip -O /tmp/grpcwebproxy.zip && cd /tmp/ && unzip grpcwebproxy.zip && mv dist/grpcwebproxy* $GOPATH/bin/grpcwebproxy
+        fi
+        cd -
+        echo "grpcwebproxy installed: $(command -v grpcwebproxy)"
     else
-      wget https://github.com/improbable-eng/grpc-web/releases/download/v0.12.0/grpcwebproxy-v0.12.0-linux-x86_64.zip -O /tmp/grpcwebproxy.zip && cd /tmp/ && unzip grpcwebproxy.zip && mv dist/grpcwebproxy* $GOPATH/bin/grpcwebproxy
+        echo "grpcwebproxy found: $(command -v grpcwebproxy)"
     fi
-    cd -
-    echo "grpcwebproxy installed: $(command -v grpcwebproxy)"
-  else
-    echo "grpcwebproxy found: $(command -v grpcwebproxy)"
-  fi
 }
 
 install_python_libs() {
