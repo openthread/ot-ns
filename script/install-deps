@@ -74,12 +74,11 @@ install_package() {
         esac
     done
 
-    die "Can not install $cmd on your system, please retry after installing $cmd."
-
+    die "Failed to install $cmd. Please install it manually."
 }
 
 install_packages() {
-    install_package wget --apt wget --brew wget
+    install_package wget --apt wget --brew wget || true
 }
 
 install_grpcwebproxy() {
