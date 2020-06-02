@@ -108,6 +108,7 @@ type Dispatcher struct {
 	rloc16Map             rloc16Map
 	goDurationChan        chan goDuration
 	globalPacketLossRatio float64
+	visOptions            VisualizationOptions
 
 	Counters struct {
 		// Event counters
@@ -158,6 +159,7 @@ func NewDispatcher(ctx *progctx.ProgCtx, cfg *Config, cbHandler CallbackHandler)
 		taskChan:           make(chan func(), 100),
 		watchingNodes:      map[NodeId]struct{}{},
 		goDurationChan:     make(chan goDuration, 10),
+		visOptions:         defaultVisualizationOptions(),
 	}
 	d.speed = d.normalizeSpeed(d.speed)
 	d.pcap, err = pcap.NewFile("current.pcap")
@@ -574,6 +576,7 @@ func (d *Dispatcher) sendNodeMessage(sit *sendItem) {
 	}
 
 	if !dispatchedByDstAddr {
+		// TODO: optimize ACK message dispatching by sending it only to the correct node(s)
 		for _, dstnode := range d.nodes {
 			if d.checkRadioReachable(srcnode, dstnode) {
 				d.sendOneMessage(sit, srcnode, dstnode)
@@ -747,19 +750,27 @@ func (d *Dispatcher) handleStatusPush(srcid NodeId, data string) {
 		} else if sp[0] == "router_added" {
 			extaddr, err := strconv.ParseUint(sp[1], 16, 64)
 			simplelogger.PanicIfError(err)
-			d.vis.AddRouterTable(srcid, extaddr)
+			if d.visOptions.RouterTable {
+				d.vis.AddRouterTable(srcid, extaddr)
+			}
 		} else if sp[0] == "router_removed" {
 			extaddr, err := strconv.ParseUint(sp[1], 16, 64)
 			simplelogger.PanicIfError(err)
-			d.vis.RemoveRouterTable(srcid, extaddr)
+			if d.visOptions.RouterTable {
+				d.vis.RemoveRouterTable(srcid, extaddr)
+			}
 		} else if sp[0] == "child_added" {
 			extaddr, err := strconv.ParseUint(sp[1], 16, 64)
 			simplelogger.PanicIfError(err)
-			d.vis.AddChildTable(srcid, extaddr)
+			if d.visOptions.ChildTable {
+				d.vis.AddChildTable(srcid, extaddr)
+			}
 		} else if sp[0] == "child_removed" {
 			extaddr, err := strconv.ParseUint(sp[1], 16, 64)
 			simplelogger.PanicIfError(err)
-			d.vis.RemoveChildTable(srcid, extaddr)
+			if d.visOptions.ChildTable {
+				d.vis.RemoveChildTable(srcid, extaddr)
+			}
 		} else if sp[0] == "parent" {
 			extaddr, err := strconv.ParseUint(sp[1], 16, 64)
 			simplelogger.PanicIfError(err)
@@ -805,6 +816,22 @@ func (d *Dispatcher) setNodeRloc16(srcid NodeId, rloc16 uint16) {
 }
 
 func (d *Dispatcher) visSend(srcid NodeId, dstid NodeId, pktframe *wpan.MacFrame) {
+	if dstid == BroadcastNodeId {
+		if pktframe.FrameControl.FrameType() == wpan.FrameTypeAck {
+			if !d.visOptions.AckMessage {
+				return
+			}
+		} else {
+			if !d.visOptions.BroadcastMessage {
+				return
+			}
+		}
+	} else {
+		if !d.visOptions.UnicastMessage {
+			return
+		}
+	}
+
 	d.vis.Send(srcid, dstid, &visualize.MsgVisualizeInfo{
 		Channel:         pktframe.Channel,
 		FrameControl:    pktframe.FrameControl,
@@ -994,4 +1021,13 @@ func (d *Dispatcher) onStatusPushExtAddr(node *Node, oldExtAddr uint64) {
 
 	d.extaddrMap[node.ExtAddr] = node
 	d.vis.OnExtAddrChange(node.Id, node.ExtAddr)
+}
+
+func (d *Dispatcher) GetVisualizationOptions() VisualizationOptions {
+	return d.visOptions
+}
+
+func (d *Dispatcher) SetVisualizationOptions(opts VisualizationOptions) {
+	simplelogger.Debugf("dispatcher set visualization options: %+v", opts)
+	d.visOptions = opts
 }

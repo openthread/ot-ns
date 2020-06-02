@@ -180,6 +180,32 @@ class BasicTests(OTNSTestCase):
         c20 = ns.counters()
         assert_increasing(c10, c20)
 
+    def testConfigVisualization(self):
+        ns = self.ns
+        vopts = ns.config_visualization()
+        print('vopts', vopts)
+        for opt in ('broadcast_message', 'unicast_message', 'ack_message', 'router_table', 'child_table'):
+            self.assertTrue(opt in vopts)
+
+            set_vals = (False, True) if vopts[opt] else (True, False)
+            for v in set_vals:
+                vopts[opt] = v
+                self.assertTrue(ns.config_visualization(**{opt: v}) == vopts)
+
+        vopts = ns.config_visualization(broadcast_message=True, unicast_message=True, ack_message=True,
+                                        router_table=True,
+                                        child_table=True)
+
+        for opt in ('broadcast_message', 'unicast_message', 'ack_message', 'router_table', 'child_table'):
+            self.assertTrue(vopts[opt])
+
+        vopts = ns.config_visualization(broadcast_message=False, unicast_message=False, ack_message=False,
+                                        router_table=False,
+                                        child_table=False)
+
+        for opt in ('broadcast_message', 'unicast_message', 'ack_message', 'router_table', 'child_table'):
+            self.assertFalse(vopts[opt])
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -9,6 +9,7 @@ Python libraries use the CLI to manage simulations.
 
 * [add](#add-type-x-x-y-y-rr-radio-range)
 * [counters](#counters)
+* [cv](#cv-option-onoff-)
 * [del](#del-node-id-node-id-)
 * [exit](#exit)
 * [go](#go-duration-seconds--ever)
@@ -61,6 +62,41 @@ DispatchByExtAddrFail                    0
 DispatchByShortAddrSucc                  188
 DispatchByShortAddrFail                  0
 DispatchAllInRange                       0
+Done
+```
+
+### cv \[\<option\> on|off\] ...
+
+Configure visualization options.
+
+Visualization Options:
+- bro: broadcast message
+- uni: unicast message
+- ack: ACK message
+- rtb: router table
+- ctb: child table
+
+```bash
+> cv
+bro=on
+uni=on
+ack=off
+rtb=on
+ctb=on
+Done
+> cv bro off
+bro=off
+uni=on
+ack=off
+rtb=on
+ctb=on
+Done
+> cv bro on uni on ack on rtb on ctb on
+bro=on
+uni=on
+ack=on
+rtb=on
+ctb=on
 Done
 ```
 

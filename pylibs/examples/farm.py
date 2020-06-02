@@ -52,6 +52,7 @@ FARM_RECT = [10 * R, 10 * R, 210 * R, 110 * R]
 def main():
     ns = OTNS(otns_args=['-log', 'info'])
     ns.speed = 1
+    ns.config_visualization(broadcast_message=False)
     ns.web()
 
     gateway = ns.add("router", FARM_RECT[0], FARM_RECT[1], radio_range=RECEIVER_RADIO_RANGE)
