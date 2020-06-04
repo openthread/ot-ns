@@ -320,7 +320,6 @@ func (d *Dispatcher) handleRecvEvent(evt *event) {
 func (d *Dispatcher) recvEvents() int {
 	blockTimeout := time.After(time.Second * 5)
 	count := 0
-	progExit := d.ctx.Done()
 
 loop:
 	for {
@@ -333,9 +332,6 @@ loop:
 				d.handleRecvEvent(evt)
 			case <-blockTimeout:
 				// timeout
-				break loop
-			case <-progExit:
-				// program exit
 				break loop
 			}
 		} else {
