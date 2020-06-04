@@ -72,7 +72,7 @@ class SignalsTest(OTNSTestCase):
     def testSIGALRM(self):
         self._test_signal_ignore(signal.SIGALRM)
 
-    def testCommandHandleSignalOk(self):
+    def testCommandHandleSignalOkx100(self):
         for i in range(100):
             self._testCommandHandleSignalOk()
 

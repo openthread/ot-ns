@@ -659,7 +659,7 @@ func (d *Dispatcher) setSleeping(nodeid NodeId) {
 }
 
 func (d *Dispatcher) syncAliveNodes() {
-	if len(d.aliveNodes) == 0 || d.ctx.Err() != nil {
+	if len(d.aliveNodes) == 0 {
 		return
 	}
 
