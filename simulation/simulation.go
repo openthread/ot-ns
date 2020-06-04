@@ -116,7 +116,7 @@ func (s *Simulation) genNodeId() NodeId {
 func (s *Simulation) Run() {
 	s.ctx.WaitAdd("simulation", 1)
 	defer s.ctx.WaitDone("simulation")
-	defer simplelogger.Infof("simulation exit.")
+	defer simplelogger.Debugf("simulation exit.")
 
 	s.d.Run()
 }
