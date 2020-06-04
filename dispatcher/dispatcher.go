@@ -201,9 +201,6 @@ func (d *Dispatcher) Run() {
 	d.ctx.WaitAdd("dispatcher", 1)
 	defer d.ctx.WaitDone("dispatcher")
 	defer simplelogger.Debugf("dispatcher exit.")
-	d.ctx.Defer(func() {
-		_ = d.udpln.Close()
-	})
 
 	defer d.Stop()
 
