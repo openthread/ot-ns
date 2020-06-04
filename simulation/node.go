@@ -28,6 +28,7 @@ package simulation
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -63,7 +64,7 @@ func newNode(s *Simulation, id NodeId, cfg *NodeConfig) (*Node, error) {
 		return nil, err
 	}
 	simplelogger.Debugf("node exe path: %s", exePath)
-	cmd := exec.CommandContext(s.ctx, exePath, strconv.Itoa(id))
+	cmd := exec.CommandContext(context.Background(), exePath, strconv.Itoa(id))
 	pipeIn, err := cmd.StdinPipe()
 	if err != nil {
 		return nil, err
