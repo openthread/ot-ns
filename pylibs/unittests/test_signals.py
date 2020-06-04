@@ -60,6 +60,25 @@ class SignalsTest(OTNSTestCase):
     def testSIGALRM(self):
         self._test_signal_ignore(signal.SIGALRM)
 
+    def testCommandHandleSignalOk(self):
+        for i in range(100):
+            self._testCommandHandleSignalOk()
+
+            self.tearDown()
+            self.setUp()
+
+    def _testCommandHandleSignalOk(self):
+        t = threading.Thread(target=self._send_signal, args=(0.1, signal.SIGINT))
+        t.start()
+        self.ns.speed = float('inf')
+        try:
+            while True:
+                self.ns.add("router")
+        except OTNSExitedError as ex:
+            self.assertEqual(0, ex.exit_code)
+
+        t.join()
+
     def _test_signal_ignore(self, sig: int):
         t = threading.Thread(target=self._send_signal, args=(1, sig))
         t.start()
