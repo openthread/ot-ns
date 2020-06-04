@@ -63,6 +63,11 @@ class OTNS(object):
         :param timeout: timeout for waiting otns process to quit
         """
         logging.info("waiting for OTNS to close ...")
+        if self._otns.returncode is not None:
+            return
+
+        self._otns.stdin.close()
+        self._otns.stdout.close()
         self._otns.kill()
         self._otns.wait(timeout=timeout)
 

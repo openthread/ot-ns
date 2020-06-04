@@ -80,10 +80,10 @@ class SignalsTest(OTNSTestCase):
             self.setUp()
 
     def _testCommandHandleSignalOk(self):
-        t = threading.Thread(target=self._send_signal, args=(0.1, signal.SIGINT))
+        t = threading.Thread(target=self._send_signal, args=(0.01, signal.SIGTERM))
         t.start()
-        self.ns.speed = float('inf')
         try:
+            self.ns.speed = float('inf')
             while True:
                 self.ns.add("router")
         except OTNSExitedError as ex:
