@@ -28,6 +28,7 @@
 import logging
 import os
 import shutil
+import signal
 import subprocess
 from typing import List, Union, Optional, Tuple, Dict, Any, Collection
 
@@ -68,7 +69,7 @@ class OTNS(object):
 
         self._closed = True
         logging.info("waiting for OTNS to close ...")
-        self._otns.kill()
+        self._otns.send_signal(signal.SIGTERM)
         try:
             self._otns.__exit__(None, None, None)
         except BrokenPipeError:
