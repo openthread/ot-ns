@@ -47,6 +47,7 @@ class OTNS(object):
         self._otns_args = list(otns_args or []) + ['-autogo=false', '-web=false']
         logging.info("otns found: %s", self._otns_path)
         self._launch_otns()
+        self._closed = False
 
     def _launch_otns(self) -> None:
         logging.info("launching otns: %s %s", self._otns_path, ' '.join(self._otns_args))
@@ -62,13 +63,16 @@ class OTNS(object):
 
         :param timeout: timeout for waiting otns process to quit
         """
-        if self._otns.returncode is not None:
+        if self._closed:
             return
+
+        self._closed = True
         logging.info("waiting for OTNS to close ...")
-        self._otns.stdin.close()
-        self._otns.stdout.close()
         self._otns.kill()
-        self._otns.wait(timeout=timeout)
+        try:
+            self._otns.__exit__(None, None, None)
+        except BrokenPipeError:
+            pass
 
     def go(self, duration: float = None, speed: float = None) -> None:
         """
