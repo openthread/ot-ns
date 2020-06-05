@@ -57,7 +57,7 @@ class SignalsTest(OTNSTestCase):
             logging.info("round %d", i + 1)
             self._test_signal_exit(signal.SIGTERM, 0)
 
-            self.tearDown(timeout=WAIT_OTNS_TIMEOUT)
+            self.tearDown()
             self.setUp()
 
     def testSIGQUIT(self):

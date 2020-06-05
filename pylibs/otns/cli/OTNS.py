@@ -58,7 +58,7 @@ class OTNS(object):
                                       stdout=subprocess.PIPE)
         logging.info("otns process launched: %s", self._otns)
 
-    def close(self, timeout=None) -> None:
+    def close(self) -> None:
         """
         Close OTNS simulation.
 

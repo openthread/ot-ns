@@ -42,8 +42,8 @@ class OTNSTestCase(unittest.TestCase):
         self.ns = OTNS(otns_args=['-log', 'debug'])
         self.ns.speed = OTNS.MAX_SIMULATE_SPEED
 
-    def tearDown(self, timeout=60) -> None:
-        self.ns.close(timeout)
+    def tearDown(self) -> None:
+        self.ns.close()
 
     def assertFormPartitions(self, count: int):
         pars = self.ns.partitions()
