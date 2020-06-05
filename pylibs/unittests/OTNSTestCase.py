@@ -39,7 +39,7 @@ class OTNSTestCase(unittest.TestCase):
         logging.basicConfig(level=logging.DEBUG)
 
     def setUp(self) -> None:
-        self.ns = OTNS()
+        self.ns = OTNS(otns_args=['-log', 'debug'])
         self.ns.speed = OTNS.MAX_SIMULATE_SPEED
 
     def tearDown(self) -> None:

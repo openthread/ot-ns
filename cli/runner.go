@@ -65,10 +65,7 @@ func enterNodeContext(nodeid NodeId) bool {
 }
 
 func Run(cr *CmdRunner) error {
-	ctx := cr.ctx
-
-	ctx.WaitAdd("cli", 1)
-	defer ctx.WaitDone("cli")
+	defer simplelogger.Debugf("CLI exit")
 
 	stdinFd := int(os.Stdin.Fd())
 	stdinIsTerminal := readline.IsTerminal(stdinFd)

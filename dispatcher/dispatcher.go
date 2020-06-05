@@ -200,10 +200,7 @@ func (d *Dispatcher) Go(duration time.Duration) <-chan struct{} {
 func (d *Dispatcher) Run() {
 	d.ctx.WaitAdd("dispatcher", 1)
 	defer d.ctx.WaitDone("dispatcher")
-	defer simplelogger.Infof("dispatcher exit.")
-	d.ctx.Defer(func() {
-		_ = d.udpln.Close()
-	})
+	defer simplelogger.Debugf("dispatcher exit.")
 
 	defer d.Stop()
 
