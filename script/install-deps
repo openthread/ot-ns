@@ -51,16 +51,15 @@ install_package() {
                     apt_update_once=1
                 fi
 
-                sudo apt-get install -y --no-install-recommends "$apt_pkg"
+                sudo apt-get install -y --no-install-recommends "$2"
                 return 0
             fi
 
             shift 2
             ;;
         --brew)
-
             if installed brew; then
-                brew install "$brew_pkg"
+                brew install "$2"
                 return 0
             fi
 
