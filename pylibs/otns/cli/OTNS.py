@@ -597,6 +597,12 @@ class OTNS(object):
 
         return vopts
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
     @staticmethod
     def _expect_int(output: List[str]) -> int:
         assert len(output) == 1, output
