@@ -27,20 +27,24 @@
 #
 # This script installs OTNS.
 
-. "$(dirname $0)"/common.sh
+# shellcheck source=script/common.sh
+. "$(dirname "$0")"/common.sh
 
-install_otns() {
+install_otns()
+{
     go get ./cmd/otns
     echo "otns installed: $(command -v otns)"
 }
 
-install_pyotns() {
+install_pyotns()
+{
     cd pylibs
     python3 setup.py install --user --prefix=
     cd -
 }
 
-main() {
+main()
+{
     install_pyotns
     install_otns
 }

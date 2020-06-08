@@ -27,9 +27,27 @@
 #
 # This script packs web related files into go binary data using [go-bindata](https://github.com/jteeuwen/go-bindata)
 
-. $(dirname $0)/common.sh
+# shellcheck source=script/common.sh
+. "$(dirname "$0")"/common.sh
 
-cd $OTNSDIR/web/site
-./pack-bindata.sh
-cd -
-golangci-lint run "${GOLINT_ARGS[@]}" --fix $OTNSDIR/web/site/bindata.go
+main()
+{
+    readonly sitedir="$OTNSDIR"/web/site
+    cd "$sitedir" || return 1
+    if ! [[ -d node_modules ]]; then
+        npm install
+    fi
+    npx webpack ./js/visualize.js -o ./static/js/visualize.js
+
+    go-bindata -pkg web_site -o _bindata.go templates/... static/...
+    head -26 bindata.go >_merge_bindata.go
+    cat _bindata.go >>_merge_bindata.go
+    mv _merge_bindata.go bindata.go
+    rm -f _bindata.go
+    golangci-lint run "${GOLINT_ARGS[@]}" --fix bindata.go
+
+    cd - || return 1
+}
+
+./script/compile-proto
+main

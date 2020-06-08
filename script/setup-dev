@@ -27,66 +27,72 @@
 #
 # This script setup environment for OTNS development.
 
-. $(dirname $0)/common.sh
+# shellcheck source=script/common.sh
+. "$(dirname "$0")"/common.sh
 
-function install_protoc() {
-  local protoc_download_url
+function install_protoc()
+{
+    local protoc_download_url
 
-  if installed protoc; then
-    return 0
-  fi
+    if installed protoc; then
+        return 0
+    fi
 
-  if [[ $Darwin == 1 ]]; then
-    protoc_download_url=https://github.com/protocolbuffers/protobuf/releases/download/v3.11.3/protoc-3.11.3-osx-x86_64.zip
-  else
-    protoc_download_url=https://github.com/protocolbuffers/protobuf/releases/download/v3.11.3/protoc-3.11.3-linux-x86_64.zip
-  fi
+    if [[ $Darwin == 1 ]]; then
+        protoc_download_url=https://github.com/protocolbuffers/protobuf/releases/download/v3.11.3/protoc-3.11.3-osx-x86_64.zip
+    else
+        protoc_download_url=https://github.com/protocolbuffers/protobuf/releases/download/v3.11.3/protoc-3.11.3-linux-x86_64.zip
+    fi
 
-  wget $protoc_download_url -O /tmp/protoc.zip
+    wget $protoc_download_url -O /tmp/protoc.zip
 
-  cd /usr/local
-  sudo unzip /tmp/protoc.zip
-  sudo chmod a+x /usr/local/bin/protoc
-  sudo rm -rf protoc.zip
+    cd /usr/local || return 1
+    sudo unzip /tmp/protoc.zip
+    sudo chmod a+x /usr/local/bin/protoc
+    sudo rm -rf protoc.zip
 
-  installed protoc || die "protoc-gen-go not found, make sure /usr/local/bin is included in $PATH"
+    installed protoc || die "protoc-gen-go not found, make sure /usr/local/bin is included in $PATH"
 }
 
-install_protoc_gen_go() {
-  if installed protoc-gen-go; then
-    return 0
-  fi
+install_protoc_gen_go()
+{
+    if installed protoc-gen-go; then
+        return 0
+    fi
 
-  go get -u github.com/golang/protobuf/protoc-gen-go
-  installed protoc-gen-go || die "protoc-gen-go not found, make sure $GOPATH/bin is included in $PATH"
+    go get -u github.com/golang/protobuf/protoc-gen-go
+    installed protoc-gen-go || die "protoc-gen-go not found, make sure $GOPATH/bin is included in $PATH"
 }
 
-install_protoc_gen_grpc_web() {
-  if installed protoc-gen-grpc-web; then
-    return 0
-  fi
+install_protoc_gen_grpc_web()
+{
+    if installed protoc-gen-grpc-web; then
+        return 0
+    fi
 
-  local download_url
+    local download_url
 
-  if [[ $Darwin == 1 ]]; then
-    download_url=https://github.com/grpc/grpc-web/releases/download/1.0.7/protoc-gen-grpc-web-1.0.7-darwin-x86_64
-  else
-    download_url=https://github.com/grpc/grpc-web/releases/download/1.0.7/protoc-gen-grpc-web-1.0.7-linux-x86_64
-  fi
+    if [[ $Darwin == 1 ]]; then
+        download_url=https://github.com/grpc/grpc-web/releases/download/1.0.7/protoc-gen-grpc-web-1.0.7-darwin-x86_64
+    else
+        download_url=https://github.com/grpc/grpc-web/releases/download/1.0.7/protoc-gen-grpc-web-1.0.7-linux-x86_64
+    fi
 
-  wget $download_url -O /tmp/protoc-gen-grpc-web
-  sudo mv /tmp/protoc-gen-grpc-web /usr/local/bin/protoc-gen-grpc-web
-  sudo chmod a+x /usr/local/bin/protoc-gen-grpc-web
+    wget $download_url -O /tmp/protoc-gen-grpc-web
+    sudo mv /tmp/protoc-gen-grpc-web /usr/local/bin/protoc-gen-grpc-web
+    sudo chmod a+x /usr/local/bin/protoc-gen-grpc-web
 
-  installed protoc-gen-grpc-web || die "protoc-gen-grpc-web not found, make sure /usr/local/bin is included in $PATH"
+    installed protoc-gen-grpc-web || die "protoc-gen-grpc-web not found, make sure /usr/local/bin is included in $PATH"
 }
 
-install_nodejs() {
-  sudo apt-get install nodejs npm -y
+install_nodejs()
+{
+    sudo apt-get install nodejs npm -y
 }
 
-install_go_bindata() {
-  go get -u github.com/jteeuwen/go-bindata/...
+install_go_bindata()
+{
+    go get -u github.com/jteeuwen/go-bindata/...
 }
 
 install_protoc

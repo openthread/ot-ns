@@ -27,20 +27,27 @@
 
 set -e
 
-. $(dirname $0)/utils.sh
+# shellcheck source=script/utils.sh
+. "$(dirname "$0")"/utils.sh
 
 if [[ "$(uname)" == "Darwin" ]]; then
-  readonly Darwin=1
+    export readonly Darwin=1
 elif [[ "$(uname)" == "Linux" ]]; then
-  readonly Linux=1
+    export readonly Linux=1
 else
-  die "Unknown OS: $(uname)"
+    die "Unknown OS: $(uname)"
 fi
 
-readonly SCRIPTDIR=$(realpath $(dirname $0))
-readonly OTNSDIR=$(realpath $SCRIPTDIR/..)
-readonly GOPATH=$(go env GOPATH)
-export PATH=$PATH:$GOPATH/bin
-mkdir -p $GOPATH/bin
+export readonly SCRIPTDIR
+SCRIPTDIR=$(realpath "$(dirname "$0")")
+export readonly OTNSDIR
+OTNSDIR=$(realpath "$SCRIPTDIR"/..)
+export readonly GOPATH
+GOPATH=$(go env GOPATH)
+export PATH=$PATH:"$GOPATH"/bin
+mkdir -p "$GOPATH"/bin
 
-GOLINT_ARGS=(-E goimports -E whitespace -E goconst -E scopelint -E unconvert)
+export readonly GOLINT_ARGS=(-E goimports -E whitespace -E goconst -E scopelint -E unconvert)
+export readonly OTNS_BUILD_JOBS
+OTNS_BUILD_JOBS=$(getconf _NPROCESSORS_ONLN)
+export readonly OTNS_EXCLUDE_DIRS=(web/site/node_modules/)

@@ -25,15 +25,18 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-function die() {
-  echo "fatal: $1"
-  false
+function die()
+{
+    echo "fatal: $1"
+    false
 }
 
-function realpath() {
-  python -c "import os; print(os.path.realpath('$1'))"
+function realpath()
+{
+    python -c "import os; print(os.path.realpath('$1'))"
 }
 
-function installed() {
-  command -v "$1" >/dev/null 2>&1
+function installed()
+{
+    command -v "$1" >/dev/null 2>&1
 }
