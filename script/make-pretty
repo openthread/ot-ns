@@ -34,9 +34,6 @@ do_go_format()
     echo -e '     format Go'
     echo -e '====================='
 
-    if ! installed golangci-lint; then
-        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b "$(go env GOPATH)"/bin v1.23.6
-    fi
     cd "$OTNSDIR" || return 1
     golangci-lint run "${GOLINT_ARGS[@]}" --fix || die "make pretty failed"
     echo "Congratulations! Your Go code is pretty."
@@ -54,6 +51,8 @@ do_shell_format()
 
 main()
 {
+    install_pretty_tools
+
     if [ $# == 0 ]; then
         do_go_format
         do_shell_format

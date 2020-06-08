@@ -34,10 +34,7 @@ do_go_check()
     echo -e '     check Go'
     echo -e '====================='
 
-    if ! installed golangci-lint; then
-        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b "$(go env GOPATH)"/bin v1.23.6
-    fi
-    cd "$OTNSDIR"
+    cd "$OTNSDIR" || return 1
     golangci-lint run "${GOLINT_ARGS[@]}" || die "check pretty failed"
     echo "Congratulations! Your Go code is pretty."
 }
@@ -57,6 +54,8 @@ do_shell_check()
 
 main()
 {
+    install_pretty_tools
+
     if [ $# == 0 ]; then
         do_go_check
         do_shell_check
