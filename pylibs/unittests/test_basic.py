@@ -206,6 +206,19 @@ class BasicTests(OTNSTestCase):
         for opt in ('broadcast_message', 'unicast_message', 'ack_message', 'router_table', 'child_table'):
             self.assertFalse(vopts[opt])
 
+    def testWithOTNS(self):
+        """
+        make sure OTNS works in with-statement
+        """
+        self.tearDown()
+
+        with OTNS(otns_args=['-log', 'debug']) as ns:
+            ns.add("router")
+
+        # run a second time to make sure the previous simulation is properly terminated
+        with OTNS(otns_args=['-log', 'debug']) as ns:
+            ns.add("router")
+
 
 if __name__ == '__main__':
     unittest.main()
