@@ -24,6 +24,23 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+#
+
+#
+# The script to format source code of OTNS.
+#
+# Format go and shell:
+#
+#     script/make-pretty
+#
+# Format go only:
+#
+#     script/make-pretty go
+#
+# Format shell only:
+#
+#     script/make-pretty shell
+#
 
 # shellcheck source=script/common.sh
 . "$(dirname "$0")"/common.sh
