@@ -45,7 +45,7 @@ installed()
 go_tests()
 {
     install_deps
-    install
+    install_otns
 
     echo "" >coverage.txt
 
@@ -65,7 +65,7 @@ install_deps()
     ./script/install-deps
 }
 
-install()
+install_otns()
 {
     ./script/install
 }
@@ -75,10 +75,11 @@ get_openthread()
     if ! [[ -x $OT_DIR ]]; then
         mkdir -p "$(dirname "$OT_DIR")"
         git clone https://github.com/openthread/openthread.git "$OT_DIR"
-        cd "$OT_DIR"
-        ./script/bootstrap
-        ./bootstrap
-        cd -
+        (
+            cd "$OT_DIR"
+            ./script/bootstrap
+            ./bootstrap
+        )
     fi
 }
 
@@ -93,7 +94,7 @@ build_openthread()
 py_unittests()
 {
     install_deps
-    install
+    install_otns
     build_openthread
     cd "$OTBIN_DIR"
     python3 "$OTNSDIR"/pylibs/unittests/test_basic.py
@@ -115,7 +116,7 @@ check_py_example()
 py_examples()
 {
     install_deps
-    install
+    install_otns
     build_openthread
     cd "$OTBIN_DIR"
     check_py_example "$OTNSDIR"/pylibs/examples/simple.py
@@ -128,7 +129,7 @@ py_examples()
 test_signals()
 {
     install_deps
-    install
+    install_otns
     build_openthread
     cd "$OTBIN_DIR"
     python3 "$OTNSDIR"/pylibs/unittests/test_signals.py
