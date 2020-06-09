@@ -230,7 +230,7 @@ class BasicTests(OTNSTestCase):
     def testSetRouterUpgradeThresholdEffective(self):
         ns: OTNS = self.ns
         nid = ns.add("router")
-        ns.go(3)
+        ns.go(10)
         self.assertNodeState(nid, 'leader')
 
         reed = ns.add("router")
