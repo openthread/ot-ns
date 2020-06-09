@@ -50,6 +50,8 @@ do_shell_check()
 
     shfmt -f . | grep -v -E "^($(echo "${OTNS_EXCLUDE_DIRS[@]}" | tr ' ' '|'))" \
         | xargs -n10 -P"$OTNS_BUILD_JOBS" shellcheck -x
+
+    echo "Congratulations! Your shell code is pretty."
 }
 
 main()

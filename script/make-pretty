@@ -36,7 +36,6 @@ do_go_format()
 
     cd "$OTNSDIR" || return 1
     golangci-lint run "${GOLINT_ARGS[@]}" --fix || die "make pretty failed"
-    echo "Congratulations! Your Go code is pretty."
 }
 
 do_shell_format()
@@ -46,7 +45,7 @@ do_shell_format()
     echo -e '====================='
 
     shfmt -f . | grep -v -E "^($(echo "${OTNS_EXCLUDE_DIRS[@]}" | tr ' ' '|'))" \
-        | xargs -t -n10 -P"$OTNS_BUILD_JOBS" shfmt -i 4 -bn -ci -fn -s -w
+        | xargs -n10 -P"$OTNS_BUILD_JOBS" shfmt -i 4 -bn -ci -fn -s -w
 }
 
 main()
