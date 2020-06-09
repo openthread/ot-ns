@@ -26,8 +26,11 @@
 
 package types
 
-import "math"
-import "github.com/simonlingoogle/go-simplelogger"
+import (
+	"math"
+
+	"github.com/simonlingoogle/go-simplelogger"
+)
 
 type NodeId = int
 
