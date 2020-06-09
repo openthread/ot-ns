@@ -64,8 +64,6 @@ class StressTestMetaclass(type):
 
 class BaseStressTest(object, metaclass=StressTestMetaclass):
     def __init__(self, name, headers, raw=False):
-        DEBUG = int(os.getenv('DEBUG', '0'))
-
         self.name = name
         self._otns_args = []
         if raw:
