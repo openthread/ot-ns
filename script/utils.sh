@@ -25,15 +25,75 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-function die() {
-  echo "fatal: $1"
-  false
+function die()
+{
+    echo "fatal: $1"
+    false
 }
 
-function realpath() {
-  python -c "import os; print(os.path.realpath('$1'))"
+function realpath()
+{
+    python -c "import os; print(os.path.realpath('$1'))"
 }
 
-function installed() {
-  command -v "$1" >/dev/null 2>&1
+function installed()
+{
+    command -v "$1" >/dev/null 2>&1
+}
+
+apt_update_once=0
+
+install_package()
+{
+    local cmd=$1
+    shift 1
+
+    # only install if command not available
+    if installed "$cmd"; then
+        return 0
+    fi
+
+    while (("$#")); do
+        case "$1" in
+            --apt)
+                if installed apt-get; then
+                    if [ "$apt_update_once" -eq "0" ]; then
+                        sudo apt-get update || die "apt-get update failed"
+                        apt_update_once=1
+                    fi
+
+                    sudo apt-get install -y --no-install-recommends "$2"
+                    return 0
+                fi
+
+                shift 2
+                ;;
+            --brew)
+
+                if installed brew; then
+                    brew install "$2"
+                    return 0
+                fi
+
+                shift 2
+                ;;
+            *)
+                PARAMS="$PARAMS $1"
+                echo "Error: Unsupported flag $1" >&2
+                return 1
+                ;;
+        esac
+    done
+
+    die "Failed to install $cmd. Please install it manually."
+}
+
+function install_pretty_tools()
+{
+    if ! installed golangci-lint; then
+        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b "$(go env GOPATH)"/bin v1.23.6
+    fi
+
+    install_package shfmt --brew shfmt
+    install_package shellcheck --apt shellcheck --brew shellcheck
 }

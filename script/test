@@ -25,138 +25,151 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-. $(dirname $0)/common.sh
+# shellcheck source=script/common.sh
+. "$(dirname "$0")"/common.sh
 
 set -e
 
 OT_DIR=${OT_DIR:-$HOME/src/openthread}
 if [[ $(uname) == "Darwin" ]]; then
-  OTBIN_DIR=$OT_DIR/output/x86_64-apple-darwin/bin
+    OTBIN_DIR=$OT_DIR/output/x86_64-apple-darwin/bin
 else
-  OTBIN_DIR=$OT_DIR/output/x86_64-unknown-linux-gnu/bin
+    OTBIN_DIR=$OT_DIR/output/x86_64-unknown-linux-gnu/bin
 fi
 
-installed() {
-  command -v $1 >/dev/null 2>&1
+installed()
+{
+    command -v "$1" >/dev/null 2>&1
 }
 
-go_tests() {
-  install_deps
-  install
+go_tests()
+{
+    install_deps
+    install_otns
 
-  echo "" >coverage.txt
+    echo "" >coverage.txt
 
-  PKG=$(go list ./...)
+    PKG=$(go list ./...)
 
-  for d in $PKG; do
-    go test -race -coverprofile=profile.out -covermode=atomic $d
-    if [ -f profile.out ]; then
-      cat profile.out >>coverage.txt
-      rm profile.out
+    for d in $PKG; do
+        go test -race -coverprofile=profile.out -covermode=atomic "$d"
+        if [ -f profile.out ]; then
+            cat profile.out >>coverage.txt
+            rm profile.out
+        fi
+    done
+}
+
+install_deps()
+{
+    ./script/install-deps
+}
+
+install_otns()
+{
+    ./script/install
+}
+
+get_openthread()
+{
+    if ! [[ -x $OT_DIR ]]; then
+        mkdir -p "$(dirname "$OT_DIR")"
+        git clone https://github.com/openthread/openthread.git "$OT_DIR"
+        (
+            cd "$OT_DIR"
+            ./script/bootstrap
+            ./bootstrap
+        )
     fi
-  done
 }
 
-install_deps() {
-  ./script/install-deps
-}
-
-install() {
-  ./script/install
-}
-
-get_openthread() {
-  if ! [[ -x $OT_DIR ]]; then
-    mkdir -p "$(dirname $OT_DIR)"
-    git clone https://github.com/openthread/openthread.git $OT_DIR
-    cd $OT_DIR
-    ./script/bootstrap
-    ./bootstrap
+build_openthread()
+{
+    get_openthread
+    cd "$OT_DIR"
+    make -f "$OT_DIR"/examples/Makefile-simulation OTNS=1
     cd -
-  fi
 }
 
-build_openthread() {
-  get_openthread
-  cd $OT_DIR
-  make -f $OT_DIR/examples/Makefile-simulation OTNS=1
-  cd -
+py_unittests()
+{
+    install_deps
+    install_otns
+    build_openthread
+    cd "$OTBIN_DIR"
+    python3 "$OTNSDIR"/pylibs/unittests/test_basic.py
+    python3 "$OTNSDIR"/pylibs/unittests/test_ping.py
+    python3 "$OTNSDIR"/pylibs/unittests/test_commissioning.py
+    cd -
 }
 
-py_unittests() {
-  install_deps
-  install
-  build_openthread
-  cd $OTBIN_DIR
-  python3 $OTNSDIR/pylibs/unittests/test_basic.py
-  python3 $OTNSDIR/pylibs/unittests/test_ping.py
-  python3 $OTNSDIR/pylibs/unittests/test_commissioning.py
-  cd -
+check_py_example()
+{
+    echo "Checking pyOTNS example: $1 ..."
+    python3 "$1" &
+    local pid=$!
+    sleep 10
+    killall otns || true
+    wait $pid || die "Run pyOTNS example failed :$1"
 }
 
-check_py_example() {
-  echo "Checking pyOTNS example: $1 ..."
-  python3 $1 &
-  local pid=$!
-  sleep 10
-  killall otns || true
-  wait $pid || die "Run pyOTNS example failed :$1"
+py_examples()
+{
+    install_deps
+    install_otns
+    build_openthread
+    cd "$OTBIN_DIR"
+    check_py_example "$OTNSDIR"/pylibs/examples/simple.py
+    check_py_example "$OTNSDIR"/pylibs/examples/ping.py
+    check_py_example "$OTNSDIR"/pylibs/examples/form_partition.py
+    check_py_example "$OTNSDIR"/pylibs/examples/farm.py
+    cd -
 }
 
-py_examples() {
-  install_deps
-  install
-  build_openthread
-  cd $OTBIN_DIR
-  check_py_example $OTNSDIR/pylibs/examples/simple.py
-  check_py_example $OTNSDIR/pylibs/examples/ping.py
-  check_py_example $OTNSDIR/pylibs/examples/form_partition.py
-  check_py_example $OTNSDIR/pylibs/examples/farm.py
-  cd -
+test_signals()
+{
+    install_deps
+    install_otns
+    build_openthread
+    cd "$OTBIN_DIR"
+    python3 "$OTNSDIR"/pylibs/unittests/test_signals.py
+    cd -
 }
 
-test_signals() {
-  install_deps
-  install
-  build_openthread
-  cd $OTBIN_DIR
-  python3 $OTNSDIR/pylibs/unittests/test_signals.py
-  cd -
-}
+main()
+{
+    do_go_tests=0
+    do_py_unittests=0
+    do_py_examples=0
+    do_signals=0
 
-main() {
-  do_go_tests=0
-  do_py_unittests=0
-  do_py_examples=0
-  do_signals=0
+    for var in "$@"; do
+        if [[ $var == "go-tests" ]]; then
+            do_go_tests=1
+        elif [[ $var == "py-unittests" ]]; then
+            do_py_unittests=1
+        elif [[ $var == "py-examples" ]]; then
+            do_py_examples=1
+        elif [[ $var == "signals" ]]; then
+            do_signals=1
+        fi
+    done
 
-  for var in "$@"; do
-    if [[ "$var" == "go-tests" ]]; then
-      do_go_tests=1
-    elif [[ "$var" == "py-unittests" ]]; then
-      do_py_unittests=1
-    elif [[ "$var" == "py-examples" ]]; then
-      do_py_examples=1
-    elif [[ "$var" == "signals" ]]; then
-      do_signals=1
+    if [[ $do_go_tests == "1" ]]; then
+        go_tests
     fi
-  done
 
-  if [[ "$do_go_tests" == "1" ]]; then
-    go_tests
-  fi
+    if [[ $do_py_unittests == "1" ]]; then
+        py_unittests
+    fi
 
-  if [[ "$do_py_unittests" == "1" ]]; then
-    py_unittests
-  fi
+    if [[ $do_py_examples == "1" ]]; then
+        py_examples
+    fi
 
-  if [[ "$do_py_examples" == "1" ]]; then
-    py_examples
-  fi
-
-  if [[ "$do_signals" == "1" ]]; then
-    test_signals
-  fi
+    if [[ $do_signals == "1" ]]; then
+        test_signals
+    fi
 }
 
 main "$@"

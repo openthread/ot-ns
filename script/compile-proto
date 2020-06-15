@@ -25,26 +25,18 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-. $(dirname $0)/../../script/utils.sh
+# shellcheck source=script/common.sh
+. "$(dirname "$0")"/common.sh
 
-set -e
+compile_proto()
+{
+    cd "$OTNSDIR"/visualize/grpc/pb || return 1
+    protoc -I=. visualize_grpc.proto --go_out=plugins=grpc:.
+    mkdir -p ../../../web/site/js/proto/
+    protoc -I=. visualize_grpc.proto \
+        --js_out=import_style=commonjs:../../../web/site/js/proto/ \
+        --grpc-web_out=import_style=commonjs,mode=grpcwebtext:../../../web/site/js/proto/
+    cd - || return 1
+}
 
-# copy everything from the current directory to the $GOPATH/src/github.com/openthread/ot-ns/web/site
-# and run gcloud app deploy there
-sitedir=$(python -c "import os; print(os.path.realpath('$1'))")
-pbdir=$sitedir/../../visualize/grpc/pb
-
-cd $pbdir
-./update_proto.sh
-
-cd $sitedir
-if ! [[ -d node_modules ]]; then
-  npm install
-fi
-npx webpack ./js/visualize.js -o ./static/js/visualize.js
-
-go-bindata -pkg web_site -o _bindata.go templates/... static/...
-head -26 bindata.go >_merge_bindata.go
-cat _bindata.go >>_merge_bindata.go
-mv _merge_bindata.go bindata.go
-rm -f _bindata.go
+compile_proto
