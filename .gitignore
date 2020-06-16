@@ -38,4 +38,4 @@ node_modules/
 # pylibs installation files
 pylibs/build/
 pylibs/dist/
-pylibs/otns.egg-info/
+pylibs/pyOTNS.egg-info/
