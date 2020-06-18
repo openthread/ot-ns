@@ -215,6 +215,7 @@ loop:
 			// sync the speed start time with the current time
 			if len(d.nodes) == 0 {
 				// no nodes, sleep for a small duration to avoid high cpu
+				d.recvEvents()
 				time.Sleep(time.Millisecond * 10)
 				close(duration.done)
 				break
