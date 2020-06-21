@@ -65,11 +65,13 @@ type pcapFrameItem struct {
 
 type Config struct {
 	Speed float64
+	Real  bool
 }
 
 func DefaultConfig() *Config {
 	return &Config{
 		Speed: 1,
+		Real:  false,
 	}
 }
 
@@ -127,6 +129,8 @@ type Dispatcher struct {
 }
 
 func NewDispatcher(ctx *progctx.ProgCtx, cfg *Config, cbHandler CallbackHandler) *Dispatcher {
+	simplelogger.AssertTrue(!cfg.Real || cfg.Speed == 1)
+
 	udpAddr, err := net.ResolveUDPAddr("udp4", "127.0.0.1:9000")
 	simplelogger.FatalIfError(err, err)
 	ln, err := net.ListenUDP("udp", udpAddr)
@@ -251,6 +255,7 @@ loop:
 }
 
 func (d *Dispatcher) goUntilPauseTime() {
+	//simplelogger.Warnf("goUntilPauseTime: %v -> %v", d.CurTime, d.pauseTime)
 	for d.CurTime < d.pauseTime {
 		d.handleTasks()
 
@@ -298,6 +303,12 @@ func (d *Dispatcher) handleRecvEvent(evt *event) {
 		evtTime = d.CurTime + evt.Delay
 	}
 
+	if d.cfg.Real && (evt.Type == eventTypeAlarmFired || evt.Type == eventTypeRadioReceived) {
+		// should not receive alarm event and radio event in real mode
+		simplelogger.Warnf("unexpected event: %v", evt.Type)
+		return
+	}
+
 	switch evt.Type {
 	case eventTypeAlarmFired:
 		d.Counters.AlarmEvents += 1
@@ -321,7 +332,7 @@ func (d *Dispatcher) recvEvents() int {
 
 loop:
 	for {
-		shouldBlock := len(d.aliveNodes) > 0
+		shouldBlock := !d.cfg.Real && len(d.aliveNodes) > 0
 
 		if shouldBlock {
 			select {
@@ -358,6 +369,8 @@ func (d *Dispatcher) processNextEvent() bool {
 		nextEventTime = nextSendtime
 	}
 
+	//simplelogger.Warnf("nextAlarmTime=%v, nextSendTime=%v, nextEventTime=%v", nextAlarmTime, nextSendtime, nextAlarmTime)
+
 	// nextEventTime <= d.pauseTime
 	// convert nextEventTime to real time
 	if d.speed < MaxSimulateSpeed {
@@ -383,6 +396,15 @@ func (d *Dispatcher) processNextEvent() bool {
 				sleepTime = time.Millisecond * 10
 			}
 			time.Sleep(sleepTime)
+
+			if d.cfg.Real {
+				curTime := d.speedStartTime + uint64(float64(time.Since(d.speedStartRealTime)/time.Microsecond)*d.speed)
+				if curTime > d.pauseTime {
+					curTime = d.pauseTime
+				}
+				d.advanceTime(curTime)
+			}
+
 			return true
 		}
 	}
@@ -474,6 +496,10 @@ func (d *Dispatcher) eventsReader() {
 
 func (d *Dispatcher) advanceNodeTime(id NodeId, timestamp uint64, force bool) {
 	node := d.nodes[id]
+	if d.cfg.Real {
+		node.CurTime = timestamp
+		return
+	}
 
 	oldTime := node.CurTime
 	elapsed := timestamp - oldTime
@@ -590,6 +616,8 @@ func (d *Dispatcher) checkRadioReachable(src *Node, dst *Node) bool {
 }
 
 func (d *Dispatcher) sendOneMessage(sit *sendItem, srcnode *Node, dstnode *Node) {
+	simplelogger.AssertFalse(d.cfg.Real)
+
 	if srcnode != dstnode {
 		// we should always send the message when srcnode == dstnode, because it is the TX done notify
 		if dstnode.isFailed {
@@ -649,6 +677,7 @@ func (d *Dispatcher) setAlive(nodeid NodeId) {
 }
 
 func (d *Dispatcher) setSleeping(nodeid NodeId) {
+	simplelogger.AssertFalse(d.cfg.Real)
 	delete(d.aliveNodes, nodeid)
 }
 
@@ -657,7 +686,9 @@ func (d *Dispatcher) syncAliveNodes() {
 		return
 	}
 
-	simplelogger.Warnf("syncing %d alive nodes: %v", len(d.aliveNodes), d.aliveNodes)
+	if !d.cfg.Real {
+		simplelogger.Warnf("syncing %d alive nodes: %v", len(d.aliveNodes), d.aliveNodes)
+	}
 	for nodeid := range d.aliveNodes {
 		d.advanceNodeTime(nodeid, d.CurTime, true)
 	}
@@ -849,6 +880,10 @@ func (d *Dispatcher) advanceTime(ts uint64) {
 		if elapsedRealTime > 0 && ts/1000000 != oldTime/1000000 {
 			d.vis.AdvanceTime(ts, float64(elapsedTime)/float64(elapsedRealTime))
 		}
+
+		if d.cfg.Real {
+			d.syncAllNodes()
+		}
 	}
 }
 
@@ -957,6 +992,11 @@ func (d *Dispatcher) SetNodeFailed(id NodeId, fail bool) {
 }
 
 func (d *Dispatcher) SetSpeed(f float64) {
+	if d.cfg.Real {
+		simplelogger.Warnf("not allowed to set speed in real mode")
+		return
+	}
+
 	ns := d.normalizeSpeed(f)
 	if ns == d.speed {
 		return
