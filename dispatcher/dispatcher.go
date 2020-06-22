@@ -332,7 +332,7 @@ func (d *Dispatcher) recvEvents() int {
 
 loop:
 	for {
-		shouldBlock := !d.cfg.Real && len(d.aliveNodes) > 0
+		shouldBlock := len(d.aliveNodes) > 0
 
 		if shouldBlock {
 			select {
@@ -368,8 +368,6 @@ func (d *Dispatcher) processNextEvent() bool {
 	if nextEventTime > nextSendtime {
 		nextEventTime = nextSendtime
 	}
-
-	//simplelogger.Warnf("nextAlarmTime=%v, nextSendTime=%v, nextEventTime=%v", nextAlarmTime, nextSendtime, nextAlarmTime)
 
 	// nextEventTime <= d.pauseTime
 	// convert nextEventTime to real time
@@ -673,6 +671,11 @@ func (d *Dispatcher) newNode(nodeid NodeId, x, y int, radioRange int, mode NodeM
 }
 
 func (d *Dispatcher) setAlive(nodeid NodeId) {
+	if d.cfg.Real {
+		// real devices are always considered sleeping
+		return
+	}
+
 	d.aliveNodes[nodeid] = struct{}{}
 }
 
@@ -686,9 +689,7 @@ func (d *Dispatcher) syncAliveNodes() {
 		return
 	}
 
-	if !d.cfg.Real {
-		simplelogger.Warnf("syncing %d alive nodes: %v", len(d.aliveNodes), d.aliveNodes)
-	}
+	simplelogger.Warnf("syncing %d alive nodes: %v", len(d.aliveNodes), d.aliveNodes)
 	for nodeid := range d.aliveNodes {
 		d.advanceNodeTime(nodeid, d.CurTime, true)
 	}
