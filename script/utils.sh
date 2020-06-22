@@ -41,6 +41,17 @@ function installed()
     command -v "$1" >/dev/null 2>&1
 }
 
+function repeat()
+{
+    local n=$1
+    local cmd="${*:2}"
+
+    for _ in $(seq "$n"); do
+        $cmd && return 0
+    done
+    return 1
+}
+
 apt_update_once=0
 
 install_package()
