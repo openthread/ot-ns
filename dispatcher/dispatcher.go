@@ -305,7 +305,7 @@ func (d *Dispatcher) handleRecvEvent(evt *event) {
 
 	if d.cfg.Real && (evt.Type == eventTypeAlarmFired || evt.Type == eventTypeRadioReceived) {
 		// should not receive alarm event and radio event in real mode
-		simplelogger.Warnf("unexpected event: %v", evt.Type)
+		simplelogger.Warnf("unexpected event in real mode: %v", evt.Type)
 		return
 	}
 
