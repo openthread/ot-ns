@@ -38,7 +38,7 @@ type Config struct {
 	MasterKey   string
 	Panid       uint16
 	Channel     int
-	BinDir      string
+	OtCliPath   string
 	Speed       float64
 	ReadOnly    bool
 	RawMode     bool
@@ -53,6 +53,6 @@ func DefaultConfig() *Config {
 		Speed:       1,
 		ReadOnly:    false,
 		RawMode:     false,
-		BinDir:      "",
+		OtCliPath:   "ot-cli-ftd",
 	}
 }
