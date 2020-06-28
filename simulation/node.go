@@ -97,6 +97,7 @@ func newNode(s *Simulation, id NodeId, cfg *NodeConfig) (*Node, error) {
 	}
 
 	go n.lineReader()
+
 	n.AssurePrompt()
 
 	return n, nil

@@ -70,10 +70,6 @@ func NewSimulation(ctx *progctx.ProgCtx, cfg *Config) (*Simulation, error) {
 }
 
 func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
-	if s.cfg.Real {
-		return nil, errors.Errorf("not allowed to add node in real mode")
-	}
-
 	if cfg == nil {
 		cfg = DefaultNodeConfig()
 	}
@@ -100,11 +96,13 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 		FullNetworkData:    true,
 	})
 
-	node.setupMode()
+	if !s.cfg.Real {
+		node.setupMode()
 
-	if !s.rawMode {
-		node.SetupNetworkParameters(s)
-		node.Start()
+		if !s.rawMode {
+			node.SetupNetworkParameters(s)
+			node.Start()
+		}
 	}
 
 	return node, nil

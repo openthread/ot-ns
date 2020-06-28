@@ -970,8 +970,10 @@ func (d *Dispatcher) DeleteNode(id NodeId) {
 	if node.Rloc16 != threadconst.InvalidRloc16 {
 		d.rloc16Map.Remove(node.Rloc16, node)
 	}
-	simplelogger.AssertTrue(d.extaddrMap[node.ExtAddr] == node)
-	delete(d.extaddrMap, node.ExtAddr)
+	if node.ExtAddr != InvalidExtAddr {
+		simplelogger.AssertTrue(d.extaddrMap[node.ExtAddr] == node)
+		delete(d.extaddrMap, node.ExtAddr)
+	}
 	d.alarmMgr.DeleteNode(id)
 	d.deletedNodes[id] = struct{}{}
 
