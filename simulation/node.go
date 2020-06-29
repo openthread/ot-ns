@@ -59,7 +59,7 @@ func newNode(s *Simulation, id NodeId, cfg *NodeConfig) (*Node, error) {
 		simplelogger.Errorf("Remove flash file %s failed: %+v", flashFile, err)
 	}
 
-	exePath, err := filepath.Abs(filepath.Join(s.BinDir(), "ot-cli-ftd"))
+	exePath, err := filepath.Abs(s.cfg.OtCliPath)
 	if err != nil {
 		return nil, err
 	}

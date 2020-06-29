@@ -148,10 +148,6 @@ func (s *Simulation) Stop() {
 	s.d.Stop()
 }
 
-func (s *Simulation) BinDir() string {
-	return s.cfg.BinDir
-}
-
 func (s *Simulation) SetVisualizer(vis visualize.Visualizer) {
 	simplelogger.AssertNotNil(vis)
 	s.vis = vis

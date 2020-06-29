@@ -59,13 +59,13 @@ import (
 )
 
 type MainArgs struct {
-	Speed    string
-	BinDir   string
-	AutoGo   bool
-	ReadOnly bool
-	LogLevel string
-	OpenWeb  bool
-	RawMode  bool
+	Speed     string
+	OtCliPath string
+	AutoGo    bool
+	ReadOnly  bool
+	LogLevel  string
+	OpenWeb   bool
+	RawMode   bool
 }
 
 var (
@@ -74,7 +74,7 @@ var (
 
 func parseArgs() {
 	flag.StringVar(&args.Speed, "speed", "1", "set simulating speed")
-	flag.StringVar(&args.BinDir, "bin", ".", "specify binary directory containing ot-cli-ftd, ot-cli-mtd, etc")
+	flag.StringVar(&args.OtCliPath, "ot-cli", "ot-cli-ftd", "specify the OT CLI executable")
 	flag.BoolVar(&args.AutoGo, "autogo", true, "auto go")
 	flag.BoolVar(&args.ReadOnly, "readonly", false, "readonly simulation can not be manipulated")
 	flag.StringVar(&args.LogLevel, "log", "warn", "set logging level")
@@ -178,7 +178,7 @@ func createSimulation(ctx *progctx.ProgCtx) *simulation.Simulation {
 	var err error
 
 	simcfg := simulation.DefaultConfig()
-	simcfg.BinDir = args.BinDir
+	simcfg.OtCliPath = args.OtCliPath
 
 	args.Speed = strings.ToLower(args.Speed)
 	if args.Speed == "max" {
