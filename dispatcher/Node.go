@@ -125,6 +125,8 @@ func (node *Node) Send(elapsed uint64, data []byte) {
 func (node *Node) SendMessage(msg []byte) {
 	if node.peerAddr != nil {
 		_, _ = node.D.udpln.WriteToUDP(msg, node.peerAddr)
+	} else {
+		simplelogger.Errorf("%s does not have a peer address", node)
 	}
 }
 
