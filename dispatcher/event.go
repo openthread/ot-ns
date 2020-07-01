@@ -26,7 +26,11 @@
 
 package dispatcher
 
-import . "github.com/openthread/ot-ns/types"
+import (
+	"net"
+
+	. "github.com/openthread/ot-ns/types"
+)
 
 const (
 	eventTypeAlarmFired    = 0
@@ -42,4 +46,5 @@ type event struct {
 	NodeId  NodeId
 	DataLen uint16
 	Data    []byte
+	SrcAddr *net.UDPAddr
 }
