@@ -255,7 +255,6 @@ loop:
 }
 
 func (d *Dispatcher) goUntilPauseTime() {
-	//simplelogger.Warnf("goUntilPauseTime: %v -> %v", d.CurTime, d.pauseTime)
 	for d.CurTime < d.pauseTime {
 		d.handleTasks()
 
