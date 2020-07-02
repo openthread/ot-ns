@@ -66,7 +66,7 @@ type MainArgs struct {
 	LogLevel  string
 	OpenWeb   bool
 	RawMode   bool
-	Real     bool
+	Real      bool
 }
 
 var (
