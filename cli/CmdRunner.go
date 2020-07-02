@@ -29,6 +29,8 @@ package cli
 import (
 	"context"
 	"fmt"
+	"io"
+	"os"
 	"reflect"
 	"strings"
 	"time"
@@ -43,6 +45,10 @@ import (
 	. "github.com/openthread/ot-ns/types"
 	"github.com/pkg/errors"
 	"github.com/simonlingoogle/go-simplelogger"
+)
+
+const (
+	Prompt = "> "
 )
 
 type CommandContext struct {
@@ -69,8 +75,62 @@ func (cc *CommandContext) Err() error {
 }
 
 type CmdRunner struct {
-	sim *simulation.Simulation
-	ctx *progctx.ProgCtx
+	sim           *simulation.Simulation
+	ctx           *progctx.ProgCtx
+	contextNodeId NodeId
+}
+
+func (rt *CmdRunner) HandleCommand(cmdline string, output io.Writer) error {
+	if rt.contextNodeId != InvalidNodeId && !isContextlessCommand(cmdline) {
+		// run the command in node context
+		cmd := &Command{
+			Node: &NodeCmd{
+				Node:    NodeSelector{Id: rt.contextNodeId},
+				Command: &cmdline,
+			},
+		}
+		cc := rt.Execute(cmd)
+
+		if cc.Err() != nil {
+			if _, err := fmt.Fprintf(output, "Error: %v\n", cc.Err()); err != nil {
+				return err
+			}
+		} else {
+			if _, err := fmt.Fprintf(output, "Done\n"); err != nil {
+				return err
+			}
+		}
+	} else {
+		// run the OTNS-CLI command
+		cmd := &Command{}
+		if err := ParseBytes([]byte(cmdline), cmd); err != nil {
+			if _, err := fmt.Fprintf(os.Stdout, "Error: %v\n", err); err != nil {
+				return err
+			}
+		} else {
+			cc := rt.Execute(cmd)
+
+			if cc.Err() != nil {
+				if _, err := fmt.Fprintf(os.Stdout, "Error: %v\n", cc.Err()); err != nil {
+					return err
+				}
+			} else {
+				if _, err := fmt.Fprintf(os.Stdout, "Done\n"); err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+func (rt *CmdRunner) GetPrompt() string {
+	if rt.contextNodeId == InvalidNodeId {
+		return Prompt
+	} else {
+		return fmt.Sprintf("node %d%s", rt.contextNodeId, Prompt)
+	}
 }
 
 func (rt *CmdRunner) Execute(cmd *Command) (cc *CommandContext) {
@@ -252,7 +312,7 @@ func (rt *CmdRunner) executeDelNode(cc *CommandContext, cmd *DelCmd) {
 }
 
 func (rt *CmdRunner) executeExit(cc *CommandContext, cmd *ExitCmd) {
-	if enterNodeContext(InvalidNodeId) {
+	if rt.enterNodeContext(InvalidNodeId) {
 		return
 	}
 
@@ -391,7 +451,7 @@ func (rt *CmdRunner) executeNode(cc *CommandContext, cmd *NodeCmd) {
 
 	if contextNodeId != InvalidNodeId {
 		// enter node context
-		enterNodeContext(contextNodeId)
+		rt.enterNodeContext(contextNodeId)
 	}
 }
 
@@ -622,10 +682,21 @@ func (rt *CmdRunner) executeConfigVisualization(cc *CommandContext, cmd *ConfigV
 	cc.outputf("ctb=%s\n", bool_to_onoroff(opts.ChildTable))
 }
 
+func (rt *CmdRunner) enterNodeContext(nodeid NodeId) bool {
+	simplelogger.AssertTrue(nodeid == InvalidNodeId || nodeid > 0)
+	if rt.contextNodeId == nodeid {
+		return false
+	}
+
+	rt.contextNodeId = nodeid
+	return true
+}
+
 func NewCmdRunner(ctx *progctx.ProgCtx, sim *simulation.Simulation) *CmdRunner {
 	r := &CmdRunner{
-		ctx: ctx,
-		sim: sim,
+		ctx:           ctx,
+		sim:           sim,
+		contextNodeId: InvalidNodeId,
 	}
 	return r
 }
