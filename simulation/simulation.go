@@ -96,13 +96,11 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 		FullNetworkData:    true,
 	})
 
-	if !s.cfg.Real {
-		node.setupMode()
+	node.setupMode()
 
-		if !s.rawMode {
-			node.SetupNetworkParameters(s)
-			node.Start()
-		}
+	if !s.rawMode {
+		node.SetupNetworkParameters(s)
+		node.Start()
 	}
 
 	return node, nil
