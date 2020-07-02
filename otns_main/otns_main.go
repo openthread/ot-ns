@@ -59,14 +59,14 @@ import (
 )
 
 type MainArgs struct {
-	Speed    string
+	Speed     string
 	OtCliPath string
-	AutoGo   bool
-	ReadOnly bool
-	LogLevel string
-	OpenWeb  bool
-	RawMode  bool
-	Real     bool
+	AutoGo    bool
+	ReadOnly  bool
+	LogLevel  string
+	OpenWeb   bool
+	RawMode   bool
+	Real      bool
 }
 
 var (
