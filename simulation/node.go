@@ -97,6 +97,7 @@ func newNode(s *Simulation, id NodeId, cfg *NodeConfig) (*Node, error) {
 	}
 
 	go n.lineReader()
+
 	n.AssurePrompt()
 
 	return n, nil
@@ -643,7 +644,7 @@ func (node *Node) expectEOF(timeout time.Duration) {
 				return
 			}
 
-			simplelogger.Warnf("%v - %s", node, readLine)
+			simplelogger.Debugf("%v - %s", node, readLine)
 		}
 	}
 }

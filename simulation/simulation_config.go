@@ -42,6 +42,7 @@ type Config struct {
 	Speed       float64
 	ReadOnly    bool
 	RawMode     bool
+	Real        bool
 }
 
 func DefaultConfig() *Config {
@@ -54,5 +55,6 @@ func DefaultConfig() *Config {
 		ReadOnly:    false,
 		RawMode:     false,
 		OtCliPath:   "ot-cli-ftd",
+		Real:        false,
 	}
 }

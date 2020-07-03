@@ -60,6 +60,7 @@ func NewSimulation(ctx *progctx.ProgCtx, cfg *Config) (*Simulation, error) {
 	// start the event_dispatcher for virtual time
 	dispatcherCfg := dispatcher.DefaultConfig()
 	dispatcherCfg.Speed = cfg.Speed
+	dispatcherCfg.Real = cfg.Real
 	s.d = dispatcher.NewDispatcher(s.ctx, dispatcherCfg, s)
 	s.vis = s.d.GetVisualizer()
 	if err := s.removeTmpDir(); err != nil {
