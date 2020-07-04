@@ -131,7 +131,7 @@ type Dispatcher struct {
 func NewDispatcher(ctx *progctx.ProgCtx, cfg *Config, cbHandler CallbackHandler) *Dispatcher {
 	simplelogger.AssertTrue(!cfg.Real || cfg.Speed == 1)
 
-  udpAddr, err := net.ResolveUDPAddr("udp4", ":9000")
+	udpAddr, err := net.ResolveUDPAddr("udp4", ":9000")
 	simplelogger.FatalIfError(err, err)
 	ln, err := net.ListenUDP("udp", udpAddr)
 	simplelogger.FatalIfError(err, err)
