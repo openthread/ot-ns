@@ -66,6 +66,7 @@ type MainArgs struct {
 	LogLevel  string
 	OpenWeb   bool
 	RawMode   bool
+	Real      bool
 }
 
 var (
@@ -80,6 +81,7 @@ func parseArgs() {
 	flag.StringVar(&args.LogLevel, "log", "warn", "set logging level")
 	flag.BoolVar(&args.OpenWeb, "web", true, "open web")
 	flag.BoolVar(&args.RawMode, "raw", false, "use raw mode")
+	flag.BoolVar(&args.Real, "real", false, "use real mode (for real devices)")
 
 	flag.Parse()
 	flag.Args()
@@ -190,6 +192,7 @@ func createSimulation(ctx *progctx.ProgCtx) *simulation.Simulation {
 	simcfg.Speed = speed
 	simcfg.ReadOnly = args.ReadOnly
 	simcfg.RawMode = args.RawMode
+	simcfg.Real = args.Real
 
 	sim, err := simulation.NewSimulation(ctx, simcfg)
 	simplelogger.FatalIfError(err)
