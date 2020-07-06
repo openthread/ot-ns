@@ -131,7 +131,7 @@ type Dispatcher struct {
 func NewDispatcher(ctx *progctx.ProgCtx, cfg *Config, cbHandler CallbackHandler) *Dispatcher {
 	simplelogger.AssertTrue(!cfg.Real || cfg.Speed == 1)
 
-	udpAddr, err := net.ResolveUDPAddr("udp4", "127.0.0.1:9000")
+	udpAddr, err := net.ResolveUDPAddr("udp4", ":9000")
 	simplelogger.FatalIfError(err, err)
 	ln, err := net.ListenUDP("udp", udpAddr)
 	simplelogger.FatalIfError(err, err)
@@ -288,6 +288,10 @@ func (d *Dispatcher) handleRecvEvent(evt *event) {
 			return
 		}
 	}
+
+	// assign source address from event to node
+	node := d.nodes[nodeid]
+	node.peerAddr = evt.SrcAddr
 
 	if d.isWatching(evt.NodeId) {
 		simplelogger.Warnf("Node %d <<< %+v, cur time %d, node time %d, delay %d", evt.NodeId, *evt,
@@ -485,6 +489,7 @@ func (d *Dispatcher) eventsReader() {
 			Type:    typ,
 			DataLen: datalen,
 			Data:    data,
+			SrcAddr: srcaddr,
 		}
 
 		d.eventChan <- evt

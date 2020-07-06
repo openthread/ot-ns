@@ -74,7 +74,7 @@ type Node struct {
 	CreateTime  uint64
 	CurTime     uint64
 
-	addr          *net.UDPAddr
+	peerAddr      *net.UDPAddr
 	failureCtrl   *FailureCtrl
 	isFailed      bool
 	radioRange    int
@@ -87,8 +87,6 @@ type Node struct {
 
 func newNode(d *Dispatcher, nodeid NodeId, x, y int, radioRange int) *Node {
 	simplelogger.AssertTrue(radioRange >= 0)
-	addr, err := net.ResolveUDPAddr("udp4", fmt.Sprintf("127.0.0.1:%d", 9000+nodeid))
-	simplelogger.AssertNil(err)
 
 	nc := &Node{
 		D:           d,
@@ -99,7 +97,7 @@ func newNode(d *Dispatcher, nodeid NodeId, x, y int, radioRange int) *Node {
 		Y:           y,
 		ExtAddr:     InvalidExtAddr,
 		Rloc16:      threadconst.InvalidRloc16,
-		addr:        addr,
+		peerAddr:    nil, // peer address will be set when the first event is received
 		radioRange:  radioRange,
 		joinerState: OtJoinerStateIdle,
 	}
@@ -125,7 +123,11 @@ func (node *Node) Send(elapsed uint64, data []byte) {
 }
 
 func (node *Node) SendMessage(msg []byte) {
-	_, _ = node.D.udpln.WriteToUDP(msg, node.addr)
+	if node.peerAddr != nil {
+		_, _ = node.D.udpln.WriteToUDP(msg, node.peerAddr)
+	} else {
+		simplelogger.Errorf("%s does not have a peer address", node)
+	}
 }
 
 func (node *Node) GetDistanceTo(other *Node) (dist int) {
