@@ -849,6 +849,11 @@ func (d *Dispatcher) setNodeRloc16(srcid NodeId, rloc16 uint16) {
 func (d *Dispatcher) visStatusPushTransmit(srcnode *Node, s string) {
 	var fcf wpan.FrameControl
 
+	// only visualize `transmit` status emitting in real mode because simulation nodes already have radio events visualized
+	if !d.cfg.Real {
+		return
+	}
+
 	parts := strings.Split(s, ",")
 
 	if len(parts) < 3 {
