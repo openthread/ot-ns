@@ -535,8 +535,8 @@ func (d *Dispatcher) advanceNodeTime(id NodeId, timestamp uint64, force bool) {
 	}
 }
 
-// SendUART sends data to virtual time UART of the target node.
-func (d *Dispatcher) SendUART(id NodeId, data []byte) {
+// SendToUART sends data to virtual time UART of the target node.
+func (d *Dispatcher) SendToUART(id NodeId, data []byte) {
 	simplelogger.AssertTrue(d.cfg.VirtualTimeUART)
 
 	node := d.nodes[id]
@@ -1131,7 +1131,7 @@ func (d *Dispatcher) handleUartWrite(nodeid NodeId, data []byte) {
 	d.cbHandler.OnUartWrite(nodeid, data)
 }
 
-// NotifyExit notifies the dispatcher that the node process has exit.
+// NotifyExit notifies the dispatcher that the node process has exited.
 func (d *Dispatcher) NotifyExit(nodeid NodeId) {
 	d.setSleeping(nodeid)
 }

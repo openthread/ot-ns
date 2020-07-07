@@ -180,7 +180,7 @@ func (node *Node) AssurePrompt() {
 
 func (node *Node) inputCommand(cmd string) {
 	if node.S.cfg.VirtualTimeUART {
-		node.S.Dispatcher().SendUART(node.Id, []byte(cmd+"\n"))
+		node.S.Dispatcher().SendToUART(node.Id, []byte(cmd+"\n"))
 	} else {
 		_, _ = node.pipeIn.Write([]byte(cmd + "\n"))
 	}
