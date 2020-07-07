@@ -562,15 +562,15 @@ func (d *Dispatcher) sendNodeMessage(sit *sendItem) {
 		if dstnode != srcnode && dstnode != nil {
 			if d.checkRadioReachable(srcnode, dstnode) {
 				d.sendOneMessage(sit, srcnode, dstnode)
-				d.visSend(srcnodeid, dstnode.Id, pktframe)
+				d.visSendFrame(srcnodeid, dstnode.Id, pktframe)
 			} else {
-				d.visSend(srcnodeid, InvalidNodeId, pktframe)
+				d.visSendFrame(srcnodeid, InvalidNodeId, pktframe)
 			}
 
 			d.Counters.DispatchByExtAddrSucc++
 		} else {
 			d.Counters.DispatchByExtAddrFail++
-			d.visSend(srcnodeid, InvalidNodeId, pktframe)
+			d.visSendFrame(srcnodeid, InvalidNodeId, pktframe)
 		}
 
 		dispatchedByDstAddr = true
@@ -584,7 +584,7 @@ func (d *Dispatcher) sendNodeMessage(sit *sendItem) {
 				for _, dstnode := range dstnodes {
 					if d.checkRadioReachable(srcnode, dstnode) {
 						d.sendOneMessage(sit, srcnode, dstnode)
-						d.visSend(srcnodeid, dstnode.Id, pktframe)
+						d.visSendFrame(srcnodeid, dstnode.Id, pktframe)
 						dispatchCnt++
 					}
 				}
@@ -594,7 +594,7 @@ func (d *Dispatcher) sendNodeMessage(sit *sendItem) {
 			}
 
 			if dispatchCnt == 0 {
-				d.visSend(srcnodeid, InvalidNodeId, pktframe)
+				d.visSendFrame(srcnodeid, InvalidNodeId, pktframe)
 			}
 
 			dispatchedByDstAddr = true
@@ -609,7 +609,7 @@ func (d *Dispatcher) sendNodeMessage(sit *sendItem) {
 			}
 		}
 
-		d.visSend(srcnodeid, BroadcastNodeId, pktframe)
+		d.visSendFrame(srcnodeid, BroadcastNodeId, pktframe)
 	}
 }
 
@@ -747,7 +747,9 @@ func (d *Dispatcher) handleStatusPush(srcid NodeId, data string) {
 		if len(sp) != 2 {
 			continue
 		}
-		if sp[0] == "role" {
+		if sp[0] == "transmit" {
+			d.visStatusPushTransmit(srcnode, sp[1])
+		} else if sp[0] == "role" {
 			role, err := strconv.Atoi(sp[1])
 			simplelogger.PanicIfError(err)
 			d.vis.SetNodeRole(srcid, visualize.OtDeviceRole(role))
@@ -849,9 +851,88 @@ func (d *Dispatcher) setNodeRloc16(srcid NodeId, rloc16 uint16) {
 	d.vis.SetNodeRloc16(srcid, rloc16)
 }
 
-func (d *Dispatcher) visSend(srcid NodeId, dstid NodeId, pktframe *wpan.MacFrame) {
+func (d *Dispatcher) visStatusPushTransmit(srcnode *Node, s string) {
+	var fcf wpan.FrameControl
+
+	// only visualize `transmit` status emitting in real mode because simulation nodes already have radio events visualized
+	if !d.cfg.Real {
+		return
+	}
+
+	parts := strings.Split(s, ",")
+
+	if len(parts) < 3 {
+		simplelogger.Panicf("invalid status push: transmit=%s", s)
+	}
+
+	channel, err := strconv.Atoi(parts[0])
+	simplelogger.PanicIfError(err)
+	fcfval, err := strconv.ParseUint(parts[1], 16, 16)
+	simplelogger.PanicIfError(err)
+	fcf = wpan.FrameControl(fcfval)
+
+	seq, err := strconv.Atoi(parts[2])
+	simplelogger.PanicIfError(err)
+
+	dstAddrMode := fcf.DstAddrMode()
+
+	visInfo := &visualize.MsgVisualizeInfo{
+		Channel:      uint8(channel),
+		FrameControl: fcf,
+		Seq:          uint8(seq),
+	}
+
+	if dstAddrMode == wpan.DstAddrModeExtended {
+		dstExtend, err := strconv.ParseUint(parts[3], 16, 64)
+		simplelogger.PanicIfError(err)
+
+		visInfo.DstAddrExtended = dstExtend
+
+		dstnode := d.extaddrMap[dstExtend]
+		if dstnode != srcnode && dstnode != nil {
+			d.visSend(srcnode.Id, dstnode.Id, visInfo)
+		} else {
+			d.visSend(srcnode.Id, InvalidNodeId, visInfo)
+		}
+	} else if dstAddrMode == wpan.DstAddrModeShort {
+		dstShortVal, err := strconv.ParseUint(parts[3], 16, 16)
+		simplelogger.PanicIfError(err)
+
+		dstShort := uint16(dstShortVal)
+		visInfo.DstAddrShort = dstShort
+
+		if dstShort != threadconst.BroadcastRloc16 {
+			// unicast message should only be dispatched to target node with the rloc16
+			dstnodes := d.rloc16Map[dstShort]
+
+			if len(dstnodes) > 0 {
+				for _, dstnode := range dstnodes {
+					d.visSend(srcnode.Id, dstnode.Id, visInfo)
+				}
+			} else {
+				d.visSend(srcnode.Id, InvalidNodeId, visInfo)
+			}
+		} else {
+			d.vis.Send(srcnode.Id, BroadcastNodeId, visInfo)
+		}
+	} else {
+		d.vis.Send(srcnode.Id, InvalidNodeId, visInfo)
+	}
+}
+
+func (d *Dispatcher) visSendFrame(srcid NodeId, dstid NodeId, pktframe *wpan.MacFrame) {
+	d.visSend(srcid, dstid, &visualize.MsgVisualizeInfo{
+		Channel:         pktframe.Channel,
+		FrameControl:    pktframe.FrameControl,
+		Seq:             pktframe.Seq,
+		DstAddrShort:    pktframe.DstAddrShort,
+		DstAddrExtended: pktframe.DstAddrExtended,
+	})
+}
+
+func (d *Dispatcher) visSend(srcid NodeId, dstid NodeId, visInfo *visualize.MsgVisualizeInfo) {
 	if dstid == BroadcastNodeId {
-		if pktframe.FrameControl.FrameType() == wpan.FrameTypeAck {
+		if visInfo.FrameControl.FrameType() == wpan.FrameTypeAck {
 			if !d.visOptions.AckMessage {
 				return
 			}
@@ -866,13 +947,7 @@ func (d *Dispatcher) visSend(srcid NodeId, dstid NodeId, pktframe *wpan.MacFrame
 		}
 	}
 
-	d.vis.Send(srcid, dstid, &visualize.MsgVisualizeInfo{
-		Channel:         pktframe.Channel,
-		FrameControl:    pktframe.FrameControl,
-		Seq:             pktframe.Seq,
-		DstAddrShort:    pktframe.DstAddrShort,
-		DstAddrExtended: pktframe.DstAddrExtended,
-	})
+	d.vis.Send(srcid, dstid, visInfo)
 }
 
 func (d *Dispatcher) advanceTime(ts uint64) {
