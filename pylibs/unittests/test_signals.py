@@ -26,6 +26,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+import os
 import logging
 import os
 import signal
@@ -100,10 +101,10 @@ class SignalsTest(OTNSTestCase):
         t.join()
         self.assertRaises(TimeoutExpired, self.ns._otns.wait, timeout=0.1)
 
-        self.ns._otns.send_signal(signal.SIGKILL)
+        self.ns._otns.send_signal(signal.SIGTERM)
         t2.join()
         exit_code = self.ns._otns.wait()
-        self.assertNotEqual(0, exit_code, "exit code should not be 0")
+        self.assertEqual(0, exit_code, "exit code should be 0")
 
     def _test_signal_exit(self, sig: int, duration: float = 1):
         self._setup_simulation()
@@ -121,6 +122,8 @@ class SignalsTest(OTNSTestCase):
 
         if sig == signal.SIGKILL:
             self.assertNotEqual(0, exit_code, "exit code should not be 0")
+            # Kill all ot-cli-ftd child processes.
+            os.system('killall -KILL ot-cli-ftd')
         else:
             self.assertEqual(0, exit_code, "exit code should be 0")
 

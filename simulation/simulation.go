@@ -61,6 +61,7 @@ func NewSimulation(ctx *progctx.ProgCtx, cfg *Config) (*Simulation, error) {
 	dispatcherCfg := dispatcher.DefaultConfig()
 	dispatcherCfg.Speed = cfg.Speed
 	dispatcherCfg.Real = cfg.Real
+	dispatcherCfg.VirtualTimeUART = cfg.VirtualTimeUART
 	s.d = dispatcher.NewDispatcher(s.ctx, dispatcherCfg, s)
 	s.vis = s.d.GetVisualizer()
 	if err := s.removeTmpDir(); err != nil {
@@ -96,6 +97,7 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 		FullNetworkData:    true,
 	})
 
+	node.AssurePrompt()
 	node.setupMode()
 
 	if !s.rawMode {
@@ -119,6 +121,8 @@ func (s *Simulation) Run() {
 	defer s.ctx.WaitDone("simulation")
 	defer simplelogger.Debugf("simulation exit.")
 
+	defer s.Stop()
+
 	s.d.Run()
 }
 
@@ -139,6 +143,10 @@ func (s *Simulation) Channel() int {
 }
 
 func (s *Simulation) Stop() {
+	if s.IsStopped() {
+		return
+	}
+
 	simplelogger.Infof("stopping simulation ...")
 	for _, node := range s.nodes {
 		_ = node.Exit()
@@ -164,6 +172,19 @@ func (s *Simulation) OnNodeFail(nodeid NodeId) {
 func (s *Simulation) OnNodeRecover(nodeid NodeId) {
 	node := s.nodes[nodeid]
 	simplelogger.AssertNotNil(node)
+}
+
+// OnUartWrite notifies the simulation that a node has received some data from UART.
+// It is part of implementation of dispatcher.CallbackHandler.
+func (s *Simulation) OnUartWrite(nodeid NodeId, data []byte) {
+	simplelogger.AssertTrue(s.cfg.VirtualTimeUART)
+
+	node := s.nodes[nodeid]
+	if node == nil {
+		return
+	}
+
+	node.onUartWrite(data)
 }
 
 func (s *Simulation) PostAsync(trivial bool, f func()) {
@@ -234,4 +255,9 @@ func (s *Simulation) Go(duration time.Duration) <-chan struct{} {
 func (s *Simulation) removeTmpDir() error {
 	// tmp directory is used by nodes for saving *.flash files. Need to be removed when simulation started
 	return os.RemoveAll("tmp")
+}
+
+// IsStopped returns if the simulation is already stopped.
+func (s *Simulation) IsStopped() bool {
+	return s.nodes == nil
 }

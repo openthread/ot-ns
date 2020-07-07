@@ -53,12 +53,15 @@ jobs:
           ./script/test go-tests
 
   py-unittests:
-    name: Python${{ matrix.python-version }} Unittests on ${{ matrix.os }}
+    name: Unittests (Py${{ matrix.python-version }}, ${{ matrix.os }}, VIRTUAL_TIME_UART=${{ matrix.VIRTUAL_TIME_UART }})
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         python-version: [3.6]
         os: [ubuntu-latest, macos-10.15]
+        VIRTUAL_TIME_UART: [0, 1]
+    env:
+      VIRTUAL_TIME_UART: ${{ matrix.VIRTUAL_TIME_UART }}
     steps:
       - uses: actions/setup-go@v1
         with:
@@ -73,12 +76,15 @@ jobs:
           ./script/test py-unittests
 
   py-examples:
-    name: Examples (Py${{ matrix.python-version }}, ${{ matrix.os }})
+    name: Examples (Py${{ matrix.python-version }}, ${{ matrix.os }}, VIRTUAL_TIME_UART=${{ matrix.VIRTUAL_TIME_UART }})
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         python-version: [3.6]
         os: [ubuntu-latest, macos-10.15]
+        VIRTUAL_TIME_UART: [0, 1]
+    env:
+      VIRTUAL_TIME_UART: ${{ matrix.VIRTUAL_TIME_UART }}
     steps:
       - uses: actions/setup-go@v1
         with:
@@ -86,15 +92,17 @@ jobs:
       - uses: actions/checkout@v2
       - name: Run Examples
         run: |
+          export VIRTUAL_TIME_UART=${{ matrix.VIRTUAL_TIME_UART }}
           ./script/test py-examples
 
   signals:
-    name: Signals (Py${{ matrix.python-version }}, ${{ matrix.os }})
+    name: Signals (Py${{ matrix.python-version }}, ${{ matrix.os }}, VIRTUAL_TIME_UART=${{ matrix.VIRTUAL_TIME_UART }})
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         python-version: [3.6]
         os: [ubuntu-latest, macos-10.15]
+        VIRTUAL_TIME_UART: [0, 1]
     steps:
       - uses: actions/setup-go@v1
         with:

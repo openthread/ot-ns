@@ -35,6 +35,7 @@ import (
 const (
 	eventTypeAlarmFired    = 0
 	eventTypeRadioReceived = 1
+	eventTypeUartWrite     = 2
 	eventTypeStatusPush    = 5
 )
 
