@@ -64,16 +64,14 @@ type pcapFrameItem struct {
 }
 
 type Config struct {
-	Speed           float64
-	Real            bool
-	VirtualTimeUART bool
+	Speed float64
+	Real  bool
 }
 
 func DefaultConfig() *Config {
 	return &Config{
-		Speed:           1,
-		Real:            false,
-		VirtualTimeUART: false,
+		Speed: 1,
+		Real:  false,
 	}
 }
 
@@ -542,8 +540,6 @@ func (d *Dispatcher) advanceNodeTime(id NodeId, timestamp uint64, force bool) {
 
 // SendToUART sends data to virtual time UART of the target node.
 func (d *Dispatcher) SendToUART(id NodeId, data []byte) {
-	simplelogger.AssertTrue(d.cfg.VirtualTimeUART)
-
 	node := d.nodes[id]
 
 	oldTime := node.CurTime
@@ -1205,9 +1201,6 @@ func (d *Dispatcher) SetVisualizationOptions(opts VisualizationOptions) {
 }
 
 func (d *Dispatcher) handleUartWrite(nodeid NodeId, data []byte) {
-	if !d.cfg.VirtualTimeUART {
-		simplelogger.Fatalf("should use Virtual Time UART: -virtual-time-uart=true")
-	}
 	d.cbHandler.OnUartWrite(nodeid, data)
 }
 

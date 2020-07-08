@@ -52,6 +52,14 @@ var (
 	DoneOrErrorRegexp = regexp.MustCompile(`(Done|Error \d+: .*)`)
 )
 
+type NodeUartType int
+
+const (
+	NodeUartTypeUndefined   NodeUartType = iota
+	NodeUartTypeRealTime    NodeUartType = iota
+	NodeUartTypeVirtualTime NodeUartType = iota
+)
+
 func newNode(s *Simulation, id NodeId, cfg *NodeConfig) (*Node, error) {
 	var err error
 
@@ -69,21 +77,17 @@ func newNode(s *Simulation, id NodeId, cfg *NodeConfig) (*Node, error) {
 		cfg:          cfg,
 		cmd:          cmd,
 		pendingLines: make(chan string, 100),
+		uartType:     NodeUartTypeUndefined,
 	}
 
-	if s.cfg.VirtualTimeUART {
-		node.virtualUartReader, node.virtualUartPipe = io.Pipe()
-		node.pipeOut = bufio.NewReader(node.virtualUartReader)
-	} else {
-		if node.pipeIn, err = cmd.StdinPipe(); err != nil {
-			return nil, err
-		}
+	node.virtualUartReader, node.virtualUartPipe = io.Pipe()
 
-		if node.pipeOut, err = cmd.StdoutPipe(); err != nil {
-			return nil, err
-		}
+	if node.pipeIn, err = cmd.StdinPipe(); err != nil {
+		return nil, err
+	}
 
-		node.pipeOut = bufio.NewReader(node.pipeOut)
+	if node.pipeOut, err = cmd.StdoutPipe(); err != nil {
+		return nil, err
 	}
 
 	node.pipeErr, err = cmd.StderrPipe()
@@ -96,7 +100,8 @@ func newNode(s *Simulation, id NodeId, cfg *NodeConfig) (*Node, error) {
 		return nil, err
 	}
 
-	go node.lineReader()
+	go node.lineReader(node.pipeOut, NodeUartTypeRealTime)
+	go node.lineReader(node.virtualUartReader, NodeUartTypeVirtualTime)
 	return node, nil
 }
 
@@ -114,6 +119,7 @@ type Node struct {
 	pipeErr           io.ReadCloser
 	virtualUartReader *io.PipeReader
 	virtualUartPipe   *io.PipeWriter
+	uartType          NodeUartType
 }
 
 func (node *Node) String() string {
@@ -146,13 +152,8 @@ func (node *Node) Stop() {
 }
 
 func (node *Node) Exit() error {
-	if node.S.cfg.VirtualTimeUART {
-		_ = node.cmd.Process.Kill()
-		_ = node.virtualUartReader.Close()
-	} else {
-		node.inputCommand("exit")
-	}
-	node.expectEOF(DefaultCommandTimeout)
+	_ = node.cmd.Process.Kill()
+	_ = node.virtualUartReader.Close()
 
 	err := node.cmd.Wait()
 	node.S.Dispatcher().NotifyExit(node.Id)
@@ -176,10 +177,12 @@ func (node *Node) AssurePrompt() {
 }
 
 func (node *Node) inputCommand(cmd string) {
-	if node.S.cfg.VirtualTimeUART {
-		node.S.Dispatcher().SendToUART(node.Id, []byte(cmd+"\n"))
-	} else {
+	simplelogger.AssertTrue(node.uartType != NodeUartTypeUndefined)
+
+	if node.uartType == NodeUartTypeRealTime {
 		_, _ = node.pipeIn.Write([]byte(cmd + "\n"))
+	} else {
+		node.S.Dispatcher().SendToUART(node.Id, []byte(cmd+"\n"))
 	}
 }
 
@@ -570,15 +573,18 @@ func (node *Node) GetSingleton() bool {
 	}
 }
 
-func (node *Node) lineReader() {
+func (node *Node) lineReader(reader io.Reader, uartType NodeUartType) {
 	// close the line channel after line reader routine exit
-	defer close(node.pendingLines)
-
-	scanner := bufio.NewScanner(otoutfilter.NewOTOutFilter(node.pipeOut, node.String()))
+	scanner := bufio.NewScanner(otoutfilter.NewOTOutFilter(bufio.NewReader(reader), node.String()))
 	scanner.Split(bufio.ScanLines)
 
 	for scanner.Scan() {
 		line := scanner.Text()
+
+		if node.uartType == NodeUartTypeUndefined {
+			simplelogger.Debugf("%v's UART type is %v", node, uartType)
+			node.uartType = uartType
+		}
 
 		select {
 		case node.pendingLines <- line:
@@ -638,24 +644,6 @@ func (node *Node) expectLine(line interface{}, timeout time.Duration) []string {
 	}
 
 	return output
-}
-
-func (node *Node) expectEOF(timeout time.Duration) {
-	deadline := time.After(timeout)
-
-	for {
-		select {
-		case <-deadline:
-			simplelogger.Panicf("expect EOF, but timeout")
-		case readLine, ok := <-node.pendingLines:
-			if !ok {
-				// EOF
-				return
-			}
-
-			simplelogger.Debugf("%v - %s", node, readLine)
-		}
-	}
 }
 
 func (node *Node) CommandExpectEnabledOrDisabled(cmd string, timeout time.Duration) bool {
@@ -730,4 +718,14 @@ func (node *Node) setupMode() {
 
 func (node *Node) onUartWrite(data []byte) {
 	_, _ = node.virtualUartPipe.Write(data)
+}
+
+func (node *Node) detectVirtualTimeUART() {
+	// Input newline to both Virtual Time UART and stdin and check where node outputs newline
+	node.S.Dispatcher().SendToUART(node.Id, []byte("\n"))
+	_, _ = node.pipeIn.Write([]byte("\n"))
+
+	node.expectLine("", DefaultCommandTimeout)
+	// UART type should have been correctly set when the new line is received from node
+	simplelogger.AssertTrue(node.uartType != NodeUartTypeUndefined)
 }

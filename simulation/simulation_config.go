@@ -34,16 +34,15 @@ const (
 )
 
 type Config struct {
-	NetworkName     string
-	MasterKey       string
-	Panid           uint16
-	Channel         int
-	OtCliPath       string
-	Speed           float64
-	ReadOnly        bool
-	RawMode         bool
-	Real            bool
-	VirtualTimeUART bool
+	NetworkName string
+	MasterKey   string
+	Panid       uint16
+	Channel     int
+	OtCliPath   string
+	Speed       float64
+	ReadOnly    bool
+	RawMode     bool
+	Real        bool
 }
 
 func DefaultConfig() *Config {
@@ -57,6 +56,5 @@ func DefaultConfig() *Config {
 		RawMode:         false,
 		OtCliPath:       "./ot-cli-ftd",
 		Real:            false,
-		VirtualTimeUART: false,
 	}
 }
