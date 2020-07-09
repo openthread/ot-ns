@@ -28,6 +28,7 @@ package visualize_grpc
 
 import (
 	"context"
+
 	. "github.com/openthread/ot-ns/types"
 	"github.com/openthread/ot-ns/visualize"
 	pb "github.com/openthread/ot-ns/visualize/grpc/pb"

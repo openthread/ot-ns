@@ -1829,9 +1829,7 @@ func init() {
 	proto.RegisterType((*Empty)(nil), "visualize_grpc_pb.Empty")
 }
 
-func init() {
-	proto.RegisterFile("visualize_grpc.proto", fileDescriptor_2d9802f2a4ce48dd)
-}
+func init() { proto.RegisterFile("visualize_grpc.proto", fileDescriptor_2d9802f2a4ce48dd) }
 
 var fileDescriptor_2d9802f2a4ce48dd = []byte{
 	// 1504 bytes of a gzipped FileDescriptorProto
