@@ -99,7 +99,7 @@ func (gs *grpcServer) CtrlAddNode(ctx context.Context, req *pb.AddNodeRequest) (
 		SecureDataRequests: req.Mode.SecureDataRequests,
 		FullThreadDevice:   req.Mode.FullThreadDevice,
 		FullNetworkData:    req.Mode.FullNetworkData,
-	})
+	}, NodeId(req.NodeId))
 	return &pb.Empty{}, err
 }
 

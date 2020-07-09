@@ -32,6 +32,7 @@ import (
 	. "github.com/openthread/ot-ns/types"
 	"github.com/openthread/ot-ns/visualize"
 	pb "github.com/openthread/ot-ns/visualize/grpc/pb"
+	"github.com/simonlingoogle/go-simplelogger"
 )
 
 type grpcSimCtrl struct {
@@ -54,7 +55,9 @@ func (gsc *grpcSimCtrl) CtrlSetNodeFailed(nodeid NodeId, failed bool) error {
 	return err
 }
 
-func (gsc *grpcSimCtrl) CtrlAddNode(x, y int, router bool, mode NodeMode) error {
+func (gsc *grpcSimCtrl) CtrlAddNode(x, y int, router bool, mode NodeMode, nodeid NodeId) error {
+	simplelogger.AssertTrue(nodeid == InvalidNodeId || nodeid > 0)
+
 	_, err := gsc.client.CtrlAddNode(gsc.ctx, &pb.AddNodeRequest{
 		X:        int32(x),
 		Y:        int32(y),
@@ -65,6 +68,7 @@ func (gsc *grpcSimCtrl) CtrlAddNode(x, y int, router bool, mode NodeMode) error 
 			FullThreadDevice:   mode.FullThreadDevice,
 			FullNetworkData:    mode.FullNetworkData,
 		},
+		NodeId: uint32(nodeid),
 	})
 	return err
 }

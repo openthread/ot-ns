@@ -69,23 +69,37 @@ func (sc *simulationController) CtrlMoveNodeTo(nodeid NodeId, x, y int) error {
 	return nil
 }
 
-func (sc *simulationController) CtrlAddNode(x, y int, isRouter bool, mode NodeMode) error {
+func (sc *simulationController) CtrlAddNode(x, y int, isRouter bool, mode NodeMode, nodeid NodeId) error {
 	sim := sc.sim
 	nodeCfg := DefaultNodeConfig()
 	nodeCfg.IsRouter = isRouter
 	nodeCfg.IsMtd = !isRouter && !mode.FullThreadDevice
 	nodeCfg.RxOffWhenIdle = !isRouter && !mode.RxOnWhenIdle
 	nodeCfg.X, nodeCfg.Y = x, y
+	if nodeid != InvalidNodeId {
+		nodeCfg.ID = nodeid
+	}
 
-	sim.PostAsync(true, func() {
+	var err error
+
+	sc.postAsyncWait(true, func() {
 		simplelogger.Infof("CtrlAddNode: %+v", nodeCfg)
-		_, err := sim.AddNode(nodeCfg)
+		_, err = sim.AddNode(nodeCfg)
 		if err != nil {
 			simplelogger.Errorf("add node failed: %v", err)
-			return
 		}
 	})
-	return nil
+
+	return err
+}
+
+func (sc *simulationController) postAsyncWait(trivial bool, f func()) {
+	done := make(chan struct{})
+	sc.sim.PostAsync(trivial, func() {
+		f()
+		close(done)
+	})
+	<-done
 }
 
 type readonlySimulationController struct {
@@ -101,7 +115,7 @@ func (r readonlySimulationController) CtrlSetNodeFailed(nodeid NodeId, failed bo
 
 var readonlySimulationError = errors.Errorf("simulation is readonly")
 
-func (r readonlySimulationController) CtrlAddNode(x, y int, router bool, mode NodeMode) error {
+func (r readonlySimulationController) CtrlAddNode(x, y int, router bool, mode NodeMode, nodeid NodeId) error {
 	return readonlySimulationError
 }
 
