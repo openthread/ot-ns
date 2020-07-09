@@ -968,7 +968,7 @@ func (d *Dispatcher) visStatusPushTransmit(srcnode *Node, s string) {
 			d.vis.Send(srcnode.Id, BroadcastNodeId, visInfo)
 		}
 	} else {
-		d.vis.Send(srcnode.Id, InvalidNodeId, visInfo)
+		d.vis.Send(srcnode.Id, BroadcastNodeId, visInfo)
 	}
 }
 
