@@ -1213,5 +1213,7 @@ func (d *Dispatcher) handleUartWrite(nodeid NodeId, data []byte) {
 
 // NotifyExit notifies the dispatcher that the node process has exited.
 func (d *Dispatcher) NotifyExit(nodeid NodeId) {
-	d.setSleeping(nodeid)
+	if !d.cfg.Real {
+		d.setSleeping(nodeid)
+	}
 }
