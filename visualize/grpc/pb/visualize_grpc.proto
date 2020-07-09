@@ -194,6 +194,7 @@ message AddNodeRequest {
     int32 y = 2;
     bool is_router = 3;
     NodeMode mode = 4;
+    uint32 node_id = 5;
 }
 
 message DeleteNodeRequest {

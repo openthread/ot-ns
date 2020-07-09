@@ -80,7 +80,10 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 		nodeid = s.genNodeId()
 	}
 
-	simplelogger.AssertNil(s.nodes[nodeid])
+	if s.nodes[nodeid] != nil {
+		return nil, errors.Errorf("node %d already exists", nodeid)
+	}
+
 	node, err := newNode(s, nodeid, cfg)
 	if err != nil {
 		simplelogger.Errorf("simulation add node failed: %v", err)
