@@ -82,7 +82,7 @@ func (sc *simulationController) CtrlAddNode(x, y int, isRouter bool, mode NodeMo
 
 	var err error
 
-	sim.PostAsync(true, func() {
+	sc.postAsyncWait(true, func() {
 		simplelogger.Infof("CtrlAddNode: %+v", nodeCfg)
 		_, err = sim.AddNode(nodeCfg)
 		if err != nil {
@@ -91,6 +91,15 @@ func (sc *simulationController) CtrlAddNode(x, y int, isRouter bool, mode NodeMo
 	})
 
 	return err
+}
+
+func (sc *simulationController) postAsyncWait(trivial bool, f func()) {
+	done := make(chan struct{})
+	sc.sim.PostAsync(trivial, func() {
+		f()
+		close(done)
+	})
+	<-done
 }
 
 type readonlySimulationController struct {
