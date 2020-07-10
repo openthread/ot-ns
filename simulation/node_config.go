@@ -26,10 +26,6 @@
 
 package simulation
 
-import (
-	"runtime"
-)
-
 type NodeConfig struct {
 	ID            int
 	X, Y          int
@@ -48,13 +44,5 @@ func DefaultNodeConfig() *NodeConfig {
 		IsMtd:         false,
 		RxOffWhenIdle: false,
 		RadioRange:    160,
-	}
-}
-
-func (nc *NodeConfig) Executive() string {
-	if runtime.GOOS == "windows" {
-		return "ot-cli-ftd.exe"
-	} else {
-		return "ot-cli-ftd"
 	}
 }

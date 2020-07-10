@@ -34,7 +34,6 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -54,17 +53,15 @@ var (
 )
 
 func newNode(s *Simulation, id NodeId, cfg *NodeConfig) (*Node, error) {
+	var err error
+
 	flashFile := fmt.Sprintf("tmp/0_%d.flash", id)
 	if err := os.RemoveAll(flashFile); err != nil {
 		simplelogger.Errorf("Remove flash file %s failed: %+v", flashFile, err)
 	}
 
-	exePath, err := filepath.Abs(s.cfg.OtCliPath)
-	if err != nil {
-		return nil, err
-	}
-	simplelogger.Debugf("node exe path: %s", exePath)
-	cmd := exec.CommandContext(context.Background(), exePath, strconv.Itoa(id))
+	simplelogger.Debugf("node exe path: %s", s.cfg.OtCliPath)
+	cmd := exec.CommandContext(context.Background(), s.cfg.OtCliPath, strconv.Itoa(id))
 
 	node := &Node{
 		S:            s,
