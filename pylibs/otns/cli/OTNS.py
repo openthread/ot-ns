@@ -155,7 +155,7 @@ class OTNS(object):
 
             output.append(line)
 
-    def add(self, type: str, x: float = None, y: float = None, id=None, radio_range=None) -> int:
+    def add(self, type: str, x: float = None, y: float = None, id=None, radio_range=None, executable=None) -> int:
         """
         Add a new node to the simulation.
 
@@ -164,6 +164,7 @@ class OTNS(object):
         :param y: node position Y
         :param id: node ID, or None to use next available node ID
         :param radio_range: node radio range or None for default
+        :param executable: specify the executable for the new node, or use default executable if None
 
         :return: added node ID
         """
@@ -178,6 +179,9 @@ class OTNS(object):
 
         if radio_range is not None:
             cmd += f' rr {radio_range}'
+
+        if executable:
+            cmd += f' exe "{executable}"'
 
         return self._expect_int(self._do_command(cmd))
 

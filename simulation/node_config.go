@@ -27,22 +27,24 @@
 package simulation
 
 type NodeConfig struct {
-	ID            int
-	X, Y          int
-	IsMtd         bool
-	IsRouter      bool
-	RxOffWhenIdle bool
-	RadioRange    int
+	ID             int
+	X, Y           int
+	IsMtd          bool
+	IsRouter       bool
+	RxOffWhenIdle  bool
+	RadioRange     int
+	ExecutablePath string
 }
 
 func DefaultNodeConfig() *NodeConfig {
 	return &NodeConfig{
-		ID:            -1, // -1 for the next available nodeid
-		X:             0,
-		Y:             0,
-		IsRouter:      true,
-		IsMtd:         false,
-		RxOffWhenIdle: false,
-		RadioRange:    160,
+		ID:             -1, // -1 for the next available nodeid
+		X:              0,
+		Y:              0,
+		IsRouter:       true,
+		IsMtd:          false,
+		RxOffWhenIdle:  false,
+		RadioRange:     160,
+		ExecutablePath: "",
 	}
 }

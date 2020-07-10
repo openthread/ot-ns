@@ -235,12 +235,19 @@ type AddCmd struct {
 	X          *int            `( "x" (@Int|@Float) ` //nolint
 	Y          *int            `| "y" (@Int|@Float) ` //nolint
 	Id         *AddNodeId      `| @@`                 //nolint
-	RadioRange *RadioRangeFlag `|@@ )*`               //nolint
+	RadioRange *RadioRangeFlag `| @@`                 //nolint
+	Executable *ExecutableFlag `| @@ )*`              //nolint
 }
 
 //noinspection GoStructTag
 type RadioRangeFlag struct {
 	Val int `"rr" @Int` //nolint
+}
+
+//noinspection GoStructTag
+type ExecutableFlag struct {
+	Dummy struct{} `"exe"`   //nolint
+	Path  string   `@String` //nolint
 }
 
 //noinspection MaxSpeedFlag
