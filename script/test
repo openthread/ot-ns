@@ -28,7 +28,7 @@
 # shellcheck source=script/common.sh
 . "$(dirname "$0")"/common.sh
 
-set -e
+set -euox pipefail
 
 OT_DIR=${OT_DIR:-$HOME/src/openthread}
 if [[ $(uname) == "Darwin" ]]; then
@@ -74,10 +74,10 @@ get_openthread()
 {
     if ! [[ -x $OT_DIR ]]; then
         mkdir -p "$(dirname "$OT_DIR")"
-        git clone https://github.com/openthread/openthread.git "$OT_DIR"
+        git clone https://github.com/openthread/openthread.git "$OT_DIR" --branch master --depth 1
         (
             cd "$OT_DIR"
-            ./script/bootstrap
+            repeat 3 ./script/bootstrap
             ./bootstrap
         )
     fi
