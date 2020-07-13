@@ -55,7 +55,7 @@ func DefaultConfig() *Config {
 		Speed:           1,
 		ReadOnly:        false,
 		RawMode:         false,
-		OtCliPath:       "ot-cli-ftd",
+		OtCliPath:       "./ot-cli-ftd",
 		Real:            false,
 		VirtualTimeUART: false,
 	}

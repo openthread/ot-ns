@@ -75,7 +75,7 @@ var (
 
 func parseArgs() {
 	flag.StringVar(&args.Speed, "speed", "1", "set simulating speed")
-	flag.StringVar(&args.OtCliPath, "ot-cli", "ot-cli-ftd", "specify the OT CLI executable")
+	flag.StringVar(&args.OtCliPath, "ot-cli", "./ot-cli-ftd", "specify the OT CLI executable")
 	flag.BoolVar(&args.AutoGo, "autogo", true, "auto go")
 	flag.BoolVar(&args.ReadOnly, "readonly", false, "readonly simulation can not be manipulated")
 	flag.StringVar(&args.LogLevel, "log", "warn", "set logging level")
