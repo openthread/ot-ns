@@ -47,14 +47,14 @@ type Config struct {
 
 func DefaultConfig() *Config {
 	return &Config{
-		NetworkName:     DefaultNetworkName,
-		MasterKey:       DefaultMasterKey,
-		Panid:           DefaultPanid,
-		Channel:         DefaultChannel,
-		Speed:           1,
-		ReadOnly:        false,
-		RawMode:         false,
-		OtCliPath:       "./ot-cli-ftd",
-		Real:            false,
+		NetworkName: DefaultNetworkName,
+		MasterKey:   DefaultMasterKey,
+		Panid:       DefaultPanid,
+		Channel:     DefaultChannel,
+		Speed:       1,
+		ReadOnly:    false,
+		RawMode:     false,
+		OtCliPath:   "./ot-cli-ftd",
+		Real:        false,
 	}
 }
