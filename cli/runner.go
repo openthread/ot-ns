@@ -27,164 +27,22 @@
 package cli
 
 import (
-	"fmt"
-	"io"
-	"os"
 	"regexp"
-	"strings"
 
-	. "github.com/openthread/ot-ns/types"
+	"github.com/openthread/ot-ns/cli/runcli"
 	"github.com/simonlingoogle/go-simplelogger"
-
-	"github.com/chzyer/readline"
-)
-
-const (
-	Prompt = "> "
 )
 
 var (
-	contextNodeId          = InvalidNodeId
-	readlineInstance       *readline.Instance
 	contextLessCommandsPat = regexp.MustCompile(`(exit|node)\b`)
 )
-
-func enterNodeContext(nodeid NodeId) bool {
-	simplelogger.AssertTrue(nodeid == InvalidNodeId || nodeid > 0)
-	if contextNodeId == nodeid {
-		return false
-	}
-
-	contextNodeId = nodeid
-	if nodeid == InvalidNodeId {
-		readlineInstance.SetPrompt(Prompt)
-	} else {
-		readlineInstance.SetPrompt(fmt.Sprintf("node %d%s", contextNodeId, Prompt))
-	}
-	return true
-}
 
 func Run(cr *CmdRunner) error {
 	defer simplelogger.Debugf("CLI exit")
 
-	stdinFd := int(os.Stdin.Fd())
-	stdinIsTerminal := readline.IsTerminal(stdinFd)
-	if stdinIsTerminal {
-		stdinState, err := readline.GetState(stdinFd)
-		if err != nil {
-			return err
-		}
-
-		defer func() {
-			_ = readline.Restore(stdinFd, stdinState)
-		}()
-	}
-
-	stdoutFd := int(os.Stdout.Fd())
-	stdoutIsTerminal := readline.IsTerminal(stdoutFd)
-	if stdoutIsTerminal {
-		stdoutState, err := readline.GetState(stdoutFd)
-		if err != nil {
-			return err
-		}
-		defer func() {
-			_ = readline.Restore(stdoutFd, stdoutState)
-		}()
-	}
-
-	l, err := readline.NewEx(&readline.Config{
-		Prompt:          Prompt,
-		HistoryFile:     "/tmp/otns-cmds.tmp",
-		InterruptPrompt: "^C",
-		EOFPrompt:       "exit",
-
-		HistorySearchFold: true,
-		FuncFilterInputRune: func(r rune) (rune, bool) {
-			switch r {
-			// block CtrlZ feature
-			case readline.CharCtrlZ:
-				return r, false
-			}
-			return r, true
-		},
+	return runcli.RunCli(cr, runcli.CliOptions{
+		EchoInput: false,
 	})
-
-	if err != nil {
-		return err
-	}
-	defer func() {
-		_ = l.Close()
-	}()
-	readlineInstance = l
-
-	for {
-		line, err := l.Readline()
-
-		if cr.ctx.Err() != nil {
-			// program exited, quit console too
-			return nil
-		}
-
-		if err == readline.ErrInterrupt {
-			if len(line) == 0 {
-				return nil
-			} else {
-				continue
-			}
-		} else if err == io.EOF {
-			return nil
-		} else if err != nil {
-			return err
-		}
-
-		line = strings.TrimSpace(line)
-		if len(line) == 0 {
-			continue
-		}
-
-		if contextNodeId != InvalidNodeId && !isContextlessCommand(line) {
-			// run the command in node context
-			cmd := &Command{
-				Node: &NodeCmd{
-					Node:    NodeSelector{Id: contextNodeId},
-					Command: &line,
-				},
-			}
-			cc := cr.Execute(cmd)
-
-			if cc.Err() != nil {
-				if _, err := fmt.Fprintf(os.Stdout, "Error: %v\n", cc.Err()); err != nil {
-					return err
-				}
-			} else {
-				if _, err := fmt.Fprintf(os.Stdout, "Done\n"); err != nil {
-					return err
-				}
-			}
-		} else {
-			// run the OTNS-CLI command
-			cmd := &Command{}
-			if err := ParseBytes([]byte(line), cmd); err != nil {
-				if _, err := fmt.Fprintf(os.Stdout, "Error: %v\n", err); err != nil {
-					return err
-				}
-			} else {
-				cc := cr.Execute(cmd)
-
-				if cc.Err() != nil {
-					if _, err := fmt.Fprintf(os.Stdout, "Error: %v\n", cc.Err()); err != nil {
-						return err
-					}
-				} else {
-					if _, err := fmt.Fprintf(os.Stdout, "Done\n"); err != nil {
-						return err
-					}
-				}
-			}
-		}
-
-		_ = os.Stdout.Sync()
-	}
 }
 
 func isContextlessCommand(line string) bool {
