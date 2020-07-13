@@ -34,29 +34,27 @@ const (
 )
 
 type Config struct {
-	NetworkName     string
-	MasterKey       string
-	Panid           uint16
-	Channel         int
-	OtCliPath       string
-	Speed           float64
-	ReadOnly        bool
-	RawMode         bool
-	Real            bool
-	VirtualTimeUART bool
+	NetworkName string
+	MasterKey   string
+	Panid       uint16
+	Channel     int
+	OtCliPath   string
+	Speed       float64
+	ReadOnly    bool
+	RawMode     bool
+	Real        bool
 }
 
 func DefaultConfig() *Config {
 	return &Config{
-		NetworkName:     DefaultNetworkName,
-		MasterKey:       DefaultMasterKey,
-		Panid:           DefaultPanid,
-		Channel:         DefaultChannel,
-		Speed:           1,
-		ReadOnly:        false,
-		RawMode:         false,
-		OtCliPath:       "./ot-cli-ftd",
-		Real:            false,
-		VirtualTimeUART: false,
+		NetworkName: DefaultNetworkName,
+		MasterKey:   DefaultMasterKey,
+		Panid:       DefaultPanid,
+		Channel:     DefaultChannel,
+		Speed:       1,
+		ReadOnly:    false,
+		RawMode:     false,
+		OtCliPath:   "./ot-cli-ftd",
+		Real:        false,
 	}
 }

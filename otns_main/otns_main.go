@@ -194,20 +194,7 @@ func createSimulation(ctx *progctx.ProgCtx) *simulation.Simulation {
 	simcfg.RawMode = args.RawMode
 	simcfg.Real = args.Real
 
-	simcfg.VirtualTimeUART = parseVirtualTimeUARTFromEnv()
-
 	sim, err := simulation.NewSimulation(ctx, simcfg)
 	simplelogger.FatalIfError(err)
 	return sim
-}
-
-func parseVirtualTimeUARTFromEnv() bool {
-	val := os.Getenv("VIRTUAL_TIME_UART")
-	if val == "" {
-		val = "0"
-	}
-	simplelogger.Infof("env VIRTUAL_TIME_UART=%s", val)
-	ival, err := strconv.Atoi(val)
-	simplelogger.FatalfIfError(err, "invalid VIRTUAL_TIME_UART: %s", val)
-	return ival != 0
 }

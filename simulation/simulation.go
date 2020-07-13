@@ -61,7 +61,6 @@ func NewSimulation(ctx *progctx.ProgCtx, cfg *Config) (*Simulation, error) {
 	dispatcherCfg := dispatcher.DefaultConfig()
 	dispatcherCfg.Speed = cfg.Speed
 	dispatcherCfg.Real = cfg.Real
-	dispatcherCfg.VirtualTimeUART = cfg.VirtualTimeUART
 	s.d = dispatcher.NewDispatcher(s.ctx, dispatcherCfg, s)
 	s.vis = s.d.GetVisualizer()
 	if err := s.removeTmpDir(); err != nil {
@@ -100,7 +99,8 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 		FullNetworkData:    true,
 	})
 
-	node.AssurePrompt()
+	node.detectVirtualTimeUART()
+
 	node.setupMode()
 
 	if !s.rawMode {
@@ -180,8 +180,6 @@ func (s *Simulation) OnNodeRecover(nodeid NodeId) {
 // OnUartWrite notifies the simulation that a node has received some data from UART.
 // It is part of implementation of dispatcher.CallbackHandler.
 func (s *Simulation) OnUartWrite(nodeid NodeId, data []byte) {
-	simplelogger.AssertTrue(s.cfg.VirtualTimeUART)
-
 	node := s.nodes[nodeid]
 	if node == nil {
 		return
