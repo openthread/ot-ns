@@ -68,8 +68,12 @@ func newNode(s *Simulation, id NodeId, cfg *NodeConfig) (*Node, error) {
 		simplelogger.Errorf("Remove flash file %s failed: %+v", flashFile, err)
 	}
 
-	simplelogger.Debugf("node exe path: %s", s.cfg.OtCliPath)
-	cmd := exec.CommandContext(context.Background(), s.cfg.OtCliPath, strconv.Itoa(id))
+	otCliPath := s.cfg.OtCliPath
+	if cfg.ExecutablePath != "" {
+		otCliPath = cfg.ExecutablePath
+	}
+	simplelogger.Debugf("node exe path: %s", otCliPath)
+	cmd := exec.CommandContext(context.Background(), otCliPath, strconv.Itoa(id))
 
 	node := &Node{
 		S:            s,
