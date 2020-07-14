@@ -141,8 +141,8 @@ stress_tests()
     install_deps
     install_otns
     build_openthread
-    cd $OTBIN_DIR
-    python3 $OTNSDIR/pylibs/stress_tests/run_stress_suite.py "$@"
+    cd "$OTBIN_DIR"
+    python3 "$OTNSDIR"/pylibs/stress_tests/run_stress_suite.py "$@"
     cd -
 }
 
@@ -167,7 +167,7 @@ main()
                 shift 1
                 ;;
             stress-tests)
-                stress_tests $2
+                stress_tests "$2"
                 shift 2
                 ;;
             *)
