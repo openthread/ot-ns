@@ -34,9 +34,10 @@ YGAP = 100
 RADIO_RANGE = int(XGAP * 1.5)
 
 LARGE_N = 8
+PACKET_LOSS_RATIO = 0.9
 
-SIMULATE_TIME = 60
-REPEAT = 100 if os.getenv('GITHUB_ACTIONS') else 1
+SIMULATE_TIME = 3600
+REPEAT = 10 if os.getenv('GITHUB_ACTIONS') else 1
 
 
 class StressTest(BaseStressTest):
@@ -47,7 +48,7 @@ class StressTest(BaseStressTest):
                                          ["Simulation Time", "Execution Time", "Average Partition Count in 60s"])
 
     def run(self):
-        self.ns.packet_loss_ratio = 0.2
+        self.ns.packet_loss_ratio = PACKET_LOSS_RATIO
 
         durations = []
         partition_counts = []
@@ -64,7 +65,8 @@ class StressTest(BaseStressTest):
 
         for r in range(n):
             for c in range(n):
-                self.ns.add("router", 50 + XGAP * c, 50 + YGAP * r, radio_range=RADIO_RANGE)
+                id = self.ns.add("router", 50 + XGAP * c, 50 + YGAP * r, radio_range=RADIO_RANGE)
+                self.ns.node_cmd(id, f'childtimeout {5}')
 
         t0 = time.time()
         self.ns.go(SIMULATE_TIME)
