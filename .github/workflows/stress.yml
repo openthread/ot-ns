@@ -59,11 +59,3 @@ jobs:
       - name: Stress Test
         run: |
           ./script/test stress-tests ${{ matrix.suite }}
-  stress-report:
-    name: Generate Report
-    runs-on: ubuntu-latest
-    needs: [stress-tests]
-    steps:
-      - uses: actions/checkout@v2
-      - run: |
-          ./script/test gen-stress-tests-report
