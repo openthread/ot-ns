@@ -285,11 +285,10 @@ func (d *Dispatcher) handleRecvEvent(evt *event) {
 	if _, ok := d.nodes[nodeid]; !ok {
 		if _, deleted := d.deletedNodes[nodeid]; !deleted {
 			// can not find the node, and the node is not registered (created by OTNS)
-			d.newNode(nodeid, -1, -1, 10000, DefaultNodeMode())
-		} else {
-			// the node is already deleted, ignore this message
-			return
+			simplelogger.Warnf("unexpect event (type %v) received from Node %v", evt.Type, evt.NodeId)
 		}
+
+		return
 	}
 
 	// assign source address from event to node
