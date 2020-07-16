@@ -57,5 +57,7 @@ jobs:
           mkdir -p /home/runner/work/_temp/_github_home
       - uses: actions/checkout@v2
       - name: Stress Test
+        env:
+          STRESS_LEVEL: 10
         run: |
           ./script/test stress-tests ${{ matrix.suite }}

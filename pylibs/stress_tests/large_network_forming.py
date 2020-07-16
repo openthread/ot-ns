@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+#
 # Copyright (c) 2020, The OTNS Authors.
 # All rights reserved.
 #
@@ -24,6 +25,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+#
 import os
 import time
 
@@ -37,7 +39,7 @@ LARGE_N = 8
 PACKET_LOSS_RATIO = 0.9
 
 SIMULATE_TIME = 3600
-REPEAT = 10 if os.getenv('GITHUB_ACTIONS') else 1
+REPEAT = int(os.getenv('STRESS_LEVEL', '1'))
 
 
 class StressTest(BaseStressTest):
