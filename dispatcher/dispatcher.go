@@ -285,11 +285,10 @@ func (d *Dispatcher) handleRecvEvent(evt *event) {
 	if _, ok := d.nodes[nodeid]; !ok {
 		if _, deleted := d.deletedNodes[nodeid]; !deleted {
 			// can not find the node, and the node is not registered (created by OTNS)
-			d.newNode(nodeid, -1, -1, 10000, DefaultNodeMode())
-		} else {
-			// the node is already deleted, ignore this message
-			return
+			simplelogger.Warnf("unexpect event (type %v) received from Node %v", evt.Type, evt.NodeId)
 		}
+
+		return
 	}
 
 	// assign source address from event to node
@@ -863,19 +862,21 @@ func (d *Dispatcher) AddNode(nodeid NodeId, x, y int, radioRange int, mode NodeM
 	simplelogger.Infof("dispatcher add node %d", nodeid)
 	node := d.newNode(nodeid, x, y, radioRange, mode)
 
-	// Wait until node's extended address is emitted
-	// This helps OTNS to make sure that the child process is ready to receive UDP events
-	t0 := time.Now()
-	deadline := t0.Add(time.Second * 10)
-	for node.ExtAddr == InvalidExtAddr && time.Now().Before(deadline) {
-		d.RecvEvents()
-	}
+	if !d.cfg.Real {
+		// Wait until node's extended address is emitted (but not for real devices)
+		// This helps OTNS to make sure that the child process is ready to receive UDP events
+		t0 := time.Now()
+		deadline := t0.Add(time.Second * 10)
+		for node.ExtAddr == InvalidExtAddr && time.Now().Before(deadline) {
+			d.RecvEvents()
+		}
 
-	if node.ExtAddr == InvalidExtAddr {
-		simplelogger.Panicf("expect node %d's extaddr to be valid, but failed", nodeid)
-	} else {
-		takeTime := time.Since(t0)
-		simplelogger.Debugf("node %d's extaddr becomes valid in %v", nodeid, takeTime)
+		if node.ExtAddr == InvalidExtAddr {
+			simplelogger.Panicf("expect node %d's extaddr to be valid, but failed", nodeid)
+		} else {
+			takeTime := time.Since(t0)
+			simplelogger.Debugf("node %d's extaddr becomes valid in %v", nodeid, takeTime)
+		}
 	}
 }
 
