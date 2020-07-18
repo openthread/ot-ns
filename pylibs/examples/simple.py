@@ -31,7 +31,7 @@ from otns.cli.errors import OTNSExitedError
 
 def main():
     ns = OTNS(otns_args=["-log", "debug"])
-
+    ns.set_title("Simple Example")
     ns.web()
 
     ns.add("router", x=300, y=300)

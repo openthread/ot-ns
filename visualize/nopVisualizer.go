@@ -111,6 +111,8 @@ func (nv nopVisualizer) OnNodeFail(NodeId) {
 func (nv nopVisualizer) OnNodeRecover(NodeId) {
 
 }
+func (nv nopVisualizer) SetTitle(titleInfo TitleInfo) {
+}
 
 func NewNopVisualizer() Visualizer {
 	return nopVisualizer{}

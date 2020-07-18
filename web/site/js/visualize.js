@@ -183,6 +183,10 @@ function loadOk() {
                 e = resp.getOnExtAddrChange();
                 vis.visOnExtAddrChange(e.getNodeId(), e.getExtAddr());
                 break;
+            case VisualizeEvent.TypeCase.SET_TITLE:
+                e = resp.getSetTitle();
+                vis.visSetTitle(e.getTitle(), e.getX(), e.getY(), e.getFontSize());
+                break;
             default:
                 console.log('unknown event!!! ' + resp.getTypeCase());
                 break

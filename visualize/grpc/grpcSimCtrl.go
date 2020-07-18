@@ -40,6 +40,16 @@ type grpcSimCtrl struct {
 	client pb.VisualizeGrpcServiceClient
 }
 
+func (gsc *grpcSimCtrl) CtrlSetTitle(titleInfo visualize.TitleInfo) error {
+	_, err := gsc.client.CtrlSetTitle(gsc.ctx, &pb.SetTitleEvent{
+		Title:    titleInfo.Title,
+		X:        int32(titleInfo.X),
+		Y:        int32(titleInfo.Y),
+		FontSize: int32(titleInfo.FontSize),
+	})
+	return err
+}
+
 func (gsc *grpcSimCtrl) CtrlSetSpeed(speed float64) error {
 	_, err := gsc.client.CtrlSetSpeed(gsc.ctx, &pb.SetSpeedRequest{
 		Speed: speed,

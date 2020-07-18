@@ -601,6 +601,28 @@ class OTNS(object):
 
         return vopts
 
+    def set_title(self, title: str, x: int = None, y: int = None, font_size: int = None) -> None:
+        """
+        Set simulation title.
+
+        :param title: title text
+        :param x: X coordinate of title
+        :param y: Y coordinate of title
+        :param font_size: Font size of title
+        """
+        cmd = f'title "{title}"'
+
+        if x is not None:
+            cmd += f' x {x}'
+
+        if y is not None:
+            cmd += f' y {y}'
+
+        if font_size is not None:
+            cmd += f' fs {font_size}'
+
+        self._do_command(cmd)
+
     def __enter__(self):
         return self
 

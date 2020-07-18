@@ -35,6 +35,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openthread/ot-ns/visualize"
+
 	"github.com/openthread/ot-ns/web"
 
 	"github.com/openthread/ot-ns/progctx"
@@ -187,6 +189,8 @@ func (rt *CmdRunner) Execute(cmd *Command) (cc *CommandContext) {
 		rt.executeConfigVisualization(cc, cc.ConfigVisualization)
 	} else if cmd.Debug != nil {
 		rt.executeDebug(cc, cmd.Debug)
+	} else if cmd.Title != nil {
+		rt.executeTitle(cc, cmd.Title)
 	} else if cmd.DemoLegend != nil {
 		rt.executeDemoLegend(cc, cmd.DemoLegend)
 	} else if cmd.Exit != nil {
@@ -694,6 +698,26 @@ func (rt *CmdRunner) enterNodeContext(nodeid NodeId) bool {
 
 	rt.contextNodeId = nodeid
 	return true
+}
+
+func (rt *CmdRunner) executeTitle(cc *CommandContext, cmd *TitleCmd) {
+	simplelogger.Warnf("title %#v", cmd)
+	rt.postAsyncWait(func(sim *simulation.Simulation) {
+		titleInfo := visualize.DefaultTitleInfo()
+
+		titleInfo.Title = cmd.Title
+		if cmd.X != nil {
+			titleInfo.X = *cmd.X
+		}
+		if cmd.Y != nil {
+			titleInfo.Y = *cmd.Y
+		}
+		if cmd.FontSize != nil {
+			titleInfo.FontSize = *cmd.FontSize
+		}
+
+		sim.SetTitleInfo(titleInfo)
+	})
 }
 
 func NewCmdRunner(ctx *progctx.ProgCtx, sim *simulation.Simulation) *CmdRunner {

@@ -93,6 +93,15 @@ func (sc *simulationController) CtrlAddNode(x, y int, isRouter bool, mode NodeMo
 	return err
 }
 
+func (sc *simulationController) CtrlSetTitle(titleInfo visualize.TitleInfo) error {
+	sim := sc.sim
+	sc.postAsyncWait(false, func() {
+		sim.SetTitleInfo(titleInfo)
+	})
+
+	return nil
+}
+
 func (sc *simulationController) postAsyncWait(trivial bool, f func()) {
 	done := make(chan struct{})
 	sc.sim.PostAsync(trivial, func() {
@@ -124,6 +133,10 @@ func (r readonlySimulationController) CtrlMoveNodeTo(nodeid NodeId, x, y int) er
 }
 
 func (r readonlySimulationController) CtrlDeleteNode(nodeid NodeId) error {
+	return readonlySimulationError
+}
+
+func (r readonlySimulationController) CtrlSetTitle(titleInfo visualize.TitleInfo) error {
 	return readonlySimulationError
 }
 
