@@ -56,6 +56,7 @@ type Command struct {
 	Radio               *RadioCmd               `| @@` //nolint
 	Scan                *ScanCmd                `| @@` //nolint
 	Speed               *SpeedCmd               `| @@` //nolint
+	Title               *TitleCmd               `| @@` //nolint
 	Web                 *WebCmd                 `| @@` //nolint
 }
 
@@ -226,6 +227,15 @@ type SpeedCmd struct {
 	Cmd   struct{}      `"speed"`               //nolint
 	Max   *MaxSpeedFlag `( @@`                  //nolint
 	Speed *float64      `| [ (@Int|@Float) ] )` //nolint
+}
+
+//noinspection GoStructTag
+type TitleCmd struct {
+	Cmd      struct{} `"title"`              //nolint
+	Title    string   `@String`              //nolint
+	X        *int     `( "x" (@Int|@Float) ` //nolint
+	Y        *int     `| "y" (@Int|@Float) ` //nolint
+	FontSize *int     `| "fs" @Int )*`       //nolint
 }
 
 //noinspection GoStructTag

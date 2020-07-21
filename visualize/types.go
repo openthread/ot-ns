@@ -59,6 +59,7 @@ type Visualizer interface {
 	CountDown(duration time.Duration, text string)
 	SetParent(id NodeId, extaddr uint64)
 	OnExtAddrChange(id NodeId, extaddr uint64)
+	SetTitle(titleInfo TitleInfo)
 }
 
 type MsgVisualizeInfo struct {
@@ -100,3 +101,19 @@ const (
 	OtDeviceRoleRouter   OtDeviceRole = 3 ///< The Thread Router role.
 	OtDeviceRoleLeader   OtDeviceRole = 4 ///< The Thread Leader role.
 )
+
+type TitleInfo struct {
+	Title    string
+	X        int
+	Y        int
+	FontSize int
+}
+
+func DefaultTitleInfo() TitleInfo {
+	return TitleInfo{
+		Title:    "",
+		X:        0,
+		Y:        20,
+		FontSize: 20,
+	}
+}

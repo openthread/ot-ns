@@ -32,6 +32,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/openthread/ot-ns/visualize"
+
 	"github.com/openthread/ot-ns/types"
 	. "github.com/openthread/ot-ns/types"
 
@@ -120,6 +122,16 @@ func (gs *grpcServer) CtrlSetNodeFailed(ctx context.Context, req *pb.SetNodeFail
 
 func (gs *grpcServer) CtrlSetSpeed(ctx context.Context, req *pb.SetSpeedRequest) (*pb.Empty, error) {
 	err := gs.vis.simctrl.CtrlSetSpeed(req.Speed)
+	return &pb.Empty{}, err
+}
+
+func (gs *grpcServer) CtrlSetTitle(ctx context.Context, req *pb.SetTitleEvent) (*pb.Empty, error) {
+	err := gs.vis.simctrl.CtrlSetTitle(visualize.TitleInfo{
+		Title:    req.Title,
+		X:        int(req.X),
+		Y:        int(req.Y),
+		FontSize: int(req.FontSize),
+	})
 	return &pb.Empty{}, err
 }
 

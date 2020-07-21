@@ -225,6 +225,16 @@ func (gv *grpcVisualizer) SetParent(id NodeId, extaddr uint64) {
 	}}}, false)
 }
 
+func (gv *grpcVisualizer) SetTitle(titleInfo visualize.TitleInfo) {
+	gv.f.setTitleInfo(titleInfo)
+	gv.server.SendEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_SetTitle{SetTitle: &pb.SetTitleEvent{
+		Title:    titleInfo.Title,
+		X:        int32(titleInfo.X),
+		Y:        int32(titleInfo.Y),
+		FontSize: int32(titleInfo.FontSize),
+	}}}, false)
+}
+
 func (gv *grpcVisualizer) prepareStream(stream *grpcStream) error {
 	// show demo legend if necessary
 	if gv.showDemoLegendEvent != nil {
@@ -239,6 +249,19 @@ func (gv *grpcVisualizer) prepareStream(stream *grpcStream) error {
 		}},
 	}); err != nil {
 		return err
+	}
+	// set title
+	if gv.f.titleInfo.Title != "" {
+		if err := stream.Send(&pb.VisualizeEvent{
+			Type: &pb.VisualizeEvent_SetTitle{SetTitle: &pb.SetTitleEvent{
+				Title:    gv.f.titleInfo.Title,
+				X:        int32(gv.f.titleInfo.X),
+				Y:        int32(gv.f.titleInfo.Y),
+				FontSize: int32(gv.f.titleInfo.FontSize),
+			}},
+		}); err != nil {
+			return err
+		}
 	}
 	// advance time
 	if err := stream.Send(&pb.VisualizeEvent{

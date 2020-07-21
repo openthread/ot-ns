@@ -110,6 +110,15 @@ export default class PixiVisualizer extends VObject {
         });
         this.addChild(this.otCommitIdMsg);
 
+        this.titleText = new PIXI.Text("", {
+            fill: "#e69900",
+            fontFamily: "Verdana",
+            fontSize: 20,
+            fontWeight: "bolder"
+        });
+        this.titleText.position.set(0, 20);
+        this.addChild(this.titleText);
+
         this._resetIdleCheckTimer()
     }
 
@@ -227,6 +236,13 @@ export default class PixiVisualizer extends VObject {
 
     visSetParent(nodeId, extAddr) {
         this.nodes[nodeId].parent = extAddr
+    }
+
+    visSetTitle(title, x, y, fontSize) {
+        this.titleText.text = title;
+        this.titleText.x = x;
+        this.titleText.y = y;
+        this.titleText.style.fontSize = fontSize;
     }
 
     visSend(srcId, dstId, mvInfo) {

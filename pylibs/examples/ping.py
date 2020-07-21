@@ -37,6 +37,7 @@ def main():
     logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.DEBUG)
 
     ns = OTNS()
+    ns.set_title("Ping Example")
     ns.web()
 
     ns.speed = 4

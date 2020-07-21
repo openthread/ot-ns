@@ -37,8 +37,8 @@
 # Inspired by https://www.threadgroup.org/Farm-Jenny
 
 import random
-
 import math
+
 from otns.cli import OTNS
 from otns.cli.errors import OTNSExitedError
 
@@ -52,6 +52,7 @@ FARM_RECT = [10 * R, 10 * R, 210 * R, 110 * R]
 def main():
     ns = OTNS(otns_args=['-log', 'info'])
     ns.speed = 1
+    ns.set_title("Farm Example")
     ns.config_visualization(broadcast_message=False)
     ns.web()
 

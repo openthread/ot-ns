@@ -24,6 +24,7 @@ Python libraries use the CLI to manage simulations.
 * [radio](#radio-node-id-node-id--on--off--ft-fail-duration-fail-interval)
 * [scan](#scan-node-id)
 * [speed](#speed)
+* [title](#title-string)
 * [web](#web)
 
 ## OTNS command reference
@@ -307,6 +308,33 @@ Done
 Done
 > speed
 1e+06
+Done
+```
+
+### title "\<string\>"
+
+Set simulation title.
+
+```bash
+> title "Example"
+Done
+```
+
+### title "\<string\>" \[x \<int\>\] \[y \<int\>\]
+
+Set simulation title at specified position. 
+
+```bash
+> title "Example" x 100 y 200
+Done
+```
+
+### title "\<string\>" \[fs \<int\>\]
+
+Set simulation title with specified font size. 
+
+```bash
+> title "Example" fs 30
 Done
 ```
 

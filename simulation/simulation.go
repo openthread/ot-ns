@@ -262,3 +262,7 @@ func (s *Simulation) removeTmpDir() error {
 func (s *Simulation) IsStopped() bool {
 	return s.nodes == nil
 }
+
+func (s *Simulation) SetTitleInfo(titleInfo visualize.TitleInfo) {
+	s.vis.SetTitle(titleInfo)
+}

@@ -55,6 +55,7 @@ message VisualizeEvent {
         SetSpeedEvent set_speed = 18;
         HeartbeatEvent heartbeat = 19;
         OnExtAddrChangeEvent on_ext_addr_change = 20;
+        SetTitleEvent set_title = 21;
     }
 }
 
@@ -179,6 +180,13 @@ message OnExtAddrChangeEvent {
     uint64 ext_addr = 2;
 }
 
+message SetTitleEvent {
+    string title = 1;
+    int32 x = 2;
+    int32 y = 3;
+    int32 font_size = 4;
+}
+
 service VisualizeGrpcService {
     //    rpc Echo (EchoRequest) returns (EchoResponse);
     rpc Visualize (VisualizeRequest) returns (stream VisualizeEvent);
@@ -187,6 +195,7 @@ service VisualizeGrpcService {
     rpc CtrlMoveNodeTo (MoveNodeToRequest) returns (Empty);
     rpc CtrlSetNodeFailed (SetNodeFailedRequest) returns (Empty);
     rpc CtrlSetSpeed (SetSpeedRequest) returns (Empty);
+    rpc CtrlSetTitle (SetTitleEvent) returns (Empty);
 }
 
 message AddNodeRequest {

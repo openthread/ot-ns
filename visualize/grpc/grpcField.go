@@ -33,10 +33,11 @@ import (
 )
 
 type grpcField struct {
-	nodes    map[NodeId]*grpcNode
-	curTime  uint64
-	curSpeed float64
-	speed    float64
+	nodes     map[NodeId]*grpcNode
+	curTime   uint64
+	curSpeed  float64
+	speed     float64
+	titleInfo visualize.TitleInfo
 }
 
 func (f *grpcField) addNode(id NodeId, x int, y int, radioRange int, mode NodeMode) *grpcNode {
@@ -107,6 +108,10 @@ func (f *grpcField) setSpeed(speed float64) {
 
 func (f *grpcField) onExtAddrChange(id NodeId, extaddr uint64) {
 	f.nodes[id].extaddr = extaddr
+}
+
+func (f *grpcField) setTitleInfo(info visualize.TitleInfo) {
+	f.titleInfo = info
 }
 
 func newGrpcField() *grpcField {
