@@ -28,8 +28,6 @@ import PixiVisualizer from "./vis/PixiVisualizer";
 import * as PIXI from 'pixi.js'
 import {SetResources} from "./vis/resources";
 
-window.devicePixelRatio = 2;
-
 const {
     VisualizeRequest, VisualizeEvent, OtDeviceRole, NodeMode,
 } = require('./proto/visualize_grpc_pb.js');
@@ -56,15 +54,16 @@ let resolution = window.devicePixelRatio;
 
 let [w, h] = getDesiredFieldSize();
 let app = new PIXI.Application({
-    width: w / resolution,
-    height: h / resolution,
+    width: w,
+    height: h,
     // backgroundColor: 0xdddddd,
     transparent: true,
+    autoDensity: true,
     antialias: true,
     resolution: resolution,
     sharedTicker: true,
 });
-app.stage.scale.x = app.stage.scale.y = 1 / resolution;
+
 document.body.appendChild(app.view);
 
 let vis = null;
@@ -77,7 +76,7 @@ function getDesiredFieldSize() {
 
 window.addEventListener("resize", function () {
     let [w, h] = getDesiredFieldSize();
-    app.renderer.resize(w / resolution, h / resolution);
+    app.renderer.resize(w, h);
     if (vis !== null) {
         vis.onResize(w, h)
     }
