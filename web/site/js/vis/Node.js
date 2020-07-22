@@ -31,6 +31,8 @@ import {Visualizer} from "./PixiVisualizer";
 import {Resources} from "./resources";
 
 const NODE_LABEL_FONT_FAMILY = 'Comic Sans MS';
+const NODE_SHAPE_SCALE = 64;
+const NODE_SELECTION_SCALE = 128;
 
 let vis = Visualizer();
 
@@ -63,7 +65,7 @@ export default class Node extends VObject {
         statusSprite.tint = this.getRoleColor();
         statusSprite.anchor.x = 0.5;
         statusSprite.anchor.y = 0.5;
-        statusSprite.scale.x = statusSprite.scale.y = radius * 2 / 64;
+        statusSprite.scale.x = statusSprite.scale.y = radius * 2 / NODE_SHAPE_SCALE;
         this._root.addChild(statusSprite);
         this._statusSprite = statusSprite;
 
@@ -83,7 +85,7 @@ export default class Node extends VObject {
         let partitionSprite = new PIXI.Sprite(Resources().WhiteSolidCircle64.texture);
         partitionSprite.anchor.x = 0.5;
         partitionSprite.anchor.y = 0.5;
-        partitionSprite.scale.x = partitionSprite.scale.y = radius * 2 / 64 / 1.5;
+        partitionSprite.scale.x = partitionSprite.scale.y = radius * 2 / NODE_SHAPE_SCALE / 1.5;
         partitionSprite.tint = this.vis.getPartitionColor(this._partition);
         this._root.addChild(partitionSprite);
         this._partitionSprite = partitionSprite;
@@ -233,7 +235,7 @@ export default class Node extends VObject {
             let selbox = new PIXI.Sprite(Resources().WhiteRoundedDashedSquare128.texture);
             selbox.tint = 0x2e7d32;
             selbox.alpha = 0.7;
-            selbox.scale.set(selboxsize / 128, selboxsize / 128);
+            selbox.scale.set(selboxsize / NODE_SELECTION_SCALE, selboxsize / NODE_SELECTION_SCALE);
             selbox.anchor.set(0.5, 0.5);
             this.root.addChildAt(selbox, 0);
             this._selbox = selbox
