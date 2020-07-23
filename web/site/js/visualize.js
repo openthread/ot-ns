@@ -186,6 +186,10 @@ function loadOk() {
                 e = resp.getSetTitle();
                 vis.visSetTitle(e.getTitle(), e.getX(), e.getY(), e.getFontSize());
                 break;
+            case VisualizeEvent.TypeCase.SET_NODE_MODE:
+                e = resp.getSetNodeMode();
+                vis.visSetNodeMode(e.getNodeId(), e.getNodeMode());
+                break;
             default:
                 console.log('unknown event!!! ' + resp.getTypeCase());
                 break

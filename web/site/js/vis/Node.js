@@ -199,8 +199,10 @@ export default class Node extends VObject {
     }
 
     setMode(mode) {
-        this.role = mode;
-        this._statusSprite.tint = this.getRoleColor()
+        if (mode != this.nodeMode) {
+            this.nodeMode = mode;
+            this._statusSprite.texture = this._getStatusSpriteTexture();
+        }
     }
 
     getRoleColor() {
