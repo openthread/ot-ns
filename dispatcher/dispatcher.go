@@ -28,6 +28,7 @@ package dispatcher
 
 import (
 	"encoding/binary"
+	"fmt"
 	"math/rand"
 	"strconv"
 	"strings"
@@ -66,12 +67,16 @@ type pcapFrameItem struct {
 type Config struct {
 	Speed float64
 	Real  bool
+	Host  string
+	Port  int
 }
 
 func DefaultConfig() *Config {
 	return &Config{
 		Speed: 1,
 		Real:  false,
+		Host:  "localhost",
+		Port:  9000,
 	}
 }
 
@@ -135,13 +140,13 @@ type Dispatcher struct {
 func NewDispatcher(ctx *progctx.ProgCtx, cfg *Config, cbHandler CallbackHandler) *Dispatcher {
 	simplelogger.AssertTrue(!cfg.Real || cfg.Speed == 1)
 
-	udpAddr, err := net.ResolveUDPAddr("udp4", ":9000")
+	udpAddr, err := net.ResolveUDPAddr("udp4", fmt.Sprintf("%s:%d", cfg.Host, cfg.Port))
 	simplelogger.FatalIfError(err, err)
 	ln, err := net.ListenUDP("udp", udpAddr)
 	simplelogger.FatalIfError(err, err)
 	_ = ln.SetWriteBuffer(25 * 1024 * 1024)
 	_ = ln.SetReadBuffer(25 * 1024 * 1024)
-	simplelogger.Infof("listening on udp port 9000")
+	simplelogger.Infof("dispatcher listening on %s ...", udpAddr)
 
 	simplelogger.AssertNil(err)
 
@@ -485,7 +490,7 @@ func (d *Dispatcher) eventsReader() {
 		delay := binary.LittleEndian.Uint64(readbuf[:8])
 		typ := readbuf[8]
 		datalen := binary.LittleEndian.Uint16(readbuf[9:11])
-		nodeid := srcaddr.Port - 9000
+		nodeid := srcaddr.Port - d.cfg.Port
 
 		data := make([]byte, n-11)
 		copy(data, readbuf[11:n])

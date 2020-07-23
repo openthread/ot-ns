@@ -36,7 +36,7 @@ import (
 
 func TestServe(t *testing.T) {
 	go func() {
-		_ = Serve()
+		_ = Serve("localhost:8997")
 	}()
 	deadline := time.Now().Add(time.Second * 5)
 	for time.Now().Before(deadline) {

@@ -701,7 +701,6 @@ func (rt *CmdRunner) enterNodeContext(nodeid NodeId) bool {
 }
 
 func (rt *CmdRunner) executeTitle(cc *CommandContext, cmd *TitleCmd) {
-	simplelogger.Warnf("title %#v", cmd)
 	rt.postAsyncWait(func(sim *simulation.Simulation) {
 		titleInfo := visualize.DefaultTitleInfo()
 
