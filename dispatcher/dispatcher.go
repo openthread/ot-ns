@@ -866,7 +866,7 @@ func (d *Dispatcher) AddNode(nodeid NodeId, x, y int, radioRange int, mode NodeM
 		// Wait until node's extended address is emitted (but not for real devices)
 		// This helps OTNS to make sure that the child process is ready to receive UDP events
 		t0 := time.Now()
-		deadline := t0.Add(time.Second * 10)
+		deadline := t0.Add(time.Second * 30)
 		for node.ExtAddr == InvalidExtAddr && time.Now().Before(deadline) {
 			d.RecvEvents()
 		}
