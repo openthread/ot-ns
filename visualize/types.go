@@ -41,6 +41,7 @@ type Visualizer interface {
 	AddNode(nodeid NodeId, x int, y int, radioRange int, mode NodeMode)
 	SetNodeRloc16(nodeid NodeId, rloc16 uint16)
 	SetNodeRole(nodeid NodeId, role OtDeviceRole)
+	SetNodeMode(nodeid NodeId, mode NodeMode)
 	Send(srcid NodeId, dstid NodeId, mvinfo *MsgVisualizeInfo)
 	SetNodePartitionId(nodeid NodeId, parid uint32)
 	SetSpeed(speed float64)

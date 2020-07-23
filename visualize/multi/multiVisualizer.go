@@ -81,6 +81,12 @@ func (mv *multiVisualizer) SetNodeRole(nodeid NodeId, role visualize.OtDeviceRol
 	}
 }
 
+func (mv *multiVisualizer) SetNodeMode(nodeid NodeId, mode NodeMode) {
+	for _, v := range mv.vs {
+		v.SetNodeMode(nodeid, mode)
+	}
+}
+
 func (mv *multiVisualizer) Send(srcid NodeId, dstid NodeId, mvinfo *visualize.MsgVisualizeInfo) {
 	for _, v := range mv.vs {
 		v.Send(srcid, dstid, mvinfo)

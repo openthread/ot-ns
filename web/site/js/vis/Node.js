@@ -198,6 +198,11 @@ export default class Node extends VObject {
         }
     }
 
+    setMode(mode) {
+        this.role = mode;
+        this._statusSprite.tint = this.getRoleColor()
+    }
+
     getRoleColor() {
         if (this.failed) {
             return 0x757575
