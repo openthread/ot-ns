@@ -82,7 +82,7 @@ export default class Node extends VObject {
 
         this.setDraggable();
 
-        let partitionSprite = new PIXI.Sprite(Resources().WhiteSolidCircle64.texture);
+        let partitionSprite = this._createPartitionSprite();
         partitionSprite.anchor.x = 0.5;
         partitionSprite.anchor.y = 0.5;
         partitionSprite.scale.x = partitionSprite.scale.y = radius * 2 / NODE_SHAPE_SCALE / 1.5;
@@ -124,7 +124,6 @@ export default class Node extends VObject {
     }
 
     get partition() {
-
         return this._partition
     }
 
@@ -140,12 +139,35 @@ export default class Node extends VObject {
     }
 
     _createStatusSprite() {
+        return new PIXI.Sprite(this._getStatusSpriteTexture());
+    }
+
+    _createPartitionSprite() {
+        return new PIXI.Sprite(this._getPartitionSpriteTexture());
+    }
+
+    _getStatusSpriteTexture() {
+        switch (this.role) {
+            case OtDeviceRole.OT_DEVICE_ROLE_LEADER:
+            case OtDeviceRole.OT_DEVICE_ROLE_ROUTER:
+                return Resources().WhiteSolidHexagon64.texture;
+        }
         if (this.nodeMode.getFullThreadDevice()) {
-            return new PIXI.Sprite(Resources().WhiteSolidCircle64.texture);
+            return Resources().WhiteSolidCircle64.texture;
         } else if (this.nodeMode.getRxOnWhenIdle()) {
-            return new PIXI.Sprite(Resources().WhiteDashed4Circle64.texture);
+            return Resources().WhiteDashed4Circle64.texture;
         } else {
-            return new PIXI.Sprite(Resources().WhiteDashed8Circle64.texture);
+            return Resources().WhiteDashed8Circle64.texture;
+        }
+    }
+
+    _getPartitionSpriteTexture() {
+        switch (this.role) {
+            case OtDeviceRole.OT_DEVICE_ROLE_LEADER:
+            case OtDeviceRole.OT_DEVICE_ROLE_ROUTER:
+                return Resources().WhiteSolidHexagon64.texture;
+            default:
+                return Resources().WhiteSolidCircle64.texture;
         }
     }
 
@@ -168,8 +190,12 @@ export default class Node extends VObject {
     }
 
     setRole(role) {
-        this.role = role;
-        this._statusSprite.tint = this.getRoleColor()
+        if (role != this.role) {
+            this.role = role;
+            this._statusSprite.tint = this.getRoleColor();
+            this._statusSprite.texture = this._getStatusSpriteTexture();
+            this._partitionSprite.texture = this._getPartitionSpriteTexture();
+        }
     }
 
     getRoleColor() {
