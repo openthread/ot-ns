@@ -30,8 +30,10 @@ import {Visualizer} from "./PixiVisualizer";
 import {Resources} from "./resources";
 import {COLOR_ACK_MESSAGE} from "./consts";
 
-let nextMessageId = 1;
+const BROADCAST_MESSAGE_SCALE = 128;
+const UNICAST_MESSAGE_SCALE = 64;
 
+let nextMessageId = 1;
 
 export class BroadcastMessage extends VObject {
     constructor(src, mvInfo) {
@@ -41,9 +43,9 @@ export class BroadcastMessage extends VObject {
         this.mvInfo = mvInfo;
 
         let beginRadius = 32;
-        let sprite = new PIXI.Sprite(Resources().WhiteDashed8Circle64.texture);
+        let sprite = new PIXI.Sprite(Resources().WhiteDashed8Circle128.texture);
         sprite.tint = this.getColor();
-        sprite.scale.set(beginRadius * 2 / 64, beginRadius * 2 / 64);
+        sprite.scale.set(beginRadius * 2 / BROADCAST_MESSAGE_SCALE, beginRadius * 2 / BROADCAST_MESSAGE_SCALE);
         sprite.anchor.set(0.5, 0.5);
         sprite.position = src.position;
         this._targetRadius = src.radioRange;
@@ -71,7 +73,7 @@ export class BroadcastMessage extends VObject {
         let beginRadius = 32;
         let playRatio = 1.0 - this._leftFlyTime / 0.7;
         let radius = beginRadius + (this._targetRadius - beginRadius) * Math.pow(playRatio, 0.5);
-        this.sprite.scale.set(radius * 2 / 64, radius * 2 / 64)
+        this.sprite.scale.set(radius * 2 / BROADCAST_MESSAGE_SCALE, radius * 2 / BROADCAST_MESSAGE_SCALE)
     }
 }
 
@@ -90,9 +92,9 @@ export class UnicastMessage extends VObject {
         this.mvInfo = mvInfo;
 
         let size = 10;
-        let sprite = new PIXI.Sprite(Resources().WhiteSolidHexagon32.texture);
+        let sprite = new PIXI.Sprite(Resources().WhiteSolidHexagon64.texture);
         sprite.tint = this.getColor();
-        sprite.scale.set(size / 32, size / 32);
+        sprite.scale.set(size / UNICAST_MESSAGE_SCALE, size / UNICAST_MESSAGE_SCALE);
         sprite.anchor.set(0.5, 0.5);
         sprite.position = src.position;
         this._root = this.sprite = sprite;
@@ -139,9 +141,9 @@ export class AckMessage extends VObject {
         this.mvInfo = mvInfo;
 
         let size = 10;
-        let sprite = new PIXI.Sprite(Resources().WhiteSolidTriangle32.texture);
+        let sprite = new PIXI.Sprite(Resources().WhiteSolidTriangle64.texture);
         sprite.tint = this.getColor();
-        sprite.scale.set(size / 32, size / 32);
+        sprite.scale.set(size / UNICAST_MESSAGE_SCALE, size / UNICAST_MESSAGE_SCALE);
         sprite.anchor.set(0.5, 0.5);
         sprite.position = src.position;
         this._root = this.sprite = sprite;

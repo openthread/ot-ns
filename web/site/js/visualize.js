@@ -28,8 +28,6 @@ import PixiVisualizer from "./vis/PixiVisualizer";
 import * as PIXI from 'pixi.js'
 import {SetResources} from "./vis/resources";
 
-window.devicePixelRatio = 2;
-
 const {
     VisualizeRequest, VisualizeEvent, OtDeviceRole, NodeMode,
 } = require('./proto/visualize_grpc_pb.js');
@@ -56,15 +54,16 @@ let resolution = window.devicePixelRatio;
 
 let [w, h] = getDesiredFieldSize();
 let app = new PIXI.Application({
-    width: w / resolution,
-    height: h / resolution,
+    width: w,
+    height: h,
     // backgroundColor: 0xdddddd,
     transparent: true,
+    autoDensity: true,
     antialias: true,
     resolution: resolution,
     sharedTicker: true,
 });
-app.stage.scale.x = app.stage.scale.y = 1 / resolution;
+
 document.body.appendChild(app.view);
 
 let vis = null;
@@ -77,7 +76,7 @@ function getDesiredFieldSize() {
 
 window.addEventListener("resize", function () {
     let [w, h] = getDesiredFieldSize();
-    app.renderer.resize(w / resolution, h / resolution);
+    app.renderer.resize(w, h);
     if (vis !== null) {
         vis.onResize(w, h)
     }
@@ -202,16 +201,16 @@ function loadOk() {
 }
 
 app.loader
-    .add('WhiteSolidCircle32', '/static/image/white-shapes/circle-32.png')
-    .add('WhiteSolidTriangle32', '/static/image/white-shapes/triangle-32.png')
-    .add('WhiteSolidHexagon32', '/static/image/white-shapes/hexagon-32.png')
-    .add('WhiteDashed4Circle32', '/static/image/white-shapes/circle-dashed-4-32.png')
-    .add('WhiteDashed8Circle32', '/static/image/white-shapes/circle-dashed-8-32.png')
+    .add('WhiteSolidCircle64', '/static/image/white-shapes/circle-64.png')
+    .add('WhiteSolidTriangle64', '/static/image/white-shapes/triangle-64.png')
+    .add('WhiteSolidHexagon64', '/static/image/white-shapes/hexagon-64.png')
+    .add('WhiteDashed4Circle64', '/static/image/white-shapes/circle-dashed-4-64.png')
     .add('WhiteDashed8Circle64', '/static/image/white-shapes/circle-dashed-8-64.png')
+    .add('WhiteDashed8Circle128', '/static/image/white-shapes/circle-dashed-8-128.png')
     .add('FailedNodeMark', '/static/image/gua.png')
     .add('CheckedCheckbox32', '/static/image/checked-checkbox-32.png')
     .add('UncheckedCheckbox32', '/static/image/unchecked-checkbox-32.png')
-    .add('WhiteRoundedDashedSquare64', '/static/image/white-shapes/square-dashed-rounded-64.png')
+    .add('WhiteRoundedDashedSquare128', '/static/image/white-shapes/square-dashed-rounded-128.png')
     .add('Play32', '/static/image/play-32.png')
     .add('Pause32', '/static/image/pause-32.png')
     .load((loader, res) => {
