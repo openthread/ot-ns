@@ -37,4 +37,5 @@ type SimulationController interface {
 	CtrlSetNodeFailed(nodeid NodeId, failed bool) error
 	CtrlSetSpeed(speed float64) error
 	CtrlSetTitle(titleInfo TitleInfo) error
+	Command(cmd string) ([]string, error)
 }

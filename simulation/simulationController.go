@@ -27,6 +27,8 @@
 package simulation
 
 import (
+	"strings"
+
 	. "github.com/openthread/ot-ns/types"
 	"github.com/openthread/ot-ns/visualize"
 	"github.com/pkg/errors"
@@ -67,6 +69,21 @@ func (sc *simulationController) CtrlMoveNodeTo(nodeid NodeId, x, y int) error {
 		sim.MoveNodeTo(nodeid, x, y)
 	})
 	return nil
+}
+
+func (sc *simulationController) Command(cmd string) ([]string, error) {
+	var outputBuilder strings.Builder
+
+	sim := sc.sim
+	err := sim.cmdRunner.RunCommand(cmd, &outputBuilder)
+	if err != nil {
+		return nil, err
+	}
+	output := strings.Split(outputBuilder.String(), "\n")
+	if output[len(output)-1] == "" {
+		output = output[:len(output)-1]
+	}
+	return output, nil
 }
 
 func (sc *simulationController) CtrlAddNode(x, y int, isRouter bool, mode NodeMode, nodeid NodeId) error {
@@ -123,6 +140,10 @@ func (r readonlySimulationController) CtrlSetNodeFailed(nodeid NodeId, failed bo
 }
 
 var readonlySimulationError = errors.Errorf("simulation is readonly")
+
+func (r readonlySimulationController) Command(cmd string) (output []string, err error) {
+	return nil, readonlySimulationError
+}
 
 func (r readonlySimulationController) CtrlAddNode(x, y int, router bool, mode NodeMode, nodeid NodeId) error {
 	return readonlySimulationError
