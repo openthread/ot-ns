@@ -26,10 +26,7 @@
 
 package types
 
-import (
-	"math"
-	"strings"
-)
+import "math"
 
 type NodeId = int
 
@@ -60,11 +57,23 @@ func DefaultNodeMode() NodeMode {
 	}
 }
 
-func ParseNodeModeString(s string) NodeMode {
-	RxOnWhenIdle := strings.Contains(s, "r")
-	SecureDataRequests := strings.Contains(s, "s")
-	FullThreadDevice := strings.Contains(s, "d")
-	FullNetworkData := strings.Contains(s, "n")
+func ParseNodeMode(s string) NodeMode {
+	RxOnWhenIdle := false
+	SecureDataRequests := false
+	FullThreadDevice := false
+	FullNetworkData := false
+	for _, c := range s {
+		switch c {
+		case 'r':
+			RxOnWhenIdle = true
+		case 's':
+			SecureDataRequests = true
+		case 'd':
+			FullThreadDevice = true
+		case 'n':
+			FullNetworkData = true
+		}
+	}
 	return NodeMode{
 		RxOnWhenIdle:       RxOnWhenIdle,
 		SecureDataRequests: SecureDataRequests,
