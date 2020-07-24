@@ -30,11 +30,21 @@
 # shellcheck source=script/common.sh
 . "$(dirname "$0")"/common.sh
 
+skip_update='true'
+
+while getopts ':u' 'OPTKEY'; do
+    case ${OPTKEY} in
+        'u')
+            skip_update='false'
+            ;;
+    esac
+done
+
 function install_protoc()
 {
     local protoc_download_url
 
-    if installed protoc; then
+    if ${skip_update} && installed protoc; then
         return 0
     fi
 
@@ -56,7 +66,7 @@ function install_protoc()
 
 install_protoc_gen_go()
 {
-    if installed protoc-gen-go; then
+    if ${skip_update} && installed protoc-gen-go; then
         return 0
     fi
 
@@ -66,7 +76,7 @@ install_protoc_gen_go()
 
 install_protoc_gen_grpc_web()
 {
-    if installed protoc-gen-grpc-web; then
+    if ${skip_update} && installed protoc-gen-grpc-web; then
         return 0
     fi
 
@@ -92,6 +102,12 @@ install_nodejs()
 
 install_go_bindata()
 {
+    if ${skip_update}; then
+        if installed go-bindata; then
+            return 0
+        fi
+    fi
+
     go get -u github.com/jteeuwen/go-bindata/...
 }
 
