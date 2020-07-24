@@ -95,6 +95,27 @@ class BasicTests(OTNSTestCase):
         self.goConservative(1)
         self.assertRaises(errors.OTNSCliError, lambda: ns.add("router", id=new_id))
 
+    def testRestoreNode(self):
+        ns = self.ns
+        ns.add("router")
+
+        self.goConservative(3)
+        self.assertEqual(ns.get_state(1), "leader")
+
+        fed = ns.add("fed")
+        self.goConservative(10)
+        self.assertFormPartitions(1)
+        rloc16 = ns.get_rloc16(fed)
+        print('fed rloc16', rloc16)
+
+        ns.delete(fed)
+        ns.go(10)
+
+        fed = ns.add("fed", restore=True)
+        self.goConservative(1)
+        self.assertFormPartitions(1)
+        self.assertEqual(rloc16, ns.get_rloc16(fed))
+
     def testDelNode(self):
         ns = self.ns
         ns.add("router")

@@ -290,6 +290,8 @@ func (rt *CmdRunner) executeAddNode(cc *CommandContext, cmd *AddCmd) {
 		cfg.ExecutablePath = cmd.Executable.Path
 	}
 
+	cfg.Restore = cmd.Restore != nil
+
 	rt.postAsyncWait(func(sim *simulation.Simulation) {
 		node, err := sim.AddNode(cfg)
 		if err != nil {

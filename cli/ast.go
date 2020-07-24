@@ -255,12 +255,18 @@ type AddCmd struct {
 	Y          *int            `| "y" (@Int|@Float) ` //nolint
 	Id         *AddNodeId      `| @@`                 //nolint
 	RadioRange *RadioRangeFlag `| @@`                 //nolint
+	Restore    *RestoreFlag    `| @@`                 //nolint
 	Executable *ExecutableFlag `| @@ )*`              //nolint
 }
 
 //noinspection GoStructTag
 type RadioRangeFlag struct {
 	Val int `"rr" @Int` //nolint
+}
+
+//noinspection GoStructTag
+type RestoreFlag struct {
+	Dummy struct{} `"restore"` //nolint
 }
 
 //noinspection GoStructTag
