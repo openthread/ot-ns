@@ -57,29 +57,20 @@ func DefaultNodeMode() NodeMode {
 	}
 }
 
-func ParseNodeMode(s string) NodeMode {
-	RxOnWhenIdle := false
-	SecureDataRequests := false
-	FullThreadDevice := false
-	FullNetworkData := false
+func ParseNodeMode(s string) (mode NodeMode) {
 	for _, c := range s {
 		switch c {
 		case 'r':
-			RxOnWhenIdle = true
+			mode.RxOnWhenIdle = true
 		case 's':
-			SecureDataRequests = true
+			mode.SecureDataRequests = true
 		case 'd':
-			FullThreadDevice = true
+			mode.FullThreadDevice = true
 		case 'n':
-			FullNetworkData = true
+			mode.FullNetworkData = true
 		}
 	}
-	return NodeMode{
-		RxOnWhenIdle:       RxOnWhenIdle,
-		SecureDataRequests: SecureDataRequests,
-		FullThreadDevice:   FullThreadDevice,
-		FullNetworkData:    FullNetworkData,
-	}
+	return
 }
 
 type AddrType string
