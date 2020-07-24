@@ -36,7 +36,7 @@ import (
 	"github.com/simonlingoogle/go-simplelogger"
 )
 
-func Serve() error {
+func Serve(listenAddr string) error {
 	assetDir := os.Getenv("HOME")
 	if assetDir == "" {
 		assetDir = "/tmp"
@@ -83,5 +83,6 @@ func Serve() error {
 		}
 	})
 
-	return http.ListenAndServe("localhost:8997", nil)
+	simplelogger.Infof("OTNS web serving on %s ...", listenAddr)
+	return http.ListenAndServe(listenAddr, nil)
 }

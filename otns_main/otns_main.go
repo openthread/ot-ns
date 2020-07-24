@@ -29,6 +29,7 @@ package otns_main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"math/rand"
 	"os"
 	"os/signal"
@@ -59,14 +60,17 @@ import (
 )
 
 type MainArgs struct {
-	Speed     string
-	OtCliPath string
-	AutoGo    bool
-	ReadOnly  bool
-	LogLevel  string
-	OpenWeb   bool
-	RawMode   bool
-	Real      bool
+	Speed          string
+	OtCliPath      string
+	AutoGo         bool
+	ReadOnly       bool
+	LogLevel       string
+	OpenWeb        bool
+	RawMode        bool
+	Real           bool
+	ListenAddr     string
+	DispatcherHost string
+	DispatcherPort int
 }
 
 var (
@@ -82,15 +86,25 @@ func parseArgs() {
 	flag.BoolVar(&args.OpenWeb, "web", true, "open web")
 	flag.BoolVar(&args.RawMode, "raw", false, "use raw mode")
 	flag.BoolVar(&args.Real, "real", false, "use real mode (for real devices)")
+	flag.StringVar(&args.ListenAddr, "listen", "localhost:9000", "specify listen address")
 
 	flag.Parse()
-	flag.Args()
 }
 
 func Main(visualizerCreator func(ctx *progctx.ProgCtx, args *MainArgs) visualize.Visualizer) {
 	parseArgs()
 
 	simplelogger.SetLevel(simplelogger.ParseLevel(args.LogLevel))
+
+	var err error
+	subs := strings.Split(args.ListenAddr, ":")
+	if len(subs) != 2 {
+		simplelogger.Fatalf("invalid listen address: %s", args.ListenAddr)
+	}
+	args.DispatcherHost = subs[0]
+	if args.DispatcherPort, err = strconv.Atoi(subs[1]); err != nil {
+		simplelogger.Fatalf("invalid listen address: %s", args.ListenAddr)
+	}
 
 	rand.Seed(time.Now().UnixNano())
 	// run console in the main goroutine
@@ -106,13 +120,14 @@ func Main(visualizerCreator func(ctx *progctx.ProgCtx, args *MainArgs) visualize
 		vis = visualizerCreator(ctx, &args)
 	}
 
+	visGrpcServerAddr := fmt.Sprintf("%s:%d", args.DispatcherHost, args.DispatcherPort-1)
 	if vis != nil {
 		vis = visualizeMulti.NewMultiVisualizer(
 			vis,
-			visualizeGrpc.NewGrpcVisualizer(":8999"),
+			visualizeGrpc.NewGrpcVisualizer(visGrpcServerAddr),
 		)
 	} else {
-		vis = visualizeGrpc.NewGrpcVisualizer(":8999")
+		vis = visualizeGrpc.NewGrpcVisualizer(visGrpcServerAddr)
 	}
 
 	sim := createSimulation(ctx)
@@ -125,7 +140,8 @@ func Main(visualizerCreator func(ctx *progctx.ProgCtx, args *MainArgs) visualize
 	}()
 
 	go func() {
-		err := webSite.Serve()
+		siteAddr := fmt.Sprintf("%s:%d", args.DispatcherHost, args.DispatcherPort-3)
+		err := webSite.Serve(siteAddr)
 		if err != nil {
 			simplelogger.Errorf("site quited: %+v, OTNS-Web won't be available!", err)
 		}
@@ -134,6 +150,8 @@ func Main(visualizerCreator func(ctx *progctx.ProgCtx, args *MainArgs) visualize
 	if args.AutoGo {
 		go autoGo(ctx, sim)
 	}
+
+	web.ConfigWeb(args.DispatcherHost, args.DispatcherPort-2, args.DispatcherPort-1, args.DispatcherPort-3)
 
 	simplelogger.Debugf("open web: %v", args.OpenWeb)
 	if args.OpenWeb {
@@ -193,6 +211,8 @@ func createSimulation(ctx *progctx.ProgCtx) *simulation.Simulation {
 	simcfg.ReadOnly = args.ReadOnly
 	simcfg.RawMode = args.RawMode
 	simcfg.Real = args.Real
+	simcfg.DispatcherHost = args.DispatcherHost
+	simcfg.DispatcherPort = args.DispatcherPort
 
 	sim, err := simulation.NewSimulation(ctx, simcfg)
 	simplelogger.FatalIfError(err)

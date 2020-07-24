@@ -27,6 +27,7 @@
 package web
 
 import (
+	"fmt"
 	"os/exec"
 	"runtime"
 
@@ -37,7 +38,22 @@ import (
 
 var (
 	grpcWebProxyProc *exec.Cmd
+
+	grpcWebProxyParams struct {
+		serverBindAddress   string
+		serverHttpDebugPort int
+		grpcServicePort     int
+		webSitePort         int
+	}
 )
+
+func ConfigWeb(serverBindAddress string, serverHttpDebugPort int, grpcServicePort int, webSitePort int) {
+	grpcWebProxyParams.serverBindAddress = serverBindAddress
+	grpcWebProxyParams.serverHttpDebugPort = serverHttpDebugPort
+	grpcWebProxyParams.grpcServicePort = grpcServicePort
+	grpcWebProxyParams.webSitePort = webSitePort
+	simplelogger.Debugf("ConfigWeb: %+v", grpcWebProxyParams)
+}
 
 func OpenWeb(ctx *progctx.ProgCtx) error {
 	if err := assureGrpcWebProxyRunning(ctx); err != nil {
@@ -45,7 +61,8 @@ func OpenWeb(ctx *progctx.ProgCtx) error {
 		simplelogger.Errorf("Web visualization is unusable. Please make sure grpcwebproxy is installed.")
 		return err
 	}
-	return openWebBrowser("http://localhost:8997/visualize?addr=localhost:8998")
+
+	return openWebBrowser(fmt.Sprintf("http://localhost:%d/visualize?addr=localhost:%d", grpcWebProxyParams.webSitePort, grpcWebProxyParams.serverHttpDebugPort))
 }
 
 // open opens the specified URL in the default browser of the user.
@@ -69,15 +86,14 @@ func openWebBrowser(url string) error {
 
 func assureGrpcWebProxyRunning(ctx *progctx.ProgCtx) error {
 	if grpcWebProxyProc == nil {
-		_ = exec.Command("killall", "grpcwebproxy").Run()
-
 		proc := exec.CommandContext(ctx, "grpcwebproxy", []string{
-			"--backend_addr=localhost:8999",
+			fmt.Sprintf("--backend_addr=localhost:%d", grpcWebProxyParams.grpcServicePort),
 			"--run_tls_server=false",
 			"--allow_all_origins",
 			"--server_http_max_read_timeout=1h",
 			"--server_http_max_write_timeout=1h",
-			"--server_http_debug_port=8998",
+			fmt.Sprintf("--server_bind_address=%s", grpcWebProxyParams.serverBindAddress),
+			fmt.Sprintf("--server_http_debug_port=%d", grpcWebProxyParams.serverHttpDebugPort),
 		}...)
 
 		if err := proc.Start(); err != nil {
