@@ -102,10 +102,8 @@ install_nodejs()
 
 install_go_bindata()
 {
-    if ${skip_update}; then
-        if installed go-bindata; then
-            return 0
-        fi
+    if ${skip_update} && installed go-bindata; then
+        return 0
     fi
 
     go get -u github.com/jteeuwen/go-bindata/...
