@@ -189,7 +189,7 @@ export default class Node extends VObject {
     }
 
     _updateSize() {
-        var radius = CIRCULAR_SHAPE_RADIUS
+        let radius = CIRCULAR_SHAPE_RADIUS
         switch (this.role) {
             case OtDeviceRole.OT_DEVICE_ROLE_LEADER:
             case OtDeviceRole.OT_DEVICE_ROLE_ROUTER:
