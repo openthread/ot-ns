@@ -57,6 +57,22 @@ func DefaultNodeMode() NodeMode {
 	}
 }
 
+func ParseNodeMode(s string) (mode NodeMode) {
+	for _, c := range s {
+		switch c {
+		case 'r':
+			mode.RxOnWhenIdle = true
+		case 's':
+			mode.SecureDataRequests = true
+		case 'd':
+			mode.FullThreadDevice = true
+		case 'n':
+			mode.FullNetworkData = true
+		}
+	}
+	return
+}
+
 type AddrType string
 
 const (

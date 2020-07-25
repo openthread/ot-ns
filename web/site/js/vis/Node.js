@@ -33,6 +33,8 @@ import {Resources} from "./resources";
 const NODE_LABEL_FONT_FAMILY = 'Comic Sans MS';
 const NODE_SHAPE_SCALE = 64;
 const NODE_SELECTION_SCALE = 128;
+const CIRCULAR_SHAPE_RADIUS = 20;
+const HEXAGONAL_SHAPE_RADIUS = 22;
 
 let vis = Visualizer();
 
@@ -60,7 +62,7 @@ export default class Node extends VObject {
         this.y = y;
         this.position.set(x, y);
 
-        let radius = 20;
+        let radius = CIRCULAR_SHAPE_RADIUS;
         let statusSprite = this._createStatusSprite();
         statusSprite.tint = this.getRoleColor();
         statusSprite.anchor.x = 0.5;
@@ -82,13 +84,15 @@ export default class Node extends VObject {
 
         this.setDraggable();
 
-        let partitionSprite = new PIXI.Sprite(Resources().WhiteSolidCircle64.texture);
+        let partitionSprite = this._createPartitionSprite();
         partitionSprite.anchor.x = 0.5;
         partitionSprite.anchor.y = 0.5;
         partitionSprite.scale.x = partitionSprite.scale.y = radius * 2 / NODE_SHAPE_SCALE / 1.5;
         partitionSprite.tint = this.vis.getPartitionColor(this._partition);
         this._root.addChild(partitionSprite);
         this._partitionSprite = partitionSprite;
+
+        this._updateSize()
 
         let label = new PIXI.Text("", {fontFamily: NODE_LABEL_FONT_FAMILY, fontSize: 13, align: 'left'});
         label.position.set(11, 11);
@@ -124,7 +128,6 @@ export default class Node extends VObject {
     }
 
     get partition() {
-
         return this._partition
     }
 
@@ -140,12 +143,35 @@ export default class Node extends VObject {
     }
 
     _createStatusSprite() {
+        return new PIXI.Sprite(this._getStatusSpriteTexture());
+    }
+
+    _createPartitionSprite() {
+        return new PIXI.Sprite(this._getPartitionSpriteTexture());
+    }
+
+    _getStatusSpriteTexture() {
+        switch (this.role) {
+            case OtDeviceRole.OT_DEVICE_ROLE_LEADER:
+            case OtDeviceRole.OT_DEVICE_ROLE_ROUTER:
+                return Resources().WhiteSolidHexagon64.texture;
+        }
         if (this.nodeMode.getFullThreadDevice()) {
-            return new PIXI.Sprite(Resources().WhiteSolidCircle64.texture);
+            return Resources().WhiteSolidCircle64.texture;
         } else if (this.nodeMode.getRxOnWhenIdle()) {
-            return new PIXI.Sprite(Resources().WhiteDashed4Circle64.texture);
+            return Resources().WhiteDashed4Circle64.texture;
         } else {
-            return new PIXI.Sprite(Resources().WhiteDashed8Circle64.texture);
+            return Resources().WhiteDashed8Circle64.texture;
+        }
+    }
+
+    _getPartitionSpriteTexture() {
+        switch (this.role) {
+            case OtDeviceRole.OT_DEVICE_ROLE_LEADER:
+            case OtDeviceRole.OT_DEVICE_ROLE_ROUTER:
+                return Resources().WhiteSolidHexagon64.texture;
+            default:
+                return Resources().WhiteSolidCircle64.texture;
         }
     }
 
@@ -162,14 +188,37 @@ export default class Node extends VObject {
         this.label.text = this.id.toString() + "|" + rloc16
     }
 
+    _updateSize() {
+        let radius = CIRCULAR_SHAPE_RADIUS
+        switch (this.role) {
+            case OtDeviceRole.OT_DEVICE_ROLE_LEADER:
+            case OtDeviceRole.OT_DEVICE_ROLE_ROUTER:
+                radius = HEXAGONAL_SHAPE_RADIUS
+        }
+        this._statusSprite.scale.x = this._statusSprite.scale.y = radius * 2 / NODE_SHAPE_SCALE;
+        this._partitionSprite.scale.x = this._partitionSprite.scale.y = radius * 2 / NODE_SHAPE_SCALE / 1.5;
+    }
+
     setRloc16(rloc16) {
         this.rloc16 = rloc16;
         this._updateLabel()
     }
 
     setRole(role) {
-        this.role = role;
-        this._statusSprite.tint = this.getRoleColor()
+        if (role != this.role) {
+            this.role = role;
+            this._statusSprite.tint = this.getRoleColor();
+            this._statusSprite.texture = this._getStatusSpriteTexture();
+            this._partitionSprite.texture = this._getPartitionSpriteTexture();
+            this._updateSize()
+        }
+    }
+
+    setMode(mode) {
+        if (mode != this.nodeMode) {
+            this.nodeMode = mode;
+            this._statusSprite.texture = this._getStatusSpriteTexture();
+        }
     }
 
     getRoleColor() {

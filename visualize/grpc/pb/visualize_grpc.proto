@@ -56,6 +56,7 @@ message VisualizeEvent {
         HeartbeatEvent heartbeat = 19;
         OnExtAddrChangeEvent on_ext_addr_change = 20;
         SetTitleEvent set_title = 21;
+        SetNodeModeEvent set_node_mode = 22;
     }
 }
 
@@ -185,6 +186,11 @@ message SetTitleEvent {
     int32 x = 2;
     int32 y = 3;
     int32 font_size = 4;
+}
+
+message SetNodeModeEvent {
+    int32 node_id = 1;
+    NodeMode node_mode = 2;
 }
 
 service VisualizeGrpcService {

@@ -196,6 +196,10 @@ export default class PixiVisualizer extends VObject {
         this.nodes[nodeId].setRole(role)
     }
 
+    visSetNodeMode(nodeId, mode) {
+        this.nodes[nodeId].setMode(mode)
+    }
+
     visDeleteNode(nodeId) {
         let node = this.nodes[nodeId];
         delete this.nodes[nodeId];

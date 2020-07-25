@@ -55,6 +55,10 @@ func (f *grpcField) setNodeRole(id NodeId, role visualize.OtDeviceRole) {
 	f.nodes[id].role = role
 }
 
+func (f *grpcField) setNodeMode(id NodeId, mode NodeMode) {
+	f.nodes[id].mode = mode
+}
+
 func (f *grpcField) setNodePartitionId(id NodeId, parid uint32) {
 	f.nodes[id].partitionId = parid
 }

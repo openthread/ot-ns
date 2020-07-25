@@ -97,6 +97,19 @@ func (gv *grpcVisualizer) SetNodeRole(nodeid NodeId, role visualize.OtDeviceRole
 	}}}, false)
 }
 
+func (gv *grpcVisualizer) SetNodeMode(nodeid NodeId, mode NodeMode) {
+	gv.f.setNodeMode(nodeid, mode)
+	gv.server.SendEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_SetNodeMode{SetNodeMode: &pb.SetNodeModeEvent{
+		NodeId: int32(nodeid),
+		NodeMode: &pb.NodeMode{
+			RxOnWhenIdle:       mode.RxOnWhenIdle,
+			SecureDataRequests: mode.SecureDataRequests,
+			FullThreadDevice:   mode.FullThreadDevice,
+			FullNetworkData:    mode.FullNetworkData,
+		},
+	}}}, false)
+}
+
 func (gv *grpcVisualizer) Send(srcid NodeId, dstid NodeId, mvinfo *visualize.MsgVisualizeInfo) {
 	gv.server.SendEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_Send{Send: &pb.SendEvent{
 		SrcId: int32(srcid),
@@ -318,6 +331,20 @@ func (gv *grpcVisualizer) prepareStream(stream *grpcStream) error {
 			Type: &pb.VisualizeEvent_SetNodeRole{SetNodeRole: &pb.SetNodeRoleEvent{
 				NodeId: int32(nodeid),
 				Role:   pb.OtDeviceRole(node.role),
+			}},
+		}); err != nil {
+			return err
+		}
+		// mode
+		if err := stream.Send(&pb.VisualizeEvent{
+			Type: &pb.VisualizeEvent_SetNodeMode{SetNodeMode: &pb.SetNodeModeEvent{
+				NodeId: int32(nodeid),
+				NodeMode: &pb.NodeMode{
+					RxOnWhenIdle:       node.mode.RxOnWhenIdle,
+					SecureDataRequests: node.mode.SecureDataRequests,
+					FullThreadDevice:   node.mode.FullThreadDevice,
+					FullNetworkData:    node.mode.FullNetworkData,
+				},
 			}},
 		}); err != nil {
 			return err

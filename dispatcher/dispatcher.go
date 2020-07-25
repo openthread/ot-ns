@@ -856,6 +856,9 @@ func (d *Dispatcher) handleStatusPush(srcid NodeId, data string) {
 			extaddr, err := strconv.ParseUint(sp[1], 16, 64)
 			simplelogger.PanicIfError(err)
 			srcnode.onStatusPushExtAddr(extaddr)
+		} else if sp[0] == "mode" {
+			mode := ParseNodeMode(sp[1])
+			d.vis.SetNodeMode(srcid, mode)
 		} else {
 			simplelogger.Warnf("unknown status push: %s=%s", sp[0], sp[1])
 		}

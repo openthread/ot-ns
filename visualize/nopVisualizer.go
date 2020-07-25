@@ -96,6 +96,10 @@ func (nv nopVisualizer) SetNodeRole(nodeid NodeId, role OtDeviceRole) {
 
 }
 
+func (nv nopVisualizer) SetNodeMode(nodeid NodeId, mode NodeMode) {
+
+}
+
 func (nv nopVisualizer) SetNodePartitionId(nodeid NodeId, parid uint32) {
 
 }
@@ -111,7 +115,9 @@ func (nv nopVisualizer) OnNodeFail(NodeId) {
 func (nv nopVisualizer) OnNodeRecover(NodeId) {
 
 }
+
 func (nv nopVisualizer) SetTitle(titleInfo TitleInfo) {
+
 }
 
 func NewNopVisualizer() Visualizer {
