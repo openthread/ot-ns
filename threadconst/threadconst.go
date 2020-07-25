@@ -29,4 +29,7 @@ package threadconst
 const (
 	InvalidRloc16   uint16 = 0xfffe
 	BroadcastRloc16 uint16 = 0xffff
+
+	WellKnownNodeId       = 1000
+	InitialDispatcherPort = 9000
 )

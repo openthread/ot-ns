@@ -30,6 +30,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"github.com/openthread/ot-ns/threadconst"
 	"io"
 	"io/ioutil"
 	"os"
@@ -63,7 +64,8 @@ const (
 func newNode(s *Simulation, id NodeId, cfg *NodeConfig) (*Node, error) {
 	var err error
 
-	flashFile := fmt.Sprintf("tmp/0_%d.flash", id)
+	portOffset := (s.cfg.DispatcherPort - threadconst.InitialDispatcherPort) / threadconst.WellKnownNodeId
+	flashFile := fmt.Sprintf("tmp/%d_%d.flash", portOffset, id)
 	if err := os.RemoveAll(flashFile); err != nil {
 		simplelogger.Errorf("Remove flash file %s failed: %+v", flashFile, err)
 	}
