@@ -30,7 +30,6 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"github.com/openthread/ot-ns/threadconst"
 	"io"
 	"io/ioutil"
 	"os"
@@ -39,6 +38,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/openthread/ot-ns/threadconst"
 
 	"github.com/openthread/ot-ns/otoutfilter"
 	. "github.com/openthread/ot-ns/types"

@@ -30,7 +30,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/openthread/ot-ns/threadconst"
 	"math/rand"
 	"os"
 	"os/signal"
@@ -38,6 +37,8 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/openthread/ot-ns/threadconst"
 
 	"github.com/openthread/ot-ns/dispatcher"
 
