@@ -866,9 +866,22 @@ func (d *Dispatcher) AddNode(nodeid NodeId, x, y int, radioRange int, mode NodeM
 		// Wait until node's extended address is emitted (but not for real devices)
 		// This helps OTNS to make sure that the child process is ready to receive UDP events
 		t0 := time.Now()
-		deadline := t0.Add(time.Second * 30)
+		deadline := t0.Add(time.Second * 10)
 		for node.ExtAddr == InvalidExtAddr && time.Now().Before(deadline) {
 			d.RecvEvents()
+		}
+
+		if node.ExtAddr == InvalidExtAddr {
+			deadline := time.Now().Add(time.Second * 60)
+			for node.ExtAddr == InvalidExtAddr && time.Now().Before(deadline) {
+				d.RecvEvents()
+			}
+
+			if node.ExtAddr == InvalidExtAddr {
+				simplelogger.Panicf("expect node %d's extaddr to be valid, but failed in 70s", nodeid)
+			} else {
+				simplelogger.Panicf("expect node %d's extaddr to be valid, but failed in 10s, succeed at %v", nodeid, time.Now().Sub(t0))
+			}
 		}
 
 		if node.ExtAddr == InvalidExtAddr {
