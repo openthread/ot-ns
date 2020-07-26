@@ -38,6 +38,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/openthread/ot-ns/threadconst"
+
 	"github.com/openthread/ot-ns/dispatcher"
 
 	webSite "github.com/openthread/ot-ns/web/site"
@@ -86,9 +88,37 @@ func parseArgs() {
 	flag.BoolVar(&args.OpenWeb, "web", true, "open web")
 	flag.BoolVar(&args.RawMode, "raw", false, "use raw mode")
 	flag.BoolVar(&args.Real, "real", false, "use real mode (for real devices)")
-	flag.StringVar(&args.ListenAddr, "listen", "localhost:9000", "specify listen address")
+	flag.StringVar(&args.ListenAddr, "listen", fmt.Sprintf("localhost:%d", threadconst.InitialDispatcherPort), "specify listen address")
 
 	flag.Parse()
+}
+
+func parseListenAddr() {
+	var err error
+
+	notifyInvalidListenAddr := func() {
+		simplelogger.Fatalf("invalid listen address: %s (port must be larger than or equal to 9000 and must be a multiple of 1000).", args.ListenAddr)
+	}
+
+	subs := strings.Split(args.ListenAddr, ":")
+	if len(subs) != 2 {
+		notifyInvalidListenAddr()
+	}
+
+	args.DispatcherHost = subs[0]
+	if args.DispatcherPort, err = strconv.Atoi(subs[1]); err != nil {
+		notifyInvalidListenAddr()
+	}
+
+	if args.DispatcherPort < threadconst.InitialDispatcherPort || args.DispatcherPort%threadconst.WellKnownNodeId != 0 {
+		notifyInvalidListenAddr()
+	}
+
+	portOffset := (args.DispatcherPort - threadconst.InitialDispatcherPort) / threadconst.WellKnownNodeId
+	simplelogger.Infof("Using env PORT_OFFSET=%d", portOffset)
+	if err = os.Setenv("PORT_OFFSET", strconv.Itoa(portOffset)); err != nil {
+		simplelogger.Panic(err)
+	}
 }
 
 func Main(visualizerCreator func(ctx *progctx.ProgCtx, args *MainArgs) visualize.Visualizer) {
@@ -96,15 +126,7 @@ func Main(visualizerCreator func(ctx *progctx.ProgCtx, args *MainArgs) visualize
 
 	simplelogger.SetLevel(simplelogger.ParseLevel(args.LogLevel))
 
-	var err error
-	subs := strings.Split(args.ListenAddr, ":")
-	if len(subs) != 2 {
-		simplelogger.Fatalf("invalid listen address: %s", args.ListenAddr)
-	}
-	args.DispatcherHost = subs[0]
-	if args.DispatcherPort, err = strconv.Atoi(subs[1]); err != nil {
-		simplelogger.Fatalf("invalid listen address: %s", args.ListenAddr)
-	}
+	parseListenAddr()
 
 	rand.Seed(time.Now().UnixNano())
 	// run console in the main goroutine

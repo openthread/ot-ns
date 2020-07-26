@@ -26,6 +26,8 @@
 
 package simulation
 
+import "github.com/openthread/ot-ns/threadconst"
+
 const (
 	DefaultNetworkName = "OTSIM"
 	DefaultMasterKey   = "00112233445566778899aabbccddeeff"
@@ -59,6 +61,6 @@ func DefaultConfig() *Config {
 		OtCliPath:      "./ot-cli-ftd",
 		Real:           false,
 		DispatcherHost: "localhost",
-		DispatcherPort: 9000,
+		DispatcherPort: threadconst.InitialDispatcherPort,
 	}
 }

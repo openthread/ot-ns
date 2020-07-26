@@ -76,7 +76,7 @@ func DefaultConfig() *Config {
 		Speed: 1,
 		Real:  false,
 		Host:  "localhost",
-		Port:  9000,
+		Port:  threadconst.InitialDispatcherPort,
 	}
 }
 

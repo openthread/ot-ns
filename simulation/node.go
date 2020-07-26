@@ -39,6 +39,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openthread/ot-ns/threadconst"
+
 	"github.com/openthread/ot-ns/otoutfilter"
 	. "github.com/openthread/ot-ns/types"
 	"github.com/simonlingoogle/go-simplelogger"
@@ -63,7 +65,8 @@ const (
 func newNode(s *Simulation, id NodeId, cfg *NodeConfig) (*Node, error) {
 	var err error
 
-	flashFile := fmt.Sprintf("tmp/0_%d.flash", id)
+	portOffset := (s.cfg.DispatcherPort - threadconst.InitialDispatcherPort) / threadconst.WellKnownNodeId
+	flashFile := fmt.Sprintf("tmp/%d_%d.flash", portOffset, id)
 	if err := os.RemoveAll(flashFile); err != nil {
 		simplelogger.Errorf("Remove flash file %s failed: %+v", flashFile, err)
 	}
