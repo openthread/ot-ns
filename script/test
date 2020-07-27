@@ -136,40 +136,46 @@ test_signals()
     cd -
 }
 
+stress_tests()
+{
+    install_deps
+    install_otns
+    build_openthread
+    cd "$OTBIN_DIR"
+    python3 "$OTNSDIR"/pylibs/stress_tests/run_stress_suite.py "$@"
+    cd -
+}
+
 main()
 {
-    do_go_tests=0
-    do_py_unittests=0
-    do_py_examples=0
-    do_signals=0
-
-    for var in "$@"; do
-        if [[ $var == "go-tests" ]]; then
-            do_go_tests=1
-        elif [[ $var == "py-unittests" ]]; then
-            do_py_unittests=1
-        elif [[ $var == "py-examples" ]]; then
-            do_py_examples=1
-        elif [[ $var == "signals" ]]; then
-            do_signals=1
-        fi
+    while (("$#")); do
+        case "$1" in
+            go-tests)
+                go_tests
+                shift 1
+                ;;
+            py-unittests)
+                py_unittests
+                shift 1
+                ;;
+            py-examples)
+                py_examples
+                shift 1
+                ;;
+            signals)
+                test_signals
+                shift 1
+                ;;
+            stress-tests)
+                stress_tests "$2"
+                shift 2
+                ;;
+            *)
+                echo "Error: Unsupported test $1" >&2
+                return 1
+                ;;
+        esac
     done
-
-    if [[ $do_go_tests == "1" ]]; then
-        go_tests
-    fi
-
-    if [[ $do_py_unittests == "1" ]]; then
-        py_unittests
-    fi
-
-    if [[ $do_py_examples == "1" ]]; then
-        py_examples
-    fi
-
-    if [[ $do_signals == "1" ]]; then
-        test_signals
-    fi
 }
 
 main "$@"

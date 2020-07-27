@@ -1,0 +1,90 @@
+#!/usr/bin/env python3
+#
+# Copyright (c) 2020, The OTNS Authors.
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+# 3. Neither the name of the copyright holder nor the
+#    names of its contributors may be used to endorse or promote products
+#    derived from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+#
+
+import time
+
+from typing import Sequence, Any
+
+
+class StressTestResult(object):
+
+    def __init__(self, name: str, headers: Sequence[str]):
+        self.name = name
+        self.headers = tuple(headers)
+        self.rows = []
+        self._start_time = None
+        self._stop_time = None
+        self._failed = False
+        self._fail_msgs = []
+        self._fail_exception = None
+
+    @property
+    def failed(self):
+        return self._failed
+
+    def start(self):
+        assert self._start_time is None
+        self._start_time = time.time()
+
+    def stop(self):
+        assert self._start_time is not None and self._stop_time is None
+        self._stop_time = time.time()
+
+    def fail_with_error(self, ex: Exception):
+        assert self._fail_exception is None
+        self._fail_exception = ex
+        self._failed = True
+        self._fail_msgs.append(str(ex))
+
+    def fail_if(self, cond: bool, msg: str = ""):
+        if cond:
+            self._failed = True
+            self._fail_msgs.append(msg)
+
+    @property
+    def column_num(self):
+        return len(self.headers)
+
+    def append_row(self, *values: Any):
+        assert len(values) == len(self.headers)
+        self.rows.append(values)
+
+    def format(self):
+        rows = [self.headers, [':-:'] * self.column_num]
+        rows.extend(self.rows)
+        rows = ['| ' + ' | '.join(map(str, row)) + ' |' for row in rows]
+        start_time = time.strftime("%m/%d %H:%M:%S", time.gmtime(self._start_time))
+        stop_time = time.strftime("%m/%d %H:%M:%S", time.gmtime(self._stop_time))
+        passed_str = 'Passed' if not self._failed else 'Failed'
+        fail_msg = ', '.join(self._fail_msgs)
+        if fail_msg:
+            fail_msg = ': ' + fail_msg
+
+        return f'#### {self.name} **{passed_str}**{fail_msg} _({start_time} ~ {stop_time})_\n' + '\n'.join(
+            rows) + '\n'
