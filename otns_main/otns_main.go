@@ -153,9 +153,9 @@ func Main(visualizerCreator func(ctx *progctx.ProgCtx, args *MainArgs) visualize
 	}
 
 	sim := createSimulation(ctx)
+	rt := cli.NewCmdRunner(ctx, sim)
 	sim.SetVisualizer(vis)
 	go sim.Run()
-	rt := cli.NewCmdRunner(ctx, sim)
 	go func() {
 		err := cli.Run(rt)
 		ctx.Cancel(errors.Wrapf(err, "console exit"))

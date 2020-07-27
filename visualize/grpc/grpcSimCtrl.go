@@ -40,6 +40,17 @@ type grpcSimCtrl struct {
 	client pb.VisualizeGrpcServiceClient
 }
 
+func (gsc *grpcSimCtrl) Command(cmd string) ([]string, error) {
+	resp, err := gsc.client.Command(gsc.ctx, &pb.CommandRequest{
+		Command: cmd,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Output, nil
+}
+
 func (gsc *grpcSimCtrl) CtrlSetTitle(titleInfo visualize.TitleInfo) error {
 	_, err := gsc.client.CtrlSetTitle(gsc.ctx, &pb.SetTitleEvent{
 		Title:    titleInfo.Title,

@@ -41,12 +41,13 @@ import (
 )
 
 type Simulation struct {
-	ctx     *progctx.ProgCtx
-	cfg     *Config
-	nodes   map[NodeId]*Node
-	d       *dispatcher.Dispatcher
-	vis     visualize.Visualizer
-	rawMode bool
+	ctx       *progctx.ProgCtx
+	cfg       *Config
+	nodes     map[NodeId]*Node
+	d         *dispatcher.Dispatcher
+	vis       visualize.Visualizer
+	cmdRunner CmdRunner
+	rawMode   bool
 }
 
 func NewSimulation(ctx *progctx.ProgCtx, cfg *Config) (*Simulation, error) {
@@ -268,4 +269,9 @@ func (s *Simulation) IsStopped() bool {
 
 func (s *Simulation) SetTitleInfo(titleInfo visualize.TitleInfo) {
 	s.vis.SetTitle(titleInfo)
+}
+
+func (s *Simulation) SetCmdRunner(cmdRunner CmdRunner) {
+	simplelogger.AssertTrue(s.cmdRunner == nil)
+	s.cmdRunner = cmdRunner
 }

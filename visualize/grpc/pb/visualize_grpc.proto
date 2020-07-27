@@ -193,6 +193,14 @@ message SetNodeModeEvent {
     NodeMode node_mode = 2;
 }
 
+message CommandRequest {
+    string command = 1;
+}
+
+message CommandResponse {
+    repeated string output = 1;
+}
+
 service VisualizeGrpcService {
     //    rpc Echo (EchoRequest) returns (EchoResponse);
     rpc Visualize (VisualizeRequest) returns (stream VisualizeEvent);
@@ -202,6 +210,7 @@ service VisualizeGrpcService {
     rpc CtrlSetNodeFailed (SetNodeFailedRequest) returns (Empty);
     rpc CtrlSetSpeed (SetSpeedRequest) returns (Empty);
     rpc CtrlSetTitle (SetTitleEvent) returns (Empty);
+    rpc Command (CommandRequest) returns (CommandResponse);
 }
 
 message AddNodeRequest {

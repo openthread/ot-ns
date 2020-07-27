@@ -30,7 +30,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os"
 	"reflect"
 	"strings"
 	"time"
@@ -56,12 +55,13 @@ const (
 type CommandContext struct {
 	context.Context
 	*Command
-	rt  *CmdRunner
-	err error
+	rt     *CmdRunner
+	err    error
+	output io.Writer
 }
 
 func (cc *CommandContext) outputf(format string, args ...interface{}) {
-	fmt.Printf(format, args...)
+	_, _ = fmt.Fprintf(cc.output, format, args...)
 }
 
 func (cc *CommandContext) errorf(format string, args ...interface{}) {
@@ -82,7 +82,7 @@ type CmdRunner struct {
 	contextNodeId NodeId
 }
 
-func (rt *CmdRunner) HandleCommand(cmdline string, output io.Writer) error {
+func (rt *CmdRunner) RunCommand(cmdline string, output io.Writer) error {
 	if rt.contextNodeId != InvalidNodeId && !isContextlessCommand(cmdline) {
 		// run the command in node context
 		cmd := &Command{
@@ -91,7 +91,7 @@ func (rt *CmdRunner) HandleCommand(cmdline string, output io.Writer) error {
 				Command: &cmdline,
 			},
 		}
-		cc := rt.Execute(cmd)
+		cc := rt.Execute(cmd, output)
 
 		if cc.Err() != nil {
 			if _, err := fmt.Fprintf(output, "Error: %v\n", cc.Err()); err != nil {
@@ -106,18 +106,18 @@ func (rt *CmdRunner) HandleCommand(cmdline string, output io.Writer) error {
 		// run the OTNS-CLI command
 		cmd := &Command{}
 		if err := ParseBytes([]byte(cmdline), cmd); err != nil {
-			if _, err := fmt.Fprintf(os.Stdout, "Error: %v\n", err); err != nil {
+			if _, err := fmt.Fprintf(output, "Error: %v\n", err); err != nil {
 				return err
 			}
 		} else {
-			cc := rt.Execute(cmd)
+			cc := rt.Execute(cmd, output)
 
 			if cc.Err() != nil {
-				if _, err := fmt.Fprintf(os.Stdout, "Error: %v\n", cc.Err()); err != nil {
+				if _, err := fmt.Fprintf(output, "Error: %v\n", cc.Err()); err != nil {
 					return err
 				}
 			} else {
-				if _, err := fmt.Fprintf(os.Stdout, "Done\n"); err != nil {
+				if _, err := fmt.Fprintf(output, "Done\n"); err != nil {
 					return err
 				}
 			}
@@ -125,6 +125,10 @@ func (rt *CmdRunner) HandleCommand(cmdline string, output io.Writer) error {
 	}
 
 	return nil
+}
+
+func (rt *CmdRunner) HandleCommand(cmdline string, output io.Writer) error {
+	return rt.RunCommand(cmdline, output)
 }
 
 func (rt *CmdRunner) GetPrompt() string {
@@ -135,10 +139,11 @@ func (rt *CmdRunner) GetPrompt() string {
 	}
 }
 
-func (rt *CmdRunner) Execute(cmd *Command) (cc *CommandContext) {
+func (rt *CmdRunner) Execute(cmd *Command, output io.Writer) (cc *CommandContext) {
 	cc = &CommandContext{
 		Command: cmd,
 		rt:      rt,
+		output:  output,
 	}
 
 	defer func() {
@@ -720,10 +725,11 @@ func (rt *CmdRunner) executeTitle(cc *CommandContext, cmd *TitleCmd) {
 }
 
 func NewCmdRunner(ctx *progctx.ProgCtx, sim *simulation.Simulation) *CmdRunner {
-	r := &CmdRunner{
+	cr := &CmdRunner{
 		ctx:           ctx,
 		sim:           sim,
 		contextNodeId: InvalidNodeId,
 	}
-	return r
+	sim.SetCmdRunner(cr)
+	return cr
 }

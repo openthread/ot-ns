@@ -95,6 +95,13 @@ exit:
 	return err
 }
 
+func (gs *grpcServer) Command(ctx context.Context, req *pb.CommandRequest) (*pb.CommandResponse, error) {
+	output, err := gs.vis.simctrl.Command(req.Command)
+	return &pb.CommandResponse{
+		Output: output,
+	}, err
+}
+
 func (gs *grpcServer) CtrlAddNode(ctx context.Context, req *pb.AddNodeRequest) (*pb.Empty, error) {
 	err := gs.vis.simctrl.CtrlAddNode(int(req.X), int(req.Y), req.IsRouter, types.NodeMode{
 		RxOnWhenIdle:       req.Mode.RxOnWhenIdle,
