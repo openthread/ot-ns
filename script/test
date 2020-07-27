@@ -121,7 +121,6 @@ py_examples()
     cd "$OTBIN_DIR"
     check_py_example "$OTNSDIR"/pylibs/examples/simple.py
     check_py_example "$OTNSDIR"/pylibs/examples/ping.py
-    check_py_example "$OTNSDIR"/pylibs/examples/form_partition.py
     check_py_example "$OTNSDIR"/pylibs/examples/farm.py
     cd -
 }
