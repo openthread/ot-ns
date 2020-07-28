@@ -1131,11 +1131,6 @@ func (d *Dispatcher) SetNodeFailed(id NodeId, fail bool) {
 }
 
 func (d *Dispatcher) SetSpeed(f float64) {
-	if d.cfg.Real {
-		simplelogger.Warnf("not allowed to set speed in real mode")
-		return
-	}
-
 	ns := d.normalizeSpeed(f)
 	if ns == d.speed {
 		return
