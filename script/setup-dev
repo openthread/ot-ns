@@ -37,6 +37,8 @@ while getopts ':u' 'OPTKEY'; do
         'u')
             skip_update='false'
             ;;
+        *) ;;
+
     esac
 done
 
@@ -49,17 +51,19 @@ function install_protoc()
     fi
 
     if [[ $Darwin == 1 ]]; then
-        protoc_download_url=https://github.com/protocolbuffers/protobuf/releases/download/v3.11.3/protoc-3.11.3-osx-x86_64.zip
+        protoc_download_url=https://github.com/protocolbuffers/protobuf/releases/download/v3.12.3/protoc-3.12.3-osx-x86_64.zip
     else
-        protoc_download_url=https://github.com/protocolbuffers/protobuf/releases/download/v3.11.3/protoc-3.11.3-linux-x86_64.zip
+        protoc_download_url=https://github.com/protocolbuffers/protobuf/releases/download/v3.12.3/protoc-3.12.3-linux-x86_64.zip
     fi
 
     wget $protoc_download_url -O /tmp/protoc.zip
 
-    cd /usr/local || return 1
-    sudo unzip /tmp/protoc.zip
-    sudo chmod a+x /usr/local/bin/protoc
-    sudo rm -rf protoc.zip
+    (
+        cd /usr/local || return 1
+        sudo unzip /tmp/protoc.zip
+        sudo chmod a+x /usr/local/bin/protoc
+        sudo rm -rf protoc.zip
+    )
 
     installed protoc || die "protoc-gen-go not found, make sure /usr/local/bin is included in $PATH"
 }
@@ -70,8 +74,8 @@ install_protoc_gen_go()
         return 0
     fi
 
-    go get -u github.com/golang/protobuf/protoc-gen-go
-    installed protoc-gen-go || die "protoc-gen-go not found, make sure $GOPATH/bin is included in $PATH"
+    go get -u github.com/golang/protobuf/protoc-gen-go@v1.4.2
+    installed protoc-gen-go || die "protoc-gen-go not found, make sure $(go env GOPATH)/bin is included in $PATH"
 }
 
 install_protoc_gen_grpc_web()
@@ -83,9 +87,9 @@ install_protoc_gen_grpc_web()
     local download_url
 
     if [[ $Darwin == 1 ]]; then
-        download_url=https://github.com/grpc/grpc-web/releases/download/1.0.7/protoc-gen-grpc-web-1.0.7-darwin-x86_64
+        download_url=https://github.com/grpc/grpc-web/releases/download/1.2.0/protoc-gen-grpc-web-1.2.0-darwin-x86_64
     else
-        download_url=https://github.com/grpc/grpc-web/releases/download/1.0.7/protoc-gen-grpc-web-1.0.7-linux-x86_64
+        download_url=https://github.com/grpc/grpc-web/releases/download/1.2.0/protoc-gen-grpc-web-1.2.0-linux-x86_64
     fi
 
     wget $download_url -O /tmp/protoc-gen-grpc-web
@@ -97,7 +101,15 @@ install_protoc_gen_grpc_web()
 
 install_nodejs()
 {
-    sudo apt-get install nodejs npm -y
+    if ${skip_update} && installed npm; then
+        return 0
+    fi
+
+    if [[ $Darwin == 1 ]]; then
+        echo "nodejs is required for OTNS-Web development. Please install from https://nodejs.org/"
+    else
+        sudo apt-get install nodejs npm -y
+    fi
 }
 
 install_go_bindata()
@@ -106,7 +118,8 @@ install_go_bindata()
         return 0
     fi
 
-    go get -u github.com/jteeuwen/go-bindata/...
+    go get -u github.com/jteeuwen/go-bindata/...@v3.0.7
+    installed go-bindata || die "go-bindata not found, make sure $(go env GOPATH)/bin is included in $PATH"
 }
 
 install_protoc
