@@ -28,7 +28,6 @@ syntax = "proto3";
 
 package visualize_grpc_pb;
 
-
 message VisualizeRequest {
 
 }
