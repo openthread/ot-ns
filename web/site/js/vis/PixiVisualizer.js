@@ -33,9 +33,7 @@ import Node from "./Node"
 import {AckMessage, BroadcastMessage, UnicastMessage} from "./message";
 
 const {
-    VisualizeRequest, VisualizeEvent, OtDeviceRole, NodeMode,
-    MoveNodeToRequest, DeleteNodeRequest, AddNodeRequest, SetNodeFailedRequest,
-    SetSpeedRequest,
+    OtDeviceRole, CommandRequest
 } = require('../proto/visualize_grpc_pb.js');
 
 var vis = null;
@@ -281,40 +279,46 @@ export default class PixiVisualizer extends VObject {
         console.log("CountDown not implemented")
     }
 
-    ctrlAddNode(x, y, isRouter, mode, cb) {
-        let req = new AddNodeRequest();
-        req.setX(x);
-        req.setY(y);
-        req.setIsRouter(isRouter);
-        req.setMode(mode);
-        this.grpcServiceClient.ctrlAddNode(req, {}, cb)
+    ctrlAddNode(x, y, type) {
+        x = Math.floor(x);
+        y = Math.floor(y);
+
+        this.runCommand("add " + type + " x " + x + " y " + y)
     }
 
     ctrlMoveNodeTo(nodeId, x, y, cb) {
-        let req = new MoveNodeToRequest();
-        req.setNodeId(nodeId);
-        req.setX(x);
-        req.setY(y);
-        this.grpcServiceClient.ctrlMoveNodeTo(req, {}, cb)
+        x = Math.floor(x);
+        y = Math.floor(y);
+        this.runCommand("move " + nodeId + " " + x + " " + y);
     }
 
-    ctrlDeleteNode(nodeId, cb) {
-        let req = new DeleteNodeRequest();
-        req.setNodeId(nodeId);
-        this.grpcServiceClient.ctrlDeleteNode(req, {}, cb)
+    ctrlDeleteNode(nodeId) {
+        this.runCommand("del " + nodeId);
     }
 
-    ctrlSetNodeFailed(nodeId, failed, cb) {
-        let req = new SetNodeFailedRequest();
-        req.setNodeId(nodeId);
-        req.setFailed(failed);
-        this.grpcServiceClient.ctrlSetNodeFailed(req, {}, cb)
+    ctrlSetNodeFailed(nodeId, failed) {
+        this.runCommand("radio " + nodeId + " " + (failed ? "off" : "on"))
     }
 
-    ctrlSetSpeed(speed, cb) {
-        let req = new SetSpeedRequest();
-        req.setSpeed(speed);
-        this.grpcServiceClient.ctrlSetSpeed(req, {}, cb)
+    ctrlSetSpeed(speed) {
+        this.runCommand("speed " + speed)
+    }
+
+    runCommand(cmd) {
+        let req = new CommandRequest();
+        req.setCommand(cmd);
+        console.log("> " + cmd);
+
+        this.grpcServiceClient.command(req, {}, (err, resp) => {
+            if (err !== null) {
+                console.error("Error: " + err.toLocaleString());
+            } else {
+                let output = resp.getOutputList();
+                for (let i in output) {
+                    console.log(output[i]);
+                }
+            }
+        })
     }
 
     getPartitionColor(parid) {
@@ -346,21 +350,14 @@ export default class PixiVisualizer extends VObject {
         this.actionBar.setContext(new_sel || "any")
     }
 
-    newNode(x, y, isRouter, mode) {
-        this.ctrlAddNode(x, y, isRouter, mode, (err, resp) => {
-        })
-    }
-
     setSpeed(speed) {
-        this.ctrlSetSpeed(speed, (err, resp) => {
-        })
+        this.ctrlSetSpeed(speed)
     }
 
     deleteSelectedNode() {
         let sel = this.nodes[this._selectedNodeId];
         if (sel) {
-            this.ctrlDeleteNode(sel.id, (err, resp) => {
-            })
+            this.ctrlDeleteNode(sel.id)
         }
     }
 
@@ -370,14 +367,12 @@ export default class PixiVisualizer extends VObject {
             return
         }
 
-        this.ctrlSetNodeFailed(sel.id, failed, (err, resp) => {
-        })
+        this.ctrlSetNodeFailed(sel.id, failed)
     }
 
     clearAllNodes() {
         for (let id in this.nodes) {
-            this.ctrlDeleteNode(id, (err, resp) => {
-            })
+            this.ctrlDeleteNode(id)
         }
     }
 

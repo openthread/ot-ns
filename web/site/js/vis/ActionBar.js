@@ -156,7 +156,7 @@ export default class ActionBar extends VObject {
         mode.setSecureDataRequests(true);
         mode.setFullThreadDevice(true);
         mode.setFullNetworkData(true);
-        this.vis.newNode(Math.round(pos.x), Math.round(pos.y - 100), true, mode)
+        this.vis.ctrlAddNode(Math.round(pos.x), Math.round(pos.y - 100), "router")
     }
 
     actionNewFED(e) {
@@ -166,7 +166,7 @@ export default class ActionBar extends VObject {
         mode.setSecureDataRequests(true);
         mode.setFullThreadDevice(true);
         mode.setFullNetworkData(true);
-        this.vis.newNode(Math.round(pos.x), Math.round(pos.y - 100), false, mode)
+        this.vis.ctrlAddNode(Math.round(pos.x), Math.round(pos.y - 100), "fed")
     }
 
     actionNewMED(e) {
@@ -176,7 +176,7 @@ export default class ActionBar extends VObject {
         mode.setSecureDataRequests(true);
         mode.setFullThreadDevice(false);
         mode.setFullNetworkData(true);
-        this.vis.newNode(Math.round(pos.x), Math.round(pos.y - 100), false, mode)
+        this.vis.ctrlAddNode(Math.round(pos.x), Math.round(pos.y - 100), "med")
     }
 
     actionNewSED(e) {
@@ -186,7 +186,7 @@ export default class ActionBar extends VObject {
         mode.setSecureDataRequests(true);
         mode.setFullThreadDevice(false);
         mode.setFullNetworkData(true);
-        this.vis.newNode(Math.round(pos.x), Math.round(pos.y - 100), false, mode)
+        this.vis.ctrlAddNode(Math.round(pos.x), Math.round(pos.y - 100), "sed")
     }
 
     actionDelete(e) {
