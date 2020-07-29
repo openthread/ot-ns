@@ -29,13 +29,17 @@
 #
 # The script to format source code of OTNS.
 #
-# Format go and shell:
+# Format all:
 #
 #     script/make-pretty
 #
 # Format go only:
 #
 #     script/make-pretty go
+#
+# Format go.mod only:
+#
+#     script/make-pretty go.mod
 #
 # Format shell only:
 #
@@ -55,6 +59,15 @@ do_go_format()
     golangci-lint run "${GOLINT_ARGS[@]}" --fix || die "make pretty failed"
 }
 
+do_go_mod_format()
+{
+    echo -e '====================='
+    echo -e '     format go.mod'
+    echo -e '====================='
+
+    go mod tidy
+}
+
 do_shell_format()
 {
     echo -e '====================='
@@ -71,13 +84,16 @@ main()
 
     if [ $# == 0 ]; then
         do_go_format
+        do_go_mod_format
         do_shell_format
     elif [ "$1" == 'go' ]; then
         do_go_format
+    elif [ "$1" == 'go.mod' ]; then
+        do_go_mod_format
     elif [ "$1" == 'shell' ]; then
         do_shell_format
     else
-        echo >&2 "Unsupported action: $1. Supported: go, shell"
+        echo >&2 "Unsupported action: $1. Supported: go, go.mod, shell"
         # 128 for Invalid arguments
         exit 128
     fi
