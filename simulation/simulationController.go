@@ -29,46 +29,12 @@ package simulation
 import (
 	"strings"
 
-	. "github.com/openthread/ot-ns/types"
 	"github.com/openthread/ot-ns/visualize"
 	"github.com/pkg/errors"
-	"github.com/simonlingoogle/go-simplelogger"
 )
 
 type simulationController struct {
 	sim *Simulation
-}
-
-func (sc *simulationController) CtrlSetSpeed(speed float64) error {
-	sim := sc.sim
-	sim.PostAsync(true, func() {
-		sim.SetSpeed(speed)
-	})
-	return nil
-}
-
-func (sc *simulationController) CtrlSetNodeFailed(nodeid NodeId, failed bool) error {
-	sim := sc.sim
-	sim.PostAsync(true, func() {
-		sim.SetNodeFailed(nodeid, failed)
-	})
-	return nil
-}
-
-func (sc *simulationController) CtrlDeleteNode(nodeid NodeId) error {
-	sim := sc.sim
-	sim.PostAsync(true, func() {
-		_ = sim.DeleteNode(nodeid)
-	})
-	return nil
-}
-
-func (sc *simulationController) CtrlMoveNodeTo(nodeid NodeId, x, y int) error {
-	sim := sc.sim
-	sim.PostAsync(true, func() {
-		sim.MoveNodeTo(nodeid, x, y)
-	})
-	return nil
 }
 
 func (sc *simulationController) Command(cmd string) ([]string, error) {
@@ -86,79 +52,13 @@ func (sc *simulationController) Command(cmd string) ([]string, error) {
 	return output, nil
 }
 
-func (sc *simulationController) CtrlAddNode(x, y int, isRouter bool, mode NodeMode, nodeid NodeId) error {
-	sim := sc.sim
-	nodeCfg := DefaultNodeConfig()
-	nodeCfg.IsRouter = isRouter
-	nodeCfg.IsMtd = !isRouter && !mode.FullThreadDevice
-	nodeCfg.RxOffWhenIdle = !isRouter && !mode.RxOnWhenIdle
-	nodeCfg.X, nodeCfg.Y = x, y
-	if nodeid != InvalidNodeId {
-		nodeCfg.ID = nodeid
-	}
-
-	var err error
-
-	sc.postAsyncWait(true, func() {
-		simplelogger.Infof("CtrlAddNode: %+v", nodeCfg)
-		_, err = sim.AddNode(nodeCfg)
-		if err != nil {
-			simplelogger.Errorf("add node failed: %v", err)
-		}
-	})
-
-	return err
-}
-
-func (sc *simulationController) CtrlSetTitle(titleInfo visualize.TitleInfo) error {
-	sim := sc.sim
-	sc.postAsyncWait(false, func() {
-		sim.SetTitleInfo(titleInfo)
-	})
-
-	return nil
-}
-
-func (sc *simulationController) postAsyncWait(trivial bool, f func()) {
-	done := make(chan struct{})
-	sc.sim.PostAsync(trivial, func() {
-		f()
-		close(done)
-	})
-	<-done
-}
-
 type readonlySimulationController struct {
-}
-
-func (r readonlySimulationController) CtrlSetSpeed(speed float64) error {
-	return readonlySimulationError
-}
-
-func (r readonlySimulationController) CtrlSetNodeFailed(nodeid NodeId, failed bool) error {
-	return readonlySimulationError
 }
 
 var readonlySimulationError = errors.Errorf("simulation is readonly")
 
 func (r readonlySimulationController) Command(cmd string) (output []string, err error) {
 	return nil, readonlySimulationError
-}
-
-func (r readonlySimulationController) CtrlAddNode(x, y int, router bool, mode NodeMode, nodeid NodeId) error {
-	return readonlySimulationError
-}
-
-func (r readonlySimulationController) CtrlMoveNodeTo(nodeid NodeId, x, y int) error {
-	return readonlySimulationError
-}
-
-func (r readonlySimulationController) CtrlDeleteNode(nodeid NodeId) error {
-	return readonlySimulationError
-}
-
-func (r readonlySimulationController) CtrlSetTitle(titleInfo visualize.TitleInfo) error {
-	return readonlySimulationError
 }
 
 func NewSimulationController(sim *Simulation) visualize.SimulationController {

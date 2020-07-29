@@ -32,11 +32,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/openthread/ot-ns/visualize"
-
-	"github.com/openthread/ot-ns/types"
-	. "github.com/openthread/ot-ns/types"
-
 	"github.com/simonlingoogle/go-simplelogger"
 
 	pb "github.com/openthread/ot-ns/visualize/grpc/pb"
@@ -100,46 +95,6 @@ func (gs *grpcServer) Command(ctx context.Context, req *pb.CommandRequest) (*pb.
 	return &pb.CommandResponse{
 		Output: output,
 	}, err
-}
-
-func (gs *grpcServer) CtrlAddNode(ctx context.Context, req *pb.AddNodeRequest) (*pb.Empty, error) {
-	err := gs.vis.simctrl.CtrlAddNode(int(req.X), int(req.Y), req.IsRouter, types.NodeMode{
-		RxOnWhenIdle:       req.Mode.RxOnWhenIdle,
-		SecureDataRequests: req.Mode.SecureDataRequests,
-		FullThreadDevice:   req.Mode.FullThreadDevice,
-		FullNetworkData:    req.Mode.FullNetworkData,
-	}, NodeId(req.NodeId))
-	return &pb.Empty{}, err
-}
-
-func (gs *grpcServer) CtrlDeleteNode(ctx context.Context, req *pb.DeleteNodeRequest) (*pb.Empty, error) {
-	err := gs.vis.simctrl.CtrlDeleteNode(NodeId(req.NodeId))
-	return &pb.Empty{}, err
-}
-
-func (gs *grpcServer) CtrlMoveNodeTo(ctx context.Context, req *pb.MoveNodeToRequest) (*pb.Empty, error) {
-	err := gs.vis.simctrl.CtrlMoveNodeTo(NodeId(req.NodeId), int(req.X), int(req.Y))
-	return &pb.Empty{}, err
-}
-
-func (gs *grpcServer) CtrlSetNodeFailed(ctx context.Context, req *pb.SetNodeFailedRequest) (*pb.Empty, error) {
-	err := gs.vis.simctrl.CtrlSetNodeFailed(NodeId(req.NodeId), req.Failed)
-	return &pb.Empty{}, err
-}
-
-func (gs *grpcServer) CtrlSetSpeed(ctx context.Context, req *pb.SetSpeedRequest) (*pb.Empty, error) {
-	err := gs.vis.simctrl.CtrlSetSpeed(req.Speed)
-	return &pb.Empty{}, err
-}
-
-func (gs *grpcServer) CtrlSetTitle(ctx context.Context, req *pb.SetTitleEvent) (*pb.Empty, error) {
-	err := gs.vis.simctrl.CtrlSetTitle(visualize.TitleInfo{
-		Title:    req.Title,
-		X:        int(req.X),
-		Y:        int(req.Y),
-		FontSize: int(req.FontSize),
-	})
-	return &pb.Empty{}, err
 }
 
 func (gs *grpcServer) Run() error {
