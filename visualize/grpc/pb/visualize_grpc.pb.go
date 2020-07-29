@@ -1977,297 +1977,6 @@ func (x *CommandResponse) GetOutput() []string {
 	return nil
 }
 
-type AddNodeRequest struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	X        int32     `protobuf:"varint,1,opt,name=x,proto3" json:"x,omitempty"`
-	Y        int32     `protobuf:"varint,2,opt,name=y,proto3" json:"y,omitempty"`
-	IsRouter bool      `protobuf:"varint,3,opt,name=is_router,json=isRouter,proto3" json:"is_router,omitempty"`
-	Mode     *NodeMode `protobuf:"bytes,4,opt,name=mode,proto3" json:"mode,omitempty"`
-	NodeId   uint32    `protobuf:"varint,5,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
-}
-
-func (x *AddNodeRequest) Reset() {
-	*x = AddNodeRequest{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_visualize_grpc_proto_msgTypes[28]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *AddNodeRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*AddNodeRequest) ProtoMessage() {}
-
-func (x *AddNodeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_visualize_grpc_proto_msgTypes[28]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use AddNodeRequest.ProtoReflect.Descriptor instead.
-func (*AddNodeRequest) Descriptor() ([]byte, []int) {
-	return file_visualize_grpc_proto_rawDescGZIP(), []int{28}
-}
-
-func (x *AddNodeRequest) GetX() int32 {
-	if x != nil {
-		return x.X
-	}
-	return 0
-}
-
-func (x *AddNodeRequest) GetY() int32 {
-	if x != nil {
-		return x.Y
-	}
-	return 0
-}
-
-func (x *AddNodeRequest) GetIsRouter() bool {
-	if x != nil {
-		return x.IsRouter
-	}
-	return false
-}
-
-func (x *AddNodeRequest) GetMode() *NodeMode {
-	if x != nil {
-		return x.Mode
-	}
-	return nil
-}
-
-func (x *AddNodeRequest) GetNodeId() uint32 {
-	if x != nil {
-		return x.NodeId
-	}
-	return 0
-}
-
-type DeleteNodeRequest struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	NodeId int32 `protobuf:"varint,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
-}
-
-func (x *DeleteNodeRequest) Reset() {
-	*x = DeleteNodeRequest{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_visualize_grpc_proto_msgTypes[29]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *DeleteNodeRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*DeleteNodeRequest) ProtoMessage() {}
-
-func (x *DeleteNodeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_visualize_grpc_proto_msgTypes[29]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use DeleteNodeRequest.ProtoReflect.Descriptor instead.
-func (*DeleteNodeRequest) Descriptor() ([]byte, []int) {
-	return file_visualize_grpc_proto_rawDescGZIP(), []int{29}
-}
-
-func (x *DeleteNodeRequest) GetNodeId() int32 {
-	if x != nil {
-		return x.NodeId
-	}
-	return 0
-}
-
-type MoveNodeToRequest struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	NodeId int32 `protobuf:"varint,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
-	X      int32 `protobuf:"varint,2,opt,name=x,proto3" json:"x,omitempty"`
-	Y      int32 `protobuf:"varint,3,opt,name=y,proto3" json:"y,omitempty"`
-}
-
-func (x *MoveNodeToRequest) Reset() {
-	*x = MoveNodeToRequest{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_visualize_grpc_proto_msgTypes[30]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *MoveNodeToRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*MoveNodeToRequest) ProtoMessage() {}
-
-func (x *MoveNodeToRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_visualize_grpc_proto_msgTypes[30]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use MoveNodeToRequest.ProtoReflect.Descriptor instead.
-func (*MoveNodeToRequest) Descriptor() ([]byte, []int) {
-	return file_visualize_grpc_proto_rawDescGZIP(), []int{30}
-}
-
-func (x *MoveNodeToRequest) GetNodeId() int32 {
-	if x != nil {
-		return x.NodeId
-	}
-	return 0
-}
-
-func (x *MoveNodeToRequest) GetX() int32 {
-	if x != nil {
-		return x.X
-	}
-	return 0
-}
-
-func (x *MoveNodeToRequest) GetY() int32 {
-	if x != nil {
-		return x.Y
-	}
-	return 0
-}
-
-type SetNodeFailedRequest struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	NodeId int32 `protobuf:"varint,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
-	Failed bool  `protobuf:"varint,2,opt,name=failed,proto3" json:"failed,omitempty"`
-}
-
-func (x *SetNodeFailedRequest) Reset() {
-	*x = SetNodeFailedRequest{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_visualize_grpc_proto_msgTypes[31]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *SetNodeFailedRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SetNodeFailedRequest) ProtoMessage() {}
-
-func (x *SetNodeFailedRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_visualize_grpc_proto_msgTypes[31]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SetNodeFailedRequest.ProtoReflect.Descriptor instead.
-func (*SetNodeFailedRequest) Descriptor() ([]byte, []int) {
-	return file_visualize_grpc_proto_rawDescGZIP(), []int{31}
-}
-
-func (x *SetNodeFailedRequest) GetNodeId() int32 {
-	if x != nil {
-		return x.NodeId
-	}
-	return 0
-}
-
-func (x *SetNodeFailedRequest) GetFailed() bool {
-	if x != nil {
-		return x.Failed
-	}
-	return false
-}
-
-type SetSpeedRequest struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Speed float64 `protobuf:"fixed64,1,opt,name=speed,proto3" json:"speed,omitempty"`
-}
-
-func (x *SetSpeedRequest) Reset() {
-	*x = SetSpeedRequest{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_visualize_grpc_proto_msgTypes[32]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *SetSpeedRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SetSpeedRequest) ProtoMessage() {}
-
-func (x *SetSpeedRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_visualize_grpc_proto_msgTypes[32]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SetSpeedRequest.ProtoReflect.Descriptor instead.
-func (*SetSpeedRequest) Descriptor() ([]byte, []int) {
-	return file_visualize_grpc_proto_rawDescGZIP(), []int{32}
-}
-
-func (x *SetSpeedRequest) GetSpeed() float64 {
-	if x != nil {
-		return x.Speed
-	}
-	return 0
-}
-
 type Empty struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -2277,7 +1986,7 @@ type Empty struct {
 func (x *Empty) Reset() {
 	*x = Empty{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_visualize_grpc_proto_msgTypes[33]
+		mi := &file_visualize_grpc_proto_msgTypes[28]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2290,7 +1999,7 @@ func (x *Empty) String() string {
 func (*Empty) ProtoMessage() {}
 
 func (x *Empty) ProtoReflect() protoreflect.Message {
-	mi := &file_visualize_grpc_proto_msgTypes[33]
+	mi := &file_visualize_grpc_proto_msgTypes[28]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2303,7 +2012,7 @@ func (x *Empty) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Empty.ProtoReflect.Descriptor instead.
 func (*Empty) Descriptor() ([]byte, []int) {
-	return file_visualize_grpc_proto_rawDescGZIP(), []int{33}
+	return file_visualize_grpc_proto_rawDescGZIP(), []int{28}
 }
 
 var File_visualize_grpc_proto protoreflect.FileDescriptor
@@ -2550,31 +2259,7 @@ var file_visualize_grpc_proto_rawDesc = []byte{
 	0x61, 0x6e, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x63, 0x6f, 0x6d, 0x6d, 0x61,
 	0x6e, 0x64, 0x22, 0x29, 0x0a, 0x0f, 0x43, 0x6f, 0x6d, 0x6d, 0x61, 0x6e, 0x64, 0x52, 0x65, 0x73,
 	0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x16, 0x0a, 0x06, 0x6f, 0x75, 0x74, 0x70, 0x75, 0x74, 0x18,
-	0x01, 0x20, 0x03, 0x28, 0x09, 0x52, 0x06, 0x6f, 0x75, 0x74, 0x70, 0x75, 0x74, 0x22, 0x93, 0x01,
-	0x0a, 0x0e, 0x41, 0x64, 0x64, 0x4e, 0x6f, 0x64, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
-	0x12, 0x0c, 0x0a, 0x01, 0x78, 0x18, 0x01, 0x20, 0x01, 0x28, 0x05, 0x52, 0x01, 0x78, 0x12, 0x0c,
-	0x0a, 0x01, 0x79, 0x18, 0x02, 0x20, 0x01, 0x28, 0x05, 0x52, 0x01, 0x79, 0x12, 0x1b, 0x0a, 0x09,
-	0x69, 0x73, 0x5f, 0x72, 0x6f, 0x75, 0x74, 0x65, 0x72, 0x18, 0x03, 0x20, 0x01, 0x28, 0x08, 0x52,
-	0x08, 0x69, 0x73, 0x52, 0x6f, 0x75, 0x74, 0x65, 0x72, 0x12, 0x2f, 0x0a, 0x04, 0x6d, 0x6f, 0x64,
-	0x65, 0x18, 0x04, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1b, 0x2e, 0x76, 0x69, 0x73, 0x75, 0x61, 0x6c,
-	0x69, 0x7a, 0x65, 0x5f, 0x67, 0x72, 0x70, 0x63, 0x5f, 0x70, 0x62, 0x2e, 0x4e, 0x6f, 0x64, 0x65,
-	0x4d, 0x6f, 0x64, 0x65, 0x52, 0x04, 0x6d, 0x6f, 0x64, 0x65, 0x12, 0x17, 0x0a, 0x07, 0x6e, 0x6f,
-	0x64, 0x65, 0x5f, 0x69, 0x64, 0x18, 0x05, 0x20, 0x01, 0x28, 0x0d, 0x52, 0x06, 0x6e, 0x6f, 0x64,
-	0x65, 0x49, 0x64, 0x22, 0x2c, 0x0a, 0x11, 0x44, 0x65, 0x6c, 0x65, 0x74, 0x65, 0x4e, 0x6f, 0x64,
-	0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x17, 0x0a, 0x07, 0x6e, 0x6f, 0x64, 0x65,
-	0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x05, 0x52, 0x06, 0x6e, 0x6f, 0x64, 0x65, 0x49,
-	0x64, 0x22, 0x48, 0x0a, 0x11, 0x4d, 0x6f, 0x76, 0x65, 0x4e, 0x6f, 0x64, 0x65, 0x54, 0x6f, 0x52,
-	0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x17, 0x0a, 0x07, 0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x69,
-	0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x05, 0x52, 0x06, 0x6e, 0x6f, 0x64, 0x65, 0x49, 0x64, 0x12,
-	0x0c, 0x0a, 0x01, 0x78, 0x18, 0x02, 0x20, 0x01, 0x28, 0x05, 0x52, 0x01, 0x78, 0x12, 0x0c, 0x0a,
-	0x01, 0x79, 0x18, 0x03, 0x20, 0x01, 0x28, 0x05, 0x52, 0x01, 0x79, 0x22, 0x47, 0x0a, 0x14, 0x53,
-	0x65, 0x74, 0x4e, 0x6f, 0x64, 0x65, 0x46, 0x61, 0x69, 0x6c, 0x65, 0x64, 0x52, 0x65, 0x71, 0x75,
-	0x65, 0x73, 0x74, 0x12, 0x17, 0x0a, 0x07, 0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x69, 0x64, 0x18, 0x01,
-	0x20, 0x01, 0x28, 0x05, 0x52, 0x06, 0x6e, 0x6f, 0x64, 0x65, 0x49, 0x64, 0x12, 0x16, 0x0a, 0x06,
-	0x66, 0x61, 0x69, 0x6c, 0x65, 0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x08, 0x52, 0x06, 0x66, 0x61,
-	0x69, 0x6c, 0x65, 0x64, 0x22, 0x27, 0x0a, 0x0f, 0x53, 0x65, 0x74, 0x53, 0x70, 0x65, 0x65, 0x64,
-	0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x14, 0x0a, 0x05, 0x73, 0x70, 0x65, 0x65, 0x64,
-	0x18, 0x01, 0x20, 0x01, 0x28, 0x01, 0x52, 0x05, 0x73, 0x70, 0x65, 0x65, 0x64, 0x22, 0x07, 0x0a,
+	0x01, 0x20, 0x03, 0x28, 0x09, 0x52, 0x06, 0x6f, 0x75, 0x74, 0x70, 0x75, 0x74, 0x22, 0x07, 0x0a,
 	0x05, 0x45, 0x6d, 0x70, 0x74, 0x79, 0x2a, 0x98, 0x01, 0x0a, 0x0c, 0x4f, 0x74, 0x44, 0x65, 0x76,
 	0x69, 0x63, 0x65, 0x52, 0x6f, 0x6c, 0x65, 0x12, 0x1b, 0x0a, 0x17, 0x4f, 0x54, 0x5f, 0x44, 0x45,
 	0x56, 0x49, 0x43, 0x45, 0x5f, 0x52, 0x4f, 0x4c, 0x45, 0x5f, 0x44, 0x49, 0x53, 0x41, 0x42, 0x4c,
@@ -2585,49 +2270,19 @@ var file_visualize_grpc_proto_rawDesc = []byte{
 	0x54, 0x5f, 0x44, 0x45, 0x56, 0x49, 0x43, 0x45, 0x5f, 0x52, 0x4f, 0x4c, 0x45, 0x5f, 0x52, 0x4f,
 	0x55, 0x54, 0x45, 0x52, 0x10, 0x03, 0x12, 0x19, 0x0a, 0x15, 0x4f, 0x54, 0x5f, 0x44, 0x45, 0x56,
 	0x49, 0x43, 0x45, 0x5f, 0x52, 0x4f, 0x4c, 0x45, 0x5f, 0x4c, 0x45, 0x41, 0x44, 0x45, 0x52, 0x10,
-	0x04, 0x32, 0xa1, 0x05, 0x0a, 0x14, 0x56, 0x69, 0x73, 0x75, 0x61, 0x6c, 0x69, 0x7a, 0x65, 0x47,
+	0x04, 0x32, 0xbf, 0x01, 0x0a, 0x14, 0x56, 0x69, 0x73, 0x75, 0x61, 0x6c, 0x69, 0x7a, 0x65, 0x47,
 	0x72, 0x70, 0x63, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x12, 0x55, 0x0a, 0x09, 0x56, 0x69,
 	0x73, 0x75, 0x61, 0x6c, 0x69, 0x7a, 0x65, 0x12, 0x23, 0x2e, 0x76, 0x69, 0x73, 0x75, 0x61, 0x6c,
 	0x69, 0x7a, 0x65, 0x5f, 0x67, 0x72, 0x70, 0x63, 0x5f, 0x70, 0x62, 0x2e, 0x56, 0x69, 0x73, 0x75,
 	0x61, 0x6c, 0x69, 0x7a, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x21, 0x2e, 0x76,
 	0x69, 0x73, 0x75, 0x61, 0x6c, 0x69, 0x7a, 0x65, 0x5f, 0x67, 0x72, 0x70, 0x63, 0x5f, 0x70, 0x62,
 	0x2e, 0x56, 0x69, 0x73, 0x75, 0x61, 0x6c, 0x69, 0x7a, 0x65, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x30,
-	0x01, 0x12, 0x4a, 0x0a, 0x0b, 0x43, 0x74, 0x72, 0x6c, 0x41, 0x64, 0x64, 0x4e, 0x6f, 0x64, 0x65,
-	0x12, 0x21, 0x2e, 0x76, 0x69, 0x73, 0x75, 0x61, 0x6c, 0x69, 0x7a, 0x65, 0x5f, 0x67, 0x72, 0x70,
-	0x63, 0x5f, 0x70, 0x62, 0x2e, 0x41, 0x64, 0x64, 0x4e, 0x6f, 0x64, 0x65, 0x52, 0x65, 0x71, 0x75,
-	0x65, 0x73, 0x74, 0x1a, 0x18, 0x2e, 0x76, 0x69, 0x73, 0x75, 0x61, 0x6c, 0x69, 0x7a, 0x65, 0x5f,
-	0x67, 0x72, 0x70, 0x63, 0x5f, 0x70, 0x62, 0x2e, 0x45, 0x6d, 0x70, 0x74, 0x79, 0x12, 0x50, 0x0a,
-	0x0e, 0x43, 0x74, 0x72, 0x6c, 0x44, 0x65, 0x6c, 0x65, 0x74, 0x65, 0x4e, 0x6f, 0x64, 0x65, 0x12,
-	0x24, 0x2e, 0x76, 0x69, 0x73, 0x75, 0x61, 0x6c, 0x69, 0x7a, 0x65, 0x5f, 0x67, 0x72, 0x70, 0x63,
-	0x5f, 0x70, 0x62, 0x2e, 0x44, 0x65, 0x6c, 0x65, 0x74, 0x65, 0x4e, 0x6f, 0x64, 0x65, 0x52, 0x65,
-	0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x18, 0x2e, 0x76, 0x69, 0x73, 0x75, 0x61, 0x6c, 0x69, 0x7a,
-	0x65, 0x5f, 0x67, 0x72, 0x70, 0x63, 0x5f, 0x70, 0x62, 0x2e, 0x45, 0x6d, 0x70, 0x74, 0x79, 0x12,
-	0x50, 0x0a, 0x0e, 0x43, 0x74, 0x72, 0x6c, 0x4d, 0x6f, 0x76, 0x65, 0x4e, 0x6f, 0x64, 0x65, 0x54,
-	0x6f, 0x12, 0x24, 0x2e, 0x76, 0x69, 0x73, 0x75, 0x61, 0x6c, 0x69, 0x7a, 0x65, 0x5f, 0x67, 0x72,
-	0x70, 0x63, 0x5f, 0x70, 0x62, 0x2e, 0x4d, 0x6f, 0x76, 0x65, 0x4e, 0x6f, 0x64, 0x65, 0x54, 0x6f,
-	0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x18, 0x2e, 0x76, 0x69, 0x73, 0x75, 0x61, 0x6c,
-	0x69, 0x7a, 0x65, 0x5f, 0x67, 0x72, 0x70, 0x63, 0x5f, 0x70, 0x62, 0x2e, 0x45, 0x6d, 0x70, 0x74,
-	0x79, 0x12, 0x56, 0x0a, 0x11, 0x43, 0x74, 0x72, 0x6c, 0x53, 0x65, 0x74, 0x4e, 0x6f, 0x64, 0x65,
-	0x46, 0x61, 0x69, 0x6c, 0x65, 0x64, 0x12, 0x27, 0x2e, 0x76, 0x69, 0x73, 0x75, 0x61, 0x6c, 0x69,
-	0x7a, 0x65, 0x5f, 0x67, 0x72, 0x70, 0x63, 0x5f, 0x70, 0x62, 0x2e, 0x53, 0x65, 0x74, 0x4e, 0x6f,
-	0x64, 0x65, 0x46, 0x61, 0x69, 0x6c, 0x65, 0x64, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a,
-	0x18, 0x2e, 0x76, 0x69, 0x73, 0x75, 0x61, 0x6c, 0x69, 0x7a, 0x65, 0x5f, 0x67, 0x72, 0x70, 0x63,
-	0x5f, 0x70, 0x62, 0x2e, 0x45, 0x6d, 0x70, 0x74, 0x79, 0x12, 0x4c, 0x0a, 0x0c, 0x43, 0x74, 0x72,
-	0x6c, 0x53, 0x65, 0x74, 0x53, 0x70, 0x65, 0x65, 0x64, 0x12, 0x22, 0x2e, 0x76, 0x69, 0x73, 0x75,
-	0x61, 0x6c, 0x69, 0x7a, 0x65, 0x5f, 0x67, 0x72, 0x70, 0x63, 0x5f, 0x70, 0x62, 0x2e, 0x53, 0x65,
-	0x74, 0x53, 0x70, 0x65, 0x65, 0x64, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x18, 0x2e,
-	0x76, 0x69, 0x73, 0x75, 0x61, 0x6c, 0x69, 0x7a, 0x65, 0x5f, 0x67, 0x72, 0x70, 0x63, 0x5f, 0x70,
-	0x62, 0x2e, 0x45, 0x6d, 0x70, 0x74, 0x79, 0x12, 0x4a, 0x0a, 0x0c, 0x43, 0x74, 0x72, 0x6c, 0x53,
-	0x65, 0x74, 0x54, 0x69, 0x74, 0x6c, 0x65, 0x12, 0x20, 0x2e, 0x76, 0x69, 0x73, 0x75, 0x61, 0x6c,
-	0x69, 0x7a, 0x65, 0x5f, 0x67, 0x72, 0x70, 0x63, 0x5f, 0x70, 0x62, 0x2e, 0x53, 0x65, 0x74, 0x54,
-	0x69, 0x74, 0x6c, 0x65, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x1a, 0x18, 0x2e, 0x76, 0x69, 0x73, 0x75,
-	0x61, 0x6c, 0x69, 0x7a, 0x65, 0x5f, 0x67, 0x72, 0x70, 0x63, 0x5f, 0x70, 0x62, 0x2e, 0x45, 0x6d,
-	0x70, 0x74, 0x79, 0x12, 0x50, 0x0a, 0x07, 0x43, 0x6f, 0x6d, 0x6d, 0x61, 0x6e, 0x64, 0x12, 0x21,
-	0x2e, 0x76, 0x69, 0x73, 0x75, 0x61, 0x6c, 0x69, 0x7a, 0x65, 0x5f, 0x67, 0x72, 0x70, 0x63, 0x5f,
-	0x70, 0x62, 0x2e, 0x43, 0x6f, 0x6d, 0x6d, 0x61, 0x6e, 0x64, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73,
-	0x74, 0x1a, 0x22, 0x2e, 0x76, 0x69, 0x73, 0x75, 0x61, 0x6c, 0x69, 0x7a, 0x65, 0x5f, 0x67, 0x72,
-	0x70, 0x63, 0x5f, 0x70, 0x62, 0x2e, 0x43, 0x6f, 0x6d, 0x6d, 0x61, 0x6e, 0x64, 0x52, 0x65, 0x73,
-	0x70, 0x6f, 0x6e, 0x73, 0x65, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x01, 0x12, 0x50, 0x0a, 0x07, 0x43, 0x6f, 0x6d, 0x6d, 0x61, 0x6e, 0x64, 0x12, 0x21, 0x2e, 0x76,
+	0x69, 0x73, 0x75, 0x61, 0x6c, 0x69, 0x7a, 0x65, 0x5f, 0x67, 0x72, 0x70, 0x63, 0x5f, 0x70, 0x62,
+	0x2e, 0x43, 0x6f, 0x6d, 0x6d, 0x61, 0x6e, 0x64, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a,
+	0x22, 0x2e, 0x76, 0x69, 0x73, 0x75, 0x61, 0x6c, 0x69, 0x7a, 0x65, 0x5f, 0x67, 0x72, 0x70, 0x63,
+	0x5f, 0x70, 0x62, 0x2e, 0x43, 0x6f, 0x6d, 0x6d, 0x61, 0x6e, 0x64, 0x52, 0x65, 0x73, 0x70, 0x6f,
+	0x6e, 0x73, 0x65, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -2643,7 +2298,7 @@ func file_visualize_grpc_proto_rawDescGZIP() []byte {
 }
 
 var file_visualize_grpc_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_visualize_grpc_proto_msgTypes = make([]protoimpl.MessageInfo, 34)
+var file_visualize_grpc_proto_msgTypes = make([]protoimpl.MessageInfo, 29)
 var file_visualize_grpc_proto_goTypes = []interface{}{
 	(OtDeviceRole)(0),               // 0: visualize_grpc_pb.OtDeviceRole
 	(*VisualizeRequest)(nil),        // 1: visualize_grpc_pb.VisualizeRequest
@@ -2674,12 +2329,7 @@ var file_visualize_grpc_proto_goTypes = []interface{}{
 	(*SetNodeModeEvent)(nil),        // 26: visualize_grpc_pb.SetNodeModeEvent
 	(*CommandRequest)(nil),          // 27: visualize_grpc_pb.CommandRequest
 	(*CommandResponse)(nil),         // 28: visualize_grpc_pb.CommandResponse
-	(*AddNodeRequest)(nil),          // 29: visualize_grpc_pb.AddNodeRequest
-	(*DeleteNodeRequest)(nil),       // 30: visualize_grpc_pb.DeleteNodeRequest
-	(*MoveNodeToRequest)(nil),       // 31: visualize_grpc_pb.MoveNodeToRequest
-	(*SetNodeFailedRequest)(nil),    // 32: visualize_grpc_pb.SetNodeFailedRequest
-	(*SetSpeedRequest)(nil),         // 33: visualize_grpc_pb.SetSpeedRequest
-	(*Empty)(nil),                   // 34: visualize_grpc_pb.Empty
+	(*Empty)(nil),                   // 29: visualize_grpc_pb.Empty
 }
 var file_visualize_grpc_proto_depIdxs = []int32{
 	21, // 0: visualize_grpc_pb.VisualizeEvent.add_node:type_name -> visualize_grpc_pb.AddNodeEvent
@@ -2708,28 +2358,15 @@ var file_visualize_grpc_proto_depIdxs = []int32{
 	0,  // 23: visualize_grpc_pb.SetNodeRoleEvent.role:type_name -> visualize_grpc_pb.OtDeviceRole
 	22, // 24: visualize_grpc_pb.AddNodeEvent.node_mode:type_name -> visualize_grpc_pb.NodeMode
 	22, // 25: visualize_grpc_pb.SetNodeModeEvent.node_mode:type_name -> visualize_grpc_pb.NodeMode
-	22, // 26: visualize_grpc_pb.AddNodeRequest.mode:type_name -> visualize_grpc_pb.NodeMode
-	1,  // 27: visualize_grpc_pb.VisualizeGrpcService.Visualize:input_type -> visualize_grpc_pb.VisualizeRequest
-	29, // 28: visualize_grpc_pb.VisualizeGrpcService.CtrlAddNode:input_type -> visualize_grpc_pb.AddNodeRequest
-	30, // 29: visualize_grpc_pb.VisualizeGrpcService.CtrlDeleteNode:input_type -> visualize_grpc_pb.DeleteNodeRequest
-	31, // 30: visualize_grpc_pb.VisualizeGrpcService.CtrlMoveNodeTo:input_type -> visualize_grpc_pb.MoveNodeToRequest
-	32, // 31: visualize_grpc_pb.VisualizeGrpcService.CtrlSetNodeFailed:input_type -> visualize_grpc_pb.SetNodeFailedRequest
-	33, // 32: visualize_grpc_pb.VisualizeGrpcService.CtrlSetSpeed:input_type -> visualize_grpc_pb.SetSpeedRequest
-	25, // 33: visualize_grpc_pb.VisualizeGrpcService.CtrlSetTitle:input_type -> visualize_grpc_pb.SetTitleEvent
-	27, // 34: visualize_grpc_pb.VisualizeGrpcService.Command:input_type -> visualize_grpc_pb.CommandRequest
-	2,  // 35: visualize_grpc_pb.VisualizeGrpcService.Visualize:output_type -> visualize_grpc_pb.VisualizeEvent
-	34, // 36: visualize_grpc_pb.VisualizeGrpcService.CtrlAddNode:output_type -> visualize_grpc_pb.Empty
-	34, // 37: visualize_grpc_pb.VisualizeGrpcService.CtrlDeleteNode:output_type -> visualize_grpc_pb.Empty
-	34, // 38: visualize_grpc_pb.VisualizeGrpcService.CtrlMoveNodeTo:output_type -> visualize_grpc_pb.Empty
-	34, // 39: visualize_grpc_pb.VisualizeGrpcService.CtrlSetNodeFailed:output_type -> visualize_grpc_pb.Empty
-	34, // 40: visualize_grpc_pb.VisualizeGrpcService.CtrlSetSpeed:output_type -> visualize_grpc_pb.Empty
-	34, // 41: visualize_grpc_pb.VisualizeGrpcService.CtrlSetTitle:output_type -> visualize_grpc_pb.Empty
-	28, // 42: visualize_grpc_pb.VisualizeGrpcService.Command:output_type -> visualize_grpc_pb.CommandResponse
-	35, // [35:43] is the sub-list for method output_type
-	27, // [27:35] is the sub-list for method input_type
-	27, // [27:27] is the sub-list for extension type_name
-	27, // [27:27] is the sub-list for extension extendee
-	0,  // [0:27] is the sub-list for field type_name
+	1,  // 26: visualize_grpc_pb.VisualizeGrpcService.Visualize:input_type -> visualize_grpc_pb.VisualizeRequest
+	27, // 27: visualize_grpc_pb.VisualizeGrpcService.Command:input_type -> visualize_grpc_pb.CommandRequest
+	2,  // 28: visualize_grpc_pb.VisualizeGrpcService.Visualize:output_type -> visualize_grpc_pb.VisualizeEvent
+	28, // 29: visualize_grpc_pb.VisualizeGrpcService.Command:output_type -> visualize_grpc_pb.CommandResponse
+	28, // [28:30] is the sub-list for method output_type
+	26, // [26:28] is the sub-list for method input_type
+	26, // [26:26] is the sub-list for extension type_name
+	26, // [26:26] is the sub-list for extension extendee
+	0,  // [0:26] is the sub-list for field type_name
 }
 
 func init() { file_visualize_grpc_proto_init() }
@@ -3075,66 +2712,6 @@ func file_visualize_grpc_proto_init() {
 			}
 		}
 		file_visualize_grpc_proto_msgTypes[28].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*AddNodeRequest); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_visualize_grpc_proto_msgTypes[29].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*DeleteNodeRequest); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_visualize_grpc_proto_msgTypes[30].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*MoveNodeToRequest); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_visualize_grpc_proto_msgTypes[31].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SetNodeFailedRequest); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_visualize_grpc_proto_msgTypes[32].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SetSpeedRequest); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_visualize_grpc_proto_msgTypes[33].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Empty); i {
 			case 0:
 				return &v.state
@@ -3177,7 +2754,7 @@ func file_visualize_grpc_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_visualize_grpc_proto_rawDesc,
 			NumEnums:      1,
-			NumMessages:   34,
+			NumMessages:   29,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
@@ -3206,12 +2783,6 @@ const _ = grpc.SupportPackageIsVersion6
 type VisualizeGrpcServiceClient interface {
 	//    rpc Echo (EchoRequest) returns (EchoResponse);
 	Visualize(ctx context.Context, in *VisualizeRequest, opts ...grpc.CallOption) (VisualizeGrpcService_VisualizeClient, error)
-	CtrlAddNode(ctx context.Context, in *AddNodeRequest, opts ...grpc.CallOption) (*Empty, error)
-	CtrlDeleteNode(ctx context.Context, in *DeleteNodeRequest, opts ...grpc.CallOption) (*Empty, error)
-	CtrlMoveNodeTo(ctx context.Context, in *MoveNodeToRequest, opts ...grpc.CallOption) (*Empty, error)
-	CtrlSetNodeFailed(ctx context.Context, in *SetNodeFailedRequest, opts ...grpc.CallOption) (*Empty, error)
-	CtrlSetSpeed(ctx context.Context, in *SetSpeedRequest, opts ...grpc.CallOption) (*Empty, error)
-	CtrlSetTitle(ctx context.Context, in *SetTitleEvent, opts ...grpc.CallOption) (*Empty, error)
 	Command(ctx context.Context, in *CommandRequest, opts ...grpc.CallOption) (*CommandResponse, error)
 }
 
@@ -3255,60 +2826,6 @@ func (x *visualizeGrpcServiceVisualizeClient) Recv() (*VisualizeEvent, error) {
 	return m, nil
 }
 
-func (c *visualizeGrpcServiceClient) CtrlAddNode(ctx context.Context, in *AddNodeRequest, opts ...grpc.CallOption) (*Empty, error) {
-	out := new(Empty)
-	err := c.cc.Invoke(ctx, "/visualize_grpc_pb.VisualizeGrpcService/CtrlAddNode", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *visualizeGrpcServiceClient) CtrlDeleteNode(ctx context.Context, in *DeleteNodeRequest, opts ...grpc.CallOption) (*Empty, error) {
-	out := new(Empty)
-	err := c.cc.Invoke(ctx, "/visualize_grpc_pb.VisualizeGrpcService/CtrlDeleteNode", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *visualizeGrpcServiceClient) CtrlMoveNodeTo(ctx context.Context, in *MoveNodeToRequest, opts ...grpc.CallOption) (*Empty, error) {
-	out := new(Empty)
-	err := c.cc.Invoke(ctx, "/visualize_grpc_pb.VisualizeGrpcService/CtrlMoveNodeTo", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *visualizeGrpcServiceClient) CtrlSetNodeFailed(ctx context.Context, in *SetNodeFailedRequest, opts ...grpc.CallOption) (*Empty, error) {
-	out := new(Empty)
-	err := c.cc.Invoke(ctx, "/visualize_grpc_pb.VisualizeGrpcService/CtrlSetNodeFailed", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *visualizeGrpcServiceClient) CtrlSetSpeed(ctx context.Context, in *SetSpeedRequest, opts ...grpc.CallOption) (*Empty, error) {
-	out := new(Empty)
-	err := c.cc.Invoke(ctx, "/visualize_grpc_pb.VisualizeGrpcService/CtrlSetSpeed", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *visualizeGrpcServiceClient) CtrlSetTitle(ctx context.Context, in *SetTitleEvent, opts ...grpc.CallOption) (*Empty, error) {
-	out := new(Empty)
-	err := c.cc.Invoke(ctx, "/visualize_grpc_pb.VisualizeGrpcService/CtrlSetTitle", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *visualizeGrpcServiceClient) Command(ctx context.Context, in *CommandRequest, opts ...grpc.CallOption) (*CommandResponse, error) {
 	out := new(CommandResponse)
 	err := c.cc.Invoke(ctx, "/visualize_grpc_pb.VisualizeGrpcService/Command", in, out, opts...)
@@ -3322,12 +2839,6 @@ func (c *visualizeGrpcServiceClient) Command(ctx context.Context, in *CommandReq
 type VisualizeGrpcServiceServer interface {
 	//    rpc Echo (EchoRequest) returns (EchoResponse);
 	Visualize(*VisualizeRequest, VisualizeGrpcService_VisualizeServer) error
-	CtrlAddNode(context.Context, *AddNodeRequest) (*Empty, error)
-	CtrlDeleteNode(context.Context, *DeleteNodeRequest) (*Empty, error)
-	CtrlMoveNodeTo(context.Context, *MoveNodeToRequest) (*Empty, error)
-	CtrlSetNodeFailed(context.Context, *SetNodeFailedRequest) (*Empty, error)
-	CtrlSetSpeed(context.Context, *SetSpeedRequest) (*Empty, error)
-	CtrlSetTitle(context.Context, *SetTitleEvent) (*Empty, error)
 	Command(context.Context, *CommandRequest) (*CommandResponse, error)
 }
 
@@ -3337,24 +2848,6 @@ type UnimplementedVisualizeGrpcServiceServer struct {
 
 func (*UnimplementedVisualizeGrpcServiceServer) Visualize(*VisualizeRequest, VisualizeGrpcService_VisualizeServer) error {
 	return status.Errorf(codes.Unimplemented, "method Visualize not implemented")
-}
-func (*UnimplementedVisualizeGrpcServiceServer) CtrlAddNode(context.Context, *AddNodeRequest) (*Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CtrlAddNode not implemented")
-}
-func (*UnimplementedVisualizeGrpcServiceServer) CtrlDeleteNode(context.Context, *DeleteNodeRequest) (*Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CtrlDeleteNode not implemented")
-}
-func (*UnimplementedVisualizeGrpcServiceServer) CtrlMoveNodeTo(context.Context, *MoveNodeToRequest) (*Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CtrlMoveNodeTo not implemented")
-}
-func (*UnimplementedVisualizeGrpcServiceServer) CtrlSetNodeFailed(context.Context, *SetNodeFailedRequest) (*Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CtrlSetNodeFailed not implemented")
-}
-func (*UnimplementedVisualizeGrpcServiceServer) CtrlSetSpeed(context.Context, *SetSpeedRequest) (*Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CtrlSetSpeed not implemented")
-}
-func (*UnimplementedVisualizeGrpcServiceServer) CtrlSetTitle(context.Context, *SetTitleEvent) (*Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CtrlSetTitle not implemented")
 }
 func (*UnimplementedVisualizeGrpcServiceServer) Command(context.Context, *CommandRequest) (*CommandResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Command not implemented")
@@ -3385,114 +2878,6 @@ func (x *visualizeGrpcServiceVisualizeServer) Send(m *VisualizeEvent) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func _VisualizeGrpcService_CtrlAddNode_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AddNodeRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(VisualizeGrpcServiceServer).CtrlAddNode(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/visualize_grpc_pb.VisualizeGrpcService/CtrlAddNode",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(VisualizeGrpcServiceServer).CtrlAddNode(ctx, req.(*AddNodeRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _VisualizeGrpcService_CtrlDeleteNode_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DeleteNodeRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(VisualizeGrpcServiceServer).CtrlDeleteNode(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/visualize_grpc_pb.VisualizeGrpcService/CtrlDeleteNode",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(VisualizeGrpcServiceServer).CtrlDeleteNode(ctx, req.(*DeleteNodeRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _VisualizeGrpcService_CtrlMoveNodeTo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(MoveNodeToRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(VisualizeGrpcServiceServer).CtrlMoveNodeTo(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/visualize_grpc_pb.VisualizeGrpcService/CtrlMoveNodeTo",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(VisualizeGrpcServiceServer).CtrlMoveNodeTo(ctx, req.(*MoveNodeToRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _VisualizeGrpcService_CtrlSetNodeFailed_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SetNodeFailedRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(VisualizeGrpcServiceServer).CtrlSetNodeFailed(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/visualize_grpc_pb.VisualizeGrpcService/CtrlSetNodeFailed",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(VisualizeGrpcServiceServer).CtrlSetNodeFailed(ctx, req.(*SetNodeFailedRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _VisualizeGrpcService_CtrlSetSpeed_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SetSpeedRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(VisualizeGrpcServiceServer).CtrlSetSpeed(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/visualize_grpc_pb.VisualizeGrpcService/CtrlSetSpeed",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(VisualizeGrpcServiceServer).CtrlSetSpeed(ctx, req.(*SetSpeedRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _VisualizeGrpcService_CtrlSetTitle_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SetTitleEvent)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(VisualizeGrpcServiceServer).CtrlSetTitle(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/visualize_grpc_pb.VisualizeGrpcService/CtrlSetTitle",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(VisualizeGrpcServiceServer).CtrlSetTitle(ctx, req.(*SetTitleEvent))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _VisualizeGrpcService_Command_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CommandRequest)
 	if err := dec(in); err != nil {
@@ -3515,30 +2900,6 @@ var _VisualizeGrpcService_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "visualize_grpc_pb.VisualizeGrpcService",
 	HandlerType: (*VisualizeGrpcServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
-		{
-			MethodName: "CtrlAddNode",
-			Handler:    _VisualizeGrpcService_CtrlAddNode_Handler,
-		},
-		{
-			MethodName: "CtrlDeleteNode",
-			Handler:    _VisualizeGrpcService_CtrlDeleteNode_Handler,
-		},
-		{
-			MethodName: "CtrlMoveNodeTo",
-			Handler:    _VisualizeGrpcService_CtrlMoveNodeTo_Handler,
-		},
-		{
-			MethodName: "CtrlSetNodeFailed",
-			Handler:    _VisualizeGrpcService_CtrlSetNodeFailed_Handler,
-		},
-		{
-			MethodName: "CtrlSetSpeed",
-			Handler:    _VisualizeGrpcService_CtrlSetSpeed_Handler,
-		},
-		{
-			MethodName: "CtrlSetTitle",
-			Handler:    _VisualizeGrpcService_CtrlSetTitle_Handler,
-		},
 		{
 			MethodName: "Command",
 			Handler:    _VisualizeGrpcService_Command_Handler,

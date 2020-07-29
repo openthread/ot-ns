@@ -29,10 +29,8 @@ package visualize_grpc
 import (
 	"context"
 
-	. "github.com/openthread/ot-ns/types"
 	"github.com/openthread/ot-ns/visualize"
 	pb "github.com/openthread/ot-ns/visualize/grpc/pb"
-	"github.com/simonlingoogle/go-simplelogger"
 )
 
 type grpcSimCtrl struct {
@@ -49,65 +47,6 @@ func (gsc *grpcSimCtrl) Command(cmd string) ([]string, error) {
 	}
 
 	return resp.Output, nil
-}
-
-func (gsc *grpcSimCtrl) CtrlSetTitle(titleInfo visualize.TitleInfo) error {
-	_, err := gsc.client.CtrlSetTitle(gsc.ctx, &pb.SetTitleEvent{
-		Title:    titleInfo.Title,
-		X:        int32(titleInfo.X),
-		Y:        int32(titleInfo.Y),
-		FontSize: int32(titleInfo.FontSize),
-	})
-	return err
-}
-
-func (gsc *grpcSimCtrl) CtrlSetSpeed(speed float64) error {
-	_, err := gsc.client.CtrlSetSpeed(gsc.ctx, &pb.SetSpeedRequest{
-		Speed: speed,
-	})
-	return err
-}
-
-func (gsc *grpcSimCtrl) CtrlSetNodeFailed(nodeid NodeId, failed bool) error {
-	_, err := gsc.client.CtrlSetNodeFailed(gsc.ctx, &pb.SetNodeFailedRequest{
-		NodeId: int32(nodeid),
-		Failed: failed,
-	})
-	return err
-}
-
-func (gsc *grpcSimCtrl) CtrlAddNode(x, y int, router bool, mode NodeMode, nodeid NodeId) error {
-	simplelogger.AssertTrue(nodeid == InvalidNodeId || nodeid > 0)
-
-	_, err := gsc.client.CtrlAddNode(gsc.ctx, &pb.AddNodeRequest{
-		X:        int32(x),
-		Y:        int32(y),
-		IsRouter: router,
-		Mode: &pb.NodeMode{
-			RxOnWhenIdle:       mode.RxOnWhenIdle,
-			SecureDataRequests: mode.SecureDataRequests,
-			FullThreadDevice:   mode.FullThreadDevice,
-			FullNetworkData:    mode.FullNetworkData,
-		},
-		NodeId: uint32(nodeid),
-	})
-	return err
-}
-
-func (gsc *grpcSimCtrl) CtrlMoveNodeTo(nodeid NodeId, x, y int) error {
-	_, err := gsc.client.CtrlMoveNodeTo(gsc.ctx, &pb.MoveNodeToRequest{
-		NodeId: int32(nodeid),
-		X:      int32(x),
-		Y:      int32(y),
-	})
-	return err
-}
-
-func (gsc *grpcSimCtrl) CtrlDeleteNode(nodeid NodeId) error {
-	_, err := gsc.client.CtrlDeleteNode(gsc.ctx, &pb.DeleteNodeRequest{
-		NodeId: int32(nodeid),
-	})
-	return err
 }
 
 func NewGrpcSimulationController(ctx context.Context, client pb.VisualizeGrpcServiceClient) visualize.SimulationController {

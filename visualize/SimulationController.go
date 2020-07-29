@@ -26,16 +26,6 @@
 
 package visualize
 
-import (
-	. "github.com/openthread/ot-ns/types"
-)
-
 type SimulationController interface {
-	CtrlAddNode(x, y int, router bool, mode NodeMode, nodeid NodeId) error
-	CtrlMoveNodeTo(nodeid NodeId, x, y int) error
-	CtrlDeleteNode(nodeid NodeId) error
-	CtrlSetNodeFailed(nodeid NodeId, failed bool) error
-	CtrlSetSpeed(speed float64) error
-	CtrlSetTitle(titleInfo TitleInfo) error
 	Command(cmd string) ([]string, error)
 }
