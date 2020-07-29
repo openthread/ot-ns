@@ -650,6 +650,38 @@ class OTNS(object):
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
 
+    def get_router_upgrade_threshold(self, nodeid: int) -> int:
+        """
+        Get Router upgrade threshold.
+        :param nodeid: the node ID
+        :return: the Router upgrade threshold
+        """
+        return self._expect_int(self.node_cmd(nodeid, 'routerupgradethreshold'))
+
+    def set_router_upgrade_threshold(self, nodeid: int, val: int) -> None:
+        """
+        Set Router upgrade threshold.
+        :param nodeid: the node ID
+        :param val: the Router upgrade threshold
+        """
+        self.node_cmd(nodeid, f'routerupgradethreshold {val}')
+
+    def get_router_downgrade_threshold(self, nodeid: int) -> int:
+        """
+        Get Router downgrade threshold.
+        :param nodeid: the node ID
+        :return: the Router downgrade threshold
+        """
+        return self._expect_int(self.node_cmd(nodeid, 'routerdowngradethreshold'))
+
+    def set_router_downgrade_threshold(self, nodeid: int, val: int) -> None:
+        """
+        Set Router downgrade threshold.
+        :param nodeid: the node ID
+        :param val: the Router downgrade threshold
+        """
+        self.node_cmd(nodeid, f'routerdowngradethreshold {val}')
+
     @staticmethod
     def _expect_int(output: List[str]) -> int:
         assert len(output) == 1, output
