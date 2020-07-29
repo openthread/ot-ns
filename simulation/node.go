@@ -160,6 +160,7 @@ func (node *Node) Stop() {
 }
 
 func (node *Node) Exit() error {
+	node.inputCommand("exit")
 	_ = node.cmd.Process.Signal(syscall.SIGTERM)
 	_ = node.virtualUartReader.Close()
 
