@@ -39,15 +39,6 @@ if (!PIXI.utils.isWebGLSupported()) {
     type = "canvas"
 }
 
-function getUrlParameter(name) {
-    name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
-    let regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
-    let results = regex.exec(location.search);
-    return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
-}
-
-const OT_COMMIT_ID = getUrlParameter("ot_commit_id");
-
 PIXI.utils.sayHello(type);
 //Create a Pixi Application
 let resolution = window.devicePixelRatio;
@@ -87,7 +78,6 @@ function loadOk() {
     grpcServiceClient = new VisualizeGrpcServiceClient(server);
 
     vis = new PixiVisualizer(app, grpcServiceClient);
-    vis.OT_COMMIT_ID = OT_COMMIT_ID;
 
     let [w, h] = getDesiredFieldSize();
     vis.onResize(w, h);
@@ -189,6 +179,10 @@ function loadOk() {
             case VisualizeEvent.TypeCase.SET_NODE_MODE:
                 e = resp.getSetNodeMode();
                 vis.visSetNodeMode(e.getNodeId(), e.getNodeMode());
+                break;
+            case VisualizeEvent.TypeCase.SET_NETWORK_INFO:
+                e = resp.getSetNetworkInfo();
+                vis.visSetNetworkInfo(e.getVersion(), e.getCommit(), e.getReal());
                 break;
             default:
                 console.log('unknown event!!! ' + resp.getTypeCase());

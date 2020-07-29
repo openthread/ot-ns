@@ -47,6 +47,7 @@ type Command struct {
 	Go                  *GoCmd                  `| @@` //nolint
 	Joins               *JoinsCmd               `| @@` //nolint
 	Move                *Move                   `| @@` //nolint
+	NetInfo             *NetInfoCmd             `| @@` //nolint
 	Node                *NodeCmd                `| @@` //nolint
 	Nodes               *NodesCmd               `| @@` //nolint
 	Partitions          *PartitionsCmd          `| @@` //nolint
@@ -152,6 +153,14 @@ type PingCmd struct {
 	Count    *CountFlag    `| @@`     //nolint
 	Interval *IntervalFlag `| @@`     //nolint
 	HopLimit *HopLimitFlag `| @@ )*`  //nolint
+}
+
+//noinspection GoStructTag
+type NetInfoCmd struct {
+	Cmd     struct{}     `"netinfo" (`         //nolint
+	Version *string      `  "version" @String` //nolint
+	Commit  *string      `| "commit" @String`  //nolint
+	Real    *YesOrNoFlag `| "real" @@ )+`      //nolint
 }
 
 //noinspection GoStructTag
@@ -324,6 +333,22 @@ type OffFlag struct {
 type OnOrOffFlag struct {
 	On  *OnFlag  `( @@`   //nolint
 	Off *OffFlag `| @@ )` //nolint
+}
+
+//noinspection GoStructTag
+type YesFlag struct {
+	Dummy struct{} `("y"|"yes"|"true"|"1")` //nolint
+}
+
+//noinspection GoStructTag
+type NoFlag struct {
+	Dummy struct{} `("n"|"no"|"false"|"0")` //nolint
+}
+
+//noinspection GoStructTag
+type YesOrNoFlag struct {
+	Yes *YesFlag `( @@`   //nolint
+	No  *NoFlag  `| @@ )` //nolint
 }
 
 //noinspection GoStructTag

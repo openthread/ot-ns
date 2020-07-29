@@ -76,6 +76,14 @@ export default class VObject {
         this._root.interactive = v
     }
 
+    get text() {
+        return this._root.text
+    }
+
+    set text(s) {
+        this._root.text = s
+    }
+
     update(dt) {
         this._timerMgr.update(dt)
     }

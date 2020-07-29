@@ -15,6 +15,7 @@ Python libraries use the CLI to manage simulations.
 * [go](#go-duration-seconds--ever)
 * [joins](#joins)
 * [move](#move-node-id-x-y)
+* [netinfo](#netinfo-version-string-commit-string-real-yn)
 * [node](#node-node-id-command)
 * [nodes](#nodes)
 * [partitions (pts)](#partitions-pts)
@@ -154,6 +155,19 @@ Move a node to the target position.
 
 ```bash
 > move 1 200 300
+Done
+```
+
+### netinfo \[version "\<string\>"\] \[commit "\<string\>"\] \[real y|n\]
+
+Set netowrk info.
+
+```bash
+> netinfo version "Latest"
+Done
+> netinfo version "Latest" commit "b49ee08"
+Done
+> netinfo real y
 Done
 ```
 

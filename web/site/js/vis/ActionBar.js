@@ -47,10 +47,13 @@ export default class ActionBar extends VObject {
 
         this._buttons = [];
         this._buttonContext = {};
-        this.addButton("<<", "any", (e) => {
+        this._buttonRequiredAbility = {};
+        this._abilities = {};
+
+        this.addButton("<<", "any", "speed", (e) => {
             this.actionSpeedDown()
         });
-        this._speedDisplayBtn = this.addButton("1X", "any", (e) => {
+        this._speedDisplayBtn = this.addButton("1X", "any", "", (e) => {
             this.actionTogglePauseResume()
         }, (button) => {
             let sprite;
@@ -68,34 +71,39 @@ export default class ActionBar extends VObject {
             sprite.tint = 0x4193F5;
             button.sprite = sprite
         });
-        this.addButton(">>", "any", (e) => {
+        this.addButton(">>", "any", "speed", (e) => {
             this.actionSpeedUp()
         });
-        this.addButton("New Router", "any", (e) => {
+        this.addButton("New Router", "any", "add", (e) => {
             this.actionNewRouter(e)
         });
-        this.addButton("FED", "any", (e) => {
+        this.addButton("FED", "any", "add", (e) => {
             this.actionNewFED(e)
         });
-        this.addButton("MED", "any", (e) => {
+        this.addButton("MED", "any", "add", (e) => {
             this.actionNewMED(e)
         });
-        this.addButton("SED", "any", (e) => {
+        this.addButton("SED", "any", "add", (e) => {
             this.actionNewSED(e)
         });
-        this.addButton("Clear", "any", (e) => {
+        this.addButton("Clear", "any", "del", (e) => {
             this.actionClear(e)
         });
         // add node context buttons
-        this.addButton("Delete", "node", (e) => {
+        this.addButton("Delete", "node", "del", (e) => {
             this.actionDelete(e)
         });
-        this.addButton("Radio Off", "node", (e) => {
+        this.addButton("Radio Off", "node", "radio", (e) => {
             this.actionRadioOff(e)
         });
-        this.addButton("Radio On", "node", (e) => {
+        this.addButton("Radio On", "node", "radio", (e) => {
             this.actionRadioOn(e)
         })
+    }
+
+    setAbilities(abilities) {
+        this._abilities = abilities;
+        this._resetButtons();
     }
 
     setSpeed(speed) {
@@ -205,13 +213,14 @@ export default class ActionBar extends VObject {
         this.vis.clearAllNodes()
     }
 
-    addButton(label, context, callback, onRefresh) {
+    addButton(label, context, requiredAbility, callback, onRefresh) {
         let btn = new Button(this, label, callback, onRefresh);
         this.addChild(btn);
         let btnIndex = this._buttons.length;
         this._buttons.push(btn);
         this._buttonContext[btnIndex] = context;
-        this._resetLayout();
+        this._buttonRequiredAbility[btnIndex] = requiredAbility;
+        this._resetButtons();
         return btn
     }
 
@@ -224,7 +233,7 @@ export default class ActionBar extends VObject {
         }
 
         this._currentContext = context;
-        this._resetLayout()
+        this._resetButtons()
     }
 
     refresh() {
@@ -232,16 +241,20 @@ export default class ActionBar extends VObject {
             let btn = this._buttons[i];
             btn.refresh()
         }
-        this._resetLayout()
+        this._resetButtons()
     }
 
-    _resetLayout() {
+    _resetButtons() {
         let x = 0;
         let maxHeight = 0;
         for (let i in this._buttons) {
             let btn = this._buttons[i];
             let btnContext = this._buttonContext[i];
-            if (btnContext === "any" || btnContext === this._currentContext) {
+            let btnRequiredAbility = this._buttonRequiredAbility[i];
+
+            let contextMatch = btnContext === "any" || btnContext === this._currentContext;
+            let abilityMatch = btnRequiredAbility === "" || this._abilities[btnRequiredAbility];
+            if (contextMatch && abilityMatch) {
                 btn.visible = true;
                 btn.position.set(x + btn.width / 2, btn.height / 2);
                 x += btn.width;

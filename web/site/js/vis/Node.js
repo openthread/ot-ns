@@ -92,7 +92,7 @@ export default class Node extends VObject {
         this._root.addChild(partitionSprite);
         this._partitionSprite = partitionSprite;
 
-        this._updateSize()
+        this._updateSize();
 
         let label = new PIXI.Text("", {fontFamily: NODE_LABEL_FONT_FAMILY, fontSize: 13, align: 'left'});
         label.position.set(11, 11);
@@ -189,7 +189,7 @@ export default class Node extends VObject {
     }
 
     _updateSize() {
-        let radius = CIRCULAR_SHAPE_RADIUS
+        let radius = CIRCULAR_SHAPE_RADIUS;
         switch (this.role) {
             case OtDeviceRole.OT_DEVICE_ROLE_LEADER:
             case OtDeviceRole.OT_DEVICE_ROLE_ROUTER:

@@ -93,7 +93,9 @@ export default class PixiVisualizer extends VObject {
         this.actionBar.setDraggable();
         this.updateStatusMsg();
 
-        this.otCommitIdMsg = new Text("OpenThread Commit: " + this.OT_COMMIT_ID, {
+        this.otVersion = "";
+        this.otCommit = "";
+        this.otCommitIdMsg = new Text("OpenThread Version: ", {
             fill: "#0052ff",
             fontFamily: "Verdana",
             fontSize: 13,
@@ -103,10 +105,11 @@ export default class PixiVisualizer extends VObject {
         this.otCommitIdMsg.position.set(this.statusMsg.x, this.statusMsg.y + this.statusMsg.height + 3);
         this.otCommitIdMsg.interactive = true;
         this.otCommitIdMsg.setOnTap((e) => {
-            window.open('https://github.com/openthread/openthread/commit/' + this.OT_COMMIT_ID, '_blank');
+            window.open('https://github.com/openthread/openthread/commit/' + this.otCommit, '_blank');
             e.stopPropagation();
         });
         this.addChild(this.otCommitIdMsg);
+        this.setOTVersion("", "master")
 
         this.titleText = new PIXI.Text("", {
             fill: "#e69900",
@@ -117,6 +120,8 @@ export default class PixiVisualizer extends VObject {
         this.titleText.position.set(0, 20);
         this.addChild(this.titleText);
 
+        this.real = false;
+        this._applyReal();
         this._resetIdleCheckTimer()
     }
 
@@ -159,6 +164,33 @@ export default class PixiVisualizer extends VObject {
         this._resetIdleCheckTimer()
     }
 
+    setOTVersion(version, commit) {
+        this.otVersion = version;
+        this.otCommit = commit;
+        this.otCommitIdMsg.text = "OpenThread Version: " + version + " (" + commit + ")";
+    }
+
+    setReal(real) {
+        if (this.real === real) {
+            return;
+        }
+        this.real = real;
+        this._applyReal()
+    }
+
+    _applyReal() {
+        if (this.real) {
+            this.actionBar.setAbilities({})
+        } else {
+            this.actionBar.setAbilities({
+                "speed": true,
+                "add": true,
+                "del": true,
+                "radio": true,
+            })
+        }
+    }
+
     updateStatusMsg() {
         this.statusMsg.text = "OTNS-Web | FPS=" + Math.round(ticker.FPS) + " | "
             + this.getNodeCountByRole(OtDeviceRole.OT_DEVICE_ROLE_LEADER) + " leaders "
@@ -196,6 +228,11 @@ export default class PixiVisualizer extends VObject {
 
     visSetNodeMode(nodeId, mode) {
         this.nodes[nodeId].setMode(mode)
+    }
+
+    visSetNetworkInfo(version, commit, real) {
+        this.setOTVersion(version, commit);
+        this.setReal(real)
     }
 
     visDeleteNode(nodeId) {
@@ -351,6 +388,11 @@ export default class PixiVisualizer extends VObject {
     }
 
     setSpeed(speed) {
+        if (this.real) {
+            console.error("not in real mode");
+            return
+        }
+
         this.ctrlSetSpeed(speed)
     }
 

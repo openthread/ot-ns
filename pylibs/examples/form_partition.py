@@ -39,6 +39,7 @@ RADIO_RANGE = 150
 def main():
     ns = OTNS(otns_args=["-log", "debug"])
     ns.set_title("Form Partition Example")
+    ns.set_network_info(version="Latest", commit="master", real=False)
     ns.web()
     ns.speed = float('inf')
 

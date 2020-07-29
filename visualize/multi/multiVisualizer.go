@@ -38,6 +38,12 @@ type multiVisualizer struct {
 	vs []visualize.Visualizer
 }
 
+func (mv *multiVisualizer) SetNetworkInfo(networkInfo visualize.NetworkInfo) {
+	for _, v := range mv.vs {
+		v.SetNetworkInfo(networkInfo)
+	}
+}
+
 func (mv *multiVisualizer) OnExtAddrChange(id NodeId, extaddr uint64) {
 	for _, v := range mv.vs {
 		v.OnExtAddrChange(id, extaddr)
