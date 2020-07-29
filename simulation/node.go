@@ -37,6 +37,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/openthread/ot-ns/threadconst"
@@ -159,7 +160,7 @@ func (node *Node) Stop() {
 }
 
 func (node *Node) Exit() error {
-	_ = node.cmd.Process.Kill()
+	_ = node.cmd.Process.Signal(syscall.SIGTERM)
 	_ = node.virtualUartReader.Close()
 
 	err := node.cmd.Wait()
