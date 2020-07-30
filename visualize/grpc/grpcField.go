@@ -40,9 +40,9 @@ type grpcField struct {
 	titleInfo visualize.TitleInfo
 }
 
-func (f *grpcField) addNode(id NodeId, x int, y int, radioRange int, mode NodeMode) *grpcNode {
+func (f *grpcField) addNode(id NodeId, x int, y int, radioRange int) *grpcNode {
 	simplelogger.AssertNil(f.nodes[id])
-	gn := newGprcNode(id, x, y, radioRange, mode)
+	gn := newGprcNode(id, x, y, radioRange)
 	f.nodes[id] = gn
 	return gn
 }

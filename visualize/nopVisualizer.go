@@ -80,7 +80,7 @@ func (nv nopVisualizer) Stop() {
 
 }
 
-func (nv nopVisualizer) AddNode(nodeid NodeId, x int, y int, radioRange int, mode NodeMode) {
+func (nv nopVisualizer) AddNode(nodeid NodeId, x int, y int, radioRange int) {
 
 }
 

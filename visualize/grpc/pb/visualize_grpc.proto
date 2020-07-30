@@ -160,7 +160,6 @@ message AddNodeEvent {
     int32 x = 2;
     int32 y = 3;
     int32 radio_range = 4;
-    NodeMode node_mode = 5;
 }
 
 message NodeMode {

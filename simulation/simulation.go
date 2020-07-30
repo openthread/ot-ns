@@ -96,12 +96,7 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 	s.nodes[nodeid] = node
 
 	simplelogger.Infof("simulation:CtrlAddNode: %+v, rawMode=%v", cfg, s.rawMode)
-	s.d.AddNode(nodeid, cfg.X, cfg.Y, cfg.RadioRange, NodeMode{
-		RxOnWhenIdle:       !cfg.RxOffWhenIdle,
-		SecureDataRequests: true,
-		FullThreadDevice:   !cfg.IsMtd,
-		FullNetworkData:    true,
-	})
+	s.d.AddNode(nodeid, cfg.X, cfg.Y, cfg.RadioRange)
 
 	node.detectVirtualTimeUART()
 
