@@ -33,7 +33,6 @@ import (
 
 	pb "github.com/openthread/ot-ns/visualize/grpc/pb"
 
-	"github.com/openthread/ot-ns/types"
 	. "github.com/openthread/ot-ns/types"
 	"github.com/openthread/ot-ns/visualize"
 )
@@ -56,19 +55,13 @@ func (gv *grpcVisualizer) Stop() {
 	gv.server.stop()
 }
 
-func (gv *grpcVisualizer) AddNode(nodeid NodeId, x int, y int, radioRange int, mode types.NodeMode) {
-	gv.f.addNode(nodeid, x, y, radioRange, mode)
+func (gv *grpcVisualizer) AddNode(nodeid NodeId, x int, y int, radioRange int) {
+	gv.f.addNode(nodeid, x, y, radioRange)
 	gv.server.SendEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_AddNode{AddNode: &pb.AddNodeEvent{
 		NodeId:     int32(nodeid),
 		X:          int32(x),
 		Y:          int32(y),
 		RadioRange: int32(radioRange),
-		NodeMode: &pb.NodeMode{
-			RxOnWhenIdle:       mode.RxOnWhenIdle,
-			SecureDataRequests: mode.SecureDataRequests,
-			FullThreadDevice:   mode.FullThreadDevice,
-			FullNetworkData:    mode.FullNetworkData,
-		},
 	}}}, false)
 }
 
@@ -293,12 +286,6 @@ func (gv *grpcVisualizer) prepareStream(stream *grpcStream) error {
 			X:          int32(node.x),
 			Y:          int32(node.y),
 			RadioRange: int32(node.radioRange),
-			NodeMode: &pb.NodeMode{
-				RxOnWhenIdle:       node.mode.RxOnWhenIdle,
-				SecureDataRequests: node.mode.SecureDataRequests,
-				FullThreadDevice:   node.mode.FullThreadDevice,
-				FullNetworkData:    node.mode.FullNetworkData,
-			},
 		}}}
 
 		if err := stream.Send(addNodeEvent); err != nil {

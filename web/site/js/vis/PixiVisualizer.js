@@ -179,8 +179,8 @@ export default class PixiVisualizer extends VObject {
         return count
     }
 
-    visAddNode(nodeId, x, y, radioRange, nodeMode) {
-        let node = new Node(nodeId, x, y, radioRange, nodeMode);
+    visAddNode(nodeId, x, y, radioRange) {
+        let node = new Node(nodeId, x, y, radioRange);
         this.nodes[nodeId] = node;
         this._nodesStage.addChild(node._root);
         this.setSelectedNode(nodeId)

@@ -701,13 +701,13 @@ func (d *Dispatcher) sendOneMessage(sit *sendItem, srcnode *Node, dstnode *Node)
 	}
 }
 
-func (d *Dispatcher) newNode(nodeid NodeId, x, y int, radioRange int, mode NodeMode) (node *Node) {
+func (d *Dispatcher) newNode(nodeid NodeId, x, y int, radioRange int) (node *Node) {
 	node = newNode(d, nodeid, x, y, radioRange)
 	d.nodes[nodeid] = node
 	d.alarmMgr.AddNode(nodeid)
 	d.setAlive(nodeid)
 
-	d.vis.AddNode(nodeid, x, y, radioRange, mode)
+	d.vis.AddNode(nodeid, x, y, radioRange)
 	return
 }
 
@@ -865,10 +865,10 @@ func (d *Dispatcher) handleStatusPush(srcid NodeId, data string) {
 	}
 }
 
-func (d *Dispatcher) AddNode(nodeid NodeId, x, y int, radioRange int, mode NodeMode) {
+func (d *Dispatcher) AddNode(nodeid NodeId, x, y int, radioRange int) {
 	simplelogger.AssertNil(d.nodes[nodeid])
 	simplelogger.Infof("dispatcher add node %d", nodeid)
-	node := d.newNode(nodeid, x, y, radioRange, mode)
+	node := d.newNode(nodeid, x, y, radioRange)
 
 	if !d.cfg.Real {
 		// Wait until node's extended address is emitted (but not for real devices)

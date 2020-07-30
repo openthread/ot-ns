@@ -26,7 +26,7 @@
 
 import * as PIXI from "pixi.js";
 import VObject from "./VObject";
-import {OtDeviceRole} from '../proto/visualize_grpc_pb'
+import {NodeMode, OtDeviceRole} from '../proto/visualize_grpc_pb'
 import {Visualizer} from "./PixiVisualizer";
 import {Resources} from "./resources";
 
@@ -39,13 +39,13 @@ const HEXAGONAL_SHAPE_RADIUS = 22;
 let vis = Visualizer();
 
 export default class Node extends VObject {
-    constructor(nodeId, x, y, radioRange, nodeMode) {
+    constructor(nodeId, x, y, radioRange) {
         super();
 
         this.id = nodeId;
         this.extAddr = 0xFFFFFFFFFFFFFFFF;
         this.radioRange = radioRange;
-        this.nodeMode = nodeMode;
+        this.nodeMode = new NodeMode([true, true, true, true]);
         this.rloc16 = 0xfffe;
         this.role = OtDeviceRole.OT_DEVICE_ROLE_DISABLED;
         this._failed = false;
