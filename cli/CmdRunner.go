@@ -202,8 +202,10 @@ func (rt *CmdRunner) Execute(cmd *Command, output io.Writer) (cc *CommandContext
 		rt.executeExit(cc, cmd.Exit)
 	} else if cmd.Web != nil {
 		rt.executeWeb(cc, cc.Web)
+	} else if cmd.NetInfo != nil {
+		rt.executeNetInfo(cc, cc.NetInfo)
 	} else {
-		panic("not implemented")
+		simplelogger.Panicf("unimplemented command: %#v", cmd)
 	}
 	return
 }
@@ -721,6 +723,22 @@ func (rt *CmdRunner) executeTitle(cc *CommandContext, cmd *TitleCmd) {
 		}
 
 		sim.SetTitleInfo(titleInfo)
+	})
+}
+
+func (rt *CmdRunner) executeNetInfo(cc *CommandContext, cmd *NetInfoCmd) {
+	rt.postAsyncWait(func(sim *simulation.Simulation) {
+		netinfo := sim.GetNetworkInfo()
+		if cmd.Version != nil {
+			netinfo.Version = *cmd.Version
+		}
+		if cmd.Commit != nil {
+			netinfo.Commit = *cmd.Commit
+		}
+		if cmd.Real != nil {
+			netinfo.Real = cmd.Real.Yes != nil
+		}
+		sim.SetNetworkInfo(netinfo)
 	})
 }
 

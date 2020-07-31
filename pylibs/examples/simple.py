@@ -32,6 +32,7 @@ from otns.cli.errors import OTNSExitedError
 def main():
     ns = OTNS(otns_args=["-log", "debug"])
     ns.set_title("Simple Example")
+    ns.set_network_info(version="Latest", commit="master", real=False)
     ns.web()
 
     ns.add("router", x=300, y=300)

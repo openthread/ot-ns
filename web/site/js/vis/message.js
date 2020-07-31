@@ -137,7 +137,7 @@ export class AckMessage extends VObject {
 
         this.id = nextMessageId;
         nextMessageId += 1;
-        this.dstPos = new PIXI.Point(src.position.x, src.position.y + 50)
+        this.dstPos = new PIXI.Point(src.position.x, src.position.y + 50);
         this.mvInfo = mvInfo;
 
         let size = 10;

@@ -44,6 +44,15 @@ type grpcVisualizer struct {
 	showDemoLegendEvent *pb.VisualizeEvent
 }
 
+func (gv *grpcVisualizer) SetNetworkInfo(networkInfo visualize.NetworkInfo) {
+	gv.f.networkInfo = networkInfo
+	gv.server.SendEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_SetNetworkInfo{SetNetworkInfo: &pb.SetNetworkInfoEvent{
+		Real:    networkInfo.Real,
+		Version: networkInfo.Version,
+		Commit:  networkInfo.Commit,
+	}}}, false)
+}
+
 func (gv *grpcVisualizer) Run() {
 	err := gv.server.Run()
 	if err != nil {
@@ -242,12 +251,21 @@ func (gv *grpcVisualizer) SetTitle(titleInfo visualize.TitleInfo) {
 }
 
 func (gv *grpcVisualizer) prepareStream(stream *grpcStream) error {
+	// set network info
+	if err := stream.Send(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_SetNetworkInfo{SetNetworkInfo: &pb.SetNetworkInfoEvent{
+		Real:    gv.f.networkInfo.Real,
+		Version: gv.f.networkInfo.Version,
+		Commit:  gv.f.networkInfo.Commit,
+	}}}); err != nil {
+		return err
+	}
 	// show demo legend if necessary
 	if gv.showDemoLegendEvent != nil {
 		if err := stream.Send(gv.showDemoLegendEvent); err != nil {
 			return err
 		}
 	}
+
 	// set speed
 	if err := stream.Send(&pb.VisualizeEvent{
 		Type: &pb.VisualizeEvent_SetSpeed{SetSpeed: &pb.SetSpeedEvent{

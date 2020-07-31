@@ -41,22 +41,25 @@ import (
 )
 
 type Simulation struct {
-	ctx       *progctx.ProgCtx
-	cfg       *Config
-	nodes     map[NodeId]*Node
-	d         *dispatcher.Dispatcher
-	vis       visualize.Visualizer
-	cmdRunner CmdRunner
-	rawMode   bool
+	ctx         *progctx.ProgCtx
+	cfg         *Config
+	nodes       map[NodeId]*Node
+	d           *dispatcher.Dispatcher
+	vis         visualize.Visualizer
+	cmdRunner   CmdRunner
+	rawMode     bool
+	networkInfo visualize.NetworkInfo
 }
 
 func NewSimulation(ctx *progctx.ProgCtx, cfg *Config) (*Simulation, error) {
 	s := &Simulation{
-		ctx:     ctx,
-		cfg:     cfg,
-		nodes:   map[NodeId]*Node{},
-		rawMode: cfg.RawMode,
+		ctx:         ctx,
+		cfg:         cfg,
+		nodes:       map[NodeId]*Node{},
+		rawMode:     cfg.RawMode,
+		networkInfo: visualize.DefaultNetworkInfo(),
 	}
+	s.networkInfo.Real = cfg.Real
 
 	// start the event_dispatcher for virtual time
 	dispatcherCfg := dispatcher.DefaultConfig()
@@ -70,6 +73,7 @@ func NewSimulation(ctx *progctx.ProgCtx, cfg *Config) (*Simulation, error) {
 	if err := s.removeTmpDir(); err != nil {
 		simplelogger.Errorf("remove tmp directory failed: %+v", err)
 	}
+
 	return s, nil
 }
 
@@ -164,6 +168,8 @@ func (s *Simulation) SetVisualizer(vis visualize.Visualizer) {
 	s.vis = vis
 	s.d.SetVisualizer(vis)
 	vis.SetController(NewSimulationController(s))
+
+	s.vis.SetNetworkInfo(s.GetNetworkInfo())
 }
 
 func (s *Simulation) OnNodeFail(nodeid NodeId) {
@@ -269,4 +275,13 @@ func (s *Simulation) SetTitleInfo(titleInfo visualize.TitleInfo) {
 func (s *Simulation) SetCmdRunner(cmdRunner CmdRunner) {
 	simplelogger.AssertTrue(s.cmdRunner == nil)
 	s.cmdRunner = cmdRunner
+}
+
+func (s *Simulation) GetNetworkInfo() visualize.NetworkInfo {
+	return s.networkInfo
+}
+
+func (s *Simulation) SetNetworkInfo(networkInfo visualize.NetworkInfo) {
+	s.networkInfo = networkInfo
+	s.vis.SetNetworkInfo(networkInfo)
 }

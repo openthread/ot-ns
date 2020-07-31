@@ -34,6 +34,9 @@ import (
 
 type nopVisualizer struct{}
 
+func (nv nopVisualizer) SetNetworkInfo(networkInfo NetworkInfo) {
+}
+
 func (nv nopVisualizer) OnExtAddrChange(id NodeId, extaddr uint64) {
 }
 

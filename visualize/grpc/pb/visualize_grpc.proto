@@ -56,6 +56,7 @@ message VisualizeEvent {
         OnExtAddrChangeEvent on_ext_addr_change = 20;
         SetTitleEvent set_title = 21;
         SetNodeModeEvent set_node_mode = 22;
+        SetNetworkInfoEvent set_network_info = 23;
     }
 }
 
@@ -189,6 +190,12 @@ message SetTitleEvent {
 message SetNodeModeEvent {
     int32 node_id = 1;
     NodeMode node_mode = 2;
+}
+
+message SetNetworkInfoEvent {
+    bool real = 1;
+    string version = 2;
+    string commit = 3;
 }
 
 message CommandRequest {

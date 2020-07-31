@@ -61,6 +61,7 @@ type Visualizer interface {
 	SetParent(id NodeId, extaddr uint64)
 	OnExtAddrChange(id NodeId, extaddr uint64)
 	SetTitle(titleInfo TitleInfo)
+	SetNetworkInfo(networkInfo NetworkInfo)
 }
 
 type MsgVisualizeInfo struct {
@@ -116,5 +117,19 @@ func DefaultTitleInfo() TitleInfo {
 		X:        0,
 		Y:        20,
 		FontSize: 20,
+	}
+}
+
+type NetworkInfo struct {
+	Real    bool
+	Version string
+	Commit  string
+}
+
+func DefaultNetworkInfo() NetworkInfo {
+	return NetworkInfo{
+		Real:    false,
+		Version: "",
+		Commit:  "master",
 	}
 }
