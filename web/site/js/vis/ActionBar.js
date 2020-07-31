@@ -24,7 +24,7 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-import * as PIXI from "pixi.js";
+import * as PIXI from "pixi.js-legacy";
 import VObject from "./VObject";
 import Button from "./Button";
 import {MAX_SPEED, PAUSE_SPEED} from "./consts";
