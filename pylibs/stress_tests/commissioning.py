@@ -42,12 +42,13 @@ REPEAT = int(os.getenv("STRESS_LEVEL", 1)) * 10
 N = 5
 
 
-class StressTest(BaseStressTest):
+class CommissioningStressTest(BaseStressTest):
     SUITE = 'commissioning'
 
     def __init__(self):
-        super(StressTest, self).__init__("Commissioning Test", ["Join Count", "Success Percent", "Average Join Time"],
-                                         raw=True)
+        super(CommissioningStressTest, self).__init__("Commissioning Test",
+                                                      ["Join Count", "Success Percent", "Average Join Time"],
+                                                      raw=True)
         self._join_time_accum = 0
         self._join_count = 0
         self._join_fail_count = 0
@@ -174,4 +175,4 @@ class StressTest(BaseStressTest):
 
 
 if __name__ == '__main__':
-    StressTest().run()
+    CommissioningStressTest().run()
