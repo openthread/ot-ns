@@ -152,6 +152,6 @@ func tryKillExistingGrpcWebProxyProcess() {
 	}
 
 	if err = cmd.Wait(); err != nil || !cmd.ProcessState.Success() {
-		simplelogger.Errorf("pkill grpcwebproxy failed: %v", cmd.ProcessState.ExitCode())
+		simplelogger.Errorf("pkill grpcwebproxy failed: %s", cmd.ProcessState)
 	}
 }
