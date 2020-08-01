@@ -170,9 +170,9 @@ class OTNS(object):
         """
         cmd = f'add {type}'
         if x is not None:
-            cmd = cmd + f' x {x}'
+            cmd = cmd + f' x {int(x)}'
         if y is not None:
-            cmd = cmd + f' y {y}'
+            cmd = cmd + f' y {int(y)}'
 
         if id is not None:
             cmd += f' id {id}'
