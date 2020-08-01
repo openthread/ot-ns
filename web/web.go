@@ -144,11 +144,14 @@ func tryKillExistingGrpcWebProxyProcess() {
 		}
 	}()
 
-	killcmd := fmt.Sprintf("pkill -f \"grpcwebproxy.*--server_http_debug_port=%d\"", grpcWebProxyParams.serverHttpDebugPort)
-	cmd := exec.Command("sh", "-c", killcmd)
+	pattern := fmt.Sprintf("grpcwebproxy.*--server_http_debug_port=%d", grpcWebProxyParams.serverHttpDebugPort)
+	cmd := exec.Command("pkill", "-f", pattern)
 	if err = cmd.Start(); err != nil {
+		simplelogger.Errorf("pkill grpcwebproxy failed: %v", err)
 		return
 	}
 
-	err = cmd.Wait()
+	if err = cmd.Wait(); err != nil || !cmd.ProcessState.Success() {
+		simplelogger.Errorf("pkill grpcwebproxy failed: %v", cmd.ProcessState.ExitCode())
+	}
 }
