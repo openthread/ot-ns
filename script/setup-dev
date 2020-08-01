@@ -127,3 +127,4 @@ install_protoc_gen_go
 install_protoc_gen_grpc_web
 install_nodejs
 install_go_bindata
+go mod tidy
