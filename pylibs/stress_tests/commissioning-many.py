@@ -39,7 +39,7 @@ CENTER_X, CENTER_Y = 500, 500
 
 PASSWORD = "TEST123"
 
-REPEAT = int(os.getenv("STRESS_LEVEL", 1)) * 1
+REPEAT = int(os.getenv("STRESS_LEVEL", 1)) * 5
 
 
 class CommissioningManyStressTest(BaseStressTest):
