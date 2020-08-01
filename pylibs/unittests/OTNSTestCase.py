@@ -60,3 +60,7 @@ class OTNSTestCase(unittest.TestCase):
                          if virtual time UART is not used)
         """
         self.ns.go(duration * _NON_VIRTUAL_TIME_UART_CONSERVATIVE_FACTOR)
+
+    def assertNodeState(self, nodeid: int, state: str):
+        cur_state = self.ns.get_state(nodeid)
+        self.assertEqual(state, cur_state, f"Node {nodeid} state mismatch: expected {state}, but is {cur_state}")
