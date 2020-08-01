@@ -144,7 +144,7 @@ func tryKillExistingGrpcWebProxyProcess() {
 		}
 	}()
 
-	killcmd := fmt.Sprintf("ps aux | grep -e \"grpcwebproxy.*\\-\\-server_http_debug_port=%d\" | awk '{print $2}' | xargs kill", grpcWebProxyParams.serverHttpDebugPort)
+	killcmd := fmt.Sprintf("pkill -f \"grpcwebproxy.*--server_http_debug_port=%d\"", grpcWebProxyParams.serverHttpDebugPort)
 	cmd := exec.Command("sh", "-c", killcmd)
 	if err = cmd.Start(); err != nil {
 		return
