@@ -34,9 +34,7 @@ main()
 {
     readonly sitedir="$OTNSDIR"/web/site
     cd "$sitedir" || return 1
-    if ! [[ -d node_modules ]]; then
-        npm install
-    fi
+    npm install
     npx webpack ./js/visualize.js -o ./static/js/visualize.js
 
     go-bindata -pkg web_site -o _bindata.go templates/... static/...
