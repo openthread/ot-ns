@@ -154,3 +154,14 @@ class BaseStressTest(object, metaclass=StressTestMetaclass):
 
         if not found_addr:
             raise UnexpectedNodeAddr(f'Address {addr} not found on node {nodeid}')
+
+    def expect_node_mleid(self, nodeid: int, timeout: int):
+        while True:
+            mleid = self.ns.get_mleid(nodeid)
+            if mleid:
+                return mleid
+
+            self.ns.go(1)
+            timeout -= 1
+            if timeout <= 0:
+                raise UnexpectedNodeAddr(f'MLEID not found on node {nodeid}')
