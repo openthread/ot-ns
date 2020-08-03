@@ -90,6 +90,16 @@ class BaseStressTest(object, metaclass=StressTestMetaclass):
         self.result.stop()
         self.ns.close()
 
+    def expect_node_state(self, nid: int, state: str, timeout: float, go_step: int = 1) -> None:
+        while timeout > 0:
+            self.ns.go(go_step)
+            timeout -= go_step
+
+            if self.ns.get_state(nid) == state:
+                return
+
+        raise UnexpectedNodeState(nid, state, self.ns.get_state(nid))
+
     def report(self):
         try:
             STRESS_RESULT_FILE = os.environ['STRESS_RESULT_FILE']

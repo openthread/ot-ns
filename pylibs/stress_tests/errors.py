@@ -30,5 +30,11 @@ class UnexpectedError(Exception):
     pass
 
 
+class UnexpectedNodeState(UnexpectedError):
+    def __init__(self, nid: int, expected_state: str, actual_state: str):
+        super(UnexpectedNodeState, self).__init__(
+            f'Node {nid} state mismatch: expected {expected_state}, but is {actual_state}')
+
+
 class UnexpectedNodeAddr(UnexpectedError):
     pass
