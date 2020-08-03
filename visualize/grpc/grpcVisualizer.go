@@ -27,6 +27,7 @@
 package visualize_grpc
 
 import (
+	"sync"
 	"time"
 
 	"github.com/simonlingoogle/go-simplelogger"
@@ -42,9 +43,14 @@ type grpcVisualizer struct {
 	server              *grpcServer
 	f                   *grpcField
 	showDemoLegendEvent *pb.VisualizeEvent
+
+	sync.Mutex
 }
 
 func (gv *grpcVisualizer) SetNetworkInfo(networkInfo visualize.NetworkInfo) {
+	gv.Lock()
+	defer gv.Unlock()
+
 	gv.f.networkInfo = networkInfo
 	gv.server.SendEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_SetNetworkInfo{SetNetworkInfo: &pb.SetNetworkInfoEvent{
 		Real:    networkInfo.Real,
@@ -65,6 +71,9 @@ func (gv *grpcVisualizer) Stop() {
 }
 
 func (gv *grpcVisualizer) AddNode(nodeid NodeId, x int, y int, radioRange int) {
+	gv.Lock()
+	defer gv.Unlock()
+
 	gv.f.addNode(nodeid, x, y, radioRange)
 	gv.server.SendEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_AddNode{AddNode: &pb.AddNodeEvent{
 		NodeId:     int32(nodeid),
@@ -75,6 +84,9 @@ func (gv *grpcVisualizer) AddNode(nodeid NodeId, x int, y int, radioRange int) {
 }
 
 func (gv *grpcVisualizer) OnExtAddrChange(nodeid NodeId, extaddr uint64) {
+	gv.Lock()
+	defer gv.Unlock()
+
 	simplelogger.Debugf("extaddr changed: node=%d, extaddr=%016x, old extaddr=%016x", nodeid, extaddr, gv.f.nodes[nodeid].extaddr)
 	gv.f.onExtAddrChange(nodeid, extaddr)
 	gv.server.SendEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_OnExtAddrChange{OnExtAddrChange: &pb.OnExtAddrChangeEvent{
@@ -84,6 +96,9 @@ func (gv *grpcVisualizer) OnExtAddrChange(nodeid NodeId, extaddr uint64) {
 }
 
 func (gv *grpcVisualizer) SetNodeRloc16(nodeid NodeId, rloc16 uint16) {
+	gv.Lock()
+	defer gv.Unlock()
+
 	gv.f.setNodeRloc16(nodeid, rloc16)
 	gv.server.SendEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_SetNodeRloc16{SetNodeRloc16: &pb.SetNodeRloc16Event{
 		NodeId: int32(nodeid),
@@ -92,6 +107,9 @@ func (gv *grpcVisualizer) SetNodeRloc16(nodeid NodeId, rloc16 uint16) {
 }
 
 func (gv *grpcVisualizer) SetNodeRole(nodeid NodeId, role visualize.OtDeviceRole) {
+	gv.Lock()
+	defer gv.Unlock()
+
 	gv.f.setNodeRole(nodeid, role)
 	gv.server.SendEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_SetNodeRole{SetNodeRole: &pb.SetNodeRoleEvent{
 		NodeId: int32(nodeid),
@@ -100,6 +118,9 @@ func (gv *grpcVisualizer) SetNodeRole(nodeid NodeId, role visualize.OtDeviceRole
 }
 
 func (gv *grpcVisualizer) SetNodeMode(nodeid NodeId, mode NodeMode) {
+	gv.Lock()
+	defer gv.Unlock()
+
 	gv.f.setNodeMode(nodeid, mode)
 	gv.server.SendEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_SetNodeMode{SetNodeMode: &pb.SetNodeModeEvent{
 		NodeId: int32(nodeid),
@@ -113,6 +134,9 @@ func (gv *grpcVisualizer) SetNodeMode(nodeid NodeId, mode NodeMode) {
 }
 
 func (gv *grpcVisualizer) Send(srcid NodeId, dstid NodeId, mvinfo *visualize.MsgVisualizeInfo) {
+	gv.Lock()
+	defer gv.Unlock()
+
 	gv.server.SendEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_Send{Send: &pb.SendEvent{
 		SrcId: int32(srcid),
 		DstId: int32(dstid),
@@ -127,6 +151,9 @@ func (gv *grpcVisualizer) Send(srcid NodeId, dstid NodeId, mvinfo *visualize.Msg
 }
 
 func (gv *grpcVisualizer) SetNodePartitionId(nodeid NodeId, parid uint32) {
+	gv.Lock()
+	defer gv.Unlock()
+
 	gv.f.setNodePartitionId(nodeid, parid)
 	gv.server.SendEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_SetNodePartitionId{SetNodePartitionId: &pb.SetNodePartitionIdEvent{
 		NodeId:      int32(nodeid),
@@ -135,6 +162,9 @@ func (gv *grpcVisualizer) SetNodePartitionId(nodeid NodeId, parid uint32) {
 }
 
 func (gv *grpcVisualizer) SetSpeed(speed float64) {
+	gv.Lock()
+	defer gv.Unlock()
+
 	gv.f.setSpeed(speed)
 	gv.server.SendEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_SetSpeed{SetSpeed: &pb.SetSpeedEvent{
 		Speed: speed,
@@ -142,6 +172,9 @@ func (gv *grpcVisualizer) SetSpeed(speed float64) {
 }
 
 func (gv *grpcVisualizer) AdvanceTime(ts uint64, speed float64) {
+	gv.Lock()
+	defer gv.Unlock()
+
 	gv.f.advanceTime(ts, speed)
 	gv.server.SendEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_AdvanceTime{AdvanceTime: &pb.AdvanceTimeEvent{
 		Ts:    ts,
@@ -150,6 +183,9 @@ func (gv *grpcVisualizer) AdvanceTime(ts uint64, speed float64) {
 }
 
 func (gv *grpcVisualizer) OnNodeFail(nodeid NodeId) {
+	gv.Lock()
+	defer gv.Unlock()
+
 	gv.f.onNodeFail(nodeid)
 	gv.server.SendEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_OnNodeFail{OnNodeFail: &pb.OnNodeFailEvent{
 		NodeId: int32(nodeid),
@@ -157,6 +193,9 @@ func (gv *grpcVisualizer) OnNodeFail(nodeid NodeId) {
 }
 
 func (gv *grpcVisualizer) OnNodeRecover(nodeid NodeId) {
+	gv.Lock()
+	defer gv.Unlock()
+
 	gv.f.onNodeRecover(nodeid)
 	gv.server.SendEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_OnNodeRecover{OnNodeRecover: &pb.OnNodeRecoverEvent{
 		NodeId: int32(nodeid),
@@ -168,6 +207,9 @@ func (gv *grpcVisualizer) SetController(ctrl visualize.SimulationController) {
 }
 
 func (gv *grpcVisualizer) SetNodePos(nodeid NodeId, x, y int) {
+	gv.Lock()
+	defer gv.Unlock()
+
 	gv.f.setNodePos(nodeid, x, y)
 	gv.server.SendEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_SetNodePos{SetNodePos: &pb.SetNodePosEvent{
 		NodeId: int32(nodeid),
@@ -177,6 +219,9 @@ func (gv *grpcVisualizer) SetNodePos(nodeid NodeId, x, y int) {
 }
 
 func (gv *grpcVisualizer) DeleteNode(id NodeId) {
+	gv.Lock()
+	defer gv.Unlock()
+
 	gv.f.deleteNode(id)
 	gv.server.SendEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_DeleteNode{DeleteNode: &pb.DeleteNodeEvent{
 		NodeId: int32(id),
@@ -184,6 +229,9 @@ func (gv *grpcVisualizer) DeleteNode(id NodeId) {
 }
 
 func (gv *grpcVisualizer) AddRouterTable(id NodeId, extaddr uint64) {
+	gv.Lock()
+	defer gv.Unlock()
+
 	gv.f.addRouterTable(id, extaddr)
 	gv.server.SendEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_AddRouterTable{AddRouterTable: &pb.AddRouterTableEvent{
 		NodeId:  int32(id),
@@ -192,6 +240,9 @@ func (gv *grpcVisualizer) AddRouterTable(id NodeId, extaddr uint64) {
 }
 
 func (gv *grpcVisualizer) RemoveRouterTable(id NodeId, extaddr uint64) {
+	gv.Lock()
+	defer gv.Unlock()
+
 	gv.f.removeRouterTable(id, extaddr)
 	gv.server.SendEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_RemoveRouterTable{RemoveRouterTable: &pb.RemoveRouterTableEvent{
 		NodeId:  int32(id),
@@ -200,6 +251,9 @@ func (gv *grpcVisualizer) RemoveRouterTable(id NodeId, extaddr uint64) {
 }
 
 func (gv *grpcVisualizer) AddChildTable(id NodeId, extaddr uint64) {
+	gv.Lock()
+	defer gv.Unlock()
+
 	gv.f.addChildTable(id, extaddr)
 	gv.server.SendEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_AddChildTable{AddChildTable: &pb.AddChildTableEvent{
 		NodeId:  int32(id),
@@ -208,6 +262,9 @@ func (gv *grpcVisualizer) AddChildTable(id NodeId, extaddr uint64) {
 }
 
 func (gv *grpcVisualizer) RemoveChildTable(id NodeId, extaddr uint64) {
+	gv.Lock()
+	defer gv.Unlock()
+
 	gv.f.removeChildTable(id, extaddr)
 	gv.server.SendEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_RemoveChildTable{RemoveChildTable: &pb.RemoveChildTableEvent{
 		NodeId:  int32(id),
@@ -216,6 +273,9 @@ func (gv *grpcVisualizer) RemoveChildTable(id NodeId, extaddr uint64) {
 }
 
 func (gv *grpcVisualizer) ShowDemoLegend(x int, y int, title string) {
+	gv.Lock()
+	defer gv.Unlock()
+
 	e := &pb.VisualizeEvent{Type: &pb.VisualizeEvent_ShowDemoLegend{ShowDemoLegend: &pb.ShowDemoLegendEvent{
 		X:     int32(x),
 		Y:     int32(y),
@@ -226,6 +286,9 @@ func (gv *grpcVisualizer) ShowDemoLegend(x int, y int, title string) {
 }
 
 func (gv *grpcVisualizer) CountDown(duration time.Duration, text string) {
+	gv.Lock()
+	defer gv.Unlock()
+
 	gv.server.SendEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_CountDown{CountDown: &pb.CountDownEvent{
 		DurationMs: int64(duration / time.Millisecond),
 		Text:       text,
@@ -233,6 +296,9 @@ func (gv *grpcVisualizer) CountDown(duration time.Duration, text string) {
 }
 
 func (gv *grpcVisualizer) SetParent(id NodeId, extaddr uint64) {
+	gv.Lock()
+	defer gv.Unlock()
+
 	gv.f.setParent(id, extaddr)
 	gv.server.SendEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_SetParent{SetParent: &pb.SetParentEvent{
 		NodeId:  int32(id),
@@ -241,6 +307,9 @@ func (gv *grpcVisualizer) SetParent(id NodeId, extaddr uint64) {
 }
 
 func (gv *grpcVisualizer) SetTitle(titleInfo visualize.TitleInfo) {
+	gv.Lock()
+	defer gv.Unlock()
+
 	gv.f.setTitleInfo(titleInfo)
 	gv.server.SendEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_SetTitle{SetTitle: &pb.SetTitleEvent{
 		Title:    titleInfo.Title,
