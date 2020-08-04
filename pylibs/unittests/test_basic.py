@@ -80,6 +80,14 @@ class BasicTests(OTNSTestCase):
         self.goConservative(33)
         self.assertFormPartitions(1)
 
+    def testAddNodeWithID(self):
+        ns = self.ns
+        for new_id in [50, 55, 60]:
+            nid = ns.add("router", id=new_id)
+            self.assertEqual(nid, new_id)
+            ns.delete(new_id)
+            self.goConservative(1)
+
     def testDelNode(self):
         ns = self.ns
         ns.add("router")
