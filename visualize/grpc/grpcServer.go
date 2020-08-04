@@ -29,7 +29,6 @@ package visualize_grpc
 import (
 	"context"
 	"net"
-	"sync"
 	"time"
 
 	"github.com/simonlingoogle/go-simplelogger"
@@ -40,11 +39,10 @@ import (
 )
 
 type grpcServer struct {
-	vis                    *grpcVisualizer
-	server                 *grpc.Server
-	address                string
-	visualizingStreamsLock sync.Mutex
-	visualizingStreams     map[*grpcStream]struct{}
+	vis                *grpcVisualizer
+	server             *grpc.Server
+	address            string
+	visualizingStreams map[*grpcStream]struct{}
 }
 
 func (gs *grpcServer) Visualize(req *pb.VisualizeRequest, stream pb.VisualizeGrpcService_VisualizeServer) error {
@@ -56,16 +54,17 @@ func (gs *grpcServer) Visualize(req *pb.VisualizeRequest, stream pb.VisualizeGrp
 	var heartbeatTicker *time.Ticker
 
 	gstream := newGrpcStream(stream)
-	simplelogger.Infof("New visualize request got.")
+	simplelogger.Debugf("New visualize request got.")
+
+	gs.vis.Lock()
 	err = gs.prepareStream(gstream)
-	simplelogger.Infof("Visualize stream prepared: error=%v", err)
 	if err != nil {
+		gs.vis.Unlock()
 		goto exit
 	}
 
-	gs.visualizingStreamsLock.Lock()
 	gs.visualizingStreams[gstream] = struct{}{}
-	gs.visualizingStreamsLock.Unlock()
+	gs.vis.Unlock()
 
 	defer gs.disposeStream(gstream)
 
@@ -105,37 +104,25 @@ func (gs *grpcServer) Run() error {
 }
 
 func (gs *grpcServer) SendEvent(event *pb.VisualizeEvent, trivial bool) {
-	streams := gs.getAllStreams()
-	for _, stream := range streams {
+	for stream := range gs.visualizingStreams {
 		_ = stream.Send(event)
 	}
 }
 
-func (gs *grpcServer) getAllStreams() []*grpcStream {
-	gs.visualizingStreamsLock.Lock()
-	defer gs.visualizingStreamsLock.Unlock()
-
-	streams := make([]*grpcStream, 0, len(gs.visualizingStreams))
-	for stream := range gs.visualizingStreams {
-		streams = append(streams, stream)
-	}
-	return streams
-}
-
 func (gs *grpcServer) stop() {
-	streams := gs.getAllStreams()
-
-	for _, stream := range streams {
+	gs.vis.Lock()
+	for stream := range gs.visualizingStreams {
 		stream.close()
 	}
+	gs.vis.Unlock()
 
 	gs.server.Stop()
 }
 
 func (gs *grpcServer) disposeStream(stream *grpcStream) {
-	gs.visualizingStreamsLock.Lock()
+	gs.vis.Lock()
 	delete(gs.visualizingStreams, stream)
-	gs.visualizingStreamsLock.Unlock()
+	gs.vis.Unlock()
 	stream.close()
 }
 
