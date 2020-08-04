@@ -32,8 +32,7 @@
 
 install_otns()
 {
-    repeat 3 go get ./cmd/otns
-    repeat 3 go get ./cmd/real/...
+    repeat 3 go get ./cmd/...
     echo "otns installed: $(command -v otns)"
 }
 
