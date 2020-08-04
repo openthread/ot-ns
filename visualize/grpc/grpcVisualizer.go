@@ -65,7 +65,9 @@ func (gv *grpcVisualizer) Run() {
 
 func (gv *grpcVisualizer) Stop() {
 	gv.server.stop()
-	gv.replay.Close()
+	if gv.replay != nil {
+		gv.replay.Close()
+	}
 }
 
 func (gv *grpcVisualizer) AddNode(nodeid NodeId, x int, y int, radioRange int) {
@@ -415,7 +417,9 @@ func (gv *grpcVisualizer) prepareStream(stream *grpcStream) error {
 }
 
 func (gv *grpcVisualizer) AddVisualizationEvent(event *pb.VisualizeEvent, trivial bool) {
-	gv.replay.Append(event, trivial)
+	if gv.replay != nil {
+		gv.replay.Append(event, trivial)
+	}
 	gv.server.SendEvent(event, trivial)
 }
 
@@ -423,8 +427,12 @@ func NewGrpcVisualizer(address string, replayFn string) visualize.Visualizer {
 	gsv := &grpcVisualizer{
 		simctrl: nil,
 		f:       newGrpcField(),
-		replay:  replay.NewReplay(replayFn),
 	}
+
+	if replayFn != "" {
+		gsv.replay = replay.NewReplay(replayFn)
+	}
+
 	gsv.server = newGrpcServer(gsv, address)
 	return gsv
 }
