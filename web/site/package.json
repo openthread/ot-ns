@@ -11,6 +11,8 @@
     "webpack-cli": "^3.1.0"
   },
   "dependencies": {
+    "pixi-scrollbox": "^2.1.4",
+    "pixi-viewport": "^4.13.2",
     "pixi.js-legacy": "^5.3.0"
   }
 }

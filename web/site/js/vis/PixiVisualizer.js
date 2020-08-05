@@ -31,6 +31,7 @@ import {Text} from "./wrapper";
 import {FRAME_CONTROL_MASK_FRAME_TYPE, FRAME_TYPE_ACK, MAX_SPEED, PAUSE_SPEED} from "./consts";
 import Node from "./Node"
 import {AckMessage, BroadcastMessage, UnicastMessage} from "./message";
+import LogWindow, {LOG_WINDOW_WIDTH} from "./LogWindow";
 
 const {
     OtDeviceRole, CommandRequest
@@ -66,6 +67,11 @@ export default class PixiVisualizer extends VObject {
         this.setOnTap((e) => {
             this.onTapedStage()
         });
+
+        this.logWindow = new LogWindow();
+        this.logWindow.position.set(0, 0);
+        this.addChild(this.logWindow);
+        this._resetLogWindowPosition(window.screen.width, window.screen.height);
 
         this._bgStage = new PIXI.Container();
         this.addChild(this._bgStage);
@@ -109,7 +115,7 @@ export default class PixiVisualizer extends VObject {
             e.stopPropagation();
         });
         this.addChild(this.otCommitIdMsg);
-        this.setOTVersion("", "master")
+        this.setOTVersion("", "master");
 
         this.titleText = new PIXI.Text("", {
             fill: "#e69900",
@@ -139,6 +145,11 @@ export default class PixiVisualizer extends VObject {
             let msg = this._messages[id];
             msg.update(dt)
         }
+    }
+
+    _resetLogWindowPosition(width, height) {
+        this.logWindow.position.set(width - LOG_WINDOW_WIDTH, 10);
+        this.logWindow.resetLayout(width, height)
     }
 
     _resetIdleCheckTimer() {
@@ -211,28 +222,92 @@ export default class PixiVisualizer extends VObject {
         return count
     }
 
+    log(text) {
+        this.logWindow.addLog(text)
+    }
+
+    formatRloc16(rloc16) {
+        return ('0000' + rloc16.toString(16).toUpperCase()).slice(-4);
+    }
+
+    formatExtAddr(extAddr) {
+        return ('0000000000000000' + extAddr.toString(16).toUpperCase()).slice(-16);
+    }
+
+    formatPartitionId(parid) {
+        return parid
+    }
+
+    roleToString(role) {
+        switch (role) {
+            case OtDeviceRole.OT_DEVICE_ROLE_DISABLED:
+                return "Disabled";
+            case OtDeviceRole.OT_DEVICE_ROLE_DETACHED:
+                return "Detached";
+            case OtDeviceRole.OT_DEVICE_ROLE_CHILD:
+                return "Child";
+            case OtDeviceRole.OT_DEVICE_ROLE_ROUTER:
+                return "Router";
+            case OtDeviceRole.OT_DEVICE_ROLE_LEADER:
+                return "Leader";
+        }
+    }
+
+    modeToString(mode) {
+        let s = "";
+        if (mode.getRxOnWhenIdle()) {
+            s += "r";
+        }
+        if (mode.getSecureDataRequests()) {
+            s += "s";
+        }
+        if (mode.getFullThreadDevice()) {
+            s += "d";
+        }
+        if (mode.getFullNetworkData()) {
+            s += "n";
+        }
+        return s;
+    }
+
     visAddNode(nodeId, x, y, radioRange) {
         let node = new Node(nodeId, x, y, radioRange);
         this.nodes[nodeId] = node;
         this._nodesStage.addChild(node._root);
-        this.setSelectedNode(nodeId)
+        this.setSelectedNode(nodeId);
+
+        this.log(`Node ${nodeId}: added at (${x},${y}), radio range ${radioRange}`);
     }
 
     visSetNodeRloc16(nodeId, rloc16) {
-        this.nodes[nodeId].setRloc16(rloc16)
+        let node = this.nodes[nodeId];
+        let oldRloc16 = node.rloc16;
+        node.setRloc16(rloc16);
+        if (oldRloc16 != rloc16) {
+            this.log(`Node ${nodeId}: RLOC16 changed from ${this.formatRloc16(oldRloc16)} to ${this.formatRloc16(rloc16)}`)
+        }
     }
 
     visSetNodeRole(nodeId, role) {
-        this.nodes[nodeId].setRole(role)
+        let oldRole = this.nodes[nodeId].role;
+        this.nodes[nodeId].setRole(role);
+        if (oldRole != role) {
+            this.log(`Node ${nodeId}: role changed from ${this.roleToString(oldRole)} to ${this.roleToString(role)}`)
+        }
     }
 
     visSetNodeMode(nodeId, mode) {
-        this.nodes[nodeId].setMode(mode)
+        let oldMode = this.nodes[nodeId].nodeMode;
+        this.nodes[nodeId].setMode(mode);
+        this.log(`Node ${nodeId}: mode changed from ${this.modeToString(oldMode)} to ${this.modeToString(mode)}`);
     }
 
     visSetNetworkInfo(version, commit, real) {
         this.setOTVersion(version, commit);
-        this.setReal(real)
+        this.setReal(real);
+        this.log(`OpenThread Version: ${version}`);
+        this.log(`OpenThread Commit: ${commit}`);
+        this.log(`Real devices: ${real ? "ON" : "OFF"}`);
     }
 
     visDeleteNode(nodeId) {
@@ -240,13 +315,15 @@ export default class PixiVisualizer extends VObject {
         delete this.nodes[nodeId];
         node.destroy();
         if (nodeId === this._selectedNodeId) {
-            this.setSelectedNode(0)
+            this.setSelectedNode(0);
         }
+        this.log(`Node ${nodeId}: deleted`)
     }
 
     visSetSpeed(speed) {
         this.speed = speed;
-        this.actionBar.setSpeed(speed)
+        this.actionBar.setSpeed(speed);
+        this.log(`Speed set to ${Math.round(speed)}`)
     }
 
     isPaused() {
@@ -258,23 +335,28 @@ export default class PixiVisualizer extends VObject {
     }
 
     visSetNodePos(nodeId, x, y) {
-        this.nodes[nodeId].setPosition(x, y)
+        this.nodes[nodeId].setPosition(x, y);
+        this.log(`Node ${nodeId}: moved to (${x},${y})`)
     }
 
     visOnExtAddrChange(nodeId, extAddr) {
-        this.nodes[nodeId].extAddr = extAddr
+        this.nodes[nodeId].extAddr = extAddr;
+        this.log(`Node ${nodeId}: Extended Address set to ${this.formatExtAddr(extAddr)}`)
     }
 
     visOnNodeFail(nodeId) {
-        this.nodes[nodeId].failed = true
+        this.nodes[nodeId].failed = true;
+        this.log(`Node ${nodeId}: radio is OFF`)
     }
 
     visOnNodeRecover(nodeId) {
-        this.nodes[nodeId].failed = false
+        this.nodes[nodeId].failed = false;
+        this.log(`Node ${nodeId}: radio is ON`)
     }
 
     visSetParent(nodeId, extAddr) {
-        this.nodes[nodeId].parent = extAddr
+        this.nodes[nodeId].parent = extAddr;
+        this.log(`Node ${nodeId}: parent set to ${this.formatExtAddr(extAddr)}`)
     }
 
     visSetTitle(title, x, y, fontSize) {
@@ -282,6 +364,7 @@ export default class PixiVisualizer extends VObject {
         this.titleText.x = x;
         this.titleText.y = y;
         this.titleText.style.fontSize = fontSize;
+        this.log(`Title set to "${title}, position (${x},${y}), font size ${fontSize}"`)
     }
 
     visSend(srcId, dstId, mvInfo) {
@@ -305,7 +388,9 @@ export default class PixiVisualizer extends VObject {
     }
 
     visSetNodePartitionId(nodeId, partitionId) {
-        this.nodes[nodeId].partition = partitionId
+        let oldPartitionId = this.nodes[nodeId].partition;
+        this.nodes[nodeId].partition = partitionId;
+        this.log(`Node ${nodeId}: partition changed from ${this.formatPartitionId(oldPartitionId)} to ${this.formatPartitionId(partitionId)}`)
     }
 
     visShowDemoLegend(x, y, title) {
@@ -344,11 +429,13 @@ export default class PixiVisualizer extends VObject {
     runCommand(cmd) {
         let req = new CommandRequest();
         req.setCommand(cmd);
-        console.log("> " + cmd);
+        this.log(`> ${cmd}`);
+        console.log(`> ${cmd}`);
 
         this.grpcServiceClient.command(req, {}, (err, resp) => {
             if (err !== null) {
-                console.error("Error: " + err.toLocaleString());
+                this.log("Error: " + err.toLocaleString());
+                console.log("Error: " + err.toLocaleString())
             } else {
                 let output = resp.getOutputList();
                 for (let i in output) {
@@ -478,19 +565,23 @@ export default class PixiVisualizer extends VObject {
     }
 
     visAddRouterTable(nodeId, extaddr) {
-        this.nodes[nodeId].addRouterTable(extaddr)
+        this.nodes[nodeId].addRouterTable(extaddr);
+        this.log(`Node ${nodeId}: established Router link to ${this.formatExtAddr(extaddr)}`)
     }
 
     visRemoveRouterTable(nodeId, extaddr) {
-        this.nodes[nodeId].removeRouterTable(extaddr)
+        this.nodes[nodeId].removeRouterTable(extaddr);
+        this.log(`Node ${nodeId}: dropped Router link to ${this.formatExtAddr(extaddr)}`)
     }
 
     visAddChildTable(nodeId, extaddr) {
-        this.nodes[nodeId].addChildTable(extaddr)
+        this.nodes[nodeId].addChildTable(extaddr);
+        this.log(`Node ${nodeId}: Child ${this.formatExtAddr(extaddr)} attached`)
     }
 
     visRemoveChildTable(nodeId, extaddr) {
-        this.nodes[nodeId].removeChildTable(extaddr)
+        this.nodes[nodeId].removeChildTable(extaddr);
+        this.log(`Node ${nodeId}: Child ${this.formatExtAddr(extaddr)} detached`)
     }
 
     formatTime() {
@@ -528,7 +619,9 @@ export default class PixiVisualizer extends VObject {
     }
 
     onResize(width, height) {
-        this.actionBar.position.set(10, height - this.actionBar.height - 20 - 10)
+        console.log('window resized to ' + width + "," + height);
+        this.actionBar.position.set(10, height - this.actionBar.height - 20 - 10);
+        this._resetLogWindowPosition(width, height);
     }
 
 }
