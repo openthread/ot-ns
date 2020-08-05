@@ -31,7 +31,7 @@ import unittest
 from typing import Dict
 
 from OTNSTestCase import OTNSTestCase
-from otns.cli import OTNS
+from otns.cli import errors, OTNS
 
 
 class BasicTests(OTNSTestCase):
@@ -79,6 +79,21 @@ class BasicTests(OTNSTestCase):
         ns.add("sed")
         self.goConservative(33)
         self.assertFormPartitions(1)
+
+    def testAddNodeWithID(self):
+        ns = self.ns
+        for new_id in [50, 55, 60]:
+            nid = ns.add("router", id=new_id)
+            self.assertEqual(nid, new_id)
+            self.goConservative(1)
+
+    def testAddNodeWithExistingID(self):
+        ns = self.ns
+        new_id = 50
+        nid = ns.add("router", id=new_id)
+        self.assertEqual(nid, new_id)
+        self.goConservative(1)
+        self.assertRaises(errors.OTNSCliError, lambda: ns.add("router", id=new_id))
 
     def testDelNode(self):
         ns = self.ns
