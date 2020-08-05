@@ -85,7 +85,6 @@ class BasicTests(OTNSTestCase):
         for new_id in [50, 55, 60]:
             nid = ns.add("router", id=new_id)
             self.assertEqual(nid, new_id)
-            ns.delete(new_id)
             self.goConservative(1)
 
     def testAddNodeWithExistingID(self):
@@ -95,7 +94,6 @@ class BasicTests(OTNSTestCase):
         self.assertEqual(nid, new_id)
         self.goConservative(1)
         self.assertRaises(errors.OTNSCliError, lambda: ns.add("router", id=new_id))
-        ns.delete(new_id)
 
     def testDelNode(self):
         ns = self.ns
