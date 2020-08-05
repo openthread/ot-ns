@@ -148,13 +148,14 @@ func Main(visualizerCreator func(ctx *progctx.ProgCtx, args *MainArgs) visualize
 	}
 
 	visGrpcServerAddr := fmt.Sprintf("%s:%d", args.DispatcherHost, args.DispatcherPort-1)
+	replayFn := fmt.Sprintf("otns_%s.replay", os.Getenv("PORT_OFFSET"))
 	if vis != nil {
 		vis = visualizeMulti.NewMultiVisualizer(
 			vis,
-			visualizeGrpc.NewGrpcVisualizer(visGrpcServerAddr),
+			visualizeGrpc.NewGrpcVisualizer(visGrpcServerAddr, "replayFn"),
 		)
 	} else {
-		vis = visualizeGrpc.NewGrpcVisualizer(visGrpcServerAddr)
+		vis = visualizeGrpc.NewGrpcVisualizer(visGrpcServerAddr, replayFn)
 	}
 
 	sim := createSimulation(ctx)

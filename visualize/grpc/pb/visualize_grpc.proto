@@ -206,6 +206,11 @@ message CommandResponse {
     repeated string output = 1;
 }
 
+message ReplayEntry {
+    uint64 timestamp = 1;
+    VisualizeEvent event = 2;
+}
+
 service VisualizeGrpcService {
     //    rpc Echo (EchoRequest) returns (EchoResponse);
     rpc Visualize (VisualizeRequest) returns (stream VisualizeEvent);
