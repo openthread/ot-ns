@@ -147,7 +147,7 @@ func Main(visualizerCreator func(ctx *progctx.ProgCtx, args *MainArgs) visualize
 	if vis != nil {
 		vis = visualizeMulti.NewMultiVisualizer(
 			vis,
-			visualizeGrpc.NewGrpcVisualizer(visGrpcServerAddr, "replayFn"),
+			visualizeGrpc.NewGrpcVisualizer(visGrpcServerAddr, replayFn),
 		)
 	} else {
 		vis = visualizeGrpc.NewGrpcVisualizer(visGrpcServerAddr, replayFn)
