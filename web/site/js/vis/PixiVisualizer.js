@@ -186,7 +186,8 @@ export default class PixiVisualizer extends VObject {
             return;
         }
         this.real = real;
-        this._applyReal()
+        this._applyReal();
+        this.log(`Real devices: ${real ? "ON" : "OFF"}`);
     }
 
     _applyReal() {
@@ -234,8 +235,13 @@ export default class PixiVisualizer extends VObject {
         return ('0000000000000000' + extAddr.toString(16).toUpperCase()).slice(-16);
     }
 
+    formatExtAddrPretty(extAddr) {
+        let node = this.findNodeByExtAddr(extAddr);
+        return `Node ${node.id}(${this.formatExtAddr(extAddr)})`
+    }
+
     formatPartitionId(parid) {
-        return parid
+        return ('00000000' + parid.toString(16).toUpperCase()).slice(-8);
     }
 
     roleToString(role) {
@@ -276,7 +282,11 @@ export default class PixiVisualizer extends VObject {
         this._nodesStage.addChild(node._root);
         this.setSelectedNode(nodeId);
 
-        this.log(`Node ${nodeId}: added at (${x},${y}), radio range ${radioRange}`);
+        let msg = `Node ${nodeId}: added at (${x},${y})`
+        if (!this.real) {
+            msg += `, radio range ${radioRange}`
+        }
+        this.log(msg);
     }
 
     visSetNodeRloc16(nodeId, rloc16) {
@@ -303,11 +313,17 @@ export default class PixiVisualizer extends VObject {
     }
 
     visSetNetworkInfo(version, commit, real) {
+        let oldVersion = this.otVersion;
+        let oldCommit = this.otCommit;
         this.setOTVersion(version, commit);
         this.setReal(real);
-        this.log(`OpenThread Version: ${version}`);
-        this.log(`OpenThread Commit: ${commit}`);
-        this.log(`Real devices: ${real ? "ON" : "OFF"}`);
+
+        if (oldVersion != this.otVersion) {
+            this.log(`OpenThread Version: ${version}`);
+        }
+        if (oldCommit != this.otCommit) {
+            this.log(`OpenThread Commit: ${commit}`);
+        }
     }
 
     visDeleteNode(nodeId) {
@@ -356,7 +372,7 @@ export default class PixiVisualizer extends VObject {
 
     visSetParent(nodeId, extAddr) {
         this.nodes[nodeId].parent = extAddr;
-        this.log(`Node ${nodeId}: parent set to ${this.formatExtAddr(extAddr)}`)
+        this.log(`Node ${nodeId}: parent set to ${this.formatExtAddrPretty(extAddr)}`)
     }
 
     visSetTitle(title, x, y, fontSize) {
@@ -364,7 +380,7 @@ export default class PixiVisualizer extends VObject {
         this.titleText.x = x;
         this.titleText.y = y;
         this.titleText.style.fontSize = fontSize;
-        this.log(`Title set to "${title}, position (${x},${y}), font size ${fontSize}"`)
+        this.log(`Title set to "${title}", position (${x},${y}), font size ${fontSize}`)
     }
 
     visSend(srcId, dstId, mvInfo) {
@@ -566,22 +582,22 @@ export default class PixiVisualizer extends VObject {
 
     visAddRouterTable(nodeId, extaddr) {
         this.nodes[nodeId].addRouterTable(extaddr);
-        this.log(`Node ${nodeId}: established Router link to ${this.formatExtAddr(extaddr)}`)
+        this.log(`Node ${nodeId}: established Router link to ${this.formatExtAddrPretty(extaddr)}`)
     }
 
     visRemoveRouterTable(nodeId, extaddr) {
         this.nodes[nodeId].removeRouterTable(extaddr);
-        this.log(`Node ${nodeId}: dropped Router link to ${this.formatExtAddr(extaddr)}`)
+        this.log(`Node ${nodeId}: dropped Router link to ${this.formatExtAddrPretty(extaddr)}`)
     }
 
     visAddChildTable(nodeId, extaddr) {
         this.nodes[nodeId].addChildTable(extaddr);
-        this.log(`Node ${nodeId}: Child ${this.formatExtAddr(extaddr)} attached`)
+        this.log(`Node ${nodeId}: Child ${this.formatExtAddrPretty(extaddr)} attached`)
     }
 
     visRemoveChildTable(nodeId, extaddr) {
         this.nodes[nodeId].removeChildTable(extaddr);
-        this.log(`Node ${nodeId}: Child ${this.formatExtAddr(extaddr)} detached`)
+        this.log(`Node ${nodeId}: Child ${this.formatExtAddrPretty(extaddr)} detached`)
     }
 
     formatTime() {
