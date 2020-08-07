@@ -38,6 +38,7 @@ const LOG_TEXT_STYLE = {
 };
 
 const LOG_TEXT_LINE_HEIGHT = 15;
+const LOG_WINDOW_MAX_SIZE = 500;
 export const LOG_WINDOW_WIDTH = 400;
 
 export default class LogWindow extends VObject {
@@ -45,25 +46,46 @@ export default class LogWindow extends VObject {
         super();
 
         let height = window.innerHeight - 100;
+        this.logIndex = 0;
 
         this._root = new Scrollbox({
             boxWidth: LOG_WINDOW_WIDTH,
             boxHeight: height,
             fade: true,
-            overflowX: "none",
-            overflowY: "scroll"
+            overflowX: "auto",
+            overflowY: "auto"
         });
+        this.logContainer = new PIXI.Container()
+        this.lastline = new PIXI.Graphics()
+        this.lastline.clear();
+        this.lastline.beginFill(0xFFFFFF);
+        // this.lastline.lineStyle(0);
+        this.lastline.drawRect(0, 0, LOG_WINDOW_WIDTH, LOG_TEXT_LINE_HEIGHT);
+        this.lastline.endFill();
+        this.logContainer.addChild(this.lastline)
+
+        this._root.content.addChild(this.logContainer)
         this._root.update();
         this.loglist = [];
     }
 
     addLog(text) {
-        let textCtrl = new PIXI.Text(text, LOG_TEXT_STYLE);
-        textCtrl.position.set(3, 3 + this.loglist.length * LOG_TEXT_LINE_HEIGHT);
-        this._root.content.addChild(textCtrl);
+        if (this.loglist.length === LOG_WINDOW_MAX_SIZE) {
+            let rm = this.loglist.shift();
+            this.logContainer.removeChild(rm)
+        }
+
+        let log = new PIXI.Text(text, LOG_TEXT_STYLE);
+        log.position.set(3, 3 + this.logIndex * LOG_TEXT_LINE_HEIGHT);
+        this.logIndex++;
+        this.logContainer.addChild(log);
+        this.loglist.push(log);
+
+        this.logContainer.position.set(0, -this.loglist[0].position.y);
+        this.lastline.position.set(0, log.y + LOG_TEXT_LINE_HEIGHT)
+
         this._root.resize({boxWidth: LOG_WINDOW_WIDTH, boxHeight: this._root.boxHeight});
-        this._root.ensureVisible(textCtrl.x, textCtrl.y, textCtrl.width, textCtrl.height);
-        this.loglist.push(textCtrl);
+        this._root.ensureVisible(0, log.y + this.logContainer.y, LOG_WINDOW_WIDTH, log.height);
     }
 
     resetLayout(width, height) {

@@ -99,6 +99,9 @@ export default class ActionBar extends VObject {
         this.addButton("Radio On", "node", "radio", (e) => {
             this.actionRadioOn(e)
         })
+        this._logOnOffButton = this.addButton("Log Off", "any", "", (e) => {
+            this.actionToggleLogWindow()
+        })
     }
 
     setAbilities(abilities) {
@@ -211,6 +214,16 @@ export default class ActionBar extends VObject {
 
     actionClear() {
         this.vis.clearAllNodes()
+    }
+
+    actionToggleLogWindow() {
+        let logWindow = this.vis.logWindow;
+        logWindow.visible = !logWindow.visible;
+        if (logWindow.visible) {
+            this._logOnOffButton.text = "Log Off"
+        } else {
+            this._logOnOffButton.text = "Log On"
+        }
     }
 
     addButton(label, context, requiredAbility, callback, onRefresh) {
