@@ -36,6 +36,9 @@ compile_proto()
     protoc -I=. visualize_grpc.proto \
         --js_out=import_style=commonjs:../../../web/site/js/proto/ \
         --grpc-web_out=import_style=commonjs,mode=grpcwebtext:../../../web/site/js/proto/
+    python3 -m grpc_tools.protoc -I. visualize_grpc.proto \
+        --python_out=../../../pylibs/proto/ \
+        --grpc_python_out=../../../pylibs/proto/
     cd - || return 1
 }
 

@@ -99,6 +99,22 @@ install_protoc_gen_grpc_web()
     installed protoc-gen-grpc-web || die "protoc-gen-grpc-web not found, make sure /usr/local/bin is included in $PATH"
 }
 
+install_grpcio_tools()
+{   
+    sudo python3 -m pip show grpcio-tools 1>/dev/null
+    if [ $? == 0 ]; then
+        installed_grpcio_tools='true'
+    else
+        installed_grpcio_tools='false'
+    fi
+
+    if ${skip_update} && ${installed_grpcio_tools}; then
+        return 0
+    fi
+
+    sudo python3 -m pip install grpcio-tools -U
+}
+
 install_nodejs()
 {
     if ${skip_update} && installed npm; then
@@ -125,6 +141,7 @@ install_go_bindata()
 install_protoc
 install_protoc_gen_go
 install_protoc_gen_grpc_web
+install_grpcio_tools
 install_nodejs
 install_go_bindata
 go mod tidy
