@@ -68,6 +68,7 @@ export default class PixiVisualizer extends VObject {
             this.onTapedStage()
         });
 
+        this.nodeLogColor = {};
         this.logWindow = new LogWindow();
         this.logWindow.position.set(0, 0);
         this.addChild(this.logWindow);
@@ -223,8 +224,8 @@ export default class PixiVisualizer extends VObject {
         return count
     }
 
-    log(text) {
-        this.logWindow.addLog(text)
+    log(text, color = '#0052ff') {
+        this.logWindow.addLog(text, color)
     }
 
     formatRloc16(rloc16) {
@@ -601,7 +602,22 @@ export default class PixiVisualizer extends VObject {
     }
 
     logNode(nodeId, msg) {
-        this.log(`Node ${nodeId}: ${msg}`)
+        let color = this.nodeLogColor[nodeId];
+        if (typeof color == "undefined") {
+            color = this.randomColor();
+            this.nodeLogColor[nodeId] = color;
+        }
+
+        this.log(`Node ${nodeId}: ${msg}`, color)
+    }
+
+    randomColor() {
+        var letters = '0123456789ABCDEF';
+        var color = '#';
+        for (var i = 0; i < 6; i++) {
+            color += letters[Math.floor(Math.random() * 16)];
+        }
+        return color;
     }
 
     formatTime() {

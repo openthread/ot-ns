@@ -69,12 +69,13 @@ export default class LogWindow extends VObject {
         this.loglist = [];
     }
 
-    addLog(text) {
+    addLog(text, color = "#0052ff") {
         if (this.loglist.length === LOG_WINDOW_MAX_SIZE) {
             let rm = this.loglist.shift();
             this.logContainer.removeChild(rm)
         }
 
+        LOG_TEXT_STYLE.fill = color;
         let log = new PIXI.Text(text, LOG_TEXT_STYLE);
         log.position.set(3, 3 + this.logIndex * LOG_TEXT_LINE_HEIGHT);
         this.logIndex++;
