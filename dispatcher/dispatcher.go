@@ -71,6 +71,7 @@ type Config struct {
 	Host        string
 	Port        int
 	DumpPackets bool
+	NoPcap      bool
 }
 
 func DefaultConfig() *Config {
@@ -178,11 +179,13 @@ func NewDispatcher(ctx *progctx.ProgCtx, cfg *Config, cbHandler CallbackHandler)
 		visOptions:         defaultVisualizationOptions(),
 	}
 	d.speed = d.normalizeSpeed(d.speed)
-	d.pcap, err = pcap.NewFile("current.pcap")
-	simplelogger.PanicIfError(err)
+	if !d.cfg.NoPcap {
+		d.pcap, err = pcap.NewFile("current.pcap")
+		simplelogger.PanicIfError(err)
+		go d.pcapFrameWriter()
+	}
 
 	go d.eventsReader()
-	go d.pcapFrameWriter()
 
 	d.vis.SetSpeed(d.speed)
 	simplelogger.Infof("dispatcher started: cfg=%+v", *cfg)
@@ -257,7 +260,9 @@ loop:
 
 			simplelogger.AssertTrue(d.CurTime == d.pauseTime)
 			d.syncAllNodes()
-			_ = d.pcap.Sync()
+			if d.pcap != nil {
+				_ = d.pcap.Sync()
+			}
 			close(duration.done)
 			break
 		case <-done:
@@ -458,7 +463,9 @@ func (d *Dispatcher) processNextEvent() bool {
 			simplelogger.AssertTrue(s.Timestamp == nextSendtime)
 			d.advanceTime(nextSendtime)
 			// construct the message
-			d.pcapFrameChan <- pcapFrameItem{nextSendtime, s.Data[1:]}
+			if !d.cfg.NoPcap {
+				d.pcapFrameChan <- pcapFrameItem{nextSendtime, s.Data[1:]}
+			}
 			if d.cfg.DumpPackets {
 				d.dumpPacket(s)
 			}

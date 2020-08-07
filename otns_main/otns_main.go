@@ -74,6 +74,8 @@ type MainArgs struct {
 	DispatcherHost string
 	DispatcherPort int
 	DumpPackets    bool
+	NoPcap         bool
+	NoReplay       bool
 }
 
 var (
@@ -96,6 +98,8 @@ func parseArgs() {
 	flag.BoolVar(&args.Real, "real", false, "use real mode (for real devices)")
 	flag.StringVar(&args.ListenAddr, "listen", fmt.Sprintf("localhost:%d", threadconst.InitialDispatcherPort), "specify listen address")
 	flag.BoolVar(&args.DumpPackets, "dump-packets", false, "dump packets")
+	flag.BoolVar(&args.NoPcap, "no-pcap", false, "do not generate Pcap")
+	flag.BoolVar(&args.NoReplay, "no-replay", false, "do not generate Replay")
 
 	flag.Parse()
 }
@@ -150,11 +154,15 @@ func Main(visualizerCreator func(ctx *progctx.ProgCtx, args *MainArgs) visualize
 	}
 
 	visGrpcServerAddr := fmt.Sprintf("%s:%d", args.DispatcherHost, args.DispatcherPort-1)
-	replayFn := fmt.Sprintf("otns_%s.replay", os.Getenv("PORT_OFFSET"))
+
+	replayFn := ""
+	if !args.NoReplay {
+		replayFn = fmt.Sprintf("otns_%s.replay", os.Getenv("PORT_OFFSET"))
+	}
 	if vis != nil {
 		vis = visualizeMulti.NewMultiVisualizer(
 			vis,
-			visualizeGrpc.NewGrpcVisualizer(visGrpcServerAddr, "replayFn"),
+			visualizeGrpc.NewGrpcVisualizer(visGrpcServerAddr, replayFn),
 		)
 	} else {
 		vis = visualizeGrpc.NewGrpcVisualizer(visGrpcServerAddr, replayFn)
@@ -245,7 +253,10 @@ func createSimulation(ctx *progctx.ProgCtx) *simulation.Simulation {
 	simcfg.DispatcherPort = args.DispatcherPort
 	simcfg.DumpPackets = args.DumpPackets
 
-	sim, err := simulation.NewSimulation(ctx, simcfg)
+	dispatcherCfg := dispatcher.DefaultConfig()
+	dispatcherCfg.NoPcap = args.NoPcap
+
+	sim, err := simulation.NewSimulation(ctx, simcfg, dispatcherCfg)
 	simplelogger.FatalIfError(err)
 	return sim
 }
