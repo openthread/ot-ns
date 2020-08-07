@@ -2,7 +2,7 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-import visualize_grpc_pb2 as visualize__grpc__pb2
+from . import visualize_grpc_pb2 as visualize__grpc__pb2
 
 
 class VisualizeGrpcServiceStub(object):

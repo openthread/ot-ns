@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env python3
 # Copyright (c) 2020, The OTNS Authors.
 # All rights reserved.
 #
@@ -24,31 +24,3 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-
-# shellcheck source=script/common.sh
-. "$(dirname "$0")"/common.sh
-
-compile_proto()
-{
-    cd "$OTNSDIR"/visualize/grpc/pb || return 1
-    protoc -I=. visualize_grpc.proto --go_out=plugins=grpc:.
-    mkdir -p ../../../web/site/js/proto/
-    protoc -I=. visualize_grpc.proto \
-        --js_out=import_style=commonjs:../../../web/site/js/proto/ \
-        --grpc-web_out=import_style=commonjs,mode=grpcwebtext:../../../web/site/js/proto/
-    python3 -m grpc_tools.protoc -I. \
-        --python_out=../../../pylibs/otns/proto \
-        --grpc_python_out=../../../pylibs/otns/proto \
-        ./visualize_grpc.proto
-    cd - || return 1
-}
-
-replace_python_proto_import_path()
-{
-    local search='import visualize_grpc_pb2 as visualize__grpc__pb2'
-    local replace='from . import visualize_grpc_pb2 as visualize__grpc__pb2'
-    sed -i "s/${search}/${replace}/g" pylibs/otns/proto/visualize_grpc_pb2_grpc.py
-}
-
-compile_proto
-replace_python_proto_import_path
