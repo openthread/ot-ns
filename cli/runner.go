@@ -37,12 +37,10 @@ var (
 	contextLessCommandsPat = regexp.MustCompile(`(exit|node)\b`)
 )
 
-func Run(cr *CmdRunner) error {
+func Run(cr *CmdRunner, cliOptions *runcli.CliOptions) error {
 	defer simplelogger.Debugf("CLI exit")
 
-	return runcli.RunCli(cr, runcli.CliOptions{
-		EchoInput: false,
-	})
+	return runcli.RunCli(cr, cliOptions)
 }
 
 func isContextlessCommand(line string) bool {

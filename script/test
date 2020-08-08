@@ -47,12 +47,14 @@ go_tests()
     install_deps
     install_otns
 
+    build_openthread
+
     echo "" >coverage.txt
 
     PKG=$(go list ./...)
 
     for d in $PKG; do
-        go test -race -coverprofile=profile.out -covermode=atomic "$d"
+        OTNS_OT_CLI=$OTBIN_DIR/ot-cli-ftd go test -race -coverprofile=profile.out -covermode=atomic -coverpkg=./... "$d"
         if [ -f profile.out ]; then
             cat profile.out >>coverage.txt
             rm profile.out

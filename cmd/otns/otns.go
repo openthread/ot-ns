@@ -27,13 +27,18 @@
 package main
 
 import (
+	"context"
+	"os"
+
 	"github.com/openthread/ot-ns/otns_main"
 	"github.com/openthread/ot-ns/progctx"
 	"github.com/openthread/ot-ns/visualize"
 )
 
 func main() {
-	otns_main.Main(func(ctx *progctx.ProgCtx, args *otns_main.MainArgs) visualize.Visualizer {
+	ctx := progctx.New(context.Background())
+	otns_main.Main(ctx, func(ctx *progctx.ProgCtx, args *otns_main.MainArgs) visualize.Visualizer {
 		return nil
-	})
+	}, nil)
+	os.Exit(0)
 }
