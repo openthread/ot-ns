@@ -54,7 +54,7 @@ class UDPSignaler(object):
         self.sock.bind(self.source_addr)
 
     def send_message(self, message: str) -> None:
-        _data = message.encode("ascii")
+        data = message.encode("ascii")
         event_packet = struct.pack("<QBH", 0, 5, len(data)) + data
         self.sock.sendto(event_packet, self.dest_addr)
 
@@ -70,7 +70,7 @@ class GRPCThread(threading.Thread):
                  contain: List[str], 
                  not_contain: List[str],
                  exception_queue: queue.Queue,
-                 time_limit=1):
+                 time_limit=2):
         threading.Thread.__init__(self)
         self.stream = stream
         self.contain = contain
@@ -82,7 +82,6 @@ class GRPCThread(threading.Thread):
         start_time = time.time()
         try:
             for event in self.stream:
-                print(event)
                 if time.time() - start_time > self.time_limit:
                     self.exception_queue.put(errors.ExpectationError(
                             "Expectation not fulfilled within time limit"))
@@ -90,6 +89,9 @@ class GRPCThread(threading.Thread):
                     and not any(s in str(event) for s in self.not_contain)):
                     return
         except grpc._channel._MultiThreadedRendezvous as error:
+            self.exception_queue.put(
+                    errors.ExpectationError("gRPC service terminated"))
+        except grpc._channel._InactiveRpcError as error:
             self.exception_queue.put(
                     errors.ExpectationError("gRPC service terminated"))
 
