@@ -437,7 +437,7 @@ export default class PixiVisualizer extends VObject {
     ctrlMoveNodeTo(nodeId, x, y, cb) {
         x = Math.floor(x);
         y = Math.floor(y);
-        this.runCommand("move " + nodeId + " " + x + " " + y);
+        this.runCommand("move " + nodeId + " " + x + " " + y, cb);
     }
 
     ctrlDeleteNode(nodeId) {
@@ -452,23 +452,37 @@ export default class PixiVisualizer extends VObject {
         this.runCommand("speed " + speed)
     }
 
-    runCommand(cmd) {
+    runCommand(cmd, callback) {
         let req = new CommandRequest();
         req.setCommand(cmd);
         this.log(`> ${cmd}`);
         console.log(`> ${cmd}`);
 
         this.grpcServiceClient.command(req, {}, (err, resp) => {
-            if (err !== null) {
-                this.log("Error: " + err.toLocaleString());
-                console.log("Error: " + err.toLocaleString())
-            } else {
+                if (err !== null) {
+                    this.log("Error: " + err.toLocaleString());
+                    console.error("Error: " + err.toLocaleString());
+                    if (callback) {
+                        callback(err, [])
+                    }
+                }
+
                 let output = resp.getOutputList();
                 for (let i in output) {
                     console.log(output[i]);
                 }
+
+                if (callback) {
+                    let errmsg = output.pop();
+
+                    if (errmsg !== "Done") {
+                        callback(new Error(errmsg), output)
+                    } else {
+                        callback(null, output)
+                    }
+                }
             }
-        })
+        )
     }
 
     getPartitionColor(parid) {

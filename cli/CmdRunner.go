@@ -83,52 +83,34 @@ type CmdRunner struct {
 }
 
 func (rt *CmdRunner) RunCommand(cmdline string, output io.Writer) error {
-	if rt.contextNodeId != InvalidNodeId && !isContextlessCommand(cmdline) {
-		// run the command in node context
-		cmd := &Command{
-			Node: &NodeCmd{
-				Node:    NodeSelector{Id: rt.contextNodeId},
-				Command: &cmdline,
-			},
-		}
-		cc := rt.Execute(cmd, output)
+	// run the OTNS-CLI command without node contexts
+	cmd := Command{}
 
-		if cc.Err() != nil {
-			if _, err := fmt.Fprintf(output, "Error: %v\n", cc.Err()); err != nil {
-				return err
-			}
-		} else {
-			if _, err := fmt.Fprintf(output, "Done\n"); err != nil {
-				return err
-			}
+	if err := ParseBytes([]byte(cmdline), &cmd); err != nil {
+		if _, err := fmt.Fprintf(output, "Error: %v\n", err); err != nil {
+			return err
 		}
 	} else {
-		// run the OTNS-CLI command
-		cmd := &Command{}
-		if err := ParseBytes([]byte(cmdline), cmd); err != nil {
-			if _, err := fmt.Fprintf(output, "Error: %v\n", err); err != nil {
-				return err
-			}
-		} else {
-			cc := rt.Execute(cmd, output)
-
-			if cc.Err() != nil {
-				if _, err := fmt.Fprintf(output, "Error: %v\n", cc.Err()); err != nil {
-					return err
-				}
-			} else {
-				if _, err := fmt.Fprintf(output, "Done\n"); err != nil {
-					return err
-				}
-			}
-		}
+		rt.execute(&cmd, output)
 	}
 
 	return nil
 }
 
 func (rt *CmdRunner) HandleCommand(cmdline string, output io.Writer) error {
-	return rt.RunCommand(cmdline, output)
+	if rt.contextNodeId != InvalidNodeId && !isContextlessCommand(cmdline) {
+		// run the command in node context
+		cmd := Command{
+			Node: &NodeCmd{
+				Node:    NodeSelector{Id: rt.contextNodeId},
+				Command: &cmdline,
+			},
+		}
+		rt.execute(&cmd, output)
+		return nil
+	} else {
+		return rt.RunCommand(cmdline, output)
+	}
 }
 
 func (rt *CmdRunner) GetPrompt() string {
@@ -139,12 +121,20 @@ func (rt *CmdRunner) GetPrompt() string {
 	}
 }
 
-func (rt *CmdRunner) Execute(cmd *Command, output io.Writer) (cc *CommandContext) {
-	cc = &CommandContext{
+func (rt *CmdRunner) execute(cmd *Command, output io.Writer) {
+	cc := &CommandContext{
 		Command: cmd,
 		rt:      rt,
 		output:  output,
 	}
+
+	defer func() {
+		if cc.Err() != nil {
+			cc.outputf("Error: %v\n", cc.Err())
+		} else {
+			cc.outputf("Done\n")
+		}
+	}()
 
 	defer func() {
 		rerr := recover()
@@ -207,7 +197,6 @@ func (rt *CmdRunner) Execute(cmd *Command, output io.Writer) (cc *CommandContext
 	} else {
 		simplelogger.Panicf("unimplemented command: %#v", cmd)
 	}
-	return
 }
 
 func (rt *CmdRunner) executeGo(cc *CommandContext, cmd *GoCmd) {
