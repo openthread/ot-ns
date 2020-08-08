@@ -40,12 +40,13 @@ const LOG_TEXT_STYLE = {
 const LOG_TEXT_LINE_HEIGHT = 15;
 const LOG_WINDOW_MAX_SIZE = 500;
 export const LOG_WINDOW_WIDTH = 400;
+const LOG_WINDOW_BOTTOM_PADDING = 100;
 
 export default class LogWindow extends VObject {
     constructor() {
         super();
 
-        let height = window.innerHeight - 100;
+        let height = window.innerHeight - LOG_WINDOW_BOTTOM_PADDING;
         this.logIndex = 0;
 
         this._root = new Scrollbox({
@@ -55,16 +56,16 @@ export default class LogWindow extends VObject {
             overflowX: "auto",
             overflowY: "auto"
         });
-        this.logContainer = new PIXI.Container()
-        this.lastline = new PIXI.Graphics()
+        this.logContainer = new PIXI.Container();
+        this.lastline = new PIXI.Graphics();
         this.lastline.clear();
         this.lastline.beginFill(0xFFFFFF);
         // this.lastline.lineStyle(0);
         this.lastline.drawRect(0, 0, LOG_WINDOW_WIDTH, LOG_TEXT_LINE_HEIGHT);
         this.lastline.endFill();
-        this.logContainer.addChild(this.lastline)
+        this.logContainer.addChild(this.lastline);
 
-        this._root.content.addChild(this.logContainer)
+        this._root.content.addChild(this.logContainer);
         this._root.update();
         this.loglist = [];
     }
@@ -83,13 +84,21 @@ export default class LogWindow extends VObject {
         this.loglist.push(log);
 
         this.logContainer.position.set(0, -this.loglist[0].position.y);
-        this.lastline.position.set(0, log.y + LOG_TEXT_LINE_HEIGHT)
+        this.lastline.position.set(0, log.y + LOG_TEXT_LINE_HEIGHT);
 
         this._root.resize({boxWidth: LOG_WINDOW_WIDTH, boxHeight: this._root.boxHeight});
         this._root.ensureVisible(0, log.y + this.logContainer.y, LOG_WINDOW_WIDTH, log.height);
     }
 
+    clear() {
+        this.loglist = [];
+        this.logContainer.removeChildren();
+        this.logContainer.position.set(0, 0);
+        this.logIndex = 0;
+        this._root.resize({boxWidth: LOG_WINDOW_WIDTH, boxHeight: this._root.boxHeight});
+    }
+
     resetLayout(width, height) {
-        this._root.resize({boxWidth: LOG_WINDOW_WIDTH, boxHeight: height - 100})
+        this._root.resize({boxWidth: LOG_WINDOW_WIDTH, boxHeight: height - LOG_WINDOW_BOTTOM_PADDING})
     }
 }

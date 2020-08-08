@@ -283,7 +283,7 @@ export default class PixiVisualizer extends VObject {
         this._nodesStage.addChild(node._root);
         this.setSelectedNode(nodeId);
 
-        let msg = `Added at (${x},${y})`
+        let msg = `Added at (${x},${y})`;
         if (!this.real) {
             msg += `, radio range ${radioRange}`
         }
