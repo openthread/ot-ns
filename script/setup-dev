@@ -60,7 +60,7 @@ function install_protoc()
 
     (
         cd /usr/local || return 1
-        sudo unzip /tmp/protoc.zip
+        sudo unzip -o /tmp/protoc.zip
         sudo chmod a+x /usr/local/bin/protoc
         sudo rm -rf protoc.zip
     )
@@ -100,9 +100,8 @@ install_protoc_gen_grpc_web()
 }
 
 install_grpcio_tools()
-{   
-    sudo python3 -m pip show grpcio-tools 1>/dev/null
-    if [ $? == 0 ]; then
+{
+    if sudo python3 -m pip show grpcio-tools 1>/dev/null; then
         installed_grpcio_tools='true'
     else
         installed_grpcio_tools='false'
