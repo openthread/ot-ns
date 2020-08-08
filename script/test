@@ -100,6 +100,7 @@ py_unittests()
     python3 "$OTNSDIR"/pylibs/unittests/test_basic.py
     python3 "$OTNSDIR"/pylibs/unittests/test_ping.py
     python3 "$OTNSDIR"/pylibs/unittests/test_commissioning.py
+    python3 "$OTNSDIR"/pylibs/unittests/test_real.py
     cd -
 }
 
