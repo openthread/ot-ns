@@ -303,14 +303,14 @@ export default class PixiVisualizer extends VObject {
         let oldRole = this.nodes[nodeId].role;
         this.nodes[nodeId].setRole(role);
         if (oldRole != role) {
-            this.logNode(nodeId, `role changed from ${this.roleToString(oldRole)} to ${this.roleToString(role)}`)
+            this.logNode(nodeId, `Role changed from ${this.roleToString(oldRole)} to ${this.roleToString(role)}`)
         }
     }
 
     visSetNodeMode(nodeId, mode) {
         let oldMode = this.nodes[nodeId].nodeMode;
         this.nodes[nodeId].setMode(mode);
-        this.logNode(nodeId, `mode changed from ${this.modeToString(oldMode)} to ${this.modeToString(mode)}`);
+        this.logNode(nodeId, `Mode changed from ${this.modeToString(oldMode)} to ${this.modeToString(mode)}`);
     }
 
     visSetNetworkInfo(version, commit, real) {
@@ -378,7 +378,7 @@ export default class PixiVisualizer extends VObject {
 
     visSetParent(nodeId, extAddr) {
         this.nodes[nodeId].parent = extAddr;
-        this.logNode(nodeId, `parent set to ${this.formatExtAddrPretty(extAddr)}`)
+        this.logNode(nodeId, `Parent set to ${this.formatExtAddrPretty(extAddr)}`)
     }
 
     visSetTitle(title, x, y, fontSize) {
@@ -592,22 +592,22 @@ export default class PixiVisualizer extends VObject {
 
     visAddRouterTable(nodeId, extaddr) {
         this.nodes[nodeId].addRouterTable(extaddr);
-        this.logNode(nodeId, `Established Router link to ${this.formatExtAddrPretty(extaddr)}`)
+        this.logNode(nodeId, `Router table added: ${this.formatExtAddrPretty(extaddr)}`)
     }
 
     visRemoveRouterTable(nodeId, extaddr) {
         this.nodes[nodeId].removeRouterTable(extaddr);
-        this.logNode(nodeId, `Dropped Router link to ${this.formatExtAddrPretty(extaddr)}`)
+        this.logNode(nodeId, `Router table removed: ${this.formatExtAddrPretty(extaddr)}`)
     }
 
     visAddChildTable(nodeId, extaddr) {
         this.nodes[nodeId].addChildTable(extaddr);
-        this.logNode(nodeId, `Child ${this.formatExtAddrPretty(extaddr)} attached`)
+        this.logNode(nodeId, `Child table added: ${this.formatExtAddrPretty(extaddr)}`)
     }
 
     visRemoveChildTable(nodeId, extaddr) {
         this.nodes[nodeId].removeChildTable(extaddr);
-        this.logNode(nodeId, `Child ${this.formatExtAddrPretty(extaddr)} detached`)
+        this.logNode(nodeId, `Child table removed: ${this.formatExtAddrPretty(extaddr)}`)
     }
 
     logNode(nodeId, msg) {
