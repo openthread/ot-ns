@@ -338,9 +338,14 @@ export default class PixiVisualizer extends VObject {
     }
 
     visSetSpeed(speed) {
+        let oldSpeed = this.speed;
+        if (Math.round(oldSpeed * 100) === Math.round(speed * 100)) {
+            return
+        }
+
         this.speed = speed;
         this.actionBar.setSpeed(speed);
-        this.log(`Speed set to ${Math.round(speed)}`)
+        this.log(`Speed set to ${Math.round(speed * 100) / 100}`)
     }
 
     isPaused() {
@@ -377,11 +382,15 @@ export default class PixiVisualizer extends VObject {
     }
 
     visSetTitle(title, x, y, fontSize) {
+        let oldTitleText = this.titleText.text;
         this.titleText.text = title;
         this.titleText.x = x;
         this.titleText.y = y;
         this.titleText.style.fontSize = fontSize;
-        this.log(`Title set to "${title}", position (${x},${y}), font size ${fontSize}`)
+
+        if (oldTitleText !== title) {
+            this.log(`Title set to "${title}", position (${x},${y}), font size ${fontSize}`)
+        }
     }
 
     visSend(srcId, dstId, mvInfo) {
