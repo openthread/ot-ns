@@ -1,0 +1,10 @@
+coverage:
+  status:
+    project: off
+    patch: off
+
+ignore:
+  - "**/*_test.go"
+
+comment:
+  layout: "diff, flags, files"
