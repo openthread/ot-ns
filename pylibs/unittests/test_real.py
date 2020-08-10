@@ -122,8 +122,10 @@ class BasicTests(OTNSTestCase):
                 "-ot-cli", "otns-silk-proxy",
                 "-listen", ":9000",
                 "-log", "debug"])
-        time.sleep(0.5)
+        # wait for OTNS gRPC server to start
+        time.sleep(0.3)
         self.grpc_client = GRPCClient()
+        time.sleep(0.3)
         self.udp_signalers = {}
 
     def tearDown(self):
