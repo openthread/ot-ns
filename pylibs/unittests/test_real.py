@@ -34,7 +34,7 @@ import struct
 import threading
 import time
 import unittest
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 import grpc
 
@@ -70,7 +70,7 @@ class GRPCThread(threading.Thread):
                  contain: List[str], 
                  not_contain: List[str],
                  exception_queue: queue.Queue,
-                 time_limit=2):
+                 time_limit=10):
         threading.Thread.__init__(self)
         self.stream = stream
         self.contain = contain
@@ -85,15 +85,12 @@ class GRPCThread(threading.Thread):
                 if time.time() - start_time > self.time_limit:
                     self.exception_queue.put(errors.ExpectationError(
                             "Expectation not fulfilled within time limit"))
+                    return
                 if (all(s in str(event) for s in self.contain)
                     and not any(s in str(event) for s in self.not_contain)):
                     return
-        except grpc._channel._MultiThreadedRendezvous as error:
-            self.exception_queue.put(
-                    errors.ExpectationError("gRPC service terminated"))
-        except grpc._channel._InactiveRpcError as error:
-            self.exception_queue.put(
-                    errors.ExpectationError("gRPC service terminated"))
+        except Exception as error:
+            self.exception_queue.put(error)
 
 
 class GRPCClient(object):
@@ -102,19 +99,18 @@ class GRPCClient(object):
     def __init__(self):
         channel = grpc.insecure_channel("localhost:8999")
         self.stub = visualize_grpc_pb2_grpc.VisualizeGrpcServiceStub(channel)
-        self.vis_stream = self.stub.Visualize(
-                visualize_grpc_pb2.VisualizeRequest())
 
     def send_command(self, command: str):
         self.stub.Command(
         visualize_grpc_pb2.CommandRequest(command=command))
 
     def expect_response(self,
-                        contain: List[str]=[],
-                        not_contain: List[str]=[]) -> GRPCThread:
+                        contain: List[str],
+                        not_contain: List[str]) -> GRPCThread:
         exception_queue = queue.Queue()
+        stream = self.stub.Visualize(visualize_grpc_pb2.VisualizeRequest())
         expect_thread = GRPCThread(
-                self.vis_stream, contain, not_contain, exception_queue)
+                stream, contain, not_contain, exception_queue)
         expect_thread.start()
         return exception_queue, expect_thread
 
@@ -136,7 +132,7 @@ class BasicTests(OTNSTestCase):
 
         super().tearDown()
 
-    def wait_for_expect(self, exception_queue, expect_thread):
+    def _wait_for_expect(self, exception_queue, expect_thread):
         while expect_thread.is_alive():
             try:
                 exception = exception_queue.get(block=False)
@@ -147,13 +143,23 @@ class BasicTests(OTNSTestCase):
             
             expect_thread.join(0.1)
 
+    def create_expectation(self, contain: List[str]=None,
+                           not_contain: List[str]=None):
+        return self.grpc_client.expect_response(
+                contain=contain if contain is not None else [],
+                not_contain=not_contain if not_contain is not None else [])
+
+    def expect(self, expectation: Tuple[queue.Queue, GRPCThread]):
+        exception_queue, expect_thread = expectation
+        self._wait_for_expect(exception_queue, expect_thread)
+
     def testAddNode(self):
         node_id = random.randint(1, 10)
-        exception_queue, expect_thread = self.grpc_client.expect_response(
-            ["add_node", f"node_id: {node_id}", "x: 100", "y: 100"])
+        expectation = self.create_expectation(
+                ["add_node", f"node_id: {node_id}", "x: 100", "y: 100"])
         self.grpc_client.send_command(f"add router x 100 y 100 id {node_id}")
         self.goConservative(0.1)
-        self.wait_for_expect(exception_queue, expect_thread)
+        self.expect(expectation)
 
     def testUpdateExtaddr(self):
         # create node
@@ -164,12 +170,12 @@ class BasicTests(OTNSTestCase):
         self.goConservative(0.1)
 
         extaddr = random.getrandbits(64)
-        exception_queue, expect_thread = self.grpc_client.expect_response(
-            ["on_ext_addr_change", f"node_id: {node_id}",
-            f"ext_addr: {extaddr:d}"])
+        expectation = self.create_expectation(
+                ["on_ext_addr_change", f"node_id: {node_id}",
+                 f"ext_addr: {extaddr:d}"])
         signaler.send_message(f"extaddr={extaddr:016x}")
         self.goConservative(0.1)
-        self.wait_for_expect(exception_queue, expect_thread)
+        self.expect(expectation)
 
     def testUpdateRLOC16(self):
         # create node
@@ -180,12 +186,12 @@ class BasicTests(OTNSTestCase):
         self.goConservative(0.1)
 
         rloc16 = random.getrandbits(16)
-        exception_queue, expect_thread = self.grpc_client.expect_response(
-            ["set_node_rloc16", f"node_id: {node_id}",
-            f"rloc16: {rloc16:05d}"])
+        expectation = self.create_expectation(
+                ["set_node_rloc16", f"node_id: {node_id}",
+                 f"rloc16: {rloc16:05d}"])
         signaler.send_message(f"rloc16={rloc16:05d}")
         self.goConservative(0.1)
-        self.wait_for_expect(exception_queue, expect_thread)
+        self.expect(expectation)
 
     def testUpdatePartitionID(self):
         # create node
@@ -196,12 +202,12 @@ class BasicTests(OTNSTestCase):
         self.goConservative(0.1)
 
         par_id = random.getrandbits(32)
-        exception_queue, expect_thread = self.grpc_client.expect_response(
-            ["set_node_partition_id", f"node_id: {node_id}",
-            f"partition_id: {par_id:d}"])
+        expectation = self.create_expectation(
+                ["set_node_partition_id", f"node_id: {node_id}",
+                 f"partition_id: {par_id:d}"])
         signaler.send_message(f"parid={par_id:08x}")
         self.goConservative(0.1)
-        self.wait_for_expect(exception_queue, expect_thread)
+        self.expect(expectation)
 
     def testUpdateRole(self):
         # create node
@@ -211,40 +217,40 @@ class BasicTests(OTNSTestCase):
         self.grpc_client.send_command(f"add router x 100 y 100 id {node_id}")
         self.goConservative(0.1)
 
-        exception_queue, expect_thread = self.grpc_client.expect_response(
-            ["set_node_role", f"node_id: {node_id}",
-            "role: OT_DEVICE_ROLE_LEADER"])
+        expectation = self.create_expectation(
+                ["set_node_role", f"node_id: {node_id}",
+                 "role: OT_DEVICE_ROLE_LEADER"])
         signaler.send_message("role=4")
         self.goConservative(0.1)
-        self.wait_for_expect(exception_queue, expect_thread)
+        self.expect(expectation)
 
-        exception_queue, expect_thread = self.grpc_client.expect_response(
-            ["set_node_role", f"node_id: {node_id}",
-            "role: OT_DEVICE_ROLE_ROUTER"])
+        expectation = self.create_expectation(
+                ["set_node_role", f"node_id: {node_id}",
+                 "role: OT_DEVICE_ROLE_ROUTER"])
         signaler.send_message("role=3")
         self.goConservative(0.1)
-        self.wait_for_expect(exception_queue, expect_thread)
+        self.expect(expectation)
 
-        exception_queue, expect_thread = self.grpc_client.expect_response(
-            ["set_node_role", f"node_id: {node_id}",
-            "role: OT_DEVICE_ROLE_CHILD"])
+        expectation = self.create_expectation(
+                ["set_node_role", f"node_id: {node_id}",
+                 "role: OT_DEVICE_ROLE_CHILD"])
         signaler.send_message("role=2")
         self.goConservative(0.1)
-        self.wait_for_expect(exception_queue, expect_thread)
+        self.expect(expectation)
 
-        exception_queue, expect_thread = self.grpc_client.expect_response(
-            ["set_node_role", f"node_id: {node_id}",
-            "role: OT_DEVICE_ROLE_DETACHED"])
+        expectation = self.create_expectation(
+                ["set_node_role", f"node_id: {node_id}",
+                 "role: OT_DEVICE_ROLE_DETACHED"])
         signaler.send_message("role=1")
         self.goConservative(0.1)
-        self.wait_for_expect(exception_queue, expect_thread)
+        self.expect(expectation)
 
-        exception_queue, expect_thread = self.grpc_client.expect_response(
-            contain=["set_node_role", f"node_id: {node_id}"],
-            not_contain=["role: OT_DEVICE_ROLE"])
+        expectation = self.create_expectation(
+                contain=["set_node_role", f"node_id: {node_id}"],
+                not_contain=["role: OT_DEVICE_ROLE"])
         signaler.send_message("role=0")
         self.goConservative(0.1)
-        self.wait_for_expect(exception_queue, expect_thread)
+        self.expect(expectation)
     
     def testUpdateMode(self):
         # create node
@@ -254,20 +260,23 @@ class BasicTests(OTNSTestCase):
         self.grpc_client.send_command(f"add router x 100 y 100 id {node_id}")
         self.goConservative(0.1)
 
-        self.grpc_client.expect_response(
-            contain=["set_node_mode", f"node_id: {node_id}",
-            "secure_data_requests: true", "full_network_data: true"],
-            not_contain=["rx_on_when_idle: true", "full_thread_device: true"])
+        expectation = self.create_expectation(
+                contain=["set_node_mode", f"node_id: {node_id}",
+                         "secure_data_requests: true",
+                         "full_network_data: true"],
+                not_contain=["rx_on_when_idle: true",
+                             "full_thread_device: true"])
         signaler.send_message("mode=sn")
         self.goConservative(0.1)
+        self.expect(expectation)
 
-        exception_queue, expect_thread = self.grpc_client.expect_response(
-            ["set_node_mode", f"node_id: {node_id}",
-            "rx_on_when_idle: true", "secure_data_requests: true",
-            "full_thread_device: true", "full_network_data: true"])
+        expectation = self.create_expectation(
+                ["set_node_mode", f"node_id: {node_id}",
+                 "rx_on_when_idle: true", "secure_data_requests: true",
+                 "full_thread_device: true", "full_network_data: true"])
         signaler.send_message("mode=rsdn")
         self.goConservative(0.1)
-        self.wait_for_expect(exception_queue, expect_thread)
+        self.expect(expectation)
 
     def testUpdateChildren(self):
         # create node
@@ -287,23 +296,23 @@ class BasicTests(OTNSTestCase):
         self.goConservative(0.1)
         signaler_2.send_message(f"extaddr={extaddr_2:016x}")
 
-        exception_queue, expect_thread = self.grpc_client.expect_response(
-            ["add_child_table", f"node_id: {node_id_1}",
-            f"ext_addr: {extaddr_2:d}"])
+        expectation = self.create_expectation(
+                ["add_child_table", f"node_id: {node_id_1}",
+                 f"ext_addr: {extaddr_2:d}"])
         signaler_1.send_message("role=3")
         signaler_2.send_message("role=2")
         signaler_1.send_message(f"child_added={extaddr_2:016x}")
         self.goConservative(0.1)
-        self.wait_for_expect(exception_queue, expect_thread)
+        self.expect(expectation)
 
-        exception_queue, expect_thread = self.grpc_client.expect_response(
-            ["remove_child_table", f"node_id: {node_id_1}",
-            f"ext_addr: {extaddr_2:d}"])
+        expectation = self.create_expectation(
+                ["remove_child_table", f"node_id: {node_id_1}",
+                 f"ext_addr: {extaddr_2:d}"])
         signaler_1.send_message("role=3")
         signaler_2.send_message("role=1")
         signaler_1.send_message(f"child_removed={extaddr_2:016x}")
         self.goConservative(0.1)
-        self.wait_for_expect(exception_queue, expect_thread)
+        self.expect(expectation)
 
     def testUpdateRouter(self):
         # create node
@@ -326,19 +335,19 @@ class BasicTests(OTNSTestCase):
         signaler_1.send_message("role=3")
         signaler_2.send_message("role=3")
 
-        exception_queue, expect_thread = self.grpc_client.expect_response(
-            ["add_router_table", f"node_id: {node_id_1}",
-            f"ext_addr: {extaddr_2:d}"])
+        expectation = self.create_expectation(
+                ["add_router_table", f"node_id: {node_id_1}",
+                 f"ext_addr: {extaddr_2:d}"])
         signaler_1.send_message(f"router_added={extaddr_2:016x}")
         self.goConservative(0.1)
-        self.wait_for_expect(exception_queue, expect_thread)
+        self.expect(expectation)
 
-        exception_queue, expect_thread = self.grpc_client.expect_response(
-            ["remove_router_table", f"node_id: {node_id_1}",
-            f"ext_addr: {extaddr_2:d}"])
+        expectation = self.create_expectation(
+                ["remove_router_table", f"node_id: {node_id_1}",
+                 f"ext_addr: {extaddr_2:d}"])
         signaler_1.send_message(f"router_removed={extaddr_2:016x}")
         self.goConservative(0.1)
-        self.wait_for_expect(exception_queue, expect_thread)
+        self.expect(expectation)
 
 
 if __name__ == '__main__':

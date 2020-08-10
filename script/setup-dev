@@ -101,9 +101,9 @@ install_protoc_gen_grpc_web()
 
 install_python_packages()
 {
-    python3 -m pip install --user wheel=0.34.2
-    python3 -m pip install --user grpcio=1.31.0 protobuf=3.12.4
-    python3 -m pip install --user grpcio-tools=1.31.0
+    python3 -m pip install --user wheel==0.34.2
+    python3 -m pip install --user grpcio==1.31.0 protobuf==3.12.4
+    python3 -m pip install --user grpcio-tools==1.31.0
 }
 
 install_nodejs()
