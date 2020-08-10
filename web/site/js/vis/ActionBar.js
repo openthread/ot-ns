@@ -98,7 +98,13 @@ export default class ActionBar extends VObject {
         });
         this.addButton("Radio On", "node", "radio", (e) => {
             this.actionRadioOn(e)
-        })
+        });
+        this._logClearButton = this.addButton("Clear Log", "any", "", (e) => {
+            this.actionClearLog()
+        });
+        this._logOnOffButton = this.addButton("Hide Log", "any", "", (e) => {
+            this.actionToggleLogWindow()
+        });
     }
 
     setAbilities(abilities) {
@@ -211,6 +217,22 @@ export default class ActionBar extends VObject {
 
     actionClear() {
         this.vis.clearAllNodes()
+    }
+
+    actionClearLog() {
+        let logWindow = this.vis.logWindow;
+        logWindow.clear()
+    }
+
+    actionToggleLogWindow() {
+        let logWindow = this.vis.logWindow;
+        logWindow.visible = !logWindow.visible;
+        if (logWindow.visible) {
+            this._logOnOffButton.text = "Hide Log"
+        } else {
+            this._logOnOffButton.text = "Show Log"
+        }
+        this.vis.actionBar.refresh()
     }
 
     addButton(label, context, requiredAbility, callback, onRefresh) {
