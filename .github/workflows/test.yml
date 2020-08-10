@@ -51,6 +51,8 @@ jobs:
       - name: Test
         run: |
           ./script/test go-tests
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v1
 
   py-unittests:
     name: Unittests (Py${{ matrix.python-version }}, ${{ matrix.os }}, VIRTUAL_TIME_UART=${{ matrix.VIRTUAL_TIME_UART }})
