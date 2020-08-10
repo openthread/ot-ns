@@ -53,8 +53,8 @@ class UDPSignaler(object):
         self.dest_addr = ("localhost", 9000)
         self.sock.bind(self.source_addr)
 
-    def send_message(self, message: str) -> None:
-        data = message.encode("ascii")
+    def emit_status(self, status: str) -> None:
+        data = status.encode("ascii")
         event_packet = struct.pack("<QBH", 0, 5, len(data)) + data
         self.sock.sendto(event_packet, self.dest_addr)
 
@@ -83,7 +83,7 @@ class GRPCThread(threading.Thread):
         try:
             for event in self.stream:
                 if time.time() - start_time > self.time_limit:
-                    self.exception_queue.put(errors.ExpectationError(
+                    self.exception_queue.put(errors.UnexpectedError(
                             "Expectation not fulfilled within time limit"))
                     return
                 if (all(s in str(event) for s in self.contain)
@@ -153,13 +153,24 @@ class BasicTests(OTNSTestCase):
         exception_queue, expect_thread = expectation
         self._wait_for_expect(exception_queue, expect_thread)
 
+    def expect_response(self,
+                    contain: List[str]=None,
+                    not_contain: List[str]=None,
+                    action=None,
+                    go_step: float=0.1):
+        exception_queue, expect_thread = self.grpc_client.expect_response(
+            contain=contain,
+            not_contain=not_contain)
+        action()
+        self.goConservative(go_step)
+        self._wait_for_expect(exception_queue, expect_thread)
+
     def testAddNode(self):
         node_id = random.randint(1, 10)
-        expectation = self.create_expectation(
-                ["add_node", f"node_id: {node_id}", "x: 100", "y: 100"])
-        self.grpc_client.send_command(f"add router x 100 y 100 id {node_id}")
-        self.goConservative(0.1)
-        self.expect(expectation)
+        self.expect_response(
+                contain=["add_node", f"node_id: {node_id}", "x: 100", "y: 100"],
+                action=lambda: self.grpc_client.send_command(
+                        f"add router x 100 y 100 id {node_id}"))
 
     def testUpdateExtaddr(self):
         # create node
@@ -170,12 +181,10 @@ class BasicTests(OTNSTestCase):
         self.goConservative(0.1)
 
         extaddr = random.getrandbits(64)
-        expectation = self.create_expectation(
-                ["on_ext_addr_change", f"node_id: {node_id}",
-                 f"ext_addr: {extaddr:d}"])
-        signaler.send_message(f"extaddr={extaddr:016x}")
-        self.goConservative(0.1)
-        self.expect(expectation)
+        self.expect_response(
+                contain=["on_ext_addr_change", f"node_id: {node_id}",
+                         f"ext_addr: {extaddr:d}"],
+                action=lambda: signaler.emit_status(f"extaddr={extaddr:016x}"))
 
     def testUpdateRLOC16(self):
         # create node
@@ -186,12 +195,10 @@ class BasicTests(OTNSTestCase):
         self.goConservative(0.1)
 
         rloc16 = random.getrandbits(16)
-        expectation = self.create_expectation(
-                ["set_node_rloc16", f"node_id: {node_id}",
-                 f"rloc16: {rloc16:05d}"])
-        signaler.send_message(f"rloc16={rloc16:05d}")
-        self.goConservative(0.1)
-        self.expect(expectation)
+        self.expect_response(
+                contain=["set_node_rloc16", f"node_id: {node_id}",
+                         f"rloc16: {rloc16:05d}"],
+                action=lambda: signaler.emit_status(f"rloc16={rloc16:05d}"))
 
     def testUpdatePartitionID(self):
         # create node
@@ -202,12 +209,10 @@ class BasicTests(OTNSTestCase):
         self.goConservative(0.1)
 
         par_id = random.getrandbits(32)
-        expectation = self.create_expectation(
-                ["set_node_partition_id", f"node_id: {node_id}",
-                 f"partition_id: {par_id:d}"])
-        signaler.send_message(f"parid={par_id:08x}")
-        self.goConservative(0.1)
-        self.expect(expectation)
+        self.expect_response(
+                contain=["set_node_partition_id", f"node_id: {node_id}",
+                         f"partition_id: {par_id:d}"],
+                action=lambda: signaler.emit_status(f"parid={par_id:08x}"))
 
     def testUpdateRole(self):
         # create node
@@ -217,40 +222,30 @@ class BasicTests(OTNSTestCase):
         self.grpc_client.send_command(f"add router x 100 y 100 id {node_id}")
         self.goConservative(0.1)
 
-        expectation = self.create_expectation(
-                ["set_node_role", f"node_id: {node_id}",
-                 "role: OT_DEVICE_ROLE_LEADER"])
-        signaler.send_message("role=4")
-        self.goConservative(0.1)
-        self.expect(expectation)
+        self.expect_response(
+                contain=["set_node_role", f"node_id: {node_id}",
+                         "role: OT_DEVICE_ROLE_LEADER"],
+                action=lambda: signaler.emit_status("role=4"))
 
-        expectation = self.create_expectation(
-                ["set_node_role", f"node_id: {node_id}",
-                 "role: OT_DEVICE_ROLE_ROUTER"])
-        signaler.send_message("role=3")
-        self.goConservative(0.1)
-        self.expect(expectation)
+        self.expect_response(
+                contain=["set_node_role", f"node_id: {node_id}",
+                         "role: OT_DEVICE_ROLE_ROUTER"],
+                action=lambda: signaler.emit_status("role=3"))
 
-        expectation = self.create_expectation(
-                ["set_node_role", f"node_id: {node_id}",
-                 "role: OT_DEVICE_ROLE_CHILD"])
-        signaler.send_message("role=2")
-        self.goConservative(0.1)
-        self.expect(expectation)
+        self.expect_response(
+                contain=["set_node_role", f"node_id: {node_id}",
+                         "role: OT_DEVICE_ROLE_CHILD"],
+                action=lambda: signaler.emit_status("role=2"))
 
-        expectation = self.create_expectation(
-                ["set_node_role", f"node_id: {node_id}",
-                 "role: OT_DEVICE_ROLE_DETACHED"])
-        signaler.send_message("role=1")
-        self.goConservative(0.1)
-        self.expect(expectation)
+        self.expect_response(
+                contain=["set_node_role", f"node_id: {node_id}",
+                         "role: OT_DEVICE_ROLE_DETACHED"],
+                action=lambda: signaler.emit_status("role=1"))
 
-        expectation = self.create_expectation(
+        self.expect_response(
                 contain=["set_node_role", f"node_id: {node_id}"],
-                not_contain=["role: OT_DEVICE_ROLE"])
-        signaler.send_message("role=0")
-        self.goConservative(0.1)
-        self.expect(expectation)
+                not_contain=["role: OT_DEVICE_ROLE"],
+                action=lambda: signaler.emit_status("role=0"))
     
     def testUpdateMode(self):
         # create node
@@ -260,23 +255,23 @@ class BasicTests(OTNSTestCase):
         self.grpc_client.send_command(f"add router x 100 y 100 id {node_id}")
         self.goConservative(0.1)
 
-        expectation = self.create_expectation(
+        self.expect_response(
                 contain=["set_node_mode", f"node_id: {node_id}",
                          "secure_data_requests: true",
                          "full_network_data: true"],
                 not_contain=["rx_on_when_idle: true",
-                             "full_thread_device: true"])
-        signaler.send_message("mode=sn")
-        self.goConservative(0.1)
-        self.expect(expectation)
+                             "full_thread_device: true"],
+                action=lambda: signaler.emit_status("mode=sn"))
 
-        expectation = self.create_expectation(
-                ["set_node_mode", f"node_id: {node_id}",
-                 "rx_on_when_idle: true", "secure_data_requests: true",
-                 "full_thread_device: true", "full_network_data: true"])
-        signaler.send_message("mode=rsdn")
-        self.goConservative(0.1)
-        self.expect(expectation)
+        self.expect_response(
+                contain=[
+                        "set_node_mode",
+                        f"node_id: {node_id}",
+                        "rx_on_when_idle: true",
+                        "secure_data_requests: true",
+                        "full_thread_device: true",
+                        "full_network_data: true"],
+                action=lambda: signaler.emit_status("mode=rsdn"))
 
     def testUpdateChildren(self):
         # create node
@@ -286,7 +281,7 @@ class BasicTests(OTNSTestCase):
         self.udp_signalers[node_id_1] = signaler_1
         self.grpc_client.send_command(f"add router x 100 y 100 id {node_id_1}")
         self.goConservative(0.1)
-        signaler_1.send_message(f"extaddr={extaddr_1:016x}")
+        signaler_1.emit_status(f"extaddr={extaddr_1:016x}")
 
         node_id_2 = random.randint(6, 10)
         extaddr_2 = random.getrandbits(64)
@@ -294,23 +289,23 @@ class BasicTests(OTNSTestCase):
         self.udp_signalers[node_id_2] = signaler_2
         self.grpc_client.send_command(f"add router x 200 y 200 id {node_id_2}")
         self.goConservative(0.1)
-        signaler_2.send_message(f"extaddr={extaddr_2:016x}")
+        signaler_2.emit_status(f"extaddr={extaddr_2:016x}")
 
         expectation = self.create_expectation(
                 ["add_child_table", f"node_id: {node_id_1}",
                  f"ext_addr: {extaddr_2:d}"])
-        signaler_1.send_message("role=3")
-        signaler_2.send_message("role=2")
-        signaler_1.send_message(f"child_added={extaddr_2:016x}")
+        signaler_1.emit_status("role=3")
+        signaler_2.emit_status("role=2")
+        signaler_1.emit_status(f"child_added={extaddr_2:016x}")
         self.goConservative(0.1)
         self.expect(expectation)
 
         expectation = self.create_expectation(
                 ["remove_child_table", f"node_id: {node_id_1}",
                  f"ext_addr: {extaddr_2:d}"])
-        signaler_1.send_message("role=3")
-        signaler_2.send_message("role=1")
-        signaler_1.send_message(f"child_removed={extaddr_2:016x}")
+        signaler_1.emit_status("role=3")
+        signaler_2.emit_status("role=1")
+        signaler_1.emit_status(f"child_removed={extaddr_2:016x}")
         self.goConservative(0.1)
         self.expect(expectation)
 
@@ -322,7 +317,7 @@ class BasicTests(OTNSTestCase):
         self.udp_signalers[node_id_1] = signaler_1
         self.grpc_client.send_command(f"add router x 100 y 100 id {node_id_1}")
         self.goConservative(0.1)
-        signaler_1.send_message(f"extaddr={extaddr_1:016x}")
+        signaler_1.emit_status(f"extaddr={extaddr_1:016x}")
 
         node_id_2 = random.randint(6, 10)
         extaddr_2 = random.getrandbits(64)
@@ -330,24 +325,24 @@ class BasicTests(OTNSTestCase):
         self.udp_signalers[node_id_2] = signaler_2
         self.grpc_client.send_command(f"add router x 200 y 200 id {node_id_2}")
         self.goConservative(0.1)
-        signaler_2.send_message(f"extaddr={extaddr_2:016x}")
+        signaler_2.emit_status(f"extaddr={extaddr_2:016x}")
 
-        signaler_1.send_message("role=3")
-        signaler_2.send_message("role=3")
+        signaler_1.emit_status("role=3")
+        signaler_2.emit_status("role=3")
 
-        expectation = self.create_expectation(
-                ["add_router_table", f"node_id: {node_id_1}",
-                 f"ext_addr: {extaddr_2:d}"])
-        signaler_1.send_message(f"router_added={extaddr_2:016x}")
-        self.goConservative(0.1)
-        self.expect(expectation)
+        self.expect_response(
+                contain=["add_router_table",
+                         f"node_id: {node_id_1}",
+                         f"ext_addr: {extaddr_2:d}"],
+                action=lambda: signaler_1.emit_status(
+                        f"router_added={extaddr_2:016x}"))
 
-        expectation = self.create_expectation(
-                ["remove_router_table", f"node_id: {node_id_1}",
-                 f"ext_addr: {extaddr_2:d}"])
-        signaler_1.send_message(f"router_removed={extaddr_2:016x}")
-        self.goConservative(0.1)
-        self.expect(expectation)
+        self.expect_response(
+                contain=["remove_router_table",
+                         f"node_id: {node_id_1}",
+                         f"ext_addr: {extaddr_2:d}"],
+                action=lambda: signaler_1.emit_status(
+                        f"router_removed={extaddr_2:016x}"))
 
 
 if __name__ == '__main__':
