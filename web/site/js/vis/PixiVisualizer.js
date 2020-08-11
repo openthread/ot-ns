@@ -238,7 +238,11 @@ export default class PixiVisualizer extends VObject {
 
     formatExtAddrPretty(extAddr) {
         let node = this.findNodeByExtAddr(extAddr);
-        return `Node ${node.id}(${this.formatExtAddr(extAddr)})`
+        if (node) {
+            return `Node ${node.id}(${this.formatExtAddr(extAddr)})`
+        } else {
+            return this.formatExtAddr(extAddr);
+        }
     }
 
     formatPartitionId(parid) {
