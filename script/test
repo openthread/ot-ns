@@ -65,11 +65,6 @@ install_deps()
     ./script/install-deps
 }
 
-install_test_deps()
-{
-    ./script/install-test-deps
-}
-
 install_otns()
 {
     ./script/install
@@ -99,7 +94,6 @@ build_openthread()
 py_unittests()
 {
     install_deps
-    install_test_deps
     install_otns
     build_openthread
     cd "$OTBIN_DIR"
