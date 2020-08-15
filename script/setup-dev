@@ -60,7 +60,7 @@ function install_protoc()
 
     (
         cd /usr/local || return 1
-        sudo unzip /tmp/protoc.zip
+        sudo unzip -o /tmp/protoc.zip
         sudo chmod a+x /usr/local/bin/protoc
         sudo rm -rf protoc.zip
     )

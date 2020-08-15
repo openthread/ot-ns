@@ -45,3 +45,7 @@ class OTNSExitedError(OTNSCliError):
     def __init__(self, exit_code: int):
         super(OTNSExitedError, self).__init__(f"exited: {exit_code}")
         self.exit_code = exit_code
+
+class UnexpectedError(OTNSError):
+    def __init__(self, error: str):
+        super(UnexpectedError, self).__init__(error)
