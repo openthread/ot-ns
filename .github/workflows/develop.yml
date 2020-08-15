@@ -1,4 +1,3 @@
-#!/bin/bash
 # Copyright (c) 2020, The OTNS Authors.
 # All rights reserved.
 #
@@ -24,38 +23,38 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-#
-# This script packs web related files into go binary data using [go-bindata](https://github.com/jteeuwen/go-bindata)
 
-# shellcheck source=script/common.sh
-. "$(dirname "$0")"/common.sh
+name: Develop
 
-compile_proto()
-{
-    cd "$OTNSDIR"/visualize/grpc/pb || return 1
-    protoc -I=. visualize_grpc.proto --go_out=plugins=grpc:.
-    mkdir -p ../../../web/site/js/proto/
-    protoc -I=. visualize_grpc.proto \
-        --js_out=import_style=commonjs:../../../web/site/js/proto/ \
-        --grpc-web_out=import_style=commonjs,mode=grpcwebtext:../../../web/site/js/proto/
-    python3 -m grpc_tools.protoc -I. \
-        --python_out=../../../pylibs/otns/proto \
-        --grpc_python_out=../../../pylibs/otns/proto \
-        ./visualize_grpc.proto
-    cd - || return 1
-}
+on: [push, pull_request]
 
-replace_python_proto_import_path()
-{
-    local search='import visualize_grpc_pb2 as visualize__grpc__pb2'
-    local replace='from . import visualize_grpc_pb2 as visualize__grpc__pb2'
+jobs:
+  cancel-previous-runs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: rokroskar/workflow-run-cleanup-action@master
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+        if: "github.ref != 'refs/heads/master'"
 
-    if [[ $Darwin == 1 ]]; then
-        sed -i "" "s/${search}/${replace}/g" pylibs/otns/proto/visualize_grpc_pb2_grpc.py
-    else
-        sed -i "s/${search}/${replace}/g" pylibs/otns/proto/visualize_grpc_pb2_grpc.py
-    fi
-}
-
-compile_proto
-replace_python_proto_import_path
+  develop:
+    name: Develop (Go${{ matrix.go }},Py${{matrix.python-versoin}},${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        go: [1.11, 1.14]
+        python-versoin: [3.6, 3.8]
+        os: [ubuntu-latest, macos-10.15]
+    steps:
+      - uses: actions/setup-go@v1
+        with:
+          go-version: ${{ matrix.go }}
+      - uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-versoin }}
+      - uses: actions/checkout@v2
+      - name: Build
+        run: |
+          ./script/setup-dev
+          ./script/pack-web
+          go get ./cmd/otns
