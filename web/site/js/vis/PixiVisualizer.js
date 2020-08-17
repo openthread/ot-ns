@@ -69,16 +69,15 @@ export default class PixiVisualizer extends VObject {
         });
 
         this.nodeLogColor = {};
-        this.logWindow = new LogWindow();
-        this.logWindow.position.set(0, 0);
-        this.addChild(this.logWindow);
-        this._resetLogWindowPosition(window.screen.width, window.screen.height);
 
         this._bgStage = new PIXI.Container();
         this.addChild(this._bgStage);
 
         this._broadcastMessagesStage = new PIXI.Container();
         this.addChild(this._broadcastMessagesStage);
+
+        this._logWindowStage = new PIXI.Container();
+        this.addChild(this._logWindowStage);
 
         this._nodesStage = new PIXI.Container();
         this.addChild(this._nodesStage);
@@ -148,9 +147,34 @@ export default class PixiVisualizer extends VObject {
         }
     }
 
+    showLogWindow() {
+        if (!this.logWindow) {
+            this.logWindow = new LogWindow();
+            this._logWindowStage.addChild(this.logWindow._root);
+            this._resetLogWindowPosition(window.screen.width, window.screen.height);
+
+            this.log("Log window opened.")
+        }
+    }
+
+    hideLogWindow() {
+        if (this.logWindow) {
+            this._logWindowStage.removeChild(this.logWindow._root);
+            this.logWindow = null
+        }
+    }
+
+    clearLogWindow() {
+        if (this.logWindow) {
+            this.logWindow.clear()
+        }
+    }
+
     _resetLogWindowPosition(width, height) {
-        this.logWindow.position.set(width - LOG_WINDOW_WIDTH, 10);
-        this.logWindow.resetLayout(width, height)
+        if (this.logWindow) {
+            this.logWindow.position.set(width - LOG_WINDOW_WIDTH, 10);
+            this.logWindow.resetLayout(width, height)
+        }
     }
 
     _resetIdleCheckTimer() {
@@ -225,7 +249,9 @@ export default class PixiVisualizer extends VObject {
     }
 
     log(text, color = '#0052ff') {
-        this.logWindow.addLog(text, color)
+        if (this.logWindow) {
+            this.logWindow.addLog(text, color)
+        }
     }
 
     formatRloc16(rloc16) {
