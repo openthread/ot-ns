@@ -31,6 +31,7 @@ import sys
 import time
 import traceback
 from functools import wraps
+from typing import Collection
 
 from StressTestResult import StressTestResult
 from otns.cli import OTNS
@@ -98,3 +99,16 @@ class BaseStressTest(object, metaclass=StressTestMetaclass):
                 f"""**[OTNS](https://github.com/openthread/ot-ns) Stress Tests Report Generated at {time.strftime(
                     "%m/%d %H:%M:%S")}**\n""")
             stress_result_fd.write(self.result.format())
+
+    def avg_except_max(self, vals: Collection[float]) -> float:
+        assert len(vals) >= 2
+        max_val = max(vals)
+        max_idxes = [i for i in range(len(vals)) if vals[i] >= max_val]
+        assert max_idxes
+        rmidx = max_idxes[0]
+        vals[rmidx:rmidx + 1] = []
+        return self.avg(vals)
+
+    def avg(self, vals: Collection[float]) -> float:
+        assert len(vals) > 0
+        return sum(vals) / len(vals)
