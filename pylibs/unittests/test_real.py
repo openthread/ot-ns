@@ -98,11 +98,12 @@ class GRPCClient(object):
     """
     def __init__(self):
         channel = grpc.insecure_channel("localhost:8999")
+        grpc.channel_ready_future(channel).result(timeout=10)
         self.stub = visualize_grpc_pb2_grpc.VisualizeGrpcServiceStub(channel)
 
     def send_command(self, command: str):
         self.stub.Command(
-        visualize_grpc_pb2.CommandRequest(command=command))
+                visualize_grpc_pb2.CommandRequest(command=command))
 
     def expect_response(self,
                         contain: List[str],
@@ -125,7 +126,6 @@ class BasicTests(OTNSTestCase):
         # wait for OTNS gRPC server to start
         time.sleep(0.3)
         self.grpc_client = GRPCClient()
-        time.sleep(0.3)
         self.udp_signalers = {}
 
     def tearDown(self):
