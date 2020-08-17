@@ -38,12 +38,12 @@ jobs:
         if: "github.ref != 'refs/heads/master'"
 
   develop:
-    name: Develop (Go${{ matrix.go }},Py${{matrix.python-versoin}},${{ matrix.os }})
+    name: Develop (Go${{ matrix.go }},Py${{matrix.python-version}},${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         go: [1.11, 1.14]
-        python-versoin: [3.6, 3.8]
+        python-version: [3.6, 3.8]
         os: [ubuntu-latest, macos-10.15]
     steps:
       - uses: actions/setup-go@v1
@@ -51,7 +51,7 @@ jobs:
           go-version: ${{ matrix.go }}
       - uses: actions/setup-python@v2
         with:
-          python-version: ${{ matrix.python-versoin }}
+          python-version: ${{ matrix.python-version }}
       - uses: actions/checkout@v2
       - name: Build
         run: |
