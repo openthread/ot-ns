@@ -34,6 +34,7 @@ type NodeConfig struct {
 	RxOffWhenIdle  bool
 	RadioRange     int
 	ExecutablePath string
+	Restore        bool
 }
 
 func DefaultNodeConfig() *NodeConfig {
@@ -46,5 +47,6 @@ func DefaultNodeConfig() *NodeConfig {
 		RxOffWhenIdle:  false,
 		RadioRange:     160,
 		ExecutablePath: "",
+		Restore:        false,
 	}
 }

@@ -66,10 +66,12 @@ const (
 func newNode(s *Simulation, id NodeId, cfg *NodeConfig) (*Node, error) {
 	var err error
 
-	portOffset := (s.cfg.DispatcherPort - threadconst.InitialDispatcherPort) / threadconst.WellKnownNodeId
-	flashFile := fmt.Sprintf("tmp/%d_%d.flash", portOffset, id)
-	if err := os.RemoveAll(flashFile); err != nil {
-		simplelogger.Errorf("Remove flash file %s failed: %+v", flashFile, err)
+	if !cfg.Restore {
+		portOffset := (s.cfg.DispatcherPort - threadconst.InitialDispatcherPort) / threadconst.WellKnownNodeId
+		flashFile := fmt.Sprintf("tmp/%d_%d.flash", portOffset, id)
+		if err := os.RemoveAll(flashFile); err != nil {
+			simplelogger.Errorf("Remove flash file %s failed: %+v", flashFile, err)
+		}
 	}
 
 	otCliPath := s.cfg.OtCliPath

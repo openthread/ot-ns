@@ -155,7 +155,8 @@ class OTNS(object):
 
             output.append(line)
 
-    def add(self, type: str, x: float = None, y: float = None, id=None, radio_range=None, executable=None) -> int:
+    def add(self, type: str, x: float = None, y: float = None, id=None, radio_range=None, executable=None,
+            restore=False) -> int:
         """
         Add a new node to the simulation.
 
@@ -165,6 +166,7 @@ class OTNS(object):
         :param id: node ID, or None to use next available node ID
         :param radio_range: node radio range or None for default
         :param executable: specify the executable for the new node, or use default executable if None
+        :param restore: whether the node restores network configuration from persistent storage
 
         :return: added node ID
         """
@@ -182,6 +184,9 @@ class OTNS(object):
 
         if executable:
             cmd += f' exe "{executable}"'
+
+        if restore:
+            cmd += f' restore'
 
         return self._expect_int(self._do_command(cmd))
 
@@ -414,6 +419,15 @@ class OTNS(object):
         """
         output = self.node_cmd(nodeid, "state")
         return self._expect_str(output)
+
+    def get_rloc16(self, nodeid: int) -> int:
+        """
+        Get node RLOC16.
+
+        :param nodeid: node ID
+        :return: node RLOC16
+        """
+        return self._expect_hex(self.node_cmd(nodeid, "rloc16"))
 
     def get_ipaddrs(self, nodeid: int, addrtype: str = None) -> List[str]:
         """

@@ -7,7 +7,7 @@ Python libraries use the CLI to manage simulations.
 
 ## OTNS command list
 
-* [add](#add-type-x-x-y-y-rr-radio-range-id-node-id)
+* [add](#add-type-x-x-y-y-rr-radio-range-id-node-id-restore)
 * [counters](#counters)
 * [cv](#cv-option-onoff-)
 * [del](#del-node-id-node-id-)
@@ -31,9 +31,11 @@ Python libraries use the CLI to manage simulations.
 ## OTNS command reference
 
 
-### add \<type\> \[x \<x\>\] \[y \<y\>\] \[rr \<radio-range\>\] \[id \<node-id\>\]
+### add \<type\> \[x \<x\>\] \[y \<y\>\] \[rr \<radio-range\>\] \[id \<node-id\>\] \[restore\]
 
 Add a node to the simulation and get the node ID. Node ID can be specified, otherwise OTNS assigns the next available one.
+
+If `restore` option is specified, the node restores its network configuration from persistent storage.
 
 ```bash
 > add router
@@ -47,6 +49,9 @@ Done
 Done
 > add sed x 200 y 200 rr 400
 4
+Done
+> add sed x 200 y 200 restore
+5
 Done
 > add fed x 200 y 200 id 25
 25
