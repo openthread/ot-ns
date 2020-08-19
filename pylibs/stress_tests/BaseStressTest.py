@@ -94,11 +94,14 @@ class BaseStressTest(object, metaclass=StressTestMetaclass):
         except KeyError:
             stress_result_fd = sys.stdout
 
-        with stress_result_fd:
+        try:
             stress_result_fd.write(
                 f"""**[OTNS](https://github.com/openthread/ot-ns) Stress Tests Report Generated at {time.strftime(
                     "%m/%d %H:%M:%S")}**\n""")
             stress_result_fd.write(self.result.format())
+        finally:
+            if stress_result_fd is not sys.stdout:
+                stress_result_fd.close()
 
     def avg_except_max(self, vals: Collection[float]) -> float:
         assert len(vals) >= 2
