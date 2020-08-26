@@ -112,7 +112,7 @@ func (gv *grpcVisualizer) SetNodeRloc16(nodeid NodeId, rloc16 uint16) {
 	}}}, false)
 }
 
-func (gv *grpcVisualizer) SetNodeRole(nodeid NodeId, role visualize.OtDeviceRole) {
+func (gv *grpcVisualizer) SetNodeRole(nodeid NodeId, role OtDeviceRole) {
 	gv.Lock()
 	defer gv.Unlock()
 

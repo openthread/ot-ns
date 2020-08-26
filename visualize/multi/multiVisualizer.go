@@ -81,7 +81,7 @@ func (mv *multiVisualizer) SetNodeRloc16(nodeid NodeId, rloc16 uint16) {
 	}
 }
 
-func (mv *multiVisualizer) SetNodeRole(nodeid NodeId, role visualize.OtDeviceRole) {
+func (mv *multiVisualizer) SetNodeRole(nodeid NodeId, role OtDeviceRole) {
 	for _, v := range mv.vs {
 		v.SetNodeRole(nodeid, role)
 	}

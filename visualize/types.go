@@ -94,16 +94,6 @@ func (info *MsgVisualizeInfo) FormatDstAddr() interface{} {
 	}
 }
 
-type OtDeviceRole int
-
-const (
-	OtDeviceRoleDisabled OtDeviceRole = 0 ///< The Thread stack is disabled.
-	OtDeviceRoleDetached OtDeviceRole = 1 ///< Not currently participating in a Thread network/partition.
-	OtDeviceRoleChild    OtDeviceRole = 2 ///< The Thread Child role.
-	OtDeviceRoleRouter   OtDeviceRole = 3 ///< The Thread Router role.
-	OtDeviceRoleLeader   OtDeviceRole = 4 ///< The Thread Leader role.
-)
-
 type TitleInfo struct {
 	Title    string
 	X        int

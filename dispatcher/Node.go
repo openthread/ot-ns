@@ -73,6 +73,7 @@ type Node struct {
 	Rloc16      uint16
 	CreateTime  uint64
 	CurTime     uint64
+	Role        OtDeviceRole
 
 	peerAddr      *net.UDPAddr
 	failureCtrl   *FailureCtrl
@@ -97,6 +98,7 @@ func newNode(d *Dispatcher, nodeid NodeId, x, y int, radioRange int) *Node {
 		Y:           y,
 		ExtAddr:     InvalidExtAddr,
 		Rloc16:      threadconst.InvalidRloc16,
+		Role:        OtDeviceRoleDisabled,
 		peerAddr:    nil, // peer address will be set when the first event is received
 		radioRange:  radioRange,
 		joinerState: OtJoinerStateIdle,

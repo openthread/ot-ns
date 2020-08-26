@@ -34,6 +34,7 @@ from functools import wraps
 
 from StressTestResult import StressTestResult
 from otns.cli import OTNS
+from otns.cli.errors import UnexpectedError
 
 
 class StressTestMetaclass(type):
@@ -98,3 +99,25 @@ class BaseStressTest(object, metaclass=StressTestMetaclass):
                 f"""**[OTNS](https://github.com/openthread/ot-ns) Stress Tests Report Generated at {time.strftime(
                     "%m/%d %H:%M:%S")}**\n""")
             stress_result_fd.write(self.result.format())
+
+    def expect_all_nodes_become_routers(self, timeout: int = 1000) -> None:
+        all_routers = False
+
+        while timeout > 0 and not all_routers:
+            self.ns.go(10)
+            timeout -= 10
+
+            nodes = (self.ns.nodes())
+
+            all_routers = True
+            print(nodes)
+            for nid, info in nodes.items():
+                if info['state'] not in ['leader', 'router']:
+                    all_routers = False
+                    break
+
+            if all_routers:
+                break
+
+        if not all_routers:
+            raise UnexpectedError("not all nodes are Routers: %s" % self.ns.nodes())
