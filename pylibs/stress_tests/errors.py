@@ -1,3 +1,5 @@
+# !/usr/bin/env python3
+#
 # Copyright (c) 2020, The OTNS Authors.
 # All rights reserved.
 #
@@ -24,40 +26,9 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-name: Stress
+class UnexpectedError(Exception):
+    pass
 
-on: [push, pull_request]
 
-jobs:
-  cancel-previous-runs:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: rokroskar/workflow-run-cleanup-action@master
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        if: "github.ref != 'refs/heads/master'"
-
-  stress-tests:
-    name: "Test Suite ${{ matrix.suite }}"
-    strategy:
-      matrix:
-        python-version: [3.8]
-        go-version: [1.14]
-        suite: ["network-forming", "commissioning", "connectivity", "network-latency"]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/setup-go@v1
-        with:
-          go-version: ${{ matrix.go-version }}
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v1
-        with:
-          python-version: ${{ matrix.python-version }}
-      - run: |
-          mkdir -p /home/runner/work/_temp/_github_home
-      - uses: actions/checkout@v2
-      - name: Stress Test
-        env:
-          STRESS_LEVEL: 10
-        run: |
-          ./script/test stress-tests ${{ matrix.suite }}
+class UnexpectedNodeAddr(UnexpectedError):
+    pass
