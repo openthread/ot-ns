@@ -46,6 +46,13 @@ class OTNS(object):
     MAX_SIMULATE_SPEED = 1000000  # Max simulating speed
     PAUSE_SIMULATE_SPEED = 0
 
+    class GoResult:
+        def __init__(self):
+            self.packets = []
+
+        def add_packet(self, timestamp: int, nodeid: int, frame: bytes):
+            self.packets.append((timestamp, nodeid, frame))
+
     def __init__(self, otns_path: Optional[str] = None, otns_args: Optional[List[str]] = None):
         self._otns_path = otns_path or self._detect_otns_path()
         self._otns_args = list(otns_args or []) + ['-autogo=false', '-web=false']
@@ -78,7 +85,7 @@ class OTNS(object):
         except BrokenPipeError:
             pass
 
-    def go(self, duration: float = None, speed: float = None) -> None:
+    def go(self, duration: float = None, speed: float = None, nodeid=None) -> GoResult:
         """
         Continue the simulation for a period of time.
 
@@ -94,7 +101,26 @@ class OTNS(object):
         if speed is not None:
             cmd += f' speed {speed}'
 
-        self._do_command(cmd)
+        if nodeid is not None:
+            cmd += f' node {nodeid}'
+
+        res = OTNS.GoResult()
+        lines = self._do_command(cmd)
+        for line in lines:
+            if line.startswith('DUMP:PACKET:'):
+                line = line.strip().split(':')
+                timestamp = int(line[2])
+                nodeid = int(line[3])
+                frame = str(line[4])
+                assert len(frame) % 2 == 0
+                frame = bytes([int(frame[i:i + 2], 16) for i in range(0, len(frame), 2)])
+                res.add_packet(timestamp, nodeid, frame)
+
+        return res
+
+    @property
+    def now(self) -> float:
+        return self._expect_int(self._do_command('now')) / 1000000.0
 
     @property
     def speed(self) -> float:
@@ -167,7 +193,7 @@ class OTNS(object):
             output.append(line)
 
     def add(self, type: str, x: float = None, y: float = None, id=None, radio_range=None, executable=None,
-            restore=False) -> int:
+            restore=False, uart_type='auto') -> int:
         """
         Add a new node to the simulation.
 
@@ -198,6 +224,10 @@ class OTNS(object):
 
         if restore:
             cmd += f' restore'
+
+        assert uart_type in ('auto', 'virtual', 'real')
+        if uart_type in ['virtual', 'real']:
+            cmd += f' uart {uart_type}'
 
         return self._expect_int(self._do_command(cmd))
 

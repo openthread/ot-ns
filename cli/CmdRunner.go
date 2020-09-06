@@ -173,6 +173,8 @@ func (rt *CmdRunner) execute(cmd *Command, output io.Writer) {
 		rt.executeRadio(cc, cc.Radio)
 	} else if cmd.Go != nil {
 		rt.executeGo(cc, cmd.Go)
+	} else if cmd.Now != nil {
+		rt.executeNow(cc, cmd.Now)
 	} else if cmd.Nodes != nil {
 		rt.executeLsNodes(cc, cc.Nodes)
 	} else if cmd.Partitions != nil {
@@ -222,10 +224,17 @@ func (rt *CmdRunner) execute(cmd *Command, output io.Writer) {
 
 func (rt *CmdRunner) executeGo(cc *CommandContext, cmd *GoCmd) {
 	if cmd.Speed != nil {
-		rt.postAsyncWait(func(sim *simulation.Simulation) {
-			sim.SetSpeed(*cmd.Speed)
+		rt.sim.PostAsync(false, func() {
+			rt.sim.SetSpeed(*cmd.Speed)
 		})
 	}
+
+	if cmd.NodeId != nil {
+		rt.sim.PostAsync(false, func() {
+			rt.sim.Dispatcher().NotifyRunning(cmd.NodeId.Id)
+		})
+	}
+
 	var done <-chan struct{}
 
 	if cmd.Ever == nil {
@@ -295,6 +304,9 @@ func (rt *CmdRunner) executeAddNode(cc *CommandContext, cmd *AddCmd) {
 		cfg.IsRouter = false
 		cfg.IsMtd = true
 		cfg.RxOffWhenIdle = true
+	} else if cmd.Type.Val == "raw" {
+		cfg.IsRaw = true
+		cfg.IsRouter = false
 	} else {
 		panic("wrong node type")
 	}
@@ -312,6 +324,14 @@ func (rt *CmdRunner) executeAddNode(cc *CommandContext, cmd *AddCmd) {
 	}
 
 	cfg.Restore = cmd.Restore != nil
+
+	if cmd.UartType != nil && cmd.UartType.Val != "auto" {
+		if cmd.UartType.Val == "virtual" {
+			cfg.UartType = simulation.NodeUartTypeVirtualTime
+		} else {
+			cfg.UartType = simulation.NodeUartTypeRealTime
+		}
+	}
 
 	rt.postAsyncWait(func(sim *simulation.Simulation) {
 		node, err := sim.AddNode(cfg)
@@ -767,6 +787,12 @@ func (rt *CmdRunner) executeCoaps(cc *CommandContext, cmd *CoapsCmd) {
 
 		cc.outputItemsAsYaml(coapMessages)
 	}
+}
+
+func (rt *CmdRunner) executeNow(cc *CommandContext, cmd *NowCmd) {
+	rt.postAsyncWait(func(sim *simulation.Simulation) {
+		cc.outputf("%d\n", sim.Dispatcher().CurTime)
+	})
 }
 
 func NewCmdRunner(ctx *progctx.ProgCtx, sim *simulation.Simulation) *CmdRunner {

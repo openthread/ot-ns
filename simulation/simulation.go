@@ -110,7 +110,7 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 
 	node.setupMode()
 
-	if !s.rawMode {
+	if !s.rawMode && !node.cfg.IsRaw {
 		node.SetupNetworkParameters(s)
 		node.Start()
 	}
