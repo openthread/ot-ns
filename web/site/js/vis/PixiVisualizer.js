@@ -586,7 +586,6 @@ export default class PixiVisualizer extends VObject {
 
         const graphics = new PIXI.Graphics();
         graphics.beginFill(0x8bc34a);
-        graphics.lineStyle(linkLineWidth, 0x8bc34a, 1);
 
         for (let nodeid in this.nodes) {
             let node = this.nodes[nodeid];
@@ -600,6 +599,8 @@ export default class PixiVisualizer extends VObject {
             for (let extaddr in node._children) {
                 let child = this.findNodeByExtAddr(extaddr);
                 if (child) {
+                    graphics.lineStyle(nodeid == this._selectedNodeId || child.id == this._selectedNodeId ? linkLineWidth * 3 : linkLineWidth, 0x8bc34a, 1);
+
                     graphics.moveTo(node.position.x, node.position.y);
                     graphics.lineTo(child.position.x, child.position.y)
                 }
@@ -608,9 +609,10 @@ export default class PixiVisualizer extends VObject {
         graphics.endFill();
 
         graphics.beginFill(0x1976d2);
-        graphics.lineStyle(linkLineWidth, 0x1976d2, 1);
 
         for (let nodeid in this.nodes) {
+            graphics.lineStyle(nodeid == this._selectedNodeId ? linkLineWidth * 3 : linkLineWidth, 0x1976d2, 1);
+
             let node = this.nodes[nodeid];
             for (let extaddr in node._neighbors) {
                 let neighbor = this.findNodeByExtAddr(extaddr);
