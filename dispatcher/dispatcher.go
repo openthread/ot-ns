@@ -30,6 +30,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math/rand"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -65,18 +66,20 @@ type pcapFrameItem struct {
 }
 
 type Config struct {
-	Speed float64
-	Real  bool
-	Host  string
-	Port  int
+	Speed       float64
+	Real        bool
+	Host        string
+	Port        int
+	DumpPackets bool
 }
 
 func DefaultConfig() *Config {
 	return &Config{
-		Speed: 1,
-		Real:  false,
-		Host:  "localhost",
-		Port:  threadconst.InitialDispatcherPort,
+		Speed:       1,
+		Real:        false,
+		Host:        "localhost",
+		Port:        threadconst.InitialDispatcherPort,
+		DumpPackets: false,
 	}
 }
 
@@ -456,6 +459,9 @@ func (d *Dispatcher) processNextEvent() bool {
 			d.advanceTime(nextSendtime)
 			// construct the message
 			d.pcapFrameChan <- pcapFrameItem{nextSendtime, s.Data[1:]}
+			if d.cfg.DumpPackets {
+				d.dumpPacket(s)
+			}
 			d.sendNodeMessage(s)
 		}
 
@@ -1213,4 +1219,14 @@ func (d *Dispatcher) NotifyExit(nodeid NodeId) {
 	if !d.cfg.Real {
 		d.setSleeping(nodeid)
 	}
+}
+
+func (d *Dispatcher) dumpPacket(item *sendItem) {
+	sb := strings.Builder{}
+	_, _ = fmt.Fprintf(&sb, "DUMP:PACKET:%d:%d:", item.Timestamp, item.NodeId)
+	for _, b := range item.Data {
+		_, _ = fmt.Fprintf(&sb, "%02X", b)
+	}
+
+	_, _ = fmt.Fprintf(os.Stdout, "%s\n", sb.String())
 }

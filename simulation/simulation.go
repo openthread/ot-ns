@@ -67,6 +67,7 @@ func NewSimulation(ctx *progctx.ProgCtx, cfg *Config) (*Simulation, error) {
 	dispatcherCfg.Real = cfg.Real
 	dispatcherCfg.Host = cfg.DispatcherHost
 	dispatcherCfg.Port = cfg.DispatcherPort
+	dispatcherCfg.DumpPackets = cfg.DumpPackets
 
 	s.d = dispatcher.NewDispatcher(s.ctx, dispatcherCfg, s)
 	s.vis = s.d.GetVisualizer()

@@ -47,6 +47,7 @@ type Config struct {
 	Real           bool
 	DispatcherHost string
 	DispatcherPort int
+	DumpPackets    bool
 }
 
 func DefaultConfig() *Config {
