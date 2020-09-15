@@ -26,6 +26,16 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+# Ping Latency Stress Test:
+#   12 routers ping each other to measure the ping delay of different hops and different data size
+# Topology:
+#   Routers x6 forming Circle I
+#   Routers x6 forming Circle II
+# Fault Injections:
+#   None
+# Pass Criteria:
+#   Max ping latency < 100ms
+#
 import logging
 import math
 
