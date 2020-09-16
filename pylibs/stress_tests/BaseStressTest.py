@@ -35,6 +35,7 @@ from typing import Collection
 
 from StressTestResult import StressTestResult
 from otns.cli import OTNS
+from otns.cli.errors import UnexpectedError
 
 
 class StressTestMetaclass(type):
@@ -115,3 +116,25 @@ class BaseStressTest(object, metaclass=StressTestMetaclass):
     def avg(self, vals: Collection[float]) -> float:
         assert len(vals) > 0
         return sum(vals) / len(vals)
+
+    def expect_all_nodes_become_routers(self, timeout: int = 1000) -> None:
+        all_routers = False
+
+        while timeout > 0 and not all_routers:
+            self.ns.go(10)
+            timeout -= 10
+
+            nodes = (self.ns.nodes())
+
+            all_routers = True
+            print(nodes)
+            for nid, info in nodes.items():
+                if info['state'] not in ['leader', 'router']:
+                    all_routers = False
+                    break
+
+            if all_routers:
+                break
+
+        if not all_routers:
+            raise UnexpectedError("not all nodes are Routers: %s" % self.ns.nodes())

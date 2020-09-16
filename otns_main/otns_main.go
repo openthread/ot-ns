@@ -73,6 +73,7 @@ type MainArgs struct {
 	ListenAddr     string
 	DispatcherHost string
 	DispatcherPort int
+	DumpPackets    bool
 }
 
 var (
@@ -94,6 +95,7 @@ func parseArgs() {
 	flag.BoolVar(&args.RawMode, "raw", false, "use raw mode")
 	flag.BoolVar(&args.Real, "real", false, "use real mode (for real devices)")
 	flag.StringVar(&args.ListenAddr, "listen", fmt.Sprintf("localhost:%d", threadconst.InitialDispatcherPort), "specify listen address")
+	flag.BoolVar(&args.DumpPackets, "dump-packets", false, "dump packets")
 
 	flag.Parse()
 }
@@ -241,6 +243,7 @@ func createSimulation(ctx *progctx.ProgCtx) *simulation.Simulation {
 	simcfg.Real = args.Real
 	simcfg.DispatcherHost = args.DispatcherHost
 	simcfg.DispatcherPort = args.DispatcherPort
+	simcfg.DumpPackets = args.DumpPackets
 
 	sim, err := simulation.NewSimulation(ctx, simcfg)
 	simplelogger.FatalIfError(err)

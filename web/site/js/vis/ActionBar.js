@@ -102,7 +102,7 @@ export default class ActionBar extends VObject {
         this._logClearButton = this.addButton("Clear Log", "any", "", (e) => {
             this.actionClearLog()
         });
-        this._logOnOffButton = this.addButton("Hide Log", "any", "", (e) => {
+        this._logOnOffButton = this.addButton("Show Log", "any", "", (e) => {
             this.actionToggleLogWindow()
         });
     }
@@ -220,16 +220,16 @@ export default class ActionBar extends VObject {
     }
 
     actionClearLog() {
-        let logWindow = this.vis.logWindow;
-        logWindow.clear()
+        this.vis.clearLogWindow()
     }
 
     actionToggleLogWindow() {
-        let logWindow = this.vis.logWindow;
-        logWindow.visible = !logWindow.visible;
-        if (logWindow.visible) {
+        let vis = this.vis;
+        if (!vis.logWindow) {
+            this.vis.showLogWindow();
             this._logOnOffButton.text = "Hide Log"
         } else {
+            this.vis.hideLogWindow();
             this._logOnOffButton.text = "Show Log"
         }
         this.vis.actionBar.refresh()

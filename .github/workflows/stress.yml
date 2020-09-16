@@ -43,7 +43,7 @@ jobs:
       matrix:
         python-version: [3.8]
         go-version: [1.14]
-        suite: ["network-forming", "commissioning"]
+        suite: ["network-forming", "commissioning", "network-latency"]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/setup-go@v1

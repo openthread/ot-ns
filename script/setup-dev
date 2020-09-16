@@ -118,8 +118,13 @@ install_go_bindata()
         return 0
     fi
 
-    go get -u github.com/jteeuwen/go-bindata/...@v3.0.7
+    go get -u github.com/jteeuwen/go-bindata/go-bindata@v3.0.7
     installed go-bindata || die "go-bindata not found, make sure $(go env GOPATH)/bin is included in $PATH"
+}
+
+install_py_libraries()
+{
+    python3 -m pip install grpcio-tools==1.31.0 --user
 }
 
 install_protoc
@@ -127,4 +132,6 @@ install_protoc_gen_go
 install_protoc_gen_grpc_web
 install_nodejs
 install_go_bindata
+install_py_libraries
+install_pretty_tools
 go mod tidy

@@ -29,7 +29,6 @@ package visualize_grpc
 import (
 	"github.com/openthread/ot-ns/threadconst"
 	. "github.com/openthread/ot-ns/types"
-	"github.com/openthread/ot-ns/visualize"
 )
 
 type grpcNode struct {
@@ -40,7 +39,7 @@ type grpcNode struct {
 	radioRange  int
 	mode        NodeMode
 	rloc16      uint16
-	role        visualize.OtDeviceRole
+	role        OtDeviceRole
 	partitionId uint32
 	failed      bool
 	parent      uint64
@@ -57,7 +56,7 @@ func newGprcNode(id NodeId, x int, y int, radioRange int) *grpcNode {
 		radioRange:  radioRange,
 		mode:        DefaultNodeMode(),
 		rloc16:      threadconst.InvalidRloc16,
-		role:        visualize.OtDeviceRoleDisabled,
+		role:        OtDeviceRoleDisabled,
 		partitionId: 0,
 		failed:      false,
 		parent:      0,
