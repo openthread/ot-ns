@@ -26,8 +26,17 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+# Ping Latency Stress Test:
+#   Different number of nodes form networks (a single partition) and measure the network forming delay.
+# Topology:
+#   1x1 Routers ~ 7x7 Routers
+# Fault Injections:
+#   None
+# Pass Criteria:
+#   Network forming time is less than corresponding time limits
+#
 import os
-import time
+from typing import Sequence
 
 from BaseStressTest import BaseStressTest
 
@@ -35,45 +44,66 @@ XGAP = 100
 YGAP = 100
 RADIO_RANGE = int(XGAP * 1.5)
 
-LARGE_N = 8
-PACKET_LOSS_RATIO = 0.9
+MIN_N = 1
+MAX_N = 7
 
-SIMULATE_TIME = 3600
-REPEAT = max(int(os.getenv('STRESS_LEVEL', '1')) // 2, 1)
+REPEAT = int(os.getenv('STRESS_LEVEL', '1')) * 3
+
+EXPECTED_MERGE_TIME_MAX = [
+    None, 3, 6, 12, 20, 50, 100, 200
+]
 
 
 class StressTest(BaseStressTest):
     SUITE = 'network-forming'
 
     def __init__(self):
-        super(StressTest, self).__init__("Large Network Formation Test",
-                                         ["Simulation Time", "Execution Time", "Average Partition Count in 60s"])
+        headers = ['Network Size', 'Formation Time 1']
+        for i in range(2, REPEAT + 1):
+            headers.append(f'FT {i}')
+
+        super(StressTest, self).__init__("Network Formation Test", headers)
 
     def run(self):
-        self.ns.packet_loss_ratio = PACKET_LOSS_RATIO
+        # self.ns.config_visualization(broadcast_message=False)
 
-        durations = []
-        partition_counts = []
-        for _ in range(REPEAT):
-            dt, par_cnt = self.test_n(LARGE_N)
-            durations.append(dt)
-            partition_counts.append(par_cnt)
+        for n in range(MIN_N, MAX_N + 1):
+            durations = []
+            for i in range(REPEAT):
+                secs = self.test_n(n)
+                durations.append(secs)
 
-        self.result.append_row('%ds' % (SIMULATE_TIME * REPEAT), '%ds' % sum(durations),
-                               '%d' % (sum(partition_counts) / len(partition_counts)))
+            self.result.append_row(f'{n}x{n}', *['%ds' % d for d in durations])
+            avg_dura = self.avg_except_max(durations)
+            self.result.fail_if(avg_dura > EXPECTED_MERGE_TIME_MAX[n],
+                                f"""{n}x{n} average formation time {avg_dura} > {
+                                EXPECTED_MERGE_TIME_MAX[n]}""")
+
+    @staticmethod
+    def stdvar(nums: Sequence[float]):
+        ex = sum(nums) / len(nums)
+        s = 0
+        for i in nums:
+            s += (i - ex) ** 2
+        return float(s) / len(nums)
 
     def test_n(self, n):
         self.reset()
 
         for r in range(n):
             for c in range(n):
-                id = self.ns.add("router", 50 + XGAP * c, 50 + YGAP * r, radio_range=RADIO_RANGE)
-                self.ns.node_cmd(id, f'childtimeout {5}')
+                self.ns.add("router", 50 + XGAP * c, 50 + YGAP * r, radio_range=RADIO_RANGE)
 
-        t0 = time.time()
-        self.ns.go(SIMULATE_TIME)
-        dt = time.time() - t0
-        return dt, len(self.ns.partitions())
+        secs = 0
+        while True:
+            self.ns.go(1)
+            secs += 1
+
+            pars = self.ns.partitions()
+            if len(pars) == 1 and 0 not in pars:
+                break
+
+        return secs
 
 
 if __name__ == '__main__':
