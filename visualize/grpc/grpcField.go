@@ -52,7 +52,7 @@ func (f *grpcField) setNodeRloc16(id NodeId, rloc16 uint16) {
 	f.nodes[id].rloc16 = rloc16
 }
 
-func (f *grpcField) setNodeRole(id NodeId, role visualize.OtDeviceRole) {
+func (f *grpcField) setNodeRole(id NodeId, role OtDeviceRole) {
 	f.nodes[id].role = role
 }
 

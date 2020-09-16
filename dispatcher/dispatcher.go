@@ -795,7 +795,7 @@ func (d *Dispatcher) handleStatusPush(srcid NodeId, data string) {
 		} else if sp[0] == "role" {
 			role, err := strconv.Atoi(sp[1])
 			simplelogger.PanicIfError(err)
-			d.vis.SetNodeRole(srcid, visualize.OtDeviceRole(role))
+			d.setNodeRole(srcid, OtDeviceRole(role))
 		} else if sp[0] == "rloc16" {
 			rloc16, err := strconv.Atoi(sp[1])
 			simplelogger.PanicIfError(err)
@@ -1229,4 +1229,15 @@ func (d *Dispatcher) dumpPacket(item *sendItem) {
 	}
 
 	_, _ = fmt.Fprintf(os.Stdout, "%s\n", sb.String())
+}
+
+func (d *Dispatcher) setNodeRole(id NodeId, role OtDeviceRole) {
+	node := d.nodes[id]
+	if node == nil {
+		simplelogger.Warnf("setNodeRole: node %d not found", id)
+		return
+	}
+
+	node.Role = role
+	d.vis.SetNodeRole(id, role)
 }
