@@ -27,7 +27,6 @@
 package otns_main
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"math/rand"
@@ -37,6 +36,8 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/openthread/ot-ns/cli/runcli"
 
 	"github.com/openthread/ot-ns/threadconst"
 
@@ -128,7 +129,7 @@ func parseListenAddr() {
 	}
 }
 
-func Main(visualizerCreator func(ctx *progctx.ProgCtx, args *MainArgs) visualize.Visualizer) {
+func Main(ctx *progctx.ProgCtx, visualizerCreator func(ctx *progctx.ProgCtx, args *MainArgs) visualize.Visualizer, cliOptions *runcli.CliOptions) {
 	parseArgs()
 
 	simplelogger.SetLevel(simplelogger.ParseLevel(args.LogLevel))
@@ -137,7 +138,6 @@ func Main(visualizerCreator func(ctx *progctx.ProgCtx, args *MainArgs) visualize
 
 	rand.Seed(time.Now().UnixNano())
 	// run console in the main goroutine
-	ctx := progctx.New(context.Background())
 	ctx.Defer(func() {
 		_ = os.Stdin.Close()
 	})
@@ -165,7 +165,7 @@ func Main(visualizerCreator func(ctx *progctx.ProgCtx, args *MainArgs) visualize
 	sim.SetVisualizer(vis)
 	go sim.Run()
 	go func() {
-		err := cli.Run(rt)
+		err := cli.Run(rt, cliOptions)
 		ctx.Cancel(errors.Wrapf(err, "console exit"))
 	}()
 
@@ -192,7 +192,6 @@ func Main(visualizerCreator func(ctx *progctx.ProgCtx, args *MainArgs) visualize
 
 	simplelogger.Infof("waiting for OTNS to stop gracefully ...")
 	ctx.Wait()
-	os.Exit(0)
 }
 
 func handleSignals(ctx *progctx.ProgCtx) {

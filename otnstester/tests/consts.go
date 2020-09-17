@@ -26,19 +26,14 @@
 
 package main
 
-import (
-	"context"
-	"os"
+import "github.com/openthread/ot-ns/simulation"
 
-	"github.com/openthread/ot-ns/otns_main"
-	"github.com/openthread/ot-ns/progctx"
-	"github.com/openthread/ot-ns/visualize"
+const (
+	RoleLeader = "leader"
+	RoleRouter = "router"
+	RoleChild  = "child"
 )
 
-func main() {
-	ctx := progctx.New(context.Background())
-	otns_main.Main(ctx, func(ctx *progctx.ProgCtx, args *otns_main.MainArgs) visualize.Visualizer {
-		return nil
-	}, nil)
-	os.Exit(0)
-}
+var (
+	DefaultRadioRange = simulation.DefaultNodeConfig().RadioRange
+)

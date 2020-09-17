@@ -27,7 +27,7 @@ func (c cliHandler) HandleCommand(cmd string, output io.Writer) error {
 }
 
 func main() {
-	err := runcli.RunCli(&cliHandler{}, runcli.CliOptions{
+	err := runcli.RunCli(&cliHandler{}, &runcli.CliOptions{
 		EchoInput: true,
 	})
 

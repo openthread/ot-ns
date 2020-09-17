@@ -15,35 +15,57 @@ type CliHandler interface {
 
 type CliOptions struct {
 	EchoInput bool
+	Stdin     *os.File
+	Stdout    *os.File
 }
 
-func RunCli(handler CliHandler, options CliOptions) error {
-	stdinFd := int(os.Stdin.Fd())
-	stdinIsTerminal := readline.IsTerminal(stdinFd)
+func DefaultCliOptions() *CliOptions {
+	return &CliOptions{
+		EchoInput: false,
+		Stdin:     nil,
+		Stdout:    nil,
+	}
+}
+
+func RunCli(handler CliHandler, options *CliOptions) error {
+	if options == nil {
+		options = DefaultCliOptions()
+	}
+
+	stdin := options.Stdin
+	if stdin == nil {
+		stdin = os.Stdin
+	}
+
+	stdout := options.Stdout
+	if stdout == nil {
+		stdout = os.Stdout
+	}
+
+	stdinIsTerminal := readline.IsTerminal(int(stdin.Fd()))
 	if stdinIsTerminal {
-		stdinState, err := readline.GetState(stdinFd)
+		stdinState, err := readline.GetState(int(stdin.Fd()))
 		if err != nil {
 			return err
 		}
 
 		defer func() {
-			_ = readline.Restore(stdinFd, stdinState)
+			_ = readline.Restore(int(stdin.Fd()), stdinState)
 		}()
 	}
 
-	stdoutFd := int(os.Stdout.Fd())
-	stdoutIsTerminal := readline.IsTerminal(stdoutFd)
+	stdoutIsTerminal := readline.IsTerminal(int(stdout.Fd()))
 	if stdoutIsTerminal {
-		stdoutState, err := readline.GetState(stdoutFd)
+		stdoutState, err := readline.GetState(int(stdout.Fd()))
 		if err != nil {
 			return err
 		}
 		defer func() {
-			_ = readline.Restore(stdoutFd, stdoutState)
+			_ = readline.Restore(int(stdout.Fd()), stdoutState)
 		}()
 	}
 
-	l, err := readline.NewEx(&readline.Config{
+	readlineConfig := &readline.Config{
 		Prompt:          handler.GetPrompt(),
 		InterruptPrompt: "^C",
 		EOFPrompt:       "exit",
@@ -57,7 +79,17 @@ func RunCli(handler CliHandler, options CliOptions) error {
 			}
 			return r, true
 		},
-	})
+	}
+
+	if options.Stdin != nil {
+		readlineConfig.Stdin = options.Stdin
+	}
+
+	if options.Stdout != nil {
+		readlineConfig.Stdout = options.Stdout
+	}
+
+	l, err := readline.NewEx(readlineConfig)
 
 	if err != nil {
 		return err
@@ -85,7 +117,7 @@ func RunCli(handler CliHandler, options CliOptions) error {
 		}
 
 		if options.EchoInput {
-			if _, err := os.Stdout.WriteString(line + "\n"); err != nil {
+			if _, err := stdout.WriteString(line + "\n"); err != nil {
 				return err
 			}
 		}
@@ -99,6 +131,6 @@ func RunCli(handler CliHandler, options CliOptions) error {
 			return err
 		}
 
-		_ = os.Stdout.Sync()
+		_ = stdout.Sync()
 	}
 }
