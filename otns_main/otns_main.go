@@ -63,18 +63,19 @@ import (
 )
 
 type MainArgs struct {
-	Speed          string
-	OtCliPath      string
-	AutoGo         bool
-	ReadOnly       bool
-	LogLevel       string
-	OpenWeb        bool
-	RawMode        bool
-	Real           bool
-	ListenAddr     string
-	DispatcherHost string
-	DispatcherPort int
-	DumpPackets    bool
+	Speed           string
+	OtCliPath       string
+	AutoGo          bool
+	ReadOnly        bool
+	LogLevel        string
+	OpenWeb         bool
+	RawMode         bool
+	Real            bool
+	ListenAddr      string
+	DispatcherHost  string
+	DispatcherPort  int
+	DumpPackets     bool
+	WellKnownNodeId int
 }
 
 var (
@@ -97,6 +98,7 @@ func parseArgs() {
 	flag.BoolVar(&args.Real, "real", false, "use real mode (for real devices)")
 	flag.StringVar(&args.ListenAddr, "listen", fmt.Sprintf("localhost:%d", threadconst.InitialDispatcherPort), "specify listen address")
 	flag.BoolVar(&args.DumpPackets, "dump-packets", false, "dump packets")
+	flag.IntVar(&args.WellKnownNodeId, "well-known-node-id", threadconst.WellKnownNodeId, "set WellKnownNodeId")
 
 	flag.Parse()
 }
@@ -105,7 +107,7 @@ func parseListenAddr() {
 	var err error
 
 	notifyInvalidListenAddr := func() {
-		simplelogger.Fatalf("invalid listen address: %s (port must be larger than or equal to 9000 and must be a multiple of 1000).", args.ListenAddr)
+		simplelogger.Fatalf("invalid listen address: %s (port must be larger than or equal to 9000 and must be a multiple of %v).", args.ListenAddr, args.WellKnownNodeId)
 	}
 
 	subs := strings.Split(args.ListenAddr, ":")
@@ -118,11 +120,11 @@ func parseListenAddr() {
 		notifyInvalidListenAddr()
 	}
 
-	if args.DispatcherPort < threadconst.InitialDispatcherPort || args.DispatcherPort%threadconst.WellKnownNodeId != 0 {
+	if args.DispatcherPort < threadconst.InitialDispatcherPort || (args.DispatcherPort-threadconst.InitialDispatcherPort)%args.WellKnownNodeId != 0 {
 		notifyInvalidListenAddr()
 	}
 
-	portOffset := (args.DispatcherPort - threadconst.InitialDispatcherPort) / threadconst.WellKnownNodeId
+	portOffset := (args.DispatcherPort - threadconst.InitialDispatcherPort) / args.WellKnownNodeId
 	simplelogger.Infof("Using env PORT_OFFSET=%d", portOffset)
 	if err = os.Setenv("PORT_OFFSET", strconv.Itoa(portOffset)); err != nil {
 		simplelogger.Panic(err)
@@ -243,6 +245,7 @@ func createSimulation(ctx *progctx.ProgCtx) *simulation.Simulation {
 	simcfg.DispatcherHost = args.DispatcherHost
 	simcfg.DispatcherPort = args.DispatcherPort
 	simcfg.DumpPackets = args.DumpPackets
+	simcfg.WellKnownNodeId = args.WellKnownNodeId
 
 	sim, err := simulation.NewSimulation(ctx, simcfg)
 	simplelogger.FatalIfError(err)

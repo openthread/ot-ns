@@ -50,6 +50,7 @@ type Command struct {
 	NetInfo             *NetInfoCmd             `| @@` //nolint
 	Node                *NodeCmd                `| @@` //nolint
 	Nodes               *NodesCmd               `| @@` //nolint
+	Now                 *NowCmd                 `| @@` //nolint
 	Partitions          *PartitionsCmd          `| @@` //nolint
 	Ping                *PingCmd                `| @@` //nolint
 	Pings               *PingsCmd               `| @@` //nolint
@@ -97,10 +98,17 @@ type DebugCmd struct {
 
 //noinspection GoStructTag
 type GoCmd struct {
-	Cmd     struct{}  `"go"`                      //nolint
-	Seconds float64   `( (@Int|@Float)`           //nolint
-	Ever    *EverFlag `| @@ )`                    //nolint
-	Speed   *float64  `[ "speed" (@Int|@Float) ]` //nolint
+	Cmd     struct{}    `"go"`                      //nolint
+	Seconds float64     `( (@Int|@Float)`           //nolint
+	Ever    *EverFlag   `| @@ )`                    //nolint
+	Speed   *float64    `( ("speed" (@Int|@Float))` //nolint
+	NodeId  *NodeIdFlag `| @@ )*`                   //nolint
+}
+
+//noinspection GoStructTag
+type NodeIdFlag struct {
+	Flag struct{} `"node"` //nolint
+	Id   int      `@Int`   //nolint
 }
 
 //noinspection GoStructTag
@@ -256,7 +264,8 @@ type AddCmd struct {
 	Id         *AddNodeId      `| @@`                 //nolint
 	RadioRange *RadioRangeFlag `| @@`                 //nolint
 	Restore    *RestoreFlag    `| @@`                 //nolint
-	Executable *ExecutableFlag `| @@ )*`              //nolint
+	Executable *ExecutableFlag `| @@`                 //nolint
+	UartType   *UartTypeFlag   `| @@ )*`              //nolint
 }
 
 //noinspection GoStructTag
@@ -275,6 +284,12 @@ type ExecutableFlag struct {
 	Path  string   `@String` //nolint
 }
 
+//noinspection GoStructTag
+type UartTypeFlag struct {
+	Dummy struct{} `"uart"`                     //nolint
+	Val   string   `@("virtual"|"real"|"auto")` //nolint
+}
+
 //noinspection MaxSpeedFlag
 type MaxSpeedFlag struct {
 	Dummy struct{} `( "max" | "inf")` //nolint
@@ -282,7 +297,7 @@ type MaxSpeedFlag struct {
 
 //noinspection GoStructTag
 type NodeType struct {
-	Val string `@("router"|"fed"|"med"|"sed")` //nolint
+	Val string `@("router"|"fed"|"med"|"sed"|"raw")` //nolint
 }
 
 //noinspection GoStructTag
@@ -368,6 +383,11 @@ type Move struct {
 //noinspection GoStructTag
 type NodesCmd struct {
 	Cmd struct{} `"nodes"` //nolint
+}
+
+//noinspection GoStructTag
+type NowCmd struct {
+	Cmd struct{} `"now"` //nolint
 }
 
 //noinspection GoStructTag

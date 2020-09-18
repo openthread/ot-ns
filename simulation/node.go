@@ -67,7 +67,7 @@ func newNode(s *Simulation, id NodeId, cfg *NodeConfig) (*Node, error) {
 	var err error
 
 	if !cfg.Restore {
-		portOffset := (s.cfg.DispatcherPort - threadconst.InitialDispatcherPort) / threadconst.WellKnownNodeId
+		portOffset := (s.cfg.DispatcherPort - threadconst.InitialDispatcherPort) / s.cfg.WellKnownNodeId
 		flashFile := fmt.Sprintf("tmp/%d_%d.flash", portOffset, id)
 		if err := os.RemoveAll(flashFile); err != nil {
 			simplelogger.Errorf("Remove flash file %s failed: %+v", flashFile, err)
@@ -87,7 +87,6 @@ func newNode(s *Simulation, id NodeId, cfg *NodeConfig) (*Node, error) {
 		cfg:          cfg,
 		cmd:          cmd,
 		pendingLines: make(chan string, 100),
-		uartType:     NodeUartTypeUndefined,
 	}
 
 	node.virtualUartReader, node.virtualUartPipe = io.Pipe()
@@ -129,7 +128,6 @@ type Node struct {
 	pipeErr           io.ReadCloser
 	virtualUartReader *io.PipeReader
 	virtualUartPipe   *io.PipeWriter
-	uartType          NodeUartType
 }
 
 func (node *Node) String() string {
@@ -188,9 +186,9 @@ func (node *Node) AssurePrompt() {
 }
 
 func (node *Node) inputCommand(cmd string) {
-	simplelogger.AssertTrue(node.uartType != NodeUartTypeUndefined)
+	simplelogger.AssertTrue(node.cfg.UartType != NodeUartTypeUndefined)
 
-	if node.uartType == NodeUartTypeRealTime {
+	if node.cfg.UartType == NodeUartTypeRealTime {
 		_, _ = node.pipeIn.Write([]byte(cmd + "\n"))
 	} else {
 		node.S.Dispatcher().SendToUART(node.Id, []byte(cmd+"\n"))
@@ -592,9 +590,9 @@ func (node *Node) lineReader(reader io.Reader, uartType NodeUartType) {
 	for scanner.Scan() {
 		line := scanner.Text()
 
-		if node.uartType == NodeUartTypeUndefined {
+		if node.cfg.UartType == NodeUartTypeUndefined {
 			simplelogger.Debugf("%v's UART type is %v", node, uartType)
-			node.uartType = uartType
+			node.cfg.UartType = uartType
 		}
 
 		select {
@@ -699,6 +697,13 @@ func (node *Node) DumpStat() string {
 }
 
 func (node *Node) setupMode() {
+	if node.cfg.IsRaw {
+		// raw nodes should not set other flags
+		simplelogger.AssertFalse(node.cfg.IsRouter)
+		simplelogger.AssertFalse(node.cfg.IsMtd)
+		simplelogger.AssertFalse(node.cfg.RxOffWhenIdle)
+	}
+
 	if node.cfg.IsRouter {
 		// routers should be full functional and rx always on
 		simplelogger.AssertFalse(node.cfg.IsMtd)
@@ -708,22 +713,24 @@ func (node *Node) setupMode() {
 	// only MED can use RxOffWhenIdle
 	simplelogger.AssertTrue(!node.cfg.RxOffWhenIdle || node.cfg.IsMtd)
 
-	mode := ""
-	if !node.cfg.RxOffWhenIdle {
-		mode += "r"
-	}
-	mode += "s"
-	if !node.cfg.IsMtd {
-		mode += "d"
-	}
-	mode += "n"
+	if !node.cfg.IsRaw {
+		mode := ""
+		if !node.cfg.RxOffWhenIdle {
+			mode += "r"
+		}
+		mode += "s"
+		if !node.cfg.IsMtd {
+			mode += "d"
+		}
+		mode += "n"
 
-	node.SetMode(mode)
+		node.SetMode(mode)
 
-	if !node.cfg.IsRouter {
-		node.RouterEligibleDisable()
-	} else {
-		node.SetRouterSelectionJitter(1)
+		if !node.cfg.IsRouter {
+			node.RouterEligibleDisable()
+		} else {
+			node.SetRouterSelectionJitter(1)
+		}
 	}
 }
 
@@ -733,10 +740,14 @@ func (node *Node) onUartWrite(data []byte) {
 
 func (node *Node) detectVirtualTimeUART() {
 	// Input newline to both Virtual Time UART and stdin and check where node outputs newline
+	if node.cfg.UartType != NodeUartTypeUndefined {
+		return
+	}
+
 	node.S.Dispatcher().SendToUART(node.Id, []byte("\n"))
 	_, _ = node.pipeIn.Write([]byte("\n"))
 
 	node.expectLine("", DefaultCommandTimeout)
 	// UART type should have been correctly set when the new line is received from node
-	simplelogger.AssertTrue(node.uartType != NodeUartTypeUndefined)
+	simplelogger.AssertTrue(node.cfg.UartType != NodeUartTypeUndefined)
 }

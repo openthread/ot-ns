@@ -99,9 +99,15 @@ func newNode(d *Dispatcher, nodeid NodeId, x, y int, radioRange int) *Node {
 		ExtAddr:     InvalidExtAddr,
 		Rloc16:      threadconst.InvalidRloc16,
 		Role:        OtDeviceRoleDisabled,
-		peerAddr:    nil, // peer address will be set when the first event is received
 		radioRange:  radioRange,
 		joinerState: OtJoinerStateIdle,
+	}
+
+	// If the dispatcher is listening on localhost, the peer address can be calculated from `nodeid`
+	if d.cfg.Host == "localhost" || d.cfg.Host == "127.0.0.1" {
+		var err error
+		nc.peerAddr, err = net.ResolveUDPAddr("udp4", fmt.Sprintf("%s:%d", d.cfg.Host, d.cfg.Port+nodeid))
+		simplelogger.PanicIfError(err)
 	}
 
 	nc.failureCtrl = newFailureCtrl(nc, NonFailTime)

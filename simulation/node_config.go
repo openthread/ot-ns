@@ -29,12 +29,14 @@ package simulation
 type NodeConfig struct {
 	ID             int
 	X, Y           int
+	IsRaw          bool
 	IsMtd          bool
 	IsRouter       bool
 	RxOffWhenIdle  bool
 	RadioRange     int
 	ExecutablePath string
 	Restore        bool
+	UartType       NodeUartType
 }
 
 func DefaultNodeConfig() *NodeConfig {
@@ -42,6 +44,7 @@ func DefaultNodeConfig() *NodeConfig {
 		ID:             -1, // -1 for the next available nodeid
 		X:              0,
 		Y:              0,
+		IsRaw:          false,
 		IsRouter:       true,
 		IsMtd:          false,
 		RxOffWhenIdle:  false,

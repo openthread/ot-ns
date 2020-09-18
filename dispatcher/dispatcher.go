@@ -293,7 +293,7 @@ func (d *Dispatcher) handleRecvEvent(evt *event) {
 	if _, ok := d.nodes[nodeid]; !ok {
 		if _, deleted := d.deletedNodes[nodeid]; !deleted {
 			// can not find the node, and the node is not registered (created by OTNS)
-			simplelogger.Warnf("unexpect event (type %v) received from Node %v", evt.Type, evt.NodeId)
+			simplelogger.Warnf("unexpected event (type %v) received from Node %v: %+v", evt.Type, evt.NodeId, evt)
 		}
 
 		return
@@ -877,20 +877,29 @@ func (d *Dispatcher) AddNode(nodeid NodeId, x, y int, radioRange int) {
 	node := d.newNode(nodeid, x, y, radioRange)
 
 	if !d.cfg.Real {
-		// Wait until node's extended address is emitted (but not for real devices)
+		// Wait until node's first simulation event is received (but not for real devices)
 		// This helps OTNS to make sure that the child process is ready to receive UDP events
-		t0 := time.Now()
-		deadline := t0.Add(time.Second * 10)
-		for node.ExtAddr == InvalidExtAddr && time.Now().Before(deadline) {
-			d.RecvEvents()
-		}
+		d.expectAnyNodeEvent(node)
+	}
+}
 
-		if node.ExtAddr == InvalidExtAddr {
-			simplelogger.Panicf("expect node %d's extaddr to be valid, but failed", nodeid)
-		} else {
-			takeTime := time.Since(t0)
-			simplelogger.Debugf("node %d's extaddr becomes valid in %v", nodeid, takeTime)
-		}
+func (d *Dispatcher) expectAnyNodeEvent(node *Node) {
+	if node.peerAddr != nil {
+		return
+	}
+
+	t0 := time.Now()
+	deadline := t0.Add(time.Second * 10)
+
+	for node.peerAddr == nil && time.Now().Before(deadline) {
+		d.RecvEvents()
+	}
+
+	if node.peerAddr == nil {
+		simplelogger.Panicf("waiting for simulation event from node %d, but failed", node.Id)
+	} else {
+		takeTime := time.Since(t0)
+		simplelogger.Debugf("node %d's first simulation event arrive in %v", node.Id, takeTime)
 	}
 }
 
@@ -1240,4 +1249,8 @@ func (d *Dispatcher) setNodeRole(id NodeId, role OtDeviceRole) {
 
 	node.Role = role
 	d.vis.SetNodeRole(id, role)
+}
+
+func (d *Dispatcher) NotifyRunning(nodeid NodeId) {
+	d.setAlive(nodeid)
 }

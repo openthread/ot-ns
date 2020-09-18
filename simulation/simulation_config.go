@@ -36,18 +36,19 @@ const (
 )
 
 type Config struct {
-	NetworkName    string
-	MasterKey      string
-	Panid          uint16
-	Channel        int
-	OtCliPath      string
-	Speed          float64
-	ReadOnly       bool
-	RawMode        bool
-	Real           bool
-	DispatcherHost string
-	DispatcherPort int
-	DumpPackets    bool
+	NetworkName     string
+	MasterKey       string
+	Panid           uint16
+	Channel         int
+	OtCliPath       string
+	Speed           float64
+	ReadOnly        bool
+	RawMode         bool
+	Real            bool
+	DispatcherHost  string
+	DispatcherPort  int
+	DumpPackets     bool
+	WellKnownNodeId int
 }
 
 func DefaultConfig() *Config {
