@@ -80,7 +80,7 @@ get_openthread()
         (
             OT_COMMIT=${OT_COMMIT:-master}
 
-            cd $OT_DIR
+            cd "$OT_DIR"
             git init
             git remote add origin https://github.com/openthread/openthread.git
             git fetch origin "${OT_COMMIT}" --depth 1
