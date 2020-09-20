@@ -76,7 +76,7 @@ get_openthread()
 {
 
     if ! [[ -x $OT_DIR ]]; then
-        mkdir -p "$(dirname "$OT_DIR")"
+        mkdir -p $OT_DIR"
         (
             OT_COMMIT=${OT_COMMIT:-master}
 
