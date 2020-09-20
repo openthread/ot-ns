@@ -74,11 +74,18 @@ install_otns()
 
 get_openthread()
 {
+
     if ! [[ -x $OT_DIR ]]; then
         mkdir -p "$(dirname "$OT_DIR")"
-        git clone https://github.com/openthread/openthread.git "$OT_DIR" --branch master --depth 1
         (
-            cd "$OT_DIR"
+            OT_COMMIT=${OT_COMMIT:-master}
+
+            cd $OT_DIR
+            git init
+            git remote add origin https://github.com/openthread/openthread.git
+            git fetch origin "${OT_COMMIT}" --depth 1
+            git reset --hard FETCH_HEAD
+
             repeat 3 ./script/bootstrap
             ./bootstrap
         )

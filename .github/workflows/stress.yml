@@ -28,6 +28,9 @@ name: Stress
 
 on: [push, pull_request]
 
+env:
+  OT_COMMIT: "0d8a99bd0573227f0751e18b584b069183d1eb3f"
+
 jobs:
   cancel-previous-runs:
     runs-on: ubuntu-latest
