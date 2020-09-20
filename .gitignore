@@ -14,8 +14,7 @@
 go.sum
 tmp/
 *.json
-log
-current.pcap
+*.log
 /cmd/simulation_demo/openthread/
 *.rep
 openthread/
@@ -23,9 +22,13 @@ ot-cli-ftd
 *.pyc
 __pycache__
 node_modules/
+coverage.txt
 
 # Ignore any pcap
 *.pcap
+
+# Ignore replay files
+*.replay
 
 # ignore OTNS executives
 /cmd/otns/otns
