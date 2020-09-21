@@ -210,7 +210,8 @@ class OTNS(object):
         cmd = f'move {nodeid} {x} {y}'
         self._do_command(cmd)
 
-    def ping(self, srcid: int, dst: Union[int, str], addrtype='any', datasize=0) -> None:
+    def ping(self, srcid: int, dst: Union[int, str], addrtype='any', datasize=0, count: int = 1,
+             interval: float = 1) -> None:
         """
         Ping from source node to destination node.
 
@@ -218,13 +219,15 @@ class OTNS(object):
         :param dst: destination node ID or address
         :param addrtype: address type for the destination node (only useful for destination node ID)
         :param datasize: ping data size
+        :param count: ping count
+        :param interval: ping interval (in seconds)
 
         Use pings() to get ping results.
         """
         if isinstance(dst, str):
             addrtype = ''  # addrtype only appliable for dst ID
 
-        cmd = f'ping {srcid} {dst!r} {addrtype} datasize {datasize}'
+        cmd = f'ping {srcid} {dst!r} {addrtype} datasize {datasize} count {count} interval {interval}'
         self._do_command(cmd)
 
     @property
@@ -695,6 +698,14 @@ class OTNS(object):
         :param val: the Router downgrade threshold
         """
         self.node_cmd(nodeid, f'routerdowngradethreshold {val}')
+
+    def set_poll_period(self, nodeid: int, period: float) -> None:
+        ms = int(period * 1000)
+        self.node_cmd(nodeid, f'pollperiod {ms}')
+
+    def get_poll_period(self, nodeid: int) -> float:
+        ms = self._expect_int(self.node_cmd(nodeid, 'pollperiod'))
+        return ms / 1000.0
 
     @staticmethod
     def _expect_int(output: List[str]) -> int:

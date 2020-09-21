@@ -26,16 +26,18 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+import ipaddress
 import os
 import sys
 import time
 import traceback
 from functools import wraps
+from otns.cli import OTNS
+from otns.cli.errors import UnexpectedError
 from typing import Collection
 
 from StressTestResult import StressTestResult
-from otns.cli import OTNS
-from otns.cli.errors import UnexpectedError
+from errors import UnexpectedNodeAddr
 
 
 class StressTestMetaclass(type):
@@ -138,3 +140,17 @@ class BaseStressTest(object, metaclass=StressTestMetaclass):
 
         if not all_routers:
             raise UnexpectedError("not all nodes are Routers: %s" % self.ns.nodes())
+
+    def expect_node_addr(self, nodeid: int, addr: str, timeout=100):
+        addr = ipaddress.IPv6Address(addr)
+
+        found_addr = False
+        while timeout > 0:
+            if addr in map(ipaddress.IPv6Address, self.ns.get_ipaddrs(nodeid)):
+                found_addr = True
+                break
+
+            self.ns.go(1)
+
+        if not found_addr:
+            raise UnexpectedNodeAddr(f'Address {addr} not found on node {nodeid}')
