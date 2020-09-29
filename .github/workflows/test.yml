@@ -29,7 +29,7 @@ name: Test
 on: [push, pull_request]
 
 env:
-  OT_COMMIT: "b91dccaea4aa7d5e3f874aab94a0a51e148a4f21" # Sep 29 2020
+  OT_COMMIT: "dc9b032dad4d348da389c1053457147dd2817bd8" # Sep 29 2020
 
 jobs:
   cancel-previous-runs:
