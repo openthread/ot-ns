@@ -263,7 +263,7 @@ class BasicTests(OTNSTestCase):
                          "full_network_data: true"],
                 not_contain=["rx_on_when_idle: true",
                              "full_thread_device: true"],
-                action=lambda: signaler.emit_status("mode=sn"))
+                action=lambda: signaler.emit_status("mode=n"))
 
         self.expect_response(
                 contain=[
@@ -273,7 +273,7 @@ class BasicTests(OTNSTestCase):
                         "secure_data_requests: true",
                         "full_thread_device: true",
                         "full_network_data: true"],
-                action=lambda: signaler.emit_status("mode=rsdn"))
+                action=lambda: signaler.emit_status("mode=rdn"))
 
     def testUpdateChildren(self):
         # create node

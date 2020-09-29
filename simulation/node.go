@@ -712,7 +712,6 @@ func (node *Node) setupMode() {
 	if !node.cfg.RxOffWhenIdle {
 		mode += "r"
 	}
-	mode += "s"
 	if !node.cfg.IsMtd {
 		mode += "d"
 	}

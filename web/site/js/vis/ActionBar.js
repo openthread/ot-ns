@@ -167,7 +167,6 @@ export default class ActionBar extends VObject {
         let pos = e.data.getLocalPosition(this.vis._root);
         let mode = new NodeMode();
         mode.setRxOnWhenIdle(true);
-        mode.setSecureDataRequests(true);
         mode.setFullThreadDevice(true);
         mode.setFullNetworkData(true);
         this.vis.ctrlAddNode(Math.round(pos.x), Math.round(pos.y - 100), "router")
@@ -177,7 +176,6 @@ export default class ActionBar extends VObject {
         let pos = e.data.getLocalPosition(this.vis._root);
         let mode = new NodeMode();
         mode.setRxOnWhenIdle(true);
-        mode.setSecureDataRequests(true);
         mode.setFullThreadDevice(true);
         mode.setFullNetworkData(true);
         this.vis.ctrlAddNode(Math.round(pos.x), Math.round(pos.y - 100), "fed")
@@ -187,7 +185,6 @@ export default class ActionBar extends VObject {
         let pos = e.data.getLocalPosition(this.vis._root);
         let mode = new NodeMode();
         mode.setRxOnWhenIdle(true);
-        mode.setSecureDataRequests(true);
         mode.setFullThreadDevice(false);
         mode.setFullNetworkData(true);
         this.vis.ctrlAddNode(Math.round(pos.x), Math.round(pos.y - 100), "med")
@@ -197,7 +194,6 @@ export default class ActionBar extends VObject {
         let pos = e.data.getLocalPosition(this.vis._root);
         let mode = new NodeMode();
         mode.setRxOnWhenIdle(false);
-        mode.setSecureDataRequests(true);
         mode.setFullThreadDevice(false);
         mode.setFullNetworkData(true);
         this.vis.ctrlAddNode(Math.round(pos.x), Math.round(pos.y - 100), "sed")

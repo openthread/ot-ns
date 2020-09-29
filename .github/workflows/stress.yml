@@ -29,7 +29,7 @@ name: Stress
 on: [push, pull_request]
 
 env:
-  OT_COMMIT: "0d8a99bd0573227f0751e18b584b069183d1eb3f" # Sep 19 2020
+  OT_COMMIT: "b91dccaea4aa7d5e3f874aab94a0a51e148a4f21" # Sep 29 2020
 
 jobs:
   cancel-previous-runs:
