@@ -295,9 +295,6 @@ export default class PixiVisualizer extends VObject {
         if (mode.getRxOnWhenIdle()) {
             s += "r";
         }
-        if (mode.getSecureDataRequests()) {
-            s += "s";
-        }
         if (mode.getFullThreadDevice()) {
             s += "d";
         }

@@ -131,10 +131,9 @@ func (gv *grpcVisualizer) SetNodeMode(nodeid NodeId, mode NodeMode) {
 	gv.AddVisualizationEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_SetNodeMode{SetNodeMode: &pb.SetNodeModeEvent{
 		NodeId: int32(nodeid),
 		NodeMode: &pb.NodeMode{
-			RxOnWhenIdle:       mode.RxOnWhenIdle,
-			SecureDataRequests: mode.SecureDataRequests,
-			FullThreadDevice:   mode.FullThreadDevice,
-			FullNetworkData:    mode.FullNetworkData,
+			RxOnWhenIdle:     mode.RxOnWhenIdle,
+			FullThreadDevice: mode.FullThreadDevice,
+			FullNetworkData:  mode.FullNetworkData,
 		},
 	}}}, false)
 }
@@ -420,10 +419,9 @@ func (gv *grpcVisualizer) prepareStream(stream *grpcStream) error {
 			Type: &pb.VisualizeEvent_SetNodeMode{SetNodeMode: &pb.SetNodeModeEvent{
 				NodeId: int32(nodeid),
 				NodeMode: &pb.NodeMode{
-					RxOnWhenIdle:       node.mode.RxOnWhenIdle,
-					SecureDataRequests: node.mode.SecureDataRequests,
-					FullThreadDevice:   node.mode.FullThreadDevice,
-					FullNetworkData:    node.mode.FullNetworkData,
+					RxOnWhenIdle:     node.mode.RxOnWhenIdle,
+					FullThreadDevice: node.mode.FullThreadDevice,
+					FullNetworkData:  node.mode.FullNetworkData,
 				},
 			}},
 		}); err != nil {

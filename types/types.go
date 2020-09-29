@@ -46,18 +46,16 @@ const (
 )
 
 type NodeMode struct {
-	RxOnWhenIdle       bool
-	SecureDataRequests bool
-	FullThreadDevice   bool
-	FullNetworkData    bool
+	RxOnWhenIdle     bool
+	FullThreadDevice bool
+	FullNetworkData  bool
 }
 
 func DefaultNodeMode() NodeMode {
 	return NodeMode{
-		RxOnWhenIdle:       true,
-		SecureDataRequests: true,
-		FullThreadDevice:   true,
-		FullNetworkData:    true,
+		RxOnWhenIdle:     true,
+		FullThreadDevice: true,
+		FullNetworkData:  true,
 	}
 }
 
@@ -66,8 +64,6 @@ func ParseNodeMode(s string) (mode NodeMode) {
 		switch c {
 		case 'r':
 			mode.RxOnWhenIdle = true
-		case 's':
-			mode.SecureDataRequests = true
 		case 'd':
 			mode.FullThreadDevice = true
 		case 'n':
