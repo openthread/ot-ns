@@ -40,6 +40,8 @@ jobs:
   go-lint:
     name: Go Lint
     runs-on: ubuntu-latest
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: 1
     steps:
       - uses: actions/setup-go@v1
         with:
