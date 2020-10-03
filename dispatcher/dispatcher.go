@@ -1221,6 +1221,10 @@ func (d *Dispatcher) NotifyExit(nodeid NodeId) {
 	}
 }
 
+func (d *Dispatcher) NotifyCommand(nodeid NodeId) {
+	d.setAlive(nodeid)
+}
+
 func (d *Dispatcher) dumpPacket(item *sendItem) {
 	sb := strings.Builder{}
 	_, _ = fmt.Fprintf(&sb, "DUMP:PACKET:%d:%d:", item.Timestamp, item.NodeId)

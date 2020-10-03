@@ -77,6 +77,7 @@ class BasicTests(OTNSTestCase):
         self.assertTrue(ns.get_state(n1) == "leader")
         ns.commissioner_start(n1)
         ns.commissioner_joiner_add(n1, "*", "TEST123")
+        self.goConservative(10)
 
         ns.ifconfig_up(n2)
         ns.joiner_start(n2, "TEST123")

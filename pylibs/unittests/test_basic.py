@@ -54,10 +54,6 @@ class BasicTests(OTNSTestCase):
         assert ns.packet_loss_ratio == 1
 
     def testOneNodex100(self):
-        if os.getenv("VIRTUAL_TIME_UART") != "1":
-            self.skipTest("VIRTUAL_TIME_UART not enabled")
-            return
-
         for i in range(100):
             logging.info("testOneNode round %d", i + 1)
             ns = self.ns

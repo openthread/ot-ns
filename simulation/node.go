@@ -192,6 +192,7 @@ func (node *Node) inputCommand(cmd string) {
 
 	if node.uartType == NodeUartTypeRealTime {
 		_, _ = node.pipeIn.Write([]byte(cmd + "\n"))
+		node.S.Dispatcher().NotifyCommand(node.Id)
 	} else {
 		node.S.Dispatcher().SendToUART(node.Id, []byte(cmd+"\n"))
 	}
