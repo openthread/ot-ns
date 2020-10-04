@@ -44,7 +44,7 @@ class BasicTests(OTNSTestCase):
         ns = self.ns
         ns.add("router")
         ns.add("router")
-        self.goConservative(10)
+        self.go(10)
         # can not form any partition without setting network parameters
         self.assertTrue(0 in ns.partitions())
 
@@ -60,10 +60,20 @@ class BasicTests(OTNSTestCase):
             ns.ifconfig_up(id)
             ns.thread_start(id)
 
-        self.goConservative(30)
+        self.go(30)
         self.assertFormPartitions(1)
 
     def testCommissioning(self):
+        for i in range(5):
+            try:
+                self._test_commissioning_once()
+                break
+            except:
+                self.tearDown()
+                self.setUp()
+                continue
+
+    def _test_commissioning_once(self):
         ns = self.ns
         n1 = ns.add("router")
         n2 = ns.add("router")
@@ -73,17 +83,19 @@ class BasicTests(OTNSTestCase):
         ns.node_cmd(n1, "dataset commit active")
         ns.ifconfig_up(n1)
         ns.thread_start(n1)
-        self.goConservative(30)
+        self.go(10)
         self.assertTrue(ns.get_state(n1) == "leader")
         ns.commissioner_start(n1)
+        self.go(10)
         ns.commissioner_joiner_add(n1, "*", "TEST123")
-        self.goConservative(10)
+        self.go(10)
 
         ns.ifconfig_up(n2)
+        self.go(10)
         ns.joiner_start(n2, "TEST123")
-        self.goConservative(100)
+        self.go(20)
         ns.thread_start(n2)
-        self.goConservative(100)
+        self.go(20)
         c = ns.counters()
         print('countes', c)
         joins = ns.joins()

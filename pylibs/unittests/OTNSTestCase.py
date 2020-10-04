@@ -25,13 +25,10 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 import logging
-import os
 import tracemalloc
 import unittest
 
 from otns.cli import OTNS
-
-_NON_VIRTUAL_TIME_UART_CONSERVATIVE_FACTOR = 1 if os.getenv('VIRTUAL_TIME_UART') == '1' else 3
 
 
 class OTNSTestCase(unittest.TestCase):
@@ -52,14 +49,13 @@ class OTNSTestCase(unittest.TestCase):
         pars = self.ns.partitions()
         self.assertTrue(len(pars) == count and 0 not in pars, pars)
 
-    def goConservative(self, duration: float) -> None:
+    def go(self, duration: float) -> None:
         """
         Run the simulation for a given duration.
 
-        :param duration: the duration to simulate (multipled by `_NON_VIRTUAL_TIME_UART_CONSERVATIVE_FACTOR`
-                         if virtual time UART is not used)
+        :param duration: the duration to simulate
         """
-        self.ns.go(duration * _NON_VIRTUAL_TIME_UART_CONSERVATIVE_FACTOR)
+        self.ns.go(duration)
 
     def assertNodeState(self, nodeid: int, state: str):
         cur_state = self.ns.get_state(nodeid)
