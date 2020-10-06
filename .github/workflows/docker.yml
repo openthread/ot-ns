@@ -50,7 +50,7 @@ jobs:
           DOCKER_IMAGE=openthread/otns
           DOCKER_FILE=etc/docker/playground/Dockerfile
           DOCKER_PLATFORMS=linux/amd64
-          VERSION=latest
+          VERSION=playground
 
           TAGS="--tag ${DOCKER_IMAGE}:${VERSION}"
 
