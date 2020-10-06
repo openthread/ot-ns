@@ -64,16 +64,6 @@ class BasicTests(OTNSTestCase):
         self.assertFormPartitions(1)
 
     def testCommissioning(self):
-        for i in range(5):
-            try:
-                self._test_commissioning_once()
-                break
-            except:
-                self.tearDown()
-                self.setUp()
-                continue
-
-    def _test_commissioning_once(self):
         ns = self.ns
         n1 = ns.add("router")
         n2 = ns.add("router")
@@ -83,19 +73,16 @@ class BasicTests(OTNSTestCase):
         ns.node_cmd(n1, "dataset commit active")
         ns.ifconfig_up(n1)
         ns.thread_start(n1)
-        self.go(10)
+        self.go(30)
         self.assertTrue(ns.get_state(n1) == "leader")
         ns.commissioner_start(n1)
-        self.go(10)
         ns.commissioner_joiner_add(n1, "*", "TEST123")
-        self.go(10)
 
         ns.ifconfig_up(n2)
-        self.go(10)
         ns.joiner_start(n2, "TEST123")
-        self.go(20)
+        self.go(100)
         ns.thread_start(n2)
-        self.go(20)
+        self.go(100)
         c = ns.counters()
         print('countes', c)
         joins = ns.joins()
