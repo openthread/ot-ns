@@ -40,6 +40,8 @@ jobs:
   develop:
     name: Develop (Go${{ matrix.go }},Py${{matrix.python-version}},${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: 1
     strategy:
       matrix:
         go: [1.11, 1.14]
