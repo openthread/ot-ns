@@ -164,7 +164,7 @@ class BasicTests(OTNSTestCase):
             contain=contain,
             not_contain=not_contain)
         action()
-        self.goConservative(go_step)
+        self.go(go_step)
         self._wait_for_expect(exception_queue, expect_thread)
 
     def testAddNode(self):
@@ -180,7 +180,7 @@ class BasicTests(OTNSTestCase):
         signaler = UDPSignaler(node_id)
         self.udp_signalers[node_id] = signaler
         self.grpc_client.send_command(f"add router x 100 y 100 id {node_id}")
-        self.goConservative(0.1)
+        self.go(0.1)
 
         extaddr = random.getrandbits(64)
         self.expect_response(
@@ -194,7 +194,7 @@ class BasicTests(OTNSTestCase):
         signaler = UDPSignaler(node_id)
         self.udp_signalers[node_id] = signaler
         self.grpc_client.send_command(f"add router x 100 y 100 id {node_id}")
-        self.goConservative(0.1)
+        self.go(0.1)
 
         rloc16 = random.getrandbits(16)
         self.expect_response(
@@ -208,7 +208,7 @@ class BasicTests(OTNSTestCase):
         signaler = UDPSignaler(node_id)
         self.udp_signalers[node_id] = signaler
         self.grpc_client.send_command(f"add router x 100 y 100 id {node_id}")
-        self.goConservative(0.1)
+        self.go(0.1)
 
         par_id = random.getrandbits(32)
         self.expect_response(
@@ -222,7 +222,7 @@ class BasicTests(OTNSTestCase):
         signaler = UDPSignaler(node_id)
         self.udp_signalers[node_id] = signaler
         self.grpc_client.send_command(f"add router x 100 y 100 id {node_id}")
-        self.goConservative(0.1)
+        self.go(0.1)
 
         self.expect_response(
                 contain=["set_node_role", f"node_id: {node_id}",
@@ -255,7 +255,7 @@ class BasicTests(OTNSTestCase):
         signaler = UDPSignaler(node_id)
         self.udp_signalers[node_id] = signaler
         self.grpc_client.send_command(f"add router x 100 y 100 id {node_id}")
-        self.goConservative(0.1)
+        self.go(0.1)
 
         self.expect_response(
                 contain=["set_node_mode", f"node_id: {node_id}",
@@ -282,7 +282,7 @@ class BasicTests(OTNSTestCase):
         signaler_1 = UDPSignaler(node_id_1)
         self.udp_signalers[node_id_1] = signaler_1
         self.grpc_client.send_command(f"add router x 100 y 100 id {node_id_1}")
-        self.goConservative(0.1)
+        self.go(0.1)
         signaler_1.emit_status(f"extaddr={extaddr_1:016x}")
 
         node_id_2 = random.randint(6, 10)
@@ -290,7 +290,7 @@ class BasicTests(OTNSTestCase):
         signaler_2 = UDPSignaler(node_id_2)
         self.udp_signalers[node_id_2] = signaler_2
         self.grpc_client.send_command(f"add router x 200 y 200 id {node_id_2}")
-        self.goConservative(0.1)
+        self.go(0.1)
         signaler_2.emit_status(f"extaddr={extaddr_2:016x}")
 
         expectation = self.create_expectation(
@@ -299,7 +299,7 @@ class BasicTests(OTNSTestCase):
         signaler_1.emit_status("role=3")
         signaler_2.emit_status("role=2")
         signaler_1.emit_status(f"child_added={extaddr_2:016x}")
-        self.goConservative(0.1)
+        self.go(0.1)
         self.expect(expectation)
 
         expectation = self.create_expectation(
@@ -308,7 +308,7 @@ class BasicTests(OTNSTestCase):
         signaler_1.emit_status("role=3")
         signaler_2.emit_status("role=1")
         signaler_1.emit_status(f"child_removed={extaddr_2:016x}")
-        self.goConservative(0.1)
+        self.go(0.1)
         self.expect(expectation)
 
     def testUpdateRouter(self):
@@ -318,7 +318,7 @@ class BasicTests(OTNSTestCase):
         signaler_1 = UDPSignaler(node_id_1)
         self.udp_signalers[node_id_1] = signaler_1
         self.grpc_client.send_command(f"add router x 100 y 100 id {node_id_1}")
-        self.goConservative(0.1)
+        self.go(0.1)
         signaler_1.emit_status(f"extaddr={extaddr_1:016x}")
 
         node_id_2 = random.randint(6, 10)
@@ -326,7 +326,7 @@ class BasicTests(OTNSTestCase):
         signaler_2 = UDPSignaler(node_id_2)
         self.udp_signalers[node_id_2] = signaler_2
         self.grpc_client.send_command(f"add router x 200 y 200 id {node_id_2}")
-        self.goConservative(0.1)
+        self.go(0.1)
         signaler_2.emit_status(f"extaddr={extaddr_2:016x}")
 
         signaler_1.emit_status("role=3")

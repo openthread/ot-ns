@@ -54,10 +54,6 @@ class BasicTests(OTNSTestCase):
         assert ns.packet_loss_ratio == 1
 
     def testOneNodex100(self):
-        if os.getenv("VIRTUAL_TIME_UART") != "1":
-            self.skipTest("VIRTUAL_TIME_UART not enabled")
-            return
-
         for i in range(100):
             logging.info("testOneNode round %d", i + 1)
             ns = self.ns
@@ -70,14 +66,14 @@ class BasicTests(OTNSTestCase):
     def testAddNode(self):
         ns = self.ns
         ns.add("router")
-        self.goConservative(3)
+        self.go(3)
         self.assertFormPartitions(1)
 
         ns.add("router")
         ns.add("fed")
         ns.add("med")
         ns.add("sed")
-        self.goConservative(33)
+        self.go(33)
         self.assertFormPartitions(1)
 
     def testAddNodeWithID(self):
@@ -85,26 +81,26 @@ class BasicTests(OTNSTestCase):
         for new_id in [50, 55, 60]:
             nid = ns.add("router", id=new_id)
             self.assertEqual(nid, new_id)
-            self.goConservative(1)
+            self.go(1)
 
     def testAddNodeWithExistingID(self):
         ns = self.ns
         new_id = 50
         nid = ns.add("router", id=new_id)
         self.assertEqual(nid, new_id)
-        self.goConservative(1)
+        self.go(1)
         self.assertRaises(errors.OTNSCliError, lambda: ns.add("router", id=new_id))
 
     def testRestoreNode(self):
         ns = self.ns
         ns.add("router")
 
-        self.goConservative(3)
+        self.go(3)
         self.assertEqual(ns.get_state(1), "leader")
 
         for type in ("router", "fed","med", "sed"):
             nodeid = ns.add(type)
-            self.goConservative(10)
+            self.go(10)
             self.assertFormPartitions(1)
             rloc16 = ns.get_rloc16(nodeid)
             print('rloc16', rloc16)
@@ -114,7 +110,7 @@ class BasicTests(OTNSTestCase):
 
             self.assertEqual(nodeid, ns.add(type, restore=True))
 
-            self.goConservative(1)
+            self.go(1)
             self.assertFormPartitions(1)
             self.assertEqual(rloc16, ns.get_rloc16(nodeid))
 
@@ -122,10 +118,10 @@ class BasicTests(OTNSTestCase):
         ns = self.ns
         ns.add("router")
         ns.add("router")
-        self.goConservative(10)
+        self.go(10)
         self.assertFormPartitions(1)
         ns.delete(1)
-        self.goConservative(10)
+        self.go(10)
         self.assertTrue(len(ns.nodes()) == 1 and 1 not in ns.nodes())
 
     def testDelManyNodes(self):
@@ -148,7 +144,7 @@ class BasicTests(OTNSTestCase):
         ns.add("router")
         ns.add("router")
         ns.add("router")
-        self.goConservative(100)
+        self.go(100)
         self.assertFormPartitions(3)
 
     def testRadioInRange(self):
@@ -156,7 +152,7 @@ class BasicTests(OTNSTestCase):
         radio_range = 100
         ns.add("router", 0, 0, radio_range=radio_range)
         ns.add("router", 0, radio_range - 1, radio_range=radio_range)
-        self.goConservative(10)
+        self.go(10)
         self.assertFormPartitions(1)
 
     def testRadioNotInRange(self):
@@ -164,23 +160,23 @@ class BasicTests(OTNSTestCase):
         radio_range = 100
         ns.add("router", 0, 0, radio_range=radio_range)
         ns.add("router", 0, radio_range + 1, radio_range=radio_range)
-        self.goConservative(10)
+        self.go(10)
         self.assertFormPartitions(2)
 
     def testNodeFailRecover(self):
         ns = self.ns
         ns.add("router")
         fid = ns.add("router")
-        self.goConservative(10)
+        self.go(10)
         self.assertFormPartitions(1)
 
         ns.radio_off(fid)
-        self.goConservative(240)
+        self.go(240)
         print(ns.partitions())
         self.assertFormPartitions(2)
 
         ns.radio_on(fid)
-        self.goConservative(100)
+        self.go(100)
         self.assertFormPartitions(1)
 
     def testFailTime(self):
@@ -201,7 +197,7 @@ class BasicTests(OTNSTestCase):
     def testCliCmd(self):
         ns = self.ns
         id = ns.add("router")
-        self.goConservative(3)
+        self.go(3)
         self.assertTrue(ns.get_state(id), 'leader')
 
     def testCounters(self):
@@ -220,11 +216,11 @@ class BasicTests(OTNSTestCase):
         ns.add("router")
         ns.add("router")
 
-        self.goConservative(10)
+        self.go(10)
         c10 = ns.counters()
         assert_increasing(c0, c10)
 
-        self.goConservative(10)
+        self.go(10)
         c20 = ns.counters()
         assert_increasing(c10, c20)
 
