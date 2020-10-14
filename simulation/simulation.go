@@ -51,7 +51,7 @@ type Simulation struct {
 	networkInfo visualize.NetworkInfo
 }
 
-func NewSimulation(ctx *progctx.ProgCtx, cfg *Config) (*Simulation, error) {
+func NewSimulation(ctx *progctx.ProgCtx, cfg *Config, dispatcherCfg *dispatcher.Config) (*Simulation, error) {
 	s := &Simulation{
 		ctx:         ctx,
 		cfg:         cfg,
@@ -62,7 +62,10 @@ func NewSimulation(ctx *progctx.ProgCtx, cfg *Config) (*Simulation, error) {
 	s.networkInfo.Real = cfg.Real
 
 	// start the event_dispatcher for virtual time
-	dispatcherCfg := dispatcher.DefaultConfig()
+	if dispatcherCfg == nil {
+		dispatcherCfg = dispatcher.DefaultConfig()
+	}
+
 	dispatcherCfg.Speed = cfg.Speed
 	dispatcherCfg.Real = cfg.Real
 	dispatcherCfg.Host = cfg.DispatcherHost
