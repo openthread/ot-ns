@@ -34,6 +34,8 @@ import (
 	"strings"
 	"time"
 
+	"gopkg.in/yaml.v3"
+
 	"github.com/openthread/ot-ns/visualize"
 
 	"github.com/openthread/ot-ns/web"
@@ -74,6 +76,23 @@ func (cc *CommandContext) error(err error) {
 
 func (cc *CommandContext) Err() error {
 	return cc.err
+}
+
+func (cc *CommandContext) outputItemsAsYaml(items interface{}) {
+	var itemsYaml yaml.Node
+
+	err := itemsYaml.Encode(items)
+	simplelogger.PanicIfError(err)
+
+	for _, content := range itemsYaml.Content {
+		content.Style = yaml.FlowStyle
+	}
+
+	data, err := yaml.Marshal(&itemsYaml)
+	simplelogger.PanicIfError(err)
+
+	_, err = cc.output.Write(data)
+	simplelogger.PanicIfError(err)
 }
 
 type CmdRunner struct {
@@ -178,6 +197,8 @@ func (rt *CmdRunner) execute(cmd *Command, output io.Writer) {
 		rt.executeCounters(cc, cc.Counters)
 	} else if cmd.Joins != nil {
 		rt.executeCollectJoins(cc, cc.Joins)
+	} else if cmd.Coaps != nil {
+		rt.executeCoaps(cc, cc.Coaps)
 	} else if cmd.Scan != nil {
 		rt.executeScan(cc, cc.Scan)
 	} else if cmd.ConfigVisualization != nil {
@@ -731,6 +752,21 @@ func (rt *CmdRunner) executeNetInfo(cc *CommandContext, cmd *NetInfoCmd) {
 		}
 		sim.SetNetworkInfo(netinfo)
 	})
+}
+
+func (rt *CmdRunner) executeCoaps(cc *CommandContext, cmd *CoapsCmd) {
+	if cmd.Enable != nil {
+		rt.postAsyncWait(func(sim *simulation.Simulation) {
+			sim.Dispatcher().EnableCoaps()
+		})
+	} else {
+		var coapMessages []*dispatcher.CoapMessage
+		rt.postAsyncWait(func(sim *simulation.Simulation) {
+			coapMessages = sim.Dispatcher().CollectCoapMessages()
+		})
+
+		cc.outputItemsAsYaml(coapMessages)
+	}
 }
 
 func NewCmdRunner(ctx *progctx.ProgCtx, sim *simulation.Simulation) *CmdRunner {

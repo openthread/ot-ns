@@ -123,6 +123,7 @@ type Dispatcher struct {
 	goDurationChan        chan goDuration
 	globalPacketLossRatio float64
 	visOptions            VisualizationOptions
+	coaps                 *coapsHandler
 
 	Counters struct {
 		// Event counters
@@ -827,6 +828,8 @@ func (d *Dispatcher) handleStatusPush(srcid NodeId, data string) {
 			hoplimit, err := strconv.Atoi(args[3])
 			simplelogger.PanicIfError(err)
 			srcnode.onPingReply(d.convertNodeMilliTime(srcnode, uint32(timestamp)), dstaddr, datasize, hoplimit)
+		} else if sp[0] == "coap" {
+			d.handleCoapEvent(srcnode, sp[1])
 		} else if sp[0] == "parid" {
 			// set partition id
 			parid, err := strconv.ParseUint(sp[1], 16, 32)
@@ -1251,4 +1254,67 @@ func (d *Dispatcher) setNodeRole(id NodeId, role OtDeviceRole) {
 
 	node.Role = role
 	d.vis.SetNodeRole(id, role)
+}
+
+func (d *Dispatcher) handleCoapEvent(node *Node, argsStr string) {
+	var err error
+
+	if d.coaps == nil {
+		// Coaps not enabled
+		return
+	}
+
+	args := strings.Split(argsStr, ",")
+
+	simplelogger.AssertTrue(len(args) > 0)
+	action := args[0]
+
+	if action == "send" || action == "recv" || action == "send_error" {
+		var messageId, coapType, coapCode, port int
+
+		simplelogger.AssertTrue(len(args) >= 7)
+
+		messageId, err = strconv.Atoi(args[1])
+		simplelogger.PanicIfError(err)
+
+		coapType, err = strconv.Atoi(args[2])
+		simplelogger.PanicIfError(err)
+
+		coapCode, err = strconv.Atoi(args[3])
+		simplelogger.PanicIfError(err)
+
+		uri := args[4]
+
+		ip := args[5]
+
+		port, err = strconv.Atoi(args[6])
+		simplelogger.PanicIfError(err)
+
+		if action == "send" {
+			d.coaps.OnSend(d.CurTime, node.Id, messageId, CoapType(coapType), CoapCode(coapCode), uri, ip, port)
+		} else if action == "recv" {
+			d.coaps.OnRecv(d.CurTime, node.Id, messageId, CoapType(coapType), CoapCode(coapCode), uri, ip, port)
+		} else {
+			simplelogger.AssertTrue(len(args) >= 7)
+			threadError := args[6]
+
+			d.coaps.OnSendError(node.Id, messageId, CoapType(coapType), CoapCode(coapCode), uri, ip, port, threadError)
+		}
+	} else {
+		simplelogger.Warnf("unknown coap event: %+v", args)
+	}
+}
+
+func (d *Dispatcher) EnableCoaps() {
+	if d.coaps == nil {
+		d.coaps = newCoapsHandler()
+	}
+}
+
+func (d *Dispatcher) CollectCoapMessages() []*CoapMessage {
+	if d.coaps != nil {
+		return d.coaps.DumpMessages()
+	} else {
+		return nil
+	}
 }

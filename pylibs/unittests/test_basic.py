@@ -26,7 +26,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 import logging
-import os
 import unittest
 from typing import Dict
 
@@ -98,7 +97,7 @@ class BasicTests(OTNSTestCase):
         self.go(3)
         self.assertEqual(ns.get_state(1), "leader")
 
-        for type in ("router", "fed","med", "sed"):
+        for type in ("router", "fed", "med", "sed"):
             nodeid = ns.add(type)
             self.go(10)
             self.assertFormPartitions(1)
@@ -293,6 +292,24 @@ class BasicTests(OTNSTestCase):
         for val in range(0, 33):
             ns.set_router_downgrade_threshold(nid, val)
             self.assertEqual(val, ns.get_router_downgrade_threshold(nid))
+
+    def testCoaps(self):
+        ns: OTNS = self.ns
+        ns.coaps_enable()
+        for i in range(10):
+            id = ns.add('router')
+            ns.node_cmd(id, 'routerselectionjitter 1')
+            ns.go(5)
+
+        ns.go(10)
+        msgs = ns.coaps()
+        routers = {}
+        for msg in msgs:
+            if msg.get('uri') == 'a/as':
+                routers[msg['src']] = msg['id']
+
+        # Node 2 ~ 10 should become Routers by sending `a/as`
+        self.assertEqual(set(routers), set(range(2, 11)))
 
 
 if __name__ == '__main__':
