@@ -25,6 +25,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+import ipaddress
 import logging
 import os
 import shutil
@@ -120,6 +121,14 @@ class OTNS(object):
 
         self._do_command(f'speed {speed}')
 
+    def set_poll_period(self, nodeid: int, period: float) -> None:
+        ms = int(period * 1000)
+        self.node_cmd(nodeid, f'pollperiod {ms}')
+
+    def get_poll_period(self, nodeid: int) -> float:
+        ms = self._expect_int(self.node_cmd(nodeid, 'pollperiod'))
+        return ms / 1000.0
+
     @staticmethod
     def _detect_otns_path() -> str:
         env_otns_path = os.getenv('OTNS')
@@ -210,7 +219,8 @@ class OTNS(object):
         cmd = f'move {nodeid} {x} {y}'
         self._do_command(cmd)
 
-    def ping(self, srcid: int, dst: Union[int, str], addrtype='any', datasize=0, count: int = 1,
+    def ping(self, srcid: int, dst: Union[int, str, ipaddress.IPv6Address], addrtype: str = 'any', datasize: int = 0,
+             count: int = 1,
              interval: float = 1) -> None:
         """
         Ping from source node to destination node.
@@ -224,8 +234,11 @@ class OTNS(object):
 
         Use pings() to get ping results.
         """
-        if isinstance(dst, str):
+        if isinstance(dst, (str, ipaddress.IPv6Address)):
             addrtype = ''  # addrtype only appliable for dst ID
+
+            if isinstance(dst, ipaddress.IPv6Address):
+                dst = dst.compressed
 
         cmd = f'ping {srcid} {dst!r} {addrtype} datasize {datasize} count {count} interval {interval}'
         self._do_command(cmd)
@@ -432,7 +445,7 @@ class OTNS(object):
         """
         return self._expect_hex(self.node_cmd(nodeid, "rloc16"))
 
-    def get_ipaddrs(self, nodeid: int, addrtype: str = None) -> List[str]:
+    def get_ipaddrs(self, nodeid: int, addrtype: str = None) -> List[ipaddress.IPv6Address]:
         """
         Get node ipaddrs.
 
@@ -445,7 +458,18 @@ class OTNS(object):
         if addrtype:
             cmd += f' {addrtype}'
 
-        return self.node_cmd(nodeid, cmd)
+        return [ipaddress.IPv6Address(a) for a in self.node_cmd(nodeid, cmd)]
+
+    def get_mleid(self, nodeid: int) -> ipaddress.IPv6Address:
+        """
+        Get the MLEID of a node.
+
+        :param nodeid: the node ID
+
+        :return: the MLEID
+        """
+        ips = self.get_ipaddrs(nodeid, 'mleid')
+        return ips[0] if ips else None
 
     def set_network_name(self, nodeid: int, name: str = None) -> None:
         """
@@ -698,14 +722,6 @@ class OTNS(object):
         :param val: the Router downgrade threshold
         """
         self.node_cmd(nodeid, f'routerdowngradethreshold {val}')
-
-    def set_poll_period(self, nodeid: int, period: float) -> None:
-        ms = int(period * 1000)
-        self.node_cmd(nodeid, f'pollperiod {ms}')
-
-    def get_poll_period(self, nodeid: int) -> float:
-        ms = self._expect_int(self.node_cmd(nodeid, 'pollperiod'))
-        return ms / 1000.0
 
     @staticmethod
     def _expect_int(output: List[str]) -> int:
