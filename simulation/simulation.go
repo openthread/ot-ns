@@ -75,7 +75,7 @@ func NewSimulation(ctx *progctx.ProgCtx, cfg *Config, dispatcherCfg *dispatcher.
 	s.d = dispatcher.NewDispatcher(s.ctx, dispatcherCfg, s)
 	s.vis = s.d.GetVisualizer()
 	if err := s.removeTmpDir(); err != nil {
-		simplelogger.Errorf("remove tmp directory failed: %+v", err)
+		simplelogger.Panicf("remove tmp directory failed: %+v", err)
 	}
 
 	return s, nil
