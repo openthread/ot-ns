@@ -39,7 +39,7 @@ install_otns()
 install_pyotns()
 {
     cd pylibs
-    python3 setup.py install --user --prefix=
+    python3 setup.py install --user --prefix= 2>/dev/null
     cd -
 }
 

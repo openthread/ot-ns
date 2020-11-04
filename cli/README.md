@@ -8,6 +8,7 @@ Python libraries use the CLI to manage simulations.
 ## OTNS command list
 
 * [add](#add-type-x-x-y-y-rr-radio-range-id-node-id-restore)
+* [coaps](#coaps-enable)
 * [counters](#counters)
 * [cv](#cv-option-onoff-)
 * [del](#del-node-id-node-id-)
@@ -55,6 +56,26 @@ Done
 Done
 > add fed x 200 y 200 id 25
 25
+Done
+```
+
+### coaps enable
+
+Enable collecting info of CoAP messages.
+
+```
+> coaps enable
+Done
+```
+
+### coaps
+
+Show info of collected CoAP messages in yaml format.
+
+```
+> coaps
+- {time: 57019000, src: 2, id: 25421, type: 0, code: 2, uri: a/as, dst_addr: 'fdde:ad00:beef:0:0:ff:fe00:f000', dst_port: 61631, receivers: [{time: 57019961, dst: 1, src_addr: 'fdde:ad00:beef:0:0:ff:fe00:f001', src_port: 61631}]}
+- {time: 57019961, src: 1, id: 25421, type: 2, code: 68, dst_addr: 'fdde:ad00:beef:0:0:ff:fe00:f001', dst_port: 61631, receivers: [{time: 57021242, dst: 2, src_addr: 'fdde:ad00:beef:0:0:ff:fe00:f000', src_port: 61631}]}
 Done
 ```
 

@@ -37,6 +37,7 @@ import (
 //noinspection GoStructTag
 type Command struct {
 	Add                 *AddCmd                 `  @@` //nolint
+	Coaps               *CoapsCmd               `| @@` //nolint
 	ConfigVisualization *ConfigVisualizationCmd `| @@` //nolint
 	CountDown           *CountDownCmd           `| @@` //nolint
 	Counters            *CountersCmd            `| @@` //nolint
@@ -288,6 +289,16 @@ type NodeType struct {
 //noinspection GoStructTag
 type AddNodeId struct {
 	Val int `"id" @Int` //nolint
+}
+
+//noinspection GoStructTag
+type CoapsCmd struct {
+	Cmd    struct{}    `"coaps"` //nolint
+	Enable *EnableFlag `@@ ?`    //nolint
+}
+
+type EnableFlag struct {
+	Dummy struct{} `"enable"` //nolint
 }
 
 //noinspection GoStructTag

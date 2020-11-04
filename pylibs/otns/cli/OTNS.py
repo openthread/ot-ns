@@ -33,6 +33,8 @@ import signal
 import subprocess
 from typing import List, Union, Optional, Tuple, Dict, Any, Collection
 
+import yaml
+
 from .errors import OTNSCliError, OTNSExitedError
 
 
@@ -155,7 +157,7 @@ class OTNS(object):
             if line == b'':
                 self._on_otns_eof()
 
-            line = line.strip().decode('utf-8')
+            line = line.rstrip(b'\r\n').decode('utf-8')
             logging.info(f"OTNS >>> {line}")
             if line == 'Done':
                 return output
@@ -722,6 +724,17 @@ class OTNS(object):
         :param val: the Router downgrade threshold
         """
         self.node_cmd(nodeid, f'routerdowngradethreshold {val}')
+
+    def coaps_enable(self) -> None:
+        self._do_command('coaps enable')
+
+    def coaps(self) -> List[Dict]:
+        """
+        Get recent CoAP messages.
+        """
+        lines = self._do_command('coaps')
+        messages = yaml.safe_load('\n'.join(lines))
+        return messages
 
     @staticmethod
     def _expect_int(output: List[str]) -> int:
