@@ -29,7 +29,7 @@ name: Test
 on: [push, pull_request]
 
 env:
-  OT_COMMIT: "a740350c5c4b3acd8b16bc04f14f2b95669db411" # Oct 19, 2020
+  OT_COMMIT: "2dc8d711c727007e30cfc9b0a0f88bd5d2f0a2a8" # Oct 19, 2020
   MAX_NETWORK_SIZE: 999
 
 jobs:
