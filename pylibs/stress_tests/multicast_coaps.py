@@ -26,7 +26,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-# ML-EID Connectivity Stress Test:
+# CoAP Multicast Stress Test:
 #   The Border Router multicasts COAP messages to all nodes and measure the coverage and delay with injected failures.
 # Topology:
 #   Router x8 (one being Border Router)
