@@ -94,14 +94,13 @@ class StressTest(BaseStressTest):
         self.expect_node_addr(BR, BR_ADDR, 10)
 
         for i in range(1, ROUTER_COUNT):
-            nid = ns.add("router", x=200 + 100 * i, y=200, radio_range=RADIO_RANGE)
-            ns.node_cmd(nid, f'coap resource')
+            ns.add("router", x=200 + 100 * i, y=200, radio_range=RADIO_RANGE)
 
         for i in range(FED_COUNT):
-            nid = ns.add("fed", x=200 + 100 * i, y=100, radio_range=RADIO_RANGE)
+            ns.add("fed", x=200 + 100 * i, y=100, radio_range=RADIO_RANGE)
 
         for i in range(MED_COUNT):
-            nid = ns.add("med", x=150 + 100 * i, y=300, radio_range=RADIO_RANGE)
+            ns.add("med", x=150 + 100 * i, y=300, radio_range=RADIO_RANGE)
 
         for i in range(SED_COUNT):
             nid = ns.add("sed", x=200 + 100 * i, y=400, radio_range=RADIO_RANGE)
@@ -166,9 +165,9 @@ class StressTest(BaseStressTest):
             if not delays:
                 return '-'
 
-            avg = self.avg(delays) // 1000
-            _max = max(delays) // 1000
-            return 'cov:%d%%, avg:%dms, max:%dms' % (self.avg(coverages) * 100, avg, _max)
+            avg = int(self.avg(delays) // 1000)
+            _max = int(max(delays) // 1000)
+            return f'cov:{int(self.avg(coverages) * 100)}%%, avg:{avg}ms, max:{_max}ms'
 
         self.result.append_row(format_delay(router_coverages, router_delays), format_delay(fed_coverages, fed_delays),
                                format_delay(med_coverages, med_delays),
