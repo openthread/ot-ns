@@ -72,7 +72,7 @@ class StressTestResult(object):
         return len(self.headers)
 
     def append_row(self, *values: Any):
-        assert len(values) == len(self.headers)
+        assert len(values) == len(self.headers), (self.headers, values)
         self.rows.append(values)
 
     def format(self):
