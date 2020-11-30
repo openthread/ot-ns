@@ -45,17 +45,9 @@ make -f examples/Makefile-simulation OTNS=1
 After building OpenThread, run OTNS:
 
 ```bash
-cd output/x86_64-unknown-linux-gnu/bin
+cd output/simulation/bin
 otns
 ```
-or 
-```bash
-otns -bin output/x86_64-unknown-linux-gnu/bin
-```
-
-> `x86_64-unknown-linux-gnu` is the output directory for building OpenThread 
-> on Linux. On macOS, the directory will be `x86_64-apple-darwin`. 
-> Check the `output` folder for the correct directory to use.
 
 If started successfully, OTNS opens a web browser for network visualization and management. 
 
