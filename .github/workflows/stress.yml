@@ -29,7 +29,6 @@ name: Stress
 on: [push, pull_request]
 
 env:
-  OT_COMMIT: "2dc8d711c727007e30cfc9b0a0f88bd5d2f0a2a8" # Oct 19, 2020
   MAX_NETWORK_SIZE: 999
 
 jobs:
