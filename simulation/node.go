@@ -137,9 +137,7 @@ func (node *Node) String() string {
 }
 
 func (node *Node) SetupNetworkParameters(sim *Simulation) {
-	node.SetMasterKey(node.S.MasterKey())
-	node.SetPanid(node.S.Panid())
-	node.SetChannel(node.S.Channel())
+	node.ConfigActiveDataset(node.S.Channel(), node.S.MasterKey(), node.S.Panid())
 }
 
 func (node *Node) Start() {
@@ -583,6 +581,18 @@ func (node *Node) GetSingleton() bool {
 		simplelogger.Panicf("expect true/false, but read: %#v", s)
 		return false
 	}
+}
+
+func (node *Node) ConfigActiveDataset(channel int, masterkey string, panid uint16) {
+	node.Command("dataset init new", DefaultCommandTimeout)
+	node.Command(fmt.Sprintf("dataset channel %d", channel), DefaultCommandTimeout)
+	node.Command(fmt.Sprintf("dataset channelmask 0x%08x", DefaultChannelMask), DefaultCommandTimeout)
+	node.Command(fmt.Sprintf("dataset masterkey %s", masterkey), DefaultCommandTimeout)
+	node.Command(fmt.Sprintf("dataset panid 0x%04x", panid), DefaultCommandTimeout)
+	node.Command(fmt.Sprintf("dataset extpanid %s", DefaultExtPanid), DefaultCommandTimeout)
+	node.Command(fmt.Sprintf("dataset meshlocalprefix %s", DefaultMeshLocalPrefix), DefaultCommandTimeout)
+	node.Command(fmt.Sprintf("dataset networkname %s", DefaultNetworkName), DefaultCommandTimeout)
+	node.Command("dataset commit active", DefaultCommandTimeout)
 }
 
 func (node *Node) lineReader(reader io.Reader, uartType NodeUartType) {
