@@ -531,6 +531,32 @@ class OTNS(object):
         """
         self.node_cmd(nodeid, f'masterkey {key}')
 
+    def config_dataset(self, nodeid: int, panid: int = None, masterkey: str = None, network_name: str = None,
+                       dataset='active'):
+        """
+        Configure the active/pending dataset
+
+        :param nodeid: target node ID
+        :param panid: the Pan ID.
+        :param masterkey: the master key
+        :param network_name: the network name
+        """
+        assert dataset in ('active', 'pending'), dataset
+
+        self.node_cmd(nodeid, 'dataset init new')
+
+        if panid is not None:
+            self.node_cmd(nodeid, f'dataset panid 0x{panid:04x}')
+
+        if masterkey is not None:
+            self.node_cmd(nodeid, f'dataset masterkey {masterkey}')
+
+        if network_name is not None:
+            network_name = self._escape_whitespace(network_name)
+            self.node_cmd(nodeid, f'dataset networkname {network_name}')
+
+        self.node_cmd(nodeid, f'dataset commit {dataset}')
+
     def web(self) -> None:
         """
         Open web browser for visualization.
