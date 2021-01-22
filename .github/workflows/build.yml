@@ -30,7 +30,7 @@ on: [push, pull_request]
 
 jobs:
   cancel-previous-runs:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - uses: rokroskar/workflow-run-cleanup-action@master
         env:
@@ -43,15 +43,13 @@ jobs:
     strategy:
       matrix:
         include:
-          - go: 1.11
-            os: ubuntu-latest
-          - go: 1.12
-            os: ubuntu-latest
           - go: 1.13
-            os: ubuntu-latest
+            os: ubuntu-20.04
           - go: 1.14
-            os: ubuntu-latest
-          - go: 1.11
+            os: ubuntu-20.04
+          - go: 1.15
+            os: ubuntu-20.04
+          - go: 1.13
             os: macos-10.15
     steps:
       - uses: actions/setup-go@v1
