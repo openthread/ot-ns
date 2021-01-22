@@ -543,7 +543,7 @@ class OTNS(object):
         """
         assert dataset in ('active', 'pending'), dataset
 
-        self.node_cmd(nodeid, 'dataset init new')
+        self.node_cmd(nodeid, 'dataset clear')
 
         if panid is not None:
             self.node_cmd(nodeid, f'dataset panid 0x{panid:04x}')
