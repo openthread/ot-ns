@@ -584,7 +584,7 @@ func (node *Node) GetSingleton() bool {
 }
 
 func (node *Node) ConfigActiveDataset(channel int, masterkey string, panid uint16) {
-	node.Command("dataset init new", DefaultCommandTimeout)
+	node.Command("dataset clear", DefaultCommandTimeout)
 	node.Command(fmt.Sprintf("dataset channel %d", channel), DefaultCommandTimeout)
 	node.Command(fmt.Sprintf("dataset channelmask 0x%08x", DefaultChannelMask), DefaultCommandTimeout)
 	node.Command(fmt.Sprintf("dataset masterkey %s", masterkey), DefaultCommandTimeout)
