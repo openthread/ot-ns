@@ -28,6 +28,8 @@ syntax = "proto3";
 
 package visualize_grpc_pb;
 
+option go_package = "github.com/openthread/ot-ns/visualize/grpc/pb";
+
 message VisualizeRequest {
 
 }

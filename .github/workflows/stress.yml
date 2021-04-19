@@ -28,9 +28,6 @@ name: Stress
 
 on: [push, pull_request]
 
-env:
-  MAX_NETWORK_SIZE: 999
-
 jobs:
   cancel-previous-runs:
     runs-on: ubuntu-20.04

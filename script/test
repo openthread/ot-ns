@@ -31,7 +31,7 @@
 set -euox pipefail
 
 OT_DIR=${OT_DIR:-$HOME/src/openthread}
-OTBIN_DIR=$OT_DIR/output/simulation/bin
+OTBIN_DIR=$OT_DIR/build/simulation/examples/apps/cli
 
 installed()
 {
@@ -74,7 +74,7 @@ get_openthread()
     if ! [[ -x $OT_DIR ]]; then
         mkdir -p "$OT_DIR"
         (
-            OT_COMMIT=${OT_COMMIT:-master}
+            OT_COMMIT=${OT_COMMIT:-main}
 
             cd "$OT_DIR"
             git init
@@ -82,8 +82,7 @@ get_openthread()
             git fetch origin "${OT_COMMIT}" --depth 1
             git reset --hard FETCH_HEAD
 
-            repeat 3 ./script/bootstrap
-            ./bootstrap
+            repeat 3 ./script/bootstrap >/dev/null 2>&1
         )
     fi
 }
@@ -92,7 +91,7 @@ build_openthread()
 {
     get_openthread
     cd "$OT_DIR"
-    make -f "$OT_DIR"/examples/Makefile-simulation OTNS=1
+    script/cmake-build simulation -DOT_OTNS=ON -DOT_SIMULATION_VIRTUAL_TIME=ON -DOT_SIMULATION_VIRTUAL_TIME_UART="${VIRTUAL_TIME_UART:-OFF}" -DOT_SIMULATION_MAX_NETWORK_SIZE=999
     cd -
 }
 
@@ -118,6 +117,7 @@ check_py_example()
     sleep 10
     killall otns || true
     wait $pid || die "Run pyOTNS example failed :$1"
+    sleep 3
 }
 
 py_examples()

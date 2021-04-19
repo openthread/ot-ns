@@ -28,9 +28,6 @@ name: Test
 
 on: [push, pull_request]
 
-env:
-  MAX_NETWORK_SIZE: 999
-
 jobs:
   cancel-previous-runs:
     runs-on: ubuntu-20.04
@@ -102,19 +99,19 @@ jobs:
       - uses: actions/checkout@v2
       - name: Run Examples
         run: |
-          export VIRTUAL_TIME_UART=${{ matrix.VIRTUAL_TIME_UART }}
           ./script/test py-examples
 
   signals:
     name: Signals (Py${{ matrix.python-version }}, ${{ matrix.os }}, VIRTUAL_TIME_UART=${{ matrix.VIRTUAL_TIME_UART }})
     runs-on: ${{ matrix.os }}
-    env:
-      HOMEBREW_NO_AUTO_UPDATE: 1
     strategy:
       matrix:
         python-version: [3.6]
         os: [ubuntu-20.04, macos-10.15]
         VIRTUAL_TIME_UART: [0, 1]
+    env:
+      VIRTUAL_TIME_UART: ${{ matrix.VIRTUAL_TIME_UART }}
+      HOMEBREW_NO_AUTO_UPDATE: 1
     steps:
       - uses: actions/setup-go@v1
         with:
