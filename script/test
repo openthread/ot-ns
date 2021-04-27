@@ -104,6 +104,14 @@ build_openthread()
             "-DOT_COMMISSIONER=ON"
             "-DOT_JOINER=ON"
         )
+
+        local COVERAGE=${COVERAGE:-0}
+        if [[ $COVERAGE == 1 ]]; then
+            options+=(
+                "-DOT_COVERAGE=ON"
+            )
+        fi
+
         cmake -GNinja ../.. "${options[@]}"
         ninja
     )
