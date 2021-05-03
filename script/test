@@ -103,6 +103,7 @@ build_openthread()
             "-DOT_SIMULATION_MAX_NETWORK_SIZE=999"
             "-DOT_COMMISSIONER=ON"
             "-DOT_JOINER=ON"
+            "-DOT_THREAD_VERSION=${THREAD_VERSION:-1.2}"
         )
 
         local COVERAGE=${COVERAGE:-0}
