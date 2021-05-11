@@ -29,8 +29,12 @@
 
 import inspect
 import logging
-import sys
 import os
+
+import sys
+
+from BaseStressTest import BaseStressTest
+from stess_report_bot import StressReportBot
 
 
 def find_stress_test_classes(mod, suite_name: str):
@@ -84,11 +88,18 @@ def run_suite(script_dir, suite_name: str):
 
         stress_tests.append((filename, stress_test_classes))
 
+    results = []
     for filename, clses in sorted(stress_tests):
         for cls in clses:
-            t = cls()
+            t: BaseStressTest = cls()
             logging.info("Running stress test: %s ...", t.name)
-            t.run(report=True)
+            t.run(report=False)
+            results.append(t.result)
+
+    installid = int(os.environ['OT_STRESS_REPORT_INSTALL_ID'])
+    owner, repo, issue_number = None, None, None
+    bot = StressReportBot(installid=installid, owner=owner, repo=repo, issue_number=issue_number)
+    bot.submit_suite_results(suite_name, results)
 
 
 if __name__ == '__main__':

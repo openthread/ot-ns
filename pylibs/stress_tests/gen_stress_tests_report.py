@@ -1,4 +1,5 @@
-# Copyright (c) 2020, The OTNS Authors.
+#!/usr/bin/env python3
+# Copyright (c) 2021, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -23,55 +24,25 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+#
+import logging
+import os
 
-name: Stress
+from stess_report_bot import StressReportBot
 
-on: [push, pull_request]
 
-env:
-  OT_STRESS_REPORT_INSTALL_ID: 8493459
+def main():
+    logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.DEBUG)
 
-jobs:
-  cancel-previous-runs:
-    runs-on: ubuntu-20.04
-    steps:
-      - uses: rokroskar/workflow-run-cleanup-action@master
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        if: "github.ref != 'refs/heads/master'"
+    owner, repo, issue_number = None, None, None
+    installid = int(os.environ['OT_STRESS_REPORT_INSTALL_ID'])
 
-  stress-tests:
-    name: "Test Suite ${{ matrix.suite }}"
-    strategy:
-      matrix:
-        python-version: [3.8]
-        go-version: [1.14]
-        suite: ["network-forming", "commissioning", "connectivity", "network-latency", "multicast-performance", "otns-performance"]
-    runs-on: ubuntu-20.04
-    env:
-      HOMEBREW_NO_AUTO_UPDATE: 1
-    steps:
-      - uses: actions/setup-go@v1
-        with:
-          go-version: ${{ matrix.go-version }}
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v1
-        with:
-          python-version: ${{ matrix.python-version }}
-      - run: |
-          mkdir -p /home/runner/work/_temp/_github_home
-      - uses: actions/checkout@v2
-      - name: Stress Test
-        env:
-          STRESS_LEVEL: 10
-        run: |
-          ./script/test stress-tests ${{ matrix.suite }}
+    bot = StressReportBot(installid=installid, owner=owner, repo=repo, issue_number=issue_number)
+    report = bot.report_suite_results()
+    logging.debug("Report commented: %s", report)
 
-  stress-report:
-    name: Generate Report
-    runs-on: ubuntu-20.04
-    needs: [stress-tests]
-    steps:
-      - uses: actions/checkout@v2
-      - run: |
-          ./script/test gen-stress-tests-report
+    exit(report['fail_count'])
+
+
+if __name__ == '__main__':
+    main()
