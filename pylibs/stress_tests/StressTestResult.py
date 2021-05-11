@@ -27,9 +27,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-import time
-
 from typing import Sequence, Any
+
+import time
 
 
 class StressTestResult(object):
@@ -88,3 +88,16 @@ class StressTestResult(object):
 
         return f'#### {self.name} **{passed_str}**{fail_msg} _({start_time} ~ {stop_time})_\n' + '\n'.join(
             rows) + '\n'
+
+    def json(self) -> dict:
+        return {
+            'name': self.name,
+            'failed': self._failed,
+            'fail_msg': self._fail_msgs,
+            'metrics': {
+                'headers': self.headers,
+                'rows': self.rows,
+            },
+            'start_time': self._start_time,
+            'stop_time': self._stop_time,
+        }

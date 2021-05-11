@@ -167,6 +167,7 @@ test_signals()
 stress_tests()
 {
     install_deps
+    python3 -m pip install --user -r "$OTNSDIR"/pylibs/stress_tests/requirements.txt
     install_otns
     build_openthread
     cd "$OTBIN_DIR"
@@ -176,7 +177,7 @@ stress_tests()
 
 gen_stress_tests_report()
 {
-  python3 "$OTNSDIR"/pylibs/stress_tests/gen_stress_tests_report.py
+    python3 "$OTNSDIR"/pylibs/stress_tests/gen_stress_tests_report.py
 }
 
 main()
