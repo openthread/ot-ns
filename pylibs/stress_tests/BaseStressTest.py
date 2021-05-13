@@ -116,6 +116,9 @@ class BaseStressTest(object, metaclass=StressTestMetaclass):
             if stress_result_fd is not sys.stdout:
                 stress_result_fd.close()
 
+        if self.result.failed:
+            raise RuntimeError("Stress test failed: \n" + "\n".join("\t" + msg for msg in self.result._fail_msgs))
+
     def avg_except_max(self, vals: Collection[float]) -> float:
         assert len(vals) >= 2
         max_val = max(vals)

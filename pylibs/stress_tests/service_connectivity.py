@@ -68,7 +68,7 @@ FAIL_INTERVAL = 600
 MOVE_COUNT = 3
 
 BR = None  # the Border Router
-SVR1, SVR1_DATA = "svr1", "svr1"
+SVR1, SVR1_DATA = "112233", "aabbcc"
 BR_ADDR = 'fdde:ad00:beef:0:0:ff:fe00:fc10'
 
 SED_PULL_PERIOD = 1
@@ -94,7 +94,7 @@ class StressTest(BaseStressTest):
         ns.radio_set_fail_time(BR, fail_time=(FAIL_DURATION, FAIL_INTERVAL))
         ns.node_cmd(BR, "prefix add 2001:dead:beef:cafe::/64 paros med")
         ns.node_cmd(BR, f"service add 44970 {SVR1} {SVR1_DATA}")
-        ns.node_cmd(BR, "netdataregister")
+        ns.node_cmd(BR, "netdata register")
 
         self.expect_node_addr(BR, BR_ADDR, 10)
 

@@ -414,7 +414,7 @@ class OTNS(object):
 
         cmd = f'prefix add {prefix} {flags} {prf}'
         self.node_cmd(nodeid, cmd)
-        self.node_cmd(nodeid, 'netdataregister')
+        self.node_cmd(nodeid, 'netdata register')
 
     def node_cmd(self, nodeid: int, cmd: str) -> List[str]:
         """
