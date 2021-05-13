@@ -26,7 +26,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-# Ping Latency Stress Test:
+# Network Forming Stress Test:
 #   Different number of nodes form networks (a single partition) and measure the network forming delay.
 # Topology:
 #   1x1 Routers ~ 7x7 Routers
