@@ -53,7 +53,12 @@ class BasicTests(OTNSTestCase):
         n1 = ns.add("router")
         n2 = ns.add("router")
         n3 = ns.add("router")
-        for id in (n1, n2, n3):
+
+        ns.config_dataset(n1, panid=0xface, network_name="test", masterkey="00112233445566778899aabbccddeeff")
+        ns.ifconfig_up(n1)
+        ns.thread_start(n1)
+
+        for id in (n2, n3):
             ns.set_network_name(id, "test")
             ns.set_panid(id, 0xface)
             ns.set_masterkey(id, "00112233445566778899aabbccddeeff")
