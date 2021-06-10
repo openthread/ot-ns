@@ -671,7 +671,7 @@ func (node *Node) CommandExpectEnabledOrDisabled(cmd string, timeout time.Durati
 }
 
 func (node *Node) Ping(addr string, payloadSize int, count int, interval int, hopLimit int) {
-	cmd := fmt.Sprintf("ping %s %d %d %d %d", addr, payloadSize, count, interval, hopLimit)
+	cmd := fmt.Sprintf("ping async %s %d %d %d %d", addr, payloadSize, count, interval, hopLimit)
 	node.inputCommand(cmd)
 	node.expectLine(cmd, DefaultCommandTimeout)
 	node.AssurePrompt()
