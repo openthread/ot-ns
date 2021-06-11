@@ -140,8 +140,8 @@ func (s *Simulation) Nodes() map[NodeId]*Node {
 	return s.nodes
 }
 
-func (s *Simulation) MasterKey() string {
-	return s.cfg.MasterKey
+func (s *Simulation) NetworkKey() string {
+	return s.cfg.NetworkKey
 }
 
 func (s *Simulation) Panid() uint16 {

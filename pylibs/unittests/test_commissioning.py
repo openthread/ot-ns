@@ -56,7 +56,7 @@ class BasicTests(OTNSTestCase):
         for id in (n1, n2, n3):
             ns.set_network_name(id, "test")
             ns.set_panid(id, 0xface)
-            ns.set_masterkey(id, "00112233445566778899aabbccddeeff")
+            ns.set_networkkey(id, "00112233445566778899aabbccddeeff")
             ns.ifconfig_up(id)
             ns.thread_start(id)
 

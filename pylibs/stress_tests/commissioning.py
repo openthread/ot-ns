@@ -94,7 +94,7 @@ class CommissioningStressTest(BaseStressTest):
         cr, cc = R // 2, C // 2
         ns.node_cmd(G[cr][cc], 'dataset init new')
         ns.node_cmd(G[cr][cc], 'dataset')
-        ns.node_cmd(G[cr][cc], 'dataset masterkey 00112233445566778899aabbccddeeff')
+        ns.node_cmd(G[cr][cc], 'dataset networkkey 00112233445566778899aabbccddeeff')
         ns.node_cmd(G[cr][cc], 'dataset commit active')
         ns.ifconfig_up(G[cr][cc])
         ns.thread_start(G[cr][cc])

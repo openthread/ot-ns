@@ -512,24 +512,24 @@ class OTNS(object):
         """
         return self._expect_hex(self.node_cmd(nodeid, 'panid'))
 
-    def get_masterkey(self, nodeid: int) -> str:
+    def get_networkkey(self, nodeid: int) -> str:
         """
-        Get master key.
+        Get network key.
 
         :param nodeid: target node ID
 
-        :return: master key as a hex string
+        :return: network key as a hex string
         """
-        return self._expect_str(self.node_cmd(nodeid, 'masterkey'))
+        return self._expect_str(self.node_cmd(nodeid, 'networkkey'))
 
-    def set_masterkey(self, nodeid: int, key: str) -> None:
+    def set_networkkey(self, nodeid: int, key: str) -> None:
         """
-        Set master key.
+        Set network key.
 
         :param nodeid: target node ID
-        :param key: master key as a hex string
+        :param key: network key as a hex string
         """
-        self.node_cmd(nodeid, f'masterkey {key}')
+        self.node_cmd(nodeid, f'networkkey {key}')
 
     def web(self) -> None:
         """
