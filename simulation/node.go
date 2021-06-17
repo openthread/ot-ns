@@ -137,7 +137,7 @@ func (node *Node) String() string {
 }
 
 func (node *Node) SetupNetworkParameters(sim *Simulation) {
-	node.SetMasterKey(node.S.MasterKey())
+	node.SetNetworkKey(node.S.NetworkKey())
 	node.SetPanid(node.S.Panid())
 	node.SetChannel(node.S.Channel())
 }
@@ -146,9 +146,9 @@ func (node *Node) Start() {
 	node.IfconfigUp()
 	node.ThreadStart()
 
-	simplelogger.Infof("%v - started, panid=0x%04x, channel=%d, eui64=%#v, extaddr=%#v, state=%s, masterkey=%#v, mode=%v", node,
+	simplelogger.Infof("%v - started, panid=0x%04x, channel=%d, eui64=%#v, extaddr=%#v, state=%s, networkkey=%#v, mode=%v", node,
 		node.GetPanid(), node.GetChannel(), node.GetEui64(), node.GetExtAddr(), node.GetState(),
-		node.GetMasterKey(), node.GetMode())
+		node.GetNetworkKey(), node.GetMode())
 }
 
 func (node *Node) IsFED() bool {
@@ -504,12 +504,12 @@ func (node *Node) Reset() {
 	simplelogger.Debugf("%v - ready", node)
 }
 
-func (node *Node) GetMasterKey() string {
-	return node.CommandExpectString("masterkey", DefaultCommandTimeout)
+func (node *Node) GetNetworkKey() string {
+	return node.CommandExpectString("networkkey", DefaultCommandTimeout)
 }
 
-func (node *Node) SetMasterKey(key string) {
-	node.Command(fmt.Sprintf("masterkey %s", key), DefaultCommandTimeout)
+func (node *Node) SetNetworkKey(key string) {
+	node.Command(fmt.Sprintf("networkkey %s", key), DefaultCommandTimeout)
 }
 
 func (node *Node) GetMode() string {

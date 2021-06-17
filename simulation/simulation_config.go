@@ -30,14 +30,14 @@ import "github.com/openthread/ot-ns/threadconst"
 
 const (
 	DefaultNetworkName = "OTSIM"
-	DefaultMasterKey   = "00112233445566778899aabbccddeeff"
+	DefaultNetworkKey  = "00112233445566778899aabbccddeeff"
 	DefaultPanid       = 0xface
 	DefaultChannel     = 11
 )
 
 type Config struct {
 	NetworkName    string
-	MasterKey      string
+	NetworkKey     string
 	Panid          uint16
 	Channel        int
 	OtCliPath      string
@@ -53,7 +53,7 @@ type Config struct {
 func DefaultConfig() *Config {
 	return &Config{
 		NetworkName:    DefaultNetworkName,
-		MasterKey:      DefaultMasterKey,
+		NetworkKey:     DefaultNetworkKey,
 		Panid:          DefaultPanid,
 		Channel:        DefaultChannel,
 		Speed:          1,
