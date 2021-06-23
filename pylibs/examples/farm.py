@@ -53,7 +53,7 @@ def main():
     ns = OTNS(otns_args=['-log', 'info'])
     ns.speed = 1
     ns.set_title("Farm Example")
-    ns.set_network_info(version="Latest", commit="master", real=False)
+    ns.set_network_info(version="Latest", commit="main", real=False)
     ns.config_visualization(broadcast_message=False)
     ns.web()
 

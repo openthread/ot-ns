@@ -115,7 +115,7 @@ export default class PixiVisualizer extends VObject {
             e.stopPropagation();
         });
         this.addChild(this.otCommitIdMsg);
-        this.setOTVersion("", "master");
+        this.setOTVersion("", "main");
 
         this.titleText = new PIXI.Text("", {
             fill: "#e69900",
