@@ -38,7 +38,7 @@ def main():
 
     ns = OTNS()
     ns.set_title("Ping Example")
-    ns.set_network_info(version="Latest", commit="master", real=False)
+    ns.set_network_info(version="Latest", commit="main", real=False)
     ns.web()
 
     ns.speed = 4

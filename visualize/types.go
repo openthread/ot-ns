@@ -120,6 +120,6 @@ func DefaultNetworkInfo() NetworkInfo {
 	return NetworkInfo{
 		Real:    false,
 		Version: "",
-		Commit:  "master",
+		Commit:  "main",
 	}
 }
