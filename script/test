@@ -167,11 +167,17 @@ test_signals()
 stress_tests()
 {
     install_deps
+    python3 -m pip install --user -r "$OTNSDIR"/pylibs/stress_tests/requirements.txt
     install_otns
     build_openthread
     cd "$OTBIN_DIR"
     python3 "$OTNSDIR"/pylibs/stress_tests/run_stress_suite.py "$@"
     cd -
+}
+
+gen_stress_tests_report()
+{
+    python3 "$OTNSDIR"/pylibs/stress_tests/gen_stress_tests_report.py
 }
 
 main()
@@ -197,6 +203,10 @@ main()
             stress-tests)
                 stress_tests "$2"
                 shift 2
+                ;;
+            gen-stress-tests-report)
+                gen_stress_tests_report
+                shift 1
                 ;;
             *)
                 echo "Error: Unsupported test $1" >&2
