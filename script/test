@@ -30,8 +30,8 @@
 
 set -euox pipefail
 
-OT_DIR=${OT_DIR:-$HOME/src/openthread}
-OTBIN_DIR=$OT_DIR/build/otns/examples/apps/cli
+OT_DIR=${OT_DIR:-}
+OTBIN_DIR=
 
 installed()
 {
@@ -70,21 +70,16 @@ install_otns()
 
 get_openthread()
 {
-
-    if ! [[ -x $OT_DIR ]]; then
-        mkdir -p "$OT_DIR"
+    if [[ -z $OT_DIR ]]; then
+        OT_DIR=$PWD/openthread
+        git submodule update --init
         (
-            OT_COMMIT=${OT_COMMIT:-main}
-
             cd "$OT_DIR"
-            git init
-            git remote add origin https://github.com/openthread/openthread.git
-            git fetch origin "${OT_COMMIT}" --depth 1
-            git reset --hard FETCH_HEAD
-
             repeat 3 ./script/bootstrap >/dev/null 2>&1
         )
     fi
+
+    OTBIN_DIR=$OT_DIR/build/otns/examples/apps/cli
 }
 
 build_openthread()
