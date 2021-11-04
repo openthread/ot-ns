@@ -60,8 +60,8 @@ class CommissioningStressTest(BaseStressTest):
 
         expected_join_count = REPEAT * (N * N - 1)
         total_join_count = self._join_count + self._join_fail_count
-        self.result.fail_if(self._join_count != expected_join_count,
-                            "Join Count (%d) != %d" % (self._join_count, expected_join_count))
+        self.result.fail_if(self._join_count < expected_join_count * 0.99,
+                            "Join Count (%d) < %d * 99%%" % (self._join_count, expected_join_count))
         join_ok_percent = self._join_count * 100 // total_join_count
         avg_join_time = self._join_time_accum / self._join_count if self._join_count else float('inf')
         self.result.append_row(total_join_count, '%d%%' % join_ok_percent,
