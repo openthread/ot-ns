@@ -652,7 +652,7 @@ func (node *Node) TryExpectLine(line interface{}, timeout time.Duration) (bool, 
 func (node *Node) expectLine(line interface{}, timeout time.Duration) []string {
 	found, output := node.TryExpectLine(line, timeout)
 	if !found {
-		simplelogger.Panicf("expect line timeout: %#v", line)
+		simplelogger.Panicf("expect line timeout: %#v (got instead: %#v)", line, output)
 	}
 
 	return output
@@ -733,7 +733,7 @@ func (node *Node) onUartWrite(data []byte) {
 
 func (node *Node) detectVirtualTimeUART() {
 	// Input newline to both Virtual Time UART and stdin and check where node outputs newline
-	node.S.Dispatcher().SendToUART(node.Id, []byte("\n"))
+	node.S.Dispatcher().SendToUART(node.Id, []byte("\n\n"))
 	_, _ = node.pipeIn.Write([]byte("\n"))
 
 	node.expectLine("", DefaultCommandTimeout)

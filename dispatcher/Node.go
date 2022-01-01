@@ -27,7 +27,6 @@
 package dispatcher
 
 import (
-	"encoding/binary"
 	"fmt"
 	"math"
 	"net"
@@ -79,6 +78,8 @@ type Node struct {
 	failureCtrl   *FailureCtrl
 	isFailed      bool
 	radioRange    int
+	isCcaFailed   bool
+	txPhase       uint16
 	pendingPings  []*pingRequest
 	pingResults   []*PingResult
 	joinerState   OtJoinerState
@@ -113,18 +114,30 @@ func (node *Node) String() string {
 	return fmt.Sprintf("Node<%016x@%d,%d>", node.ExtAddr, node.X, node.Y)
 }
 
-func (node *Node) Send(elapsed uint64, data []byte) {
-	msg := make([]byte, len(data)+11)
-	binary.LittleEndian.PutUint64(msg[:8], elapsed)
-	msg[8] = eventTypeRadioReceived
-	binary.LittleEndian.PutUint16(msg[9:11], uint16(len(data)))
-	n := copy(msg[11:], data)
-	simplelogger.AssertTrue(n == len(data))
+// SendEvent sends event evt serialized to the node, over UDP and also handles delay time keeping.
+func (node *Node) SendEvent(evt *event) {
+	timestamp := evt.Timestamp
+	var elapsed uint64
+	oldTime := node.CurTime
+	if timestamp > oldTime {
+		elapsed = timestamp - oldTime
+	} else {
+		elapsed = 0
+	}
+	// set the delay/advance in the event; which is serialized (not the Timestamp)
+	evt.Delay = elapsed
 
-	node.SendMessage(msg)
+	node.sendRawData(evt.Serialize())
+
+	node.CurTime = timestamp
+	if timestamp > oldTime {
+		node.failureCtrl.OnTimeAdvanced(oldTime)
+	}
+
 }
 
-func (node *Node) SendMessage(msg []byte) {
+// sendRawData is INTERNAL to send bytes to UDP socket of node
+func (node *Node) sendRawData(msg []byte) {
 	if node.peerAddr != nil {
 		_, _ = node.D.udpln.WriteToUDP(msg, node.peerAddr)
 	} else {
