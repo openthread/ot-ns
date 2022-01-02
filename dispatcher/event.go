@@ -40,7 +40,6 @@ const (
 	eventTypeUartWrite             uint8 = 2
 	eventTypeStatusPush            uint8 = 5
 	eventTypeRadioTxDone           uint8 = 6
-	eventTypeRadioRxStart          uint8 = 7
 	eventTypeRadioFrameToSim       uint8 = 8
 	eventTypeRadioFrameSimInternal uint8 = 9
 )
