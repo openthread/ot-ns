@@ -311,18 +311,14 @@ func (d *Dispatcher) handleRecvEvent(evt *event) {
 
 	if d.isWatching(evt.NodeId) {
 		simplelogger.Warnf("Node %d <<< %+v, cur time %d, node time %d, delay %d", evt.NodeId, *evt,
-			d.CurTime, int64(d.nodes[nodeid].CurTime)-int64(d.CurTime), evt.Delay)
+			d.CurTime, int64(node.CurTime), evt.Delay)
 	}
 
 	delay := evt.Delay
-	var evtTime uint64
+	evtTime := evt.Timestamp
 	if delay >= 2147483647 {
 		evtTime = Ever
-	} else {
-		evtTime = d.CurTime + evt.Delay
 	}
-	evt.Timestamp = evtTime
-	//FIXME simplelogger.AssertEqual(evtTime, evt.Timestamp)
 
 	if d.cfg.Real && (evt.Type != eventTypeUartWrite && evt.Type != eventTypeStatusPush) {
 		// should not receive particular events in real mode
@@ -334,6 +330,7 @@ func (d *Dispatcher) handleRecvEvent(evt *event) {
 	case eventTypeAlarmFired:
 		d.Counters.AlarmEvents += 1
 		d.setSleeping(nodeid)
+		simplelogger.AssertTrue(evtTime > d.CurTime)
 		d.alarmMgr.SetTimestamp(nodeid, evtTime)
 	case eventTypeStatusPush:
 		d.Counters.StatusPushEvents += 1
@@ -341,6 +338,9 @@ func (d *Dispatcher) handleRecvEvent(evt *event) {
 	case eventTypeUartWrite:
 		d.Counters.UartWriteEvents += 1
 		d.handleUartWrite(evt.NodeId, evt.Data)
+	case eventTypeAwake:
+		d.setAlive(nodeid)
+		simplelogger.AssertTrue(evtTime == d.CurTime)
 	default:
 		d.Counters.RadioEvents += 1 // TODO check what radio events / internal radio-model evts need to be counted.
 		d.radioModel.HandleEvent(node, evt)
@@ -660,11 +660,14 @@ func (d *Dispatcher) checkRadioReachable(src *Node, dst *Node) bool {
 
 // sendTxDoneEvent sends the Tx done event to node when Tx of frame is done and the Rx of the Ack can start.
 func (d *Dispatcher) sendTxDoneEvent(evt *event) {
+	simplelogger.AssertFalse(d.cfg.Real)
 	simplelogger.AssertTrue(evt.Type == eventTypeRadioTxDone)
 	dstnodeid := evt.NodeId
 	dstnode := d.GetNode(dstnodeid)
 	simplelogger.AssertNotNil(dstnode)
 	dstnode.SendEvent(evt)
+	d.alarmMgr.SetNotified(dstnodeid)
+	d.setAlive(dstnodeid)
 	if d.isWatching(dstnodeid) {
 		simplelogger.Warnf("Node %d >>> TX DONE", dstnodeid)
 	}
@@ -694,8 +697,13 @@ func (d *Dispatcher) sendOneRadioFrameEvent(evt *event, srcnode *Node, dstnode *
 		return false
 	}
 
+	oldTime := dstnode.CurTime
+	evt.Delay = evt.Timestamp - oldTime // adjust Delay value per target dstnode.
 	dstnode.SendEvent(evt)
-
+	dstnode.CurTime = evt.Timestamp
+	if evt.Timestamp > oldTime {
+		dstnode.failureCtrl.OnTimeAdvanced(oldTime)
+	}
 	dstnodeid := dstnode.Id
 	d.alarmMgr.SetNotified(dstnodeid)
 	d.setAlive(dstnodeid)

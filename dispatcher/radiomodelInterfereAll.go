@@ -23,6 +23,7 @@ func (rm *RadioModelInterfereAll) TxStart(node *Node, evt *event) {
 		nextEvt := &event{
 			Type:      eventTypeRadioTxDone,
 			Timestamp: evt.Timestamp + 1,
+			Delay:     1,
 			Data:      []byte{openthread.OT_ERROR_BUSY},
 			NodeId:    node.Id,
 		}
@@ -58,6 +59,7 @@ func (rm *RadioModelInterfereAll) TxOngoing(node *Node, evt *event) {
 			nextEvt := &event{
 				Type:      eventTypeRadioTxDone,
 				Timestamp: evt.Timestamp + 1, // TODO check if +0 could work here
+				Delay:     1,
 				Data:      []byte{openthread.OT_ERROR_CHANNEL_ACCESS_FAILURE},
 				NodeId:    node.Id,
 			}
@@ -65,7 +67,7 @@ func (rm *RadioModelInterfereAll) TxOngoing(node *Node, evt *event) {
 			node.txPhase = 0 // reset back
 		} else {
 			// CCA was successful, start frame transmission now.
-			rm.isRfBusy = true
+			// FIXME test never busy - rm.isRfBusy = true
 			// schedule the end-of-frame-transmission event.
 			nextEvt := evt
 			nextEvt.Type = eventTypeRadioFrameSimInternal
@@ -79,6 +81,7 @@ func (rm *RadioModelInterfereAll) TxOngoing(node *Node, evt *event) {
 		nextEvt := &event{
 			Type:      eventTypeRadioTxDone,
 			Timestamp: evt.Timestamp + 1, // TODO check if +0 could work here.
+			Delay:     1,
 			Data:      []byte{openthread.OT_ERROR_NONE},
 			NodeId:    node.Id,
 		}

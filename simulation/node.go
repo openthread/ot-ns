@@ -112,6 +112,8 @@ func newNode(s *Simulation, id NodeId, cfg *NodeConfig) (*Node, error) {
 
 	go node.lineReader(node.pipeOut, NodeUartTypeRealTime)
 	go node.lineReader(node.virtualUartReader, NodeUartTypeVirtualTime)
+	//go node.lineReader(node.pipeErr, NodeUartTypeRealTime);
+
 	return node, nil
 }
 

@@ -116,24 +116,7 @@ func (node *Node) String() string {
 
 // SendEvent sends event evt serialized to the node, over UDP and also handles delay time keeping.
 func (node *Node) SendEvent(evt *event) {
-	timestamp := evt.Timestamp
-	var elapsed uint64
-	oldTime := node.CurTime
-	if timestamp > oldTime {
-		elapsed = timestamp - oldTime
-	} else {
-		elapsed = 0
-	}
-	// set the delay/advance in the event; which is serialized (not the Timestamp)
-	evt.Delay = elapsed
-
 	node.sendRawData(evt.Serialize())
-
-	node.CurTime = timestamp
-	if timestamp > oldTime {
-		node.failureCtrl.OnTimeAdvanced(oldTime)
-	}
-
 }
 
 // sendRawData is INTERNAL to send bytes to UDP socket of node
