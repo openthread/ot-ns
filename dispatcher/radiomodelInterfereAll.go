@@ -6,6 +6,8 @@ import (
 )
 
 const CCA_TIME_US uint64 = 128
+const SYMBOL_TIME_US uint64 = 16
+const ACK_AIFS_TIME_US uint64 = SYMBOL_TIME_US * 12
 
 type RadioModelInterfereAll struct {
 	isRfBusy bool
@@ -18,13 +20,14 @@ func (rm *RadioModelInterfereAll) IsTxSuccess(node *Node, evt *event) bool {
 func (rm *RadioModelInterfereAll) TxStart(node *Node, evt *event) {
 	var nextEvt *event
 
-	// check if a transmission is already ongoing? If so return busy error.
+	// check if a transmission is already ongoing? If so return OT_ERROR_ABORT.
 	if node.txPhase > 0 {
-		nextEvt := &event{
+		// FIXME: submac layer of OpenThread shouldn't start Tx when it's still ongoing.
+		nextEvt = &event{
 			Type:      eventTypeRadioTxDone,
 			Timestamp: evt.Timestamp + 1,
 			Delay:     1,
-			Data:      []byte{openthread.OT_ERROR_BUSY},
+			Data:      []byte{openthread.OT_ERROR_ABORT},
 			NodeId:    node.Id,
 		}
 		node.D.evtQueue.AddEvent(nextEvt)
@@ -43,6 +46,7 @@ func (rm *RadioModelInterfereAll) TxStart(node *Node, evt *event) {
 	nextEvt = evt
 	nextEvt.Type = eventTypeRadioFrameSimInternal
 	nextEvt.Timestamp = node.D.CurTime + CCA_TIME_US
+	nextEvt.Delay = CCA_TIME_US
 	node.D.evtQueue.AddEvent(nextEvt)
 }
 
@@ -67,11 +71,13 @@ func (rm *RadioModelInterfereAll) TxOngoing(node *Node, evt *event) {
 			node.txPhase = 0 // reset back
 		} else {
 			// CCA was successful, start frame transmission now.
-			// FIXME test never busy - rm.isRfBusy = true
+			rm.isRfBusy = true
 			// schedule the end-of-frame-transmission event.
 			nextEvt := evt
 			nextEvt.Type = eventTypeRadioFrameSimInternal
-			nextEvt.Timestamp += rm.getFrameDurationUs(evt)
+			d := rm.getFrameDurationUs(evt)
+			nextEvt.Timestamp += d
+			nextEvt.Delay = d
 			node.D.evtQueue.AddEvent(nextEvt)
 		}
 		node.isCcaFailed = false
@@ -91,6 +97,7 @@ func (rm *RadioModelInterfereAll) TxOngoing(node *Node, evt *event) {
 		nextEvt = evt
 		nextEvt.Type = eventTypeRadioFrameToNode
 		nextEvt.Timestamp += 1 // TODO check if +0 could work here.
+		nextEvt.Delay = 1
 		node.D.evtQueue.AddEvent(nextEvt)
 
 		node.txPhase = 0 // reset back

@@ -311,7 +311,7 @@ func (d *Dispatcher) handleRecvEvent(evt *event) {
 
 	if d.isWatching(evt.NodeId) {
 		simplelogger.Warnf("Node %d <<< %+v, cur time %d, node time %d, delay %d", evt.NodeId, *evt,
-			d.CurTime, int64(node.CurTime), evt.Delay)
+			d.CurTime, node.CurTime, evt.Delay)
 	}
 
 	delay := evt.Delay
@@ -338,9 +338,6 @@ func (d *Dispatcher) handleRecvEvent(evt *event) {
 	case eventTypeUartWrite:
 		d.Counters.UartWriteEvents += 1
 		d.handleUartWrite(evt.NodeId, evt.Data)
-	case eventTypeAwake:
-		d.setAlive(nodeid)
-		simplelogger.AssertTrue(evtTime == d.CurTime)
 	default:
 		d.Counters.RadioEvents += 1 // TODO check what radio events / internal radio-model evts need to be counted.
 		d.radioModel.HandleEvent(node, evt)
@@ -465,6 +462,12 @@ func (d *Dispatcher) processNextEvent() bool {
 			simplelogger.AssertNotNil(node)
 			simplelogger.AssertTrue(evt.Timestamp == nextSendtime)
 			d.advanceTime(nextSendtime)
+			d.advanceNodeTime(evt.NodeId, evt.Timestamp, false)
+
+			if d.isWatching(evt.NodeId) {
+				simplelogger.Warnf("Dispat <<< %+v, cur time %d, node time %d, delay %d", *evt,
+					d.CurTime, node.CurTime, evt.Delay)
+			}
 
 			switch evt.Type {
 			case eventTypeRadioFrameToNode:
@@ -551,7 +554,7 @@ func (d *Dispatcher) advanceNodeTime(id NodeId, timestamp uint64, force bool) {
 	}
 }
 
-// SendToUART sends data to virtual time UART of the target node.
+// SendToUARTh sends data to virtual time UART of the target node.
 func (d *Dispatcher) SendToUART(id NodeId, data []byte) {
 	node := d.nodes[id]
 
@@ -669,7 +672,7 @@ func (d *Dispatcher) sendTxDoneEvent(evt *event) {
 	d.alarmMgr.SetNotified(dstnodeid)
 	d.setAlive(dstnodeid)
 	if d.isWatching(dstnodeid) {
-		simplelogger.Warnf("Node %d >>> TX DONE", dstnodeid)
+		simplelogger.Warnf("Node %d >>> TX DONE, %+v", dstnodeid, *evt)
 	}
 }
 
@@ -719,6 +722,7 @@ func (d *Dispatcher) newNode(nodeid NodeId, x, y int, radioRange int) (node *Nod
 	d.nodes[nodeid] = node
 	d.alarmMgr.AddNode(nodeid)
 	d.setAlive(nodeid)
+	d.WatchNode(nodeid) // FIXME debug
 
 	d.vis.AddNode(nodeid, x, y, radioRange)
 	return

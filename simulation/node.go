@@ -112,7 +112,7 @@ func newNode(s *Simulation, id NodeId, cfg *NodeConfig) (*Node, error) {
 
 	go node.lineReader(node.pipeOut, NodeUartTypeRealTime)
 	go node.lineReader(node.virtualUartReader, NodeUartTypeVirtualTime)
-	//go node.lineReader(node.pipeErr, NodeUartTypeRealTime);
+	go node.errorReader(node.pipeErr)
 
 	return node, nil
 }
@@ -584,6 +584,20 @@ func (node *Node) GetSingleton() bool {
 	} else {
 		simplelogger.Panicf("expect true/false, but read: %#v", s)
 		return false
+	}
+}
+
+// errorReader reads text from a stderr pipe and will log panic if anything found.
+func (node *Node) errorReader(reader io.Reader) {
+	// close the line channel after routine exits
+	scanner := bufio.NewScanner(otoutfilter.NewOTOutFilter(bufio.NewReader(reader), node.String()))
+	scanner.Split(bufio.ScanLines)
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		if len(line) > 0 {
+			simplelogger.Panicf(line)
+		}
 	}
 }
 
