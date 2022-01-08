@@ -25,8 +25,8 @@ func (rm *RadioModelInterfereAll) TxStart(node *Node, evt *event) {
 		// FIXME: submac layer of OpenThread shouldn't start Tx when it's still ongoing.
 		nextEvt = &event{
 			Type:      eventTypeRadioTxDone,
-			Timestamp: evt.Timestamp + 1,
-			Delay:     1,
+			Timestamp: evt.Timestamp + 0,
+			Delay:     0,
 			Data:      []byte{openthread.OT_ERROR_ABORT},
 			NodeId:    node.Id,
 		}
@@ -62,8 +62,8 @@ func (rm *RadioModelInterfereAll) TxOngoing(node *Node, evt *event) {
 			// if CCA fails, then respond Tx Done with error code.
 			nextEvt := &event{
 				Type:      eventTypeRadioTxDone,
-				Timestamp: evt.Timestamp + 1, // TODO check if +0 could work here
-				Delay:     1,
+				Timestamp: evt.Timestamp,
+				Delay:     0,
 				Data:      []byte{openthread.OT_ERROR_CHANNEL_ACCESS_FAILURE},
 				NodeId:    node.Id,
 			}
@@ -86,8 +86,8 @@ func (rm *RadioModelInterfereAll) TxOngoing(node *Node, evt *event) {
 		// signal Tx Done to sender.
 		nextEvt := &event{
 			Type:      eventTypeRadioTxDone,
-			Timestamp: evt.Timestamp + 1, // TODO check if +0 could work here.
-			Delay:     1,
+			Timestamp: evt.Timestamp,
+			Delay:     0,
 			Data:      []byte{openthread.OT_ERROR_NONE},
 			NodeId:    node.Id,
 		}
@@ -96,8 +96,8 @@ func (rm *RadioModelInterfereAll) TxOngoing(node *Node, evt *event) {
 		// let other radios of Nodes receive the data.
 		nextEvt = evt
 		nextEvt.Type = eventTypeRadioFrameToNode
-		nextEvt.Timestamp += 1 // TODO check if +0 could work here.
-		nextEvt.Delay = 1
+		//nextEvt.Timestamp += 0
+		nextEvt.Delay = 0
 		node.D.evtQueue.AddEvent(nextEvt)
 
 		node.txPhase = 0 // reset back
@@ -117,67 +117,10 @@ func (rm *RadioModelInterfereAll) HandleEvent(node *Node, evt *event) {
 	}
 }
 
+// getFrameDurationUs gets the duration of the frame indicated by evt of type eventTypeRadioFrame*
 func (rm *RadioModelInterfereAll) getFrameDurationUs(evt *event) uint64 {
 	var n uint64
 	n = (uint64)(len(evt.Data) - 1) // PSDU size 5..127
 	n += 6                          // add PHY preamble, sfd, PHR bytes
 	return n * 8 * 1000000 / 250000
 }
-
-/*
-func temp {
-	d.Counters.RadioEvents += 1
-	// perform CCA sampling nr 1
-	if d.radioModel.isChannelClear(node) {
-		// set up event to sample again at end of CCA window
-		evtCca := &event{
-			Timestamp: d.CurTime + 128, // TODO move 128us to constants - CCA time
-			Type:      eventTypeRadioTxDone,
-		}
-		d.sendQueue.AddEvent(evtCca)
-
-	} else {
-		evtCca := &event{
-			Timestamp: d.CurTime + 128, // TODO move 128us to constants - CCA time
-			Type:      eventTypeRadioTxDone,
-			Data:      []byte{openthread.OT_ERROR_CHANNEL_ACCESS_FAILURE},
-		}
-		d.sendOneRadioEvent(evtCca, node, node)
-	}
-	// Tx frame from node triggers Rx-start in other nodes near instantly
-	// FIXME TODO send to radio model.
-	// here it triggers CCA period of ...
-	// call radiomodel.
-	// if clear CCA, then reserve the medium and put a 'tx done' event in my own queue (to put in tx-done
-	// status here, and then send onward to the Tx-node.
-	// also schedule rx-start event right after CCA. That goes to receiving nodes.
-	// after packet duration, tx-done is sent and also radio-frame-event to rx nodes. And medium is cleared
-	// again.
-	d.sendQueue.Add(d.CurTime+1, nodeid, evt.Data)
-	// Tx frame (and Rx-frame in other nodes) is done after some time
-	//xyz
-}
-
-func temp2 {
-case eventTypeRadioTxDone:
-// 2nd sample point of cca.
-if d.radioModel.isChannelClear(node) {
-// yes, 2nd point and 1st point are clear - start tx of frame.
-//FIXME get linked frame event and also start rx event to all nodes.
-evtCca := &event{
-Timestamp: d.CurTime + 128, // TODO move 128us to constants - CCA time
-Type:      eventTypeRadioTxDone,
-Data:      []byte{openthread.OT_ERROR_CHANNEL_ACCESS_FAILURE},
-}
-d.sendOneRadioFrameEvent(evtCca, node, node)
-} else {
-evtCca := &event{
-Timestamp: d.CurTime + 128, // TODO move 128us to constants - CCA time
-Type:      eventTypeRadioTxDone,
-Data:      []byte{openthread.OT_ERROR_CHANNEL_ACCESS_FAILURE},
-}
-d.sendOneRadioFrameEvent(evtCca, node, node)
-}
-
-}
-*/
