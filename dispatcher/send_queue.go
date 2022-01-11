@@ -33,7 +33,7 @@ import (
 )
 
 type sendQueue struct {
-	q []*event
+	q []*Event
 }
 
 func (sq sendQueue) Len() int {
@@ -49,7 +49,7 @@ func (sq sendQueue) Swap(i, j int) {
 }
 
 func (sq *sendQueue) Push(x interface{}) {
-	sq.q = append(sq.q, x.(*event))
+	sq.q = append(sq.q, x.(*Event))
 }
 
 func (sq *sendQueue) Pop() (elem interface{}) {
@@ -68,24 +68,24 @@ func (sq sendQueue) NextTimestamp() uint64 {
 }
 
 func (sq *sendQueue) Add(timestamp uint64, id NodeId, data []byte) {
-	heap.Push(sq, &event{
+	heap.Push(sq, &Event{
 		Timestamp: timestamp,
 		NodeId:    id,
 		Data:      data,
 	})
 }
 
-func (sq *sendQueue) AddEvent(evt *event) {
+func (sq *sendQueue) AddEvent(evt *Event) {
 	heap.Push(sq, evt)
 }
 
-func (sq *sendQueue) PopNext() *event {
-	return heap.Pop(sq).(*event)
+func (sq *sendQueue) PopNext() *Event {
+	return heap.Pop(sq).(*Event)
 }
 
 func newSendQueue() *sendQueue {
 	sq := &sendQueue{
-		q: []*event{},
+		q: []*Event{},
 	}
 	heap.Init(sq)
 	return sq

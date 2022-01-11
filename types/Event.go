@@ -24,29 +24,27 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-package dispatcher
+package types
 
 import (
 	"encoding/binary"
 	"github.com/simonlingoogle/go-simplelogger"
 	"net"
-
-	. "github.com/openthread/ot-ns/types"
 )
 
 const (
-	eventTypeAlarmFired            uint8 = 0
-	eventTypeRadioFrameToNode      uint8 = 1
-	eventTypeUartWrite             uint8 = 2
-	eventTypeStatusPush            uint8 = 5
-	eventTypeRadioTxDone           uint8 = 6
-	eventTypeRadioFrameToSim       uint8 = 8
-	eventTypeRadioFrameSimInternal uint8 = 9
+	EventTypeAlarmFired            uint8 = 0
+	EventTypeRadioFrameToNode      uint8 = 1
+	EventTypeUartWrite             uint8 = 2
+	EventTypeStatusPush            uint8 = 5
+	EventTypeRadioTxDone           uint8 = 6
+	EventTypeRadioFrameToSim       uint8 = 8
+	EventTypeRadioFrameSimInternal uint8 = 9
 )
 
 type eventType = uint8
 
-type event struct {
+type Event struct {
 	Timestamp uint64
 	Delay     uint64
 	Type      eventType
@@ -64,8 +62,8 @@ type RadioMessage struct {
 */
 const RadioMessagePsduOffset = 1
 
-// Serialize serializes this event into []byte to send to OpenThread node, including fields partially.
-func (e *event) Serialize() []byte {
+// Serialize serializes this Event into []byte to send to OpenThread node, including fields partially.
+func (e *Event) Serialize() []byte {
 	msg := make([]byte, 12+len(e.Data))
 	// e.Timestamp is not sent, only e.Delay.
 	binary.LittleEndian.PutUint64(msg[:8], e.Delay)
@@ -77,12 +75,12 @@ func (e *event) Serialize() []byte {
 	return msg
 }
 
-// Deserialize deserializes []byte event fields (as received from OpenThread node) into event object e.
-func (e *event) Deserialize(data []byte) {
+// Deserialize deserializes []byte Event fields (as received from OpenThread node) into Event object e.
+func (e *Event) Deserialize(data []byte) {
 	var n uint16
 	n = uint16(len(data))
 	if n < 12 {
-		simplelogger.Panicf("event.Deserialize() message length too short: %d", n)
+		simplelogger.Panicf("Event.Deserialize() message length too short: %d", n)
 	}
 
 	e.Delay = binary.LittleEndian.Uint64(data[:8])
