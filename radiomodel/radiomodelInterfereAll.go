@@ -18,7 +18,6 @@ func (rm *RadioModelInterfereAll) TxStart(node *RadioNode, q EventQueue, evt *Ev
 	var nextEvt *Event
 	simplelogger.AssertTrue(evt.Type == EventTypeRadioFrameToSim || evt.Type == EventTypeRadioFrameAckToSim)
 	isAck := evt.Type == EventTypeRadioFrameAckToSim
-	isAck = false
 
 	// check if a transmission is already ongoing? If so return OT_ERROR_ABORT.
 	if node.TxPhase > 0 {
@@ -70,7 +69,6 @@ func (rm *RadioModelInterfereAll) TxOngoing(node *RadioNode, q EventQueue, evt *
 
 	simplelogger.AssertTrue(evt.Type == EventTypeRadioFrameToSim || evt.Type == EventTypeRadioFrameAckToSim)
 	isAck := evt.Type == EventTypeRadioFrameAckToSim
-	isAck = false
 
 	node.TxPhase++
 	if node.TxPhase == 2 && isAck {
@@ -157,6 +155,7 @@ func (rm *RadioModelInterfereAll) TxOngoing(node *RadioNode, q EventQueue, evt *
 func (rm *RadioModelInterfereAll) HandleEvent(node *RadioNode, q EventQueue, evt *Event) {
 	switch evt.Type {
 	case EventTypeRadioFrameAckToSim:
+		fallthrough
 	case EventTypeRadioFrameToSim:
 		if !evt.IsInternal {
 			rm.TxStart(node, q, evt)

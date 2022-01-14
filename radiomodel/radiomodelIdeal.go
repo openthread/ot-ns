@@ -40,6 +40,7 @@ func (rm *RadioModelIdeal) TxStart(node *RadioNode, q EventQueue, evt *Event) {
 func (rm *RadioModelIdeal) HandleEvent(node *RadioNode, q EventQueue, evt *Event) {
 	switch evt.Type {
 	case EventTypeRadioFrameAckToSim:
+		fallthrough
 	case EventTypeRadioFrameToSim:
 		rm.TxStart(node, q, evt)
 	default:

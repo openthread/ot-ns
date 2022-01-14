@@ -179,7 +179,8 @@ func NewDispatcher(ctx *progctx.ProgCtx, cfg *Config, cbHandler CallbackHandler)
 		watchingNodes:      map[NodeId]struct{}{},
 		goDurationChan:     make(chan goDuration, 10),
 		visOptions:         defaultVisualizationOptions(),
-		radioModel:         &radiomodel.RadioModelIdeal{}, //InterfereAll{},
+		radioModel:         &radiomodel.RadioModelInterfereAll{},
+		//radioModel:         &radiomodel.RadioModelIdeal{},  // TODO select radio model
 	}
 	d.speed = d.normalizeSpeed(d.speed)
 	if !d.cfg.NoPcap {
