@@ -7,4 +7,10 @@ type RadioNode struct {
 
 	// TxPhase tracks the current Tx phase. 0 = Not started. >0 is started (exact value depends on radio model)
 	TxPhase int
+
+	// TimeLastTxEnded is the timestamp (us) when the last Tx done by this RadioNode ended.
+	TimeLastTxEnded uint64
+
+	// IsLastTxLong indicates whether the RadioNode's last Tx was a long frame (LIFS applies) or short (SIFS applies)
+	IsLastTxLong bool
 }

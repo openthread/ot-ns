@@ -6,10 +6,6 @@ import (
 	"github.com/simonlingoogle/go-simplelogger"
 )
 
-const CCA_TIME_US uint64 = 128
-const SYMBOL_TIME_US uint64 = 16
-const ACK_AIFS_TIME_US uint64 = SYMBOL_TIME_US * 12
-
 type RadioModelInterfereAll struct {
 	isRfBusy bool
 }
@@ -20,6 +16,7 @@ func (rm *RadioModelInterfereAll) IsTxSuccess(node *RadioNode, evt *Event) bool 
 
 func (rm *RadioModelInterfereAll) TxStart(node *RadioNode, q EventQueue, evt *Event) {
 	var nextEvt *Event
+	simplelogger.AssertTrue(evt.Type == EventTypeRadioFrameToSim)
 
 	// check if a transmission is already ongoing? If so return OT_ERROR_ABORT.
 	if node.TxPhase > 0 {
@@ -38,72 +35,101 @@ func (rm *RadioModelInterfereAll) TxStart(node *RadioNode, q EventQueue, evt *Ev
 	node.IsCcaFailed = false
 	node.TxPhase++
 
-	// node starts Tx - perform CCA check at current time point 1.
-	if rm.isRfBusy {
-		node.IsCcaFailed = true
+	// node starts Tx - first phase is to wait any mandatory 802.15.4 silence time (LIFS/SIFS)
+	// before CCA can commence.
+	var delay uint64 = 0
+	var ifs uint64 = sifsTimeUs
+	if node.IsLastTxLong {
+		ifs = lifsTimeUs
+	}
+	if ifs > ccaTimeUs {
+		ifs -= ccaTimeUs // CCA time may be part of the IFS. TODO check vs 15.4 standards
+	}
+	if evt.Timestamp >= ifs && node.TimeLastTxEnded > (evt.Timestamp-ifs) {
+		// must delay additionally until allowed to send again
+		delay = ifs - (evt.Timestamp - node.TimeLastTxEnded)
+	} else {
+		delay = 0 // No delay needed, proceed straight to CCA start
 	}
 
 	// re-use the current event as the next event, updating type and timing.
 	nextEvt = evt
 	nextEvt.Type = EventTypeRadioFrameSimInternal
-	nextEvt.Timestamp += CCA_TIME_US
-	nextEvt.Delay = CCA_TIME_US
+	nextEvt.Timestamp += delay
+	nextEvt.Delay = delay
 	q.AddEvent(nextEvt)
 }
 
 func (rm *RadioModelInterfereAll) TxOngoing(node *RadioNode, q EventQueue, evt *Event) {
 
+	simplelogger.AssertTrue(evt.Type == EventTypeRadioFrameSimInternal)
+
 	node.TxPhase++
 	switch node.TxPhase {
-	case 2: // CCA second sample point and decision
+	case 2: // CCA first sample point
+		//perform CCA check at current time point 1.
+		if rm.isRfBusy {
+			node.IsCcaFailed = true
+		}
+		// re-use the current event as the next event for CCA period end, updating timing only.
+		nextEvt := evt
+		nextEvt.Timestamp += ccaTimeUs
+		nextEvt.Delay = ccaTimeUs
+		q.AddEvent(nextEvt)
+
+	case 3: // CCA second sample point and decision
 		if rm.isRfBusy {
 			node.IsCcaFailed = true
 		}
 		if node.IsCcaFailed {
-			// if CCA fails, then respond Tx Done with error code.
+			// if CCA fails, then respond Tx Done event with error code.
 			nextEvt := &Event{
 				Type:      EventTypeRadioTxDone,
-				Timestamp: evt.Timestamp,
-				Delay:     0,
+				Timestamp: evt.Timestamp + 1,
+				Delay:     1,
 				Data:      []byte{openthread.OT_ERROR_CHANNEL_ACCESS_FAILURE},
 				NodeId:    evt.NodeId,
 			}
 			q.AddEvent(nextEvt)
 			node.TxPhase = 0 // reset back
+			node.IsCcaFailed = false
 		} else {
 			// CCA was successful, start frame transmission now.
 			rm.isRfBusy = true
+
 			// schedule the end-of-frame-transmission event.
 			nextEvt := evt
-			nextEvt.Type = EventTypeRadioFrameSimInternal
 			d := rm.getFrameDurationUs(evt)
 			nextEvt.Timestamp += d
 			nextEvt.Delay = d
 			q.AddEvent(nextEvt)
 		}
-		node.IsCcaFailed = false
-	case 3: // End of frame transmit event
 
-		// signal Tx Done to sender.
+	case 4: // End of frame transmit event
+
+		// signal Tx Done event to sender.
 		nextEvt := &Event{
 			Type:      EventTypeRadioTxDone,
-			Timestamp: evt.Timestamp,
-			Delay:     0,
+			Timestamp: evt.Timestamp + 1,
+			Delay:     1,
 			Data:      []byte{openthread.OT_ERROR_NONE},
 			NodeId:    evt.NodeId,
 		}
 		q.AddEvent(nextEvt)
 
-		// let other radios of Nodes receive the data.
-		nextEvt = evt
-		nextEvt.Type = EventTypeRadioFrameToNode
-		nextEvt.Timestamp += 0
-		nextEvt.Delay = 0
-		q.AddEvent(nextEvt)
-
+		// bookkeeping
+		node.TimeLastTxEnded = evt.Timestamp
+		node.IsLastTxLong = IsLongDataframe(evt)
 		node.TxPhase = 0 // reset back
 		node.IsCcaFailed = false
 		rm.isRfBusy = false
+
+		// let other radios of Nodes receive the data (after 1 us)
+		nextEvt = evt
+		nextEvt.Type = EventTypeRadioFrameToNode
+		nextEvt.Timestamp += 1
+		nextEvt.Delay = 1
+		q.AddEvent(nextEvt)
 	}
 }
 
@@ -121,7 +147,8 @@ func (rm *RadioModelInterfereAll) HandleEvent(node *RadioNode, q EventQueue, evt
 // getFrameDurationUs gets the duration of the PHY frame indicated by evt of type eventTypeRadioFrame*
 func (rm *RadioModelInterfereAll) getFrameDurationUs(evt *Event) uint64 {
 	var n uint64
-	n = (uint64)(len(evt.Data) - 1) // PSDU size 5..127
-	n += 6                          // add PHY preamble, sfd, PHR bytes
-	return n * 8 * 1000000 / 250000
+	simplelogger.AssertTrue(len(evt.Data) >= RadioMessagePsduOffset)
+	n = (uint64)(len(evt.Data) - RadioMessagePsduOffset) // PSDU size 5..127
+	n += phyHeaderSize                                   // add PHY preamble, sfd, PHR bytes
+	return n * symbolTimeUs * symbolsPerOctet
 }
