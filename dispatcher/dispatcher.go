@@ -341,7 +341,7 @@ func (d *Dispatcher) handleRecvEvent(evt *Event) {
 		d.handleUartWrite(evt.NodeId, evt.Data)
 	default:
 		d.Counters.RadioEvents += 1 // TODO check what radio events / internal radio-model evts need to be counted.
-		d.radioModel.HandleEvent(node, evt)
+		d.radioModel.HandleEvent(node.radioNode, d.evtQueue, evt)
 	}
 }
 
@@ -482,7 +482,7 @@ func (d *Dispatcher) processNextEvent() bool {
 			case EventTypeRadioTxDone:
 				d.sendTxDoneEvent(evt)
 			default:
-				d.radioModel.HandleEvent(node, evt)
+				d.radioModel.HandleEvent(node.radioNode, d.evtQueue, evt)
 			}
 		}
 
@@ -697,7 +697,7 @@ func (d *Dispatcher) sendOneRadioFrameEvent(evt *Event, srcnode *Node, dstnode *
 			return false
 		}
 	}
-	if !d.radioModel.IsTxSuccess(srcnode, evt) {
+	if !d.radioModel.IsTxSuccess(srcnode.radioNode, evt) {
 		return false
 	}
 

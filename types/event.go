@@ -91,5 +91,6 @@ func (e *Event) Deserialize(data []byte) {
 	data2 := make([]byte, datalen)
 	copy(data2, data[12:n])
 	// e.Timestamp is not deserialized (not present)
+	e.Timestamp = 0
 	e.Data = data2
 }

@@ -31,6 +31,7 @@ import (
 	"math"
 	"net"
 
+	"github.com/openthread/ot-ns/radiomodel"
 	"github.com/openthread/ot-ns/threadconst"
 	. "github.com/openthread/ot-ns/types"
 	"github.com/simonlingoogle/go-simplelogger"
@@ -74,12 +75,11 @@ type Node struct {
 	CurTime     uint64
 	Role        OtDeviceRole
 
-	isCcaFailed   bool
-	txPhase       uint16
 	peerAddr      *net.UDPAddr
 	failureCtrl   *FailureCtrl
 	isFailed      bool
 	radioRange    int
+	radioNode     *radiomodel.RadioNode
 	pendingPings  []*pingRequest
 	pingResults   []*PingResult
 	joinerState   OtJoinerState
@@ -100,10 +100,9 @@ func newNode(d *Dispatcher, nodeid NodeId, x, y int, radioRange int) *Node {
 		ExtAddr:     InvalidExtAddr,
 		Rloc16:      threadconst.InvalidRloc16,
 		Role:        OtDeviceRoleDisabled,
-		isCcaFailed: false,
-		txPhase:     0,
 		peerAddr:    nil, // peer address will be set when the first Event is received
 		radioRange:  radioRange,
+		radioNode:   &radiomodel.RadioNode{},
 		joinerState: OtJoinerStateIdle,
 	}
 
@@ -114,31 +113,6 @@ func newNode(d *Dispatcher, nodeid NodeId, x, y int, radioRange int) *Node {
 
 func (node *Node) String() string {
 	return fmt.Sprintf("Node<%016x@%d,%d>", node.ExtAddr, node.X, node.Y)
-}
-
-func (node *Node) AddEvent(evt *Event) {
-	evt.NodeId = node.Id
-	node.D.evtQueue.AddEvent(evt)
-}
-
-func (node *Node) IsCcaFailed() bool {
-	return node.isCcaFailed
-}
-
-func (node *Node) SetCcaFailed(status bool) {
-	node.isCcaFailed = status
-}
-
-func (node *Node) TxPhase() uint16 {
-	return node.txPhase
-}
-
-func (node *Node) SetTxPhase(phase uint16) {
-	node.txPhase = phase
-}
-
-func (node *Node) AdvanceTxPhase() {
-	node.txPhase++
 }
 
 // SendEvent sends Event evt serialized to the node, over UDP and also handles delay time keeping.
