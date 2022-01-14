@@ -16,7 +16,9 @@ func (rm *RadioModelInterfereAll) IsTxSuccess(node *RadioNode, evt *Event) bool 
 
 func (rm *RadioModelInterfereAll) TxStart(node *RadioNode, q EventQueue, evt *Event) {
 	var nextEvt *Event
-	simplelogger.AssertTrue(evt.Type == EventTypeRadioFrameToSim)
+	simplelogger.AssertTrue(evt.Type == EventTypeRadioFrameToSim || evt.Type == EventTypeRadioFrameAckToSim)
+	isAck := evt.Type == EventTypeRadioFrameAckToSim
+	isAck = false
 
 	// check if a transmission is already ongoing? If so return OT_ERROR_ABORT.
 	if node.TxPhase > 0 {
@@ -33,38 +35,48 @@ func (rm *RadioModelInterfereAll) TxStart(node *RadioNode, q EventQueue, evt *Ev
 	}
 
 	node.IsCcaFailed = false
+	node.IsTxFailed = false
 	node.TxPhase++
 
 	// node starts Tx - first phase is to wait any mandatory 802.15.4 silence time (LIFS/SIFS)
 	// before CCA can commence.
 	var delay uint64 = 0
-	var ifs uint64 = sifsTimeUs
-	if node.IsLastTxLong {
-		ifs = lifsTimeUs
-	}
-	if ifs > ccaTimeUs {
-		ifs -= ccaTimeUs // CCA time may be part of the IFS. TODO check vs 15.4 standards
-	}
-	if evt.Timestamp >= ifs && node.TimeLastTxEnded > (evt.Timestamp-ifs) {
-		// must delay additionally until allowed to send again
-		delay = ifs - (evt.Timestamp - node.TimeLastTxEnded)
+	if !isAck {
+		var ifs uint64 = sifsTimeUs
+		if node.IsLastTxLong {
+			ifs = lifsTimeUs
+		}
+		if ifs > ccaTimeUs {
+			ifs -= ccaTimeUs // CCA time may be part of the IFS. TODO check vs 15.4 standards
+		}
+		if evt.Timestamp >= ifs && node.TimeLastTxEnded > (evt.Timestamp-ifs) {
+			// must delay additionally until allowed to send again
+			delay = ifs - (evt.Timestamp - node.TimeLastTxEnded)
+		} else {
+			delay = 0 // No delay needed, proceed straight to CCA start
+		}
 	} else {
-		delay = 0 // No delay needed, proceed straight to CCA start
+		delay = aifsTimeUs // ack is sent after fixed delay and no CCA.
 	}
-
-	// re-use the current event as the next event, updating type and timing.
+	// re-use the current event as the next event, updating timing and marking it internally-sourced.
 	nextEvt = evt
-	nextEvt.Type = EventTypeRadioFrameSimInternal
 	nextEvt.Timestamp += delay
 	nextEvt.Delay = delay
+	nextEvt.IsInternal = true
 	q.AddEvent(nextEvt)
 }
 
 func (rm *RadioModelInterfereAll) TxOngoing(node *RadioNode, q EventQueue, evt *Event) {
 
-	simplelogger.AssertTrue(evt.Type == EventTypeRadioFrameSimInternal)
+	simplelogger.AssertTrue(evt.Type == EventTypeRadioFrameToSim || evt.Type == EventTypeRadioFrameAckToSim)
+	isAck := evt.Type == EventTypeRadioFrameAckToSim
+	isAck = false
 
 	node.TxPhase++
+	if node.TxPhase == 2 && isAck {
+		node.TxPhase++ // for ACKs, CCA not applied but fixed delay in phase 1.
+	}
+
 	switch node.TxPhase {
 	case 2: // CCA first sample point
 		//perform CCA check at current time point 1.
@@ -78,10 +90,10 @@ func (rm *RadioModelInterfereAll) TxOngoing(node *RadioNode, q EventQueue, evt *
 		q.AddEvent(nextEvt)
 
 	case 3: // CCA second sample point and decision
-		if rm.isRfBusy {
+		if rm.isRfBusy && !isAck {
 			node.IsCcaFailed = true
 		}
-		if node.IsCcaFailed {
+		if node.IsCcaFailed && !isAck {
 			// if CCA fails, then respond Tx Done event with error code.
 			nextEvt := &Event{
 				Type:      EventTypeRadioTxDone,
@@ -92,11 +104,17 @@ func (rm *RadioModelInterfereAll) TxOngoing(node *RadioNode, q EventQueue, evt *
 			}
 			q.AddEvent(nextEvt)
 			node.TxPhase = 0 // reset back
-			node.IsCcaFailed = false
-		} else {
-			// CCA was successful, start frame transmission now.
-			rm.isRfBusy = true
 
+		} else {
+			if rm.isRfBusy && isAck {
+				// if ACK collides with existing transmission, let transmissions interfere.
+				// 1) Don't deliver the ACK.
+				// 2) Don't deliver ongoing transmission or alter its checksum TODO
+				node.IsTxFailed = true
+			} else {
+				// CCA was successful, or it's an Ack, so start frame transmission now.
+				rm.isRfBusy = true
+			}
 			// schedule the end-of-frame-transmission event.
 			nextEvt := evt
 			d := rm.getFrameDurationUs(evt)
@@ -118,27 +136,33 @@ func (rm *RadioModelInterfereAll) TxOngoing(node *RadioNode, q EventQueue, evt *
 		q.AddEvent(nextEvt)
 
 		// bookkeeping
-		node.TimeLastTxEnded = evt.Timestamp
-		node.IsLastTxLong = IsLongDataframe(evt)
-		node.TxPhase = 0 // reset back
-		node.IsCcaFailed = false
+		node.TimeLastTxEnded = evt.Timestamp     // for data frames and ACKs
+		node.IsLastTxLong = IsLongDataframe(evt) // for data frames and ACKs
+		node.TxPhase = 0                         // reset back
 		rm.isRfBusy = false
 
-		// let other radios of Nodes receive the data (after 1 us)
+		// let other radios of Nodes receive the data (after 1 us propagation delay)
 		nextEvt = evt
 		nextEvt.Type = EventTypeRadioFrameToNode
+		nextEvt.IsInternal = false
 		nextEvt.Timestamp += 1
 		nextEvt.Delay = 1
+		if node.IsTxFailed { // invalidate data in case of failure
+			nextEvt.Data = InterferePsduData(nextEvt.Data)
+		}
 		q.AddEvent(nextEvt)
 	}
 }
 
 func (rm *RadioModelInterfereAll) HandleEvent(node *RadioNode, q EventQueue, evt *Event) {
 	switch evt.Type {
+	case EventTypeRadioFrameAckToSim:
 	case EventTypeRadioFrameToSim:
-		rm.TxStart(node, q, evt)
-	case EventTypeRadioFrameSimInternal:
-		rm.TxOngoing(node, q, evt)
+		if !evt.IsInternal {
+			rm.TxStart(node, q, evt)
+		} else {
+			rm.TxOngoing(node, q, evt)
+		}
 	default:
 		simplelogger.Panicf("event type not implemented: %v", evt.Type)
 	}

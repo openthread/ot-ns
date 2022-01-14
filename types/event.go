@@ -33,25 +33,26 @@ import (
 )
 
 const (
-	EventTypeAlarmFired            uint8 = 0
-	EventTypeRadioFrameToNode      uint8 = 1
-	EventTypeUartWrite             uint8 = 2
-	EventTypeStatusPush            uint8 = 5
-	EventTypeRadioTxDone           uint8 = 6
-	EventTypeRadioFrameToSim       uint8 = 8
-	EventTypeRadioFrameSimInternal uint8 = 9
+	EventTypeAlarmFired         uint8 = 0
+	EventTypeRadioFrameToNode   uint8 = 1
+	EventTypeUartWrite          uint8 = 2
+	EventTypeStatusPush         uint8 = 5
+	EventTypeRadioTxDone        uint8 = 6
+	EventTypeRadioFrameToSim    uint8 = 8
+	EventTypeRadioFrameAckToSim uint8 = 9
 )
 
 type eventType = uint8
 
 type Event struct {
-	Timestamp uint64
-	Delay     uint64
-	Type      eventType
-	Param     int8
-	NodeId    NodeId
-	Data      []byte
-	SrcAddr   *net.UDPAddr
+	Timestamp  uint64
+	Delay      uint64
+	Type       eventType
+	Param      int8
+	NodeId     NodeId
+	Data       []byte
+	SrcAddr    *net.UDPAddr
+	IsInternal bool
 }
 
 /* RadioMessagePsduOffset is the offset of Psdu data in a received OpenThread RadioMessage type.

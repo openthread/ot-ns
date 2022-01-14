@@ -34,3 +34,10 @@ type RadioModel interface {
 func IsLongDataframe(evt *Event) bool {
 	return (len(evt.Data) - RadioMessagePsduOffset) > aMaxSifsFrameSize
 }
+
+// InterferePsduData simulates the interference (garbling) of PSDU data
+func InterferePsduData(d []byte) []byte {
+	ret := make([]byte, len(d))
+	ret[0] = d[0] // keep channel info
+	return ret
+}
