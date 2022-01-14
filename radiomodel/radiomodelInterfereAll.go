@@ -26,8 +26,8 @@ func (rm *RadioModelInterfereAll) TxStart(node *RadioNode, q EventQueue, evt *Ev
 		// FIXME: submac layer of OpenThread shouldn't start Tx when it's still ongoing.
 		nextEvt = &Event{
 			Type:      EventTypeRadioTxDone,
-			Timestamp: evt.Timestamp + 0,
-			Delay:     0,
+			Timestamp: evt.Timestamp + 1,
+			Delay:     1,
 			Data:      []byte{openthread.OT_ERROR_ABORT},
 			NodeId:    evt.NodeId,
 		}
