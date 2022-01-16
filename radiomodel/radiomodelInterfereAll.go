@@ -10,13 +10,16 @@ type RadioModelInterfereAll struct {
 	isRfBusy bool
 }
 
-func (rm *RadioModelInterfereAll) IsTxSuccess(node *RadioNode, evt *Event) bool {
+func (rm *RadioModelInterfereAll) IsTxSuccess(evt *Event, srcNode *RadioNode, dstNode *RadioNode, distMeters float64) bool {
+	simplelogger.AssertTrue(evt.Type == EventTypeRadioFrameToNode)
+	// FIXME see ideal model - rssi := ComputeFsplRssi(distMeters, srcNode.TxPower)
 	return true
 }
 
 func (rm *RadioModelInterfereAll) TxStart(node *RadioNode, q EventQueue, evt *Event) {
 	var nextEvt *Event
 	simplelogger.AssertTrue(evt.Type == EventTypeRadioFrameToSim || evt.Type == EventTypeRadioFrameAckToSim)
+	node.TxPower = evt.Param // get the Tx power from the OT node's event param.
 	isAck := evt.Type == EventTypeRadioFrameAckToSim
 
 	// check if a transmission is already ongoing? If so return OT_ERROR_ABORT.
@@ -167,7 +170,7 @@ func (rm *RadioModelInterfereAll) HandleEvent(node *RadioNode, q EventQueue, evt
 	}
 }
 
-// getFrameDurationUs gets the duration of the PHY frame indicated by evt of type eventTypeRadioFrame*
+// getFrameDurationUs gets the duration of the PHY frame in us indicated by evt of type eventTypeRadioFrame*
 func (rm *RadioModelInterfereAll) getFrameDurationUs(evt *Event) uint64 {
 	var n uint64
 	simplelogger.AssertTrue(len(evt.Data) >= RadioMessagePsduOffset)

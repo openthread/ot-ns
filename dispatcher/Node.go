@@ -140,10 +140,19 @@ func (node *Node) sendRawData(msg []byte) {
 	}
 }
 
+// GetDistanceTo gets the distance in screen pixels to another Node.
 func (node *Node) GetDistanceTo(other *Node) (dist int) {
 	dx := other.X - node.X
 	dy := other.Y - node.Y
 	dist = int(math.Sqrt(float64(dx*dx + dy*dy)))
+	return
+}
+
+// GetDistanceInMeters gets the distance in meters to another Node.
+func (node *Node) GetDistanceInMeters(other *Node) (dist float64) {
+	dx := float64(other.X-node.X) * 0.10 // TODO make scaling configurable.
+	dy := float64(other.Y-node.Y) * 0.10
+	dist = math.Sqrt(dx*dx + dy*dy)
 	return
 }
 

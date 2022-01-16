@@ -179,8 +179,8 @@ func NewDispatcher(ctx *progctx.ProgCtx, cfg *Config, cbHandler CallbackHandler)
 		watchingNodes:      map[NodeId]struct{}{},
 		goDurationChan:     make(chan goDuration, 10),
 		visOptions:         defaultVisualizationOptions(),
-		radioModel:         &radiomodel.RadioModelInterfereAll{},
-		//radioModel:         &radiomodel.RadioModelIdeal{},  // TODO select radio model
+		//radioModel:         &radiomodel.RadioModelInterfereAll{},
+		radioModel: &radiomodel.RadioModelIdeal{}, // TODO select radio model
 	}
 	d.speed = d.normalizeSpeed(d.speed)
 	if !d.cfg.NoPcap {
@@ -594,7 +594,7 @@ func (d *Dispatcher) sendRadioFrameEventToNodes(evt *Event) {
 		// the message should only be dispatched to the target node with the extaddr
 		dstnode := d.extaddrMap[pktframe.DstAddrExtended]
 		if dstnode != srcnode && dstnode != nil {
-			if d.checkRadioReachable(srcnode, dstnode) {
+			if d.checkRadioReachable(evt, srcnode, dstnode) {
 				d.sendOneRadioFrameEvent(evt, srcnode, dstnode)
 				d.visSendFrame(srcnodeid, dstnode.Id, pktframe)
 			} else {
@@ -616,7 +616,7 @@ func (d *Dispatcher) sendRadioFrameEventToNodes(evt *Event) {
 
 			if len(dstnodes) > 0 {
 				for _, dstnode := range dstnodes {
-					if d.checkRadioReachable(srcnode, dstnode) {
+					if d.checkRadioReachable(evt, srcnode, dstnode) {
 						d.sendOneRadioFrameEvent(evt, srcnode, dstnode)
 						d.visSendFrame(srcnodeid, dstnode.Id, pktframe)
 						dispatchCnt++
@@ -638,7 +638,7 @@ func (d *Dispatcher) sendRadioFrameEventToNodes(evt *Event) {
 	if !dispatchedByDstAddr {
 		// TODO: optimize ACK message dispatching by sending it only to the correct node(s)
 		for _, dstnode := range d.nodes {
-			if d.checkRadioReachable(srcnode, dstnode) {
+			if d.checkRadioReachable(evt, srcnode, dstnode) {
 				d.sendOneRadioFrameEvent(evt, srcnode, dstnode)
 			}
 		}
@@ -647,9 +647,16 @@ func (d *Dispatcher) sendRadioFrameEventToNodes(evt *Event) {
 	}
 }
 
-func (d *Dispatcher) checkRadioReachable(src *Node, dst *Node) bool {
-	// does not use the radioModel. That's done later in sendOneRadioFrameEvent().
-	return dst != src && src.GetDistanceTo(dst) <= src.radioRange
+func (d *Dispatcher) checkRadioReachable(evt *Event, src *Node, dst *Node) bool {
+	dist := src.GetDistanceTo(dst)
+	distMeters := src.GetDistanceInMeters(dst)
+	if dst != src && dist <= src.radioRange {
+		rssi := d.radioModel.IsTxSuccess(evt, src.radioNode, dst.radioNode, distMeters)
+		if rssi > radiomodel.RssiMinusInfinity {
+			return true
+		}
+	}
+	return false
 }
 
 // sendTxDoneEvent sends the Tx done Event to node when Tx of frame is done and the Rx of the Ack can start.
@@ -674,10 +681,9 @@ func (d *Dispatcher) sendOneRadioFrameEvent(evt *Event, srcNode *Node, dstNode *
 	simplelogger.AssertTrue(EventTypeRadioFrameToNode == evt.Type)
 	simplelogger.AssertFalse(srcNode == dstNode)
 
-	// Tx failure cases below:
-	//   1) failed dest node
+	// Tx failure cases below:  (these are still visualized as successful)
+	//   1) 'failed' state dest node
 	//   2) global dispatcher's random loss Event (separate from radio model)
-	//   3) radio model loss Event
 	if dstNode.isFailed {
 		return false
 	}
@@ -688,9 +694,10 @@ func (d *Dispatcher) sendOneRadioFrameEvent(evt *Event, srcNode *Node, dstNode *
 			return false
 		}
 	}
-	if !d.radioModel.IsTxSuccess(srcNode.radioNode, evt) {
-		return false
-	}
+
+	// compute the RSSI in the event
+	dist := srcNode.GetDistanceInMeters(dstNode)
+	evt.Param = radiomodel.ComputeFsplRssi(dist, srcNode.radioNode.TxPower)
 
 	// send the event plus time keeping - moves dstnode's time to the current send-event's time.
 	dstNode.sendEvent(evt)

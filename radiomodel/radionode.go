@@ -11,6 +11,9 @@ type RadioNode struct {
 	// TxPhase tracks the current Tx phase. 0 = Not started. >0 is started (exact value depends on radio model)
 	TxPhase int
 
+	// TxPower contains the last Tx power used
+	TxPower int8
+
 	// TimeLastTxEnded is the timestamp (us) when the last Tx or Tx-attempt by this RadioNode ended.
 	TimeLastTxEnded uint64
 
