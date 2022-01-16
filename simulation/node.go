@@ -660,7 +660,7 @@ func (node *Node) TryExpectLine(line interface{}, timeout time.Duration) (bool, 
 				}
 			}
 		default:
-			node.S.Dispatcher().RecvEvents()
+			node.S.Dispatcher().RecvEvents() // RecvEvents case for reading lines from (new) nodes for setup
 		}
 	}
 }

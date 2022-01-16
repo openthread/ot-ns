@@ -116,8 +116,19 @@ func (node *Node) String() string {
 }
 
 // SendEvent sends Event evt serialized to the node, over UDP and also handles delay time keeping.
+// WARNING modifies the evt.Delay value based on the target node's CurTime.
 func (node *Node) sendEvent(evt *Event) {
+	// time keeping - move node's time to the current send-event's time.
+	simplelogger.AssertTrue(evt.Timestamp == node.D.CurTime)
+	oldTime := node.CurTime
+	evt.Delay = evt.Timestamp - oldTime // adjust Delay value for this target node.
 	node.sendRawData(evt.Serialize())
+	node.CurTime = evt.Timestamp
+	if evt.Timestamp > oldTime {
+		node.failureCtrl.OnTimeAdvanced(oldTime)
+	}
+	node.D.alarmMgr.SetNotified(node.Id)
+	node.D.setAlive(node.Id)
 }
 
 // sendRawData is INTERNAL to send bytes to UDP socket of node
