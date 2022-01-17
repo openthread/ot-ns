@@ -8,21 +8,22 @@ import (
 
 const frameTransmitTimeUs uint64 = 1 // the fixed frame transmit time.
 
-// RadioModelIdeal is an ideal radio model with infinite capacity and always fixed N us transmit time.
+// RadioModelIdeal is an ideal radio model with infinite capacity and always const transmit time.
 type RadioModelIdeal struct {
 	//
 }
 
-func (rm *RadioModelIdeal) IsTxSuccess(evt *Event, srcNode *RadioNode, dstNode *RadioNode, distMeters float64) int8 {
+func (rm *RadioModelIdeal) GetTxRssi(evt *Event, srcNode *RadioNode, dstNode *RadioNode, distMeters float64) int8 {
 	simplelogger.AssertTrue(evt.Type == EventTypeRadioFrameToNode)
-	rssi := ComputeFsplRssi(distMeters, evt.Param)
+	rssi := ComputeIndoorRssi(distMeters, srcNode.TxPower, dstNode.RxSensitivity)
 	return rssi
 }
 
 func (rm *RadioModelIdeal) TxStart(node *RadioNode, q EventQueue, evt *Event) {
 	var nextEvt *Event
 	simplelogger.AssertTrue(evt.Type == EventTypeRadioFrameToSim || evt.Type == EventTypeRadioFrameAckToSim)
-	node.TxPower = evt.Param // get the Tx power from the OT node's event param.
+	node.TxPower = evt.Param1     // get the Tx power from the OT node's event param.
+	node.CcaEdThresh = evt.Param2 // get CCA ED threshold also.
 
 	// signal Tx Done event to sender.
 	nextEvt = &Event{

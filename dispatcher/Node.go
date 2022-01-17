@@ -102,7 +102,7 @@ func newNode(d *Dispatcher, nodeid NodeId, x, y int, radioRange int) *Node {
 		Role:        OtDeviceRoleDisabled,
 		peerAddr:    nil, // peer address will be set when the first Event is received
 		radioRange:  radioRange,
-		radioNode:   &radiomodel.RadioNode{},
+		radioNode:   radiomodel.NewRadioNode(),
 		joinerState: OtJoinerStateIdle,
 	}
 

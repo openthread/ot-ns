@@ -19,9 +19,9 @@ const lifsTimeUs = symbolTimeUs * 20
 const sifsTimeUs = symbolTimeUs * 12
 
 // default radio parameters
-const receiveSensitivityDbm = -100
-const rssiInvalidValue float64 = 127.0
-const RssiMinusInfinity int8 = -127
+const receiveSensitivityDbm = -85 // equal to const in OpenThread node.
+const RssiInvalid = 127
+const RssiMinusInfinity = -127
 
 // EventQueue is the abstraction of the queue where the radio model sends its outgoing (new) events to.
 type EventQueue interface {
@@ -30,9 +30,9 @@ type EventQueue interface {
 
 // RadioModel provides access to any type of radio model.
 type RadioModel interface {
-	// IsTxSuccess checks whether the radio frame Tx indicated by evt is successful or not, according to the radio model.
-	// It returns the RSSI value if successful, or RssiMinusInfinity if not.
-	IsTxSuccess(evt *Event, srcNode *RadioNode, dstNode *RadioNode, distMeters float64) int8
+	// GetTxRssi checks whether the radio frame Tx indicated by evt is successful or not, according to the radio model.
+	// It returns the RSSI value at dstNode if successful, or RssiMinusInfinity if not successful.
+	GetTxRssi(evt *Event, srcNode *RadioNode, dstNode *RadioNode, distMeters float64) int8
 
 	// HandleEvent handles all radio-model events coming out of the simulator event queue.
 	// node must be the RadioNode object equivalent to the evt.NodeId node. Newly generated events may go back into
@@ -52,18 +52,18 @@ func InterferePsduData(d []byte) []byte {
 	return ret
 }
 
-// ComputeFsplRssi computes the RSSI for a receiver at distance dist, using a simple FSPL model.
-func ComputeFsplRssi(dist float64, txPower int8) int8 {
+// ComputeIndoorRssi computes the RSSI for a receiver at distance dist, using a simple indoor exponent=3.5 loss model.
+func ComputeIndoorRssi(dist float64, txPower int8, rxSensitivity int8) int8 {
 	fspl := 0.0
 	if dist > 0.01 {
-		fspl = 20*math.Log10(dist) + 40.0
+		fspl = 34.975*math.Log10(dist) + 40.0 // yields 85 dB loss at d=20m.
 	}
 	rssi := float64(txPower) - fspl
-	if rssi >= 126.5 {
-		rssi = rssiInvalidValue
+	rssiInt := int(math.Round(rssi))
+	if rssiInt >= RssiInvalid {
+		rssiInt = RssiInvalid // if too high, our int8 cannot hold the value anymore.
+	} else if rssi <= RssiMinusInfinity || rssi < float64(rxSensitivity) {
+		rssiInt = RssiMinusInfinity
 	}
-	if rssi < -127.0 {
-		rssi = -127.0
-	}
-	return int8(math.Round(rssi))
+	return int8(rssiInt)
 }

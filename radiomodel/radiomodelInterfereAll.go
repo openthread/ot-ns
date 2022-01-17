@@ -10,17 +10,19 @@ type RadioModelInterfereAll struct {
 	isRfBusy bool
 }
 
-func (rm *RadioModelInterfereAll) IsTxSuccess(evt *Event, srcNode *RadioNode, dstNode *RadioNode, distMeters float64) int8 {
+func (rm *RadioModelInterfereAll) GetTxRssi(evt *Event, srcNode *RadioNode, dstNode *RadioNode, distMeters float64) int8 {
 	simplelogger.AssertTrue(evt.Type == EventTypeRadioFrameToNode)
 	simplelogger.AssertTrue(srcNode != dstNode)
-	rssi := ComputeFsplRssi(distMeters, srcNode.TxPower)
+	//rssi := ComputeIndoorRssi(distMeters, srcNode.TxPower, dstNode.RxSensitivity)
+	rssi := int8(-35) // FIXME should use the above rssi, but low values lead to issues in mesh formation TBD
 	return rssi
 }
 
 func (rm *RadioModelInterfereAll) TxStart(node *RadioNode, q EventQueue, evt *Event) {
 	var nextEvt *Event
 	simplelogger.AssertTrue(evt.Type == EventTypeRadioFrameToSim || evt.Type == EventTypeRadioFrameAckToSim)
-	node.TxPower = evt.Param // get the Tx power from the OT node's event param.
+	node.TxPower = evt.Param1     // get the Tx power from the OT node's event param.
+	node.CcaEdThresh = evt.Param2 // get CCA ED threshold also.
 	isAck := evt.Type == EventTypeRadioFrameAckToSim
 
 	// check if a transmission is already ongoing? If so return OT_ERROR_ABORT.
@@ -83,7 +85,7 @@ func (rm *RadioModelInterfereAll) TxOngoing(node *RadioNode, q EventQueue, evt *
 	case 2: // CCA first sample point
 		//perform CCA check at current time point 1.
 		if rm.isRfBusy {
-			node.IsCcaFailed = true
+			node.IsCcaFailed = true // TODO use the node.CcaEdThresh to determine this.
 		}
 		// re-use the current event as the next event for CCA period end, updating timing only.
 		nextEvt := evt
@@ -93,7 +95,7 @@ func (rm *RadioModelInterfereAll) TxOngoing(node *RadioNode, q EventQueue, evt *
 
 	case 3: // CCA second sample point and decision
 		if rm.isRfBusy && !isAck {
-			node.IsCcaFailed = true
+			node.IsCcaFailed = true // TODO use the node.CcaEdThresh to determine this.
 		}
 		if node.IsCcaFailed && !isAck {
 			// if CCA fails, then respond Tx Done event with error code.

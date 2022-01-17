@@ -48,7 +48,8 @@ type Event struct {
 	Timestamp  uint64
 	Delay      uint64
 	Type       eventType
-	Param      int8
+	Param1     int8
+	Param2     int8
 	NodeId     NodeId
 	Data       []byte
 	SrcAddr    *net.UDPAddr
@@ -65,13 +66,14 @@ const RadioMessagePsduOffset = 1
 
 // Serialize serializes this Event into []byte to send to OpenThread node, including fields partially.
 func (e *Event) Serialize() []byte {
-	msg := make([]byte, 12+len(e.Data))
+	msg := make([]byte, 13+len(e.Data))
 	// e.Timestamp is not sent, only e.Delay.
 	binary.LittleEndian.PutUint64(msg[:8], e.Delay)
 	msg[8] = e.Type
-	msg[9] = byte(e.Param)
-	binary.LittleEndian.PutUint16(msg[10:12], uint16(len(e.Data)))
-	n := copy(msg[12:], e.Data)
+	msg[9] = byte(e.Param1)
+	msg[10] = byte(e.Param2)
+	binary.LittleEndian.PutUint16(msg[11:13], uint16(len(e.Data)))
+	n := copy(msg[13:], e.Data)
 	simplelogger.AssertTrue(n == len(e.Data))
 	return msg
 }
@@ -80,17 +82,18 @@ func (e *Event) Serialize() []byte {
 func (e *Event) Deserialize(data []byte) {
 	var n uint16
 	n = uint16(len(data))
-	if n < 12 {
+	if n < 13 {
 		simplelogger.Panicf("Event.Deserialize() message length too short: %d", n)
 	}
 
 	e.Delay = binary.LittleEndian.Uint64(data[:8])
 	e.Type = data[8]
-	e.Param = int8(data[9])
-	datalen := binary.LittleEndian.Uint16(data[10:12])
-	simplelogger.AssertTrue(datalen == (n - 12))
+	e.Param1 = int8(data[9])
+	e.Param2 = int8(data[10])
+	datalen := binary.LittleEndian.Uint16(data[11:13])
+	simplelogger.AssertTrue(datalen == (n - 13))
 	data2 := make([]byte, datalen)
-	copy(data2, data[12:n])
+	copy(data2, data[13:n])
 	// e.Timestamp is not deserialized (not present)
 	e.Timestamp = 0
 	e.Data = data2

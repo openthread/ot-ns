@@ -651,8 +651,8 @@ func (d *Dispatcher) checkRadioReachable(evt *Event, src *Node, dst *Node) bool 
 	dist := src.GetDistanceTo(dst)
 	distMeters := src.GetDistanceInMeters(dst)
 	if dst != src && dist <= src.radioRange {
-		rssi := d.radioModel.IsTxSuccess(evt, src.radioNode, dst.radioNode, distMeters)
-		if rssi > radiomodel.RssiMinusInfinity {
+		rssi := d.radioModel.GetTxRssi(evt, src.radioNode, dst.radioNode, distMeters)
+		if rssi > radiomodel.RssiMinusInfinity && rssi < radiomodel.RssiInvalid {
 			return true
 		}
 	}
@@ -695,9 +695,10 @@ func (d *Dispatcher) sendOneRadioFrameEvent(evt *Event, srcNode *Node, dstNode *
 		}
 	}
 
-	// compute the RSSI in the event
+	// compute the RSSI in the event for Param1
 	dist := srcNode.GetDistanceInMeters(dstNode)
-	evt.Param = radiomodel.ComputeFsplRssi(dist, srcNode.radioNode.TxPower)
+	evt.Param1 = d.radioModel.GetTxRssi(evt, srcNode.radioNode, dstNode.radioNode, dist)
+	evt.Param2 = 0 // not used
 
 	// send the event plus time keeping - moves dstnode's time to the current send-event's time.
 	dstNode.sendEvent(evt)
