@@ -10,10 +10,11 @@ type RadioModelInterfereAll struct {
 	isRfBusy bool
 }
 
-func (rm *RadioModelInterfereAll) IsTxSuccess(evt *Event, srcNode *RadioNode, dstNode *RadioNode, distMeters float64) bool {
+func (rm *RadioModelInterfereAll) IsTxSuccess(evt *Event, srcNode *RadioNode, dstNode *RadioNode, distMeters float64) int8 {
 	simplelogger.AssertTrue(evt.Type == EventTypeRadioFrameToNode)
-	// FIXME see ideal model - rssi := ComputeFsplRssi(distMeters, srcNode.TxPower)
-	return true
+	simplelogger.AssertTrue(srcNode != dstNode)
+	rssi := ComputeFsplRssi(distMeters, srcNode.TxPower)
+	return rssi
 }
 
 func (rm *RadioModelInterfereAll) TxStart(node *RadioNode, q EventQueue, evt *Event) {
