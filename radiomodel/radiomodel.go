@@ -19,7 +19,7 @@ const lifsTimeUs = symbolTimeUs * 20
 const sifsTimeUs = symbolTimeUs * 12
 
 // default radio parameters
-const receiveSensitivityDbm = -85 // equal to const in OpenThread node.
+const receiveSensitivityDbm = -100 // TODO for now MUST be equal to const in OpenThread node. Would like to adapt.
 const RssiInvalid = 127
 const RssiMinusInfinity = -127
 
@@ -62,7 +62,7 @@ func ComputeIndoorRssi(dist float64, txPower int8, rxSensitivity int8) int8 {
 	rssiInt := int(math.Round(rssi))
 	if rssiInt >= RssiInvalid {
 		rssiInt = RssiInvalid // if too high, our int8 cannot hold the value anymore.
-	} else if rssi <= RssiMinusInfinity || rssi < float64(rxSensitivity) {
+	} else if rssi <= RssiMinusInfinity || rssiInt <= int(rxSensitivity) {
 		rssiInt = RssiMinusInfinity
 	}
 	return int8(rssiInt)

@@ -13,8 +13,7 @@ type RadioModelInterfereAll struct {
 func (rm *RadioModelInterfereAll) GetTxRssi(evt *Event, srcNode *RadioNode, dstNode *RadioNode, distMeters float64) int8 {
 	simplelogger.AssertTrue(evt.Type == EventTypeRadioFrameToNode)
 	simplelogger.AssertTrue(srcNode != dstNode)
-	//rssi := ComputeIndoorRssi(distMeters, srcNode.TxPower, dstNode.RxSensitivity)
-	rssi := int8(-35) // FIXME should use the above rssi, but low values lead to issues in mesh formation TBD
+	rssi := ComputeIndoorRssi(distMeters, srcNode.TxPower, dstNode.RxSensitivity)
 	return rssi
 }
 
