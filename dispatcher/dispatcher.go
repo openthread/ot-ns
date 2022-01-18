@@ -714,7 +714,7 @@ func (d *Dispatcher) newNode(nodeid NodeId, x, y int, radioRange int) (node *Nod
 	d.nodes[nodeid] = node
 	d.alarmMgr.AddNode(nodeid)
 	d.setAlive(nodeid)
-	//d.WatchNode(nodeid) // FIXME for debug only - high amount of output.
+	//d.WatchNode(nodeid) // FIXME for debug only - high amount of debug log output.
 
 	d.vis.AddNode(nodeid, x, y, radioRange)
 	return
@@ -734,17 +734,20 @@ func (d *Dispatcher) setSleeping(nodeid NodeId) {
 	delete(d.aliveNodes, nodeid)
 }
 
+// syncAliveNodes advances the node's time of alive nodes only to current dispatcher time.
 func (d *Dispatcher) syncAliveNodes() {
 	if len(d.aliveNodes) == 0 {
 		return
 	}
 
+	// normally, not executed since no node ought to be alive anymore when this is called.
 	simplelogger.Warnf("syncing %d alive nodes: %v", len(d.aliveNodes), d.aliveNodes)
 	for nodeid := range d.aliveNodes {
 		d.advanceNodeTime(nodeid, d.CurTime, true)
 	}
 }
 
+// syncAllNodes advances all of the node's time to current dispatcher time.
 func (d *Dispatcher) syncAllNodes() {
 	for nodeid := range d.nodes {
 		d.advanceNodeTime(nodeid, d.CurTime, false)
