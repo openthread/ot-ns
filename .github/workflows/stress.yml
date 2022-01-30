@@ -53,6 +53,7 @@ jobs:
     runs-on: ubuntu-20.04
     env:
       HOMEBREW_NO_AUTO_UPDATE: 1
+      VIRTUAL_TIME_UART: 1
     steps:
       - uses: actions/setup-go@v1
         with:
