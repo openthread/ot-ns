@@ -85,7 +85,7 @@ class MleidConnectivityStressTest(BaseStressTest):
 
     def run(self):
         ns = self.ns
-        ns.packet_loss_ratio = 0.2
+        ns.packet_loss_ratio = 0.1
         ns.config_visualization(broadcast_message=False)
 
         assert ROUTER_COUNT >= 1

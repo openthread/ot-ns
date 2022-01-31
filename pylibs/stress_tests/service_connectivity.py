@@ -87,7 +87,7 @@ class StressTest(BaseStressTest):
 
     def run(self):
         ns = self.ns
-        ns.packet_loss_ratio = 0.2
+        ns.packet_loss_ratio = 0.1
 
         assert ROUTER_COUNT >= 1
         BR = ns.add("router", x=random.randint(0, XMAX), y=random.randint(0, YMAX))
