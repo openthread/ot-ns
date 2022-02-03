@@ -110,12 +110,10 @@ func (rm *RadioModelInterfereAll) TxOngoing(node *RadioNode, q EventQueue, evt *
 
 		} else {
 			if rm.isRfBusy && isAck {
-				// if ACK collides with existing transmission, let transmissions interfere.
-				// 1) Don't deliver the ACK.
-				// 2) Don't deliver ongoing transmission or alter its checksum TODO
+				// if ACK collides with existing transmission, mark ACK as failed.
 				node.IsTxFailed = true
 			} else {
-				// CCA was successful, or it's an Ack, so start frame transmission now.
+				// CCA was successful, or it's an ACK, so start frame transmission now.
 				rm.isRfBusy = true
 			}
 			// schedule the end-of-frame-transmission event.
@@ -150,8 +148,8 @@ func (rm *RadioModelInterfereAll) TxOngoing(node *RadioNode, q EventQueue, evt *
 		nextEvt.IsInternal = false
 		nextEvt.Timestamp += 1
 		nextEvt.Delay = 1
-		if node.IsTxFailed { // invalidate data in case of failure
-			nextEvt.Data = InterferePsduData(nextEvt.Data)
+		if node.IsTxFailed { // mark as interfered packet in case of failure
+			nextEvt.Type = EventTypeRadioFrameToNodeInterfered
 		}
 		q.AddEvent(nextEvt)
 	}

@@ -52,18 +52,19 @@ func InterferePsduData(d []byte) []byte {
 	return ret
 }
 
-// ComputeIndoorRssi computes the RSSI for a receiver at distance dist, using a simple indoor exponent=3.5 loss model.
+// ComputeIndoorRssi computes the RSSI for a receiver at distance dist, using a simple indoor exponent=3.xx loss model.
 func ComputeIndoorRssi(dist float64, txPower int8, rxSensitivity int8) int8 {
 	fspl := 0.0
 	if dist > 0.01 {
-		fspl = 34.975*math.Log10(dist) + 40.0 // yields 85 dB loss at d=20m.
+		fspl = 30.0*math.Log10(dist) + 40.0
 	}
 	rssi := float64(txPower) - fspl
 	rssiInt := int(math.Round(rssi))
 	if rssiInt >= RssiInvalid {
 		rssiInt = RssiInvalid // if too high, our int8 cannot hold the value anymore.
-	} else if rssi <= RssiMinusInfinity || rssiInt <= int(rxSensitivity) {
+	} else if rssi <= RssiMinusInfinity || rssiInt < int(rxSensitivity) {
 		rssiInt = RssiMinusInfinity
 	}
 	return int8(rssiInt)
+	//return -76 // FIXME debugnod
 }
