@@ -1,4 +1,5 @@
 // Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2020, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -284,8 +285,12 @@ func (d *Dispatcher) goUntilPauseTime() {
 		}
 
 		// keep receiving events from OT nodes until all are asleep i.e. will not produce more events.
-		d.RecvEvents()     // RecvEvents case for main simulation loop
-		d.syncAliveNodes() // normally, no nodes alive now. This is for exceptional cases (slow UDP).
+		d.RecvEvents() // RecvEvents case for main simulation loop
+		for d.GetAliveCount() > 0 {
+			d.syncAliveNodes() // normally, no nodes alive now. This is for exceptional cases (slow UDP?).
+			// above sync lets the alive nodes stay alive, so rcv messages again from these to let them go asleep.
+			d.RecvEvents() // RecvEvents case for main simulation loop
+		}
 
 		// all are asleep now - process the next Events in queue, either alarm or other type, for a single time.
 		goon := d.processNextEvent()
@@ -486,6 +491,8 @@ func (d *Dispatcher) processNextEvent() bool {
 
 			// execute the event
 			switch evt.Type {
+			case EventTypeRadioFrameToNodeInterfered:
+				fallthrough
 			case EventTypeRadioFrameToNode:
 				if !d.cfg.NoPcap {
 					d.pcapFrameChan <- pcapFrameItem{nextSendTime, evt.Data[RadioMessagePsduOffset:]}
@@ -573,7 +580,7 @@ func (d *Dispatcher) SendToUART(id NodeId, data []byte) {
 
 // sendRadioFrameEventToNodes sends RadioFrame Event to all neighbor nodes, reachable by radio
 func (d *Dispatcher) sendRadioFrameEventToNodes(evt *Event) {
-	simplelogger.AssertTrue(evt.Type == EventTypeRadioFrameToNode)
+
 	srcnodeid := evt.NodeId
 	srcnode := d.nodes[srcnodeid]
 	if srcnode == nil {
@@ -585,6 +592,14 @@ func (d *Dispatcher) sendRadioFrameEventToNodes(evt *Event) {
 
 	pktinfo := dissectpkt.Dissect(evt.Data)
 	pktframe := pktinfo.MacFrame
+
+	// for case of an interfered radio frame, only visualize.
+	if evt.Type == EventTypeRadioFrameToNodeInterfered {
+		d.visSendFrame(srcnodeid, BroadcastNodeId, pktframe) // TODO may use other animation for interfered frame.
+		// TODO: consider if the interfered-packet needs to be delivered somehow to the OT-node (e.g. with checksum altered?)
+		return
+	}
+	simplelogger.AssertTrue(evt.Type == EventTypeRadioFrameToNode)
 
 	// try to dispatch the message by extaddr directly
 	dispatchedByDstAddr := false
