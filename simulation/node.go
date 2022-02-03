@@ -52,7 +52,8 @@ const (
 )
 
 var (
-	DoneOrErrorRegexp = regexp.MustCompile(`(Done|Error \d+: .*)`)
+	DoneOrErrorRegexp        = regexp.MustCompile(`(Done|Error \d+: .*)`)
+	logLineTimestampedRegexp = regexp.MustCompile(`(\d\d:\d\d:\d\d\.\d\d\d )+`)
 )
 
 type NodeUartType int
@@ -214,6 +215,7 @@ func (node *Node) Command(cmd string, timeout time.Duration) []string {
 	output, result = output[:len(output)-1], output[len(output)-1]
 	if result != "Done" {
 		panic(result)
+
 	}
 	return output
 }
@@ -613,6 +615,7 @@ func (node *Node) lineReader(reader io.Reader, uartType NodeUartType) {
 			simplelogger.Debugf("%v's UART type is %v", node, uartType)
 			node.uartType = uartType
 		}
+		line = node.removeLogTimestamp(line) // Remove any OT debug log timestamp used.
 
 		select {
 		case node.pendingLines <- line:
@@ -653,7 +656,7 @@ func (node *Node) TryExpectLine(line interface{}, timeout time.Duration) (bool, 
 				// found the exact line
 				return true, outputLines
 			} else {
-				// hack: output scan result here, should have better implementation
+				// FIXME hack: output scan result here, should have better implementation
 				//| J | Network Name     | Extended PAN     | PAN  | MAC Address      | Ch | dBm | LQI |
 				if strings.HasPrefix(readLine, "|") || strings.HasPrefix(readLine, "+") {
 					fmt.Printf("%s\n", readLine)
@@ -700,8 +703,9 @@ func (node *Node) isLineMatch(line string, _expectedLine interface{}) bool {
 	case *regexp.Regexp:
 		return expectedLine.MatchString(line)
 	case []string:
+		// []string matches if at least one of the multiple lines matches.
 		for _, s := range expectedLine {
-			if s == line {
+			if node.isLineMatch(s, expectedLine) {
 				return true
 			}
 		}
@@ -709,6 +713,14 @@ func (node *Node) isLineMatch(line string, _expectedLine interface{}) bool {
 		simplelogger.Panic("unknown expected string")
 	}
 	return false
+}
+
+func (node *Node) removeLogTimestamp(line string) string {
+	idx := logLineTimestampedRegexp.FindStringIndex(line)
+	if idx == nil {
+		return line
+	}
+	return line[idx[1]:]
 }
 
 func (node *Node) DumpStat() string {

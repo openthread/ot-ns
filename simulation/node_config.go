@@ -45,7 +45,7 @@ func DefaultNodeConfig() *NodeConfig {
 		IsRouter:       true,
 		IsMtd:          false,
 		RxOffWhenIdle:  false,
-		RadioRange:     200,
+		RadioRange:     400,
 		ExecutablePath: "",
 		Restore:        false,
 	}
