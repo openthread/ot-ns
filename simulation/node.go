@@ -649,7 +649,7 @@ func (node *Node) TryExpectLine(line interface{}, timeout time.Duration) (bool, 
 				return false, outputLines
 			}
 
-			simplelogger.Debugf("%v - %s", node, readLine)
+			//simplelogger.Debugf("%v - %s", node, readLine)
 
 			outputLines = append(outputLines, readLine)
 			if node.isLineMatch(readLine, line) {
