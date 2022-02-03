@@ -33,13 +33,14 @@ import (
 )
 
 const (
-	EventTypeAlarmFired         uint8 = 0
-	EventTypeRadioFrameToNode   uint8 = 1
-	EventTypeUartWrite          uint8 = 2
-	EventTypeStatusPush         uint8 = 5
-	EventTypeRadioTxDone        uint8 = 6
-	EventTypeRadioFrameToSim    uint8 = 8
-	EventTypeRadioFrameAckToSim uint8 = 9
+	EventTypeAlarmFired                 uint8 = 0
+	EventTypeRadioFrameToNode           uint8 = 1
+	EventTypeUartWrite                  uint8 = 2
+	EventTypeStatusPush                 uint8 = 5
+	EventTypeRadioTxDone                uint8 = 6
+	EventTypeRadioFrameToSim            uint8 = 8
+	EventTypeRadioFrameAckToSim         uint8 = 9
+	EventTypeRadioFrameToNodeInterfered uint8 = 10
 )
 
 type eventType = uint8
