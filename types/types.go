@@ -27,9 +27,8 @@
 package types
 
 import (
-	"math"
-
 	"github.com/simonlingoogle/go-simplelogger"
+	"math"
 )
 
 type NodeId = int

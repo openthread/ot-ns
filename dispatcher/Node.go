@@ -78,7 +78,8 @@ type Node struct {
 	peerAddr      *net.UDPAddr
 	failureCtrl   *FailureCtrl
 	isFailed      bool
-	radioRange    int
+	radioRange    float64
+	radioRangeViz int
 	radioNode     *radiomodel.RadioNode
 	pendingPings  []*pingRequest
 	pingResults   []*PingResult
@@ -87,23 +88,24 @@ type Node struct {
 	joinResults   []*JoinResult
 }
 
-func newNode(d *Dispatcher, nodeid NodeId, x, y int, radioRange int) *Node {
-	simplelogger.AssertTrue(radioRange >= 0)
+func newNode(d *Dispatcher, nodeid NodeId, cfg *NodeConfig) *Node {
+	simplelogger.AssertTrue(cfg.RadioRange >= 0)
 
 	nc := &Node{
-		D:           d,
-		Id:          nodeid,
-		CurTime:     d.CurTime,
-		CreateTime:  d.CurTime,
-		X:           x,
-		Y:           y,
-		ExtAddr:     InvalidExtAddr,
-		Rloc16:      threadconst.InvalidRloc16,
-		Role:        OtDeviceRoleDisabled,
-		peerAddr:    nil, // peer address will be set when the first Event is received
-		radioRange:  radioRange,
-		radioNode:   radiomodel.NewRadioNode(),
-		joinerState: OtJoinerStateIdle,
+		D:             d,
+		Id:            nodeid,
+		CurTime:       d.CurTime,
+		CreateTime:    d.CurTime,
+		X:             cfg.X,
+		Y:             cfg.Y,
+		ExtAddr:       InvalidExtAddr,
+		Rloc16:        threadconst.InvalidRloc16,
+		Role:          OtDeviceRoleDisabled,
+		peerAddr:      nil, // peer address will be set when the first Event is received
+		radioRange:    cfg.RadioRange,
+		radioRangeViz: cfg.RadioRangeViz,
+		radioNode:     radiomodel.NewRadioNode(),
+		joinerState:   OtJoinerStateIdle,
 	}
 
 	nc.failureCtrl = newFailureCtrl(nc, NonFailTime)

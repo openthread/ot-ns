@@ -31,9 +31,8 @@ import (
 	"sort"
 	"time"
 
-	"github.com/openthread/ot-ns/progctx"
-
 	"github.com/openthread/ot-ns/dispatcher"
+	"github.com/openthread/ot-ns/progctx"
 	. "github.com/openthread/ot-ns/types"
 	"github.com/openthread/ot-ns/visualize"
 	"github.com/pkg/errors"
@@ -104,7 +103,7 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 	s.nodes[nodeid] = node
 
 	simplelogger.Infof("simulation:CtrlAddNode: %+v, rawMode=%v", cfg, s.rawMode)
-	s.d.AddNode(nodeid, cfg.X, cfg.Y, cfg.RadioRange)
+	s.d.AddNode(nodeid, cfg)
 
 	node.detectVirtualTimeUART()
 

@@ -24,21 +24,16 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-package simulation
+package types
 
-import . "github.com/openthread/ot-ns/types"
-
-func DefaultNodeConfig() *NodeConfig {
-	return &NodeConfig{
-		ID:             -1, // -1 for the next available nodeid
-		X:              0,
-		Y:              0,
-		IsRouter:       true,
-		IsMtd:          false,
-		RxOffWhenIdle:  false,
-		RadioRange:     1000.0, // 1000m max cut-off range (actual range determined by radio model)
-		RadioRangeViz:  200,    // radio-range visualized distance in pixels (for animations)
-		ExecutablePath: "",
-		Restore:        false,
-	}
+type NodeConfig struct {
+	ID             int
+	X, Y           int
+	IsMtd          bool
+	IsRouter       bool
+	RxOffWhenIdle  bool
+	RadioRange     float64
+	RadioRangeViz  int
+	ExecutablePath string
+	Restore        bool
 }

@@ -1,5 +1,4 @@
 // Copyright (c) 2020, The OTNS Authors.
-// Copyright (c) 2020, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -662,9 +661,8 @@ func (d *Dispatcher) sendRadioFrameEventToNodes(evt *Event) {
 }
 
 func (d *Dispatcher) checkRadioReachable(evt *Event, src *Node, dst *Node) bool {
-	dist := src.GetDistanceTo(dst)
 	distMeters := src.GetDistanceInMeters(dst)
-	if dst != src && dist <= src.radioRange {
+	if dst != src && distMeters <= src.radioRange {
 		rssi := d.radioModel.GetTxRssi(evt, src.radioNode, dst.radioNode, distMeters)
 		if rssi > radiomodel.RssiMinusInfinity && rssi < radiomodel.RssiInvalid {
 			return true
@@ -723,14 +721,14 @@ func (d *Dispatcher) sendOneRadioFrameEvent(evt *Event, srcNode *Node, dstNode *
 	return true
 }
 
-func (d *Dispatcher) newNode(nodeid NodeId, x, y int, radioRange int) (node *Node) {
-	node = newNode(d, nodeid, x, y, radioRange)
+func (d *Dispatcher) newNode(nodeid NodeId, cfg *NodeConfig) (node *Node) {
+	node = newNode(d, nodeid, cfg)
 	d.nodes[nodeid] = node
 	d.alarmMgr.AddNode(nodeid)
 	d.setAlive(nodeid)
 	//d.WatchNode(nodeid) // FIXME for debug only - high amount of debug log output.
 
-	d.vis.AddNode(nodeid, x, y, radioRange)
+	d.vis.AddNode(nodeid, cfg.X, cfg.Y, cfg.RadioRangeViz)
 	return
 }
 
@@ -893,10 +891,10 @@ func (d *Dispatcher) handleStatusPush(srcid NodeId, data string) {
 	}
 }
 
-func (d *Dispatcher) AddNode(nodeid NodeId, x, y int, radioRange int) {
+func (d *Dispatcher) AddNode(nodeid NodeId, cfg *NodeConfig) {
 	simplelogger.AssertNil(d.nodes[nodeid])
 	simplelogger.Infof("dispatcher add node %d", nodeid)
-	node := d.newNode(nodeid, x, y, radioRange)
+	node := d.newNode(nodeid, cfg)
 
 	if !d.cfg.Real {
 		// Wait until node's extended address is emitted (but not for real devices)
