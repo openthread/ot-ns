@@ -534,7 +534,6 @@ func (d *Dispatcher) eventsReader() {
 		evt := &Event{}
 		evt.Deserialize(readbuf[0:n])
 		//evt.Timestamp is not present yet in externally rcv event.
-		evt.NodeId = srcaddr.Port - d.cfg.Port
 		evt.SrcAddr = srcaddr
 
 		d.eventChan <- evt
