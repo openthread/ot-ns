@@ -447,6 +447,41 @@ class OTNS(object):
         """
         return self._expect_hex(self.node_cmd(nodeid, "rloc16"))
 
+    def get_parent_info(self, nodeid: int) -> Optional[Dict[str, Any]]:
+        """
+        Get node Parent info.
+
+        :param nodeid: node ID
+        :return: node Parent info
+        """
+        try:
+            lines = self.node_cmd(nodeid, 'parent info')
+        except OTNSCliError as ex:
+            if 'Error 13: InvalidState' in str(ex):
+                return None
+            else:
+                raise
+
+        # Parse `parent info` output
+        # Ext Addr: f652a535ea023b99
+        # Rloc: b800
+        # Link Quality In: 3
+        # Link Quality Out: 3
+        # Age: 120
+        # Done
+
+        parent_info = {}
+        for line in lines:
+            f, val = line.split(': ')
+            if f in ('Link Quality In', 'Link Quality Out', 'Age'):
+                parent_info[f] = int(val)
+            elif f in ('Rloc',):
+                parent_info[f] = int(val, 16)
+            else:
+                parent_info[f] = str(val)
+
+        return parent_info
+
     def get_ipaddrs(self, nodeid: int, addrtype: str = None) -> List[ipaddress.IPv6Address]:
         """
         Get node ipaddrs.

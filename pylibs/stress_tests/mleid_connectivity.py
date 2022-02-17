@@ -93,6 +93,7 @@ class MleidConnectivityStressTest(BaseStressTest):
         ns.radio_set_fail_time(BR, fail_time=(FAIL_DURATION, FAIL_INTERVAL))
 
         BR_ADDR = self.expect_node_mleid(BR, 10)
+        child_nodeids = []
 
         for i in range(ROUTER_COUNT - 1):
             nid = ns.add("router", x=random.randint(0, XMAX), y=random.randint(0, YMAX), radio_range=RADIO_RANGE)
@@ -101,15 +102,18 @@ class MleidConnectivityStressTest(BaseStressTest):
         for i in range(FED_COUNT):
             nid = ns.add("fed", x=random.randint(0, XMAX), y=random.randint(0, YMAX), radio_range=RADIO_RANGE)
             ns.radio_set_fail_time(nid, fail_time=(FAIL_DURATION, FAIL_INTERVAL))
+            child_nodeids.append(nid)
 
         for i in range(MED_COUNT):
             nid = ns.add("med", x=random.randint(0, XMAX), y=random.randint(0, YMAX), radio_range=RADIO_RANGE)
             ns.radio_set_fail_time(nid, fail_time=(FAIL_DURATION, FAIL_INTERVAL))
+            child_nodeids.append(nid)
 
         for i in range(SED_COUNT):
             nid = ns.add("sed", x=random.randint(0, XMAX), y=random.randint(0, YMAX), radio_range=RADIO_RANGE)
             ns.radio_set_fail_time(nid, fail_time=(FAIL_DURATION, FAIL_INTERVAL))
             ns.set_poll_period(nid, SED_PULL_PERIOD)
+            child_nodeids.append(nid)
 
         for nodeid in range(1, TOTAL_NODE_COUNT + 1):
             ns.ping(nodeid, BR_ADDR, datasize=PING_DATA_SIZE, count=TOTAL_SIMULATION_TIME // PING_INTERVAL,
@@ -122,6 +126,15 @@ class MleidConnectivityStressTest(BaseStressTest):
 
             ns.go(MOVE_INTERVAL)
             self._collect_pings()
+
+            for nodeid in child_nodeids:
+                rloc16 = ns.get_rloc16(nodeid)
+                if (not self.__is_router_rloc16(rloc16)) and rloc16 != 0xfffe:
+                    parent_info = ns.get_parent_info(nodeid)
+                    assert parent_info is not None
+                    parent_rloc16 = parent_info['Rloc']
+                    assert self.__is_router_rloc16(parent_rloc16) and parent_rloc16 & rloc16 == parent_rloc16, (
+                        rloc16, parent_info, ns.get_state(nodeid), ns.node_cmd(nodeid, 'mode'))
 
             self._cur_time += MOVE_INTERVAL
 
@@ -137,6 +150,9 @@ class MleidConnectivityStressTest(BaseStressTest):
         self.result.append_row("%dh" % (TOTAL_SIMULATION_TIME // 3600),
                                '%ds' % max(delays), '%ds' % min(delays), '%ds' % avg_delay)
         self.result.fail_if(max(delays) > 3600, "Max Delay (%ds)> 3600s" % max(delays))
+
+    def __is_router_rloc16(self, rloc16):
+        return rloc16 & ((1 << 10) - 1) == 0
 
     def _collect_pings(self):
         for srcid, dstaddr, _, delay in self.ns.pings():
