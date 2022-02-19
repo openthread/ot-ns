@@ -131,6 +131,13 @@ class OTNS(object):
         ms = self._expect_int(self.node_cmd(nodeid, 'pollperiod'))
         return ms / 1000.0
 
+    def set_child_timeout(self, nodeid: int, timeout:int) -> None:
+        self.node_cmd(nodeid, f'childtimeout {timeout}')
+
+    def get_child_timeout(self, nodeid: int) -> int:
+        timeout = self._expect_int(self.node_cmd(nodeid, 'childtimeout'))
+        return timeout
+
     @staticmethod
     def _detect_otns_path() -> str:
         env_otns_path = os.getenv('OTNS')

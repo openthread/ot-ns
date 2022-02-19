@@ -32,9 +32,10 @@ import sys
 import time
 import traceback
 from functools import wraps
+from typing import Collection
+
 from otns.cli import OTNS
 from otns.cli.errors import UnexpectedError
-from typing import Collection
 
 from StressTestResult import StressTestResult
 from errors import UnexpectedNodeAddr
@@ -66,11 +67,13 @@ class StressTestMetaclass(type):
 
 
 class BaseStressTest(object, metaclass=StressTestMetaclass):
-    def __init__(self, name, headers, raw=False):
+    def __init__(self, name, headers, raw=False, ping_timeout: float = None):
         self.name = name
         self._otns_args = []
         if raw:
             self._otns_args.append('-raw')
+        if ping_timeout is not None:
+            self._otns_args += ['-ping-timeout', str(ping_timeout)]
         self.ns = OTNS(otns_args=self._otns_args)
         self.ns.speed = float('inf')
         self.ns.web()

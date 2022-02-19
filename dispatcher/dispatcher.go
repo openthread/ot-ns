@@ -72,6 +72,7 @@ type Config struct {
 	Port        int
 	DumpPackets bool
 	NoPcap      bool
+	PingTimeout uint64
 }
 
 func DefaultConfig() *Config {
@@ -81,6 +82,7 @@ func DefaultConfig() *Config {
 		Host:        "localhost",
 		Port:        threadconst.InitialDispatcherPort,
 		DumpPackets: false,
+		PingTimeout: 10 * 1000000,
 	}
 }
 
