@@ -140,4 +140,5 @@ install_nodejs
 install_go_bindata
 install_py_libraries
 install_pretty_tools
+install_openthread_buildtools
 go mod tidy

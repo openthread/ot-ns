@@ -28,8 +28,6 @@
 # shellcheck source=script/common.sh
 . "$(dirname "$0")"/common.sh
 
-set -euox pipefail
-
 OT_DIR=${OT_DIR:-}
 OTBIN_DIR=
 
@@ -73,10 +71,6 @@ get_openthread()
     if [[ -z $OT_DIR ]]; then
         OT_DIR=$PWD/openthread
         git submodule update --init
-        (
-            cd "$OT_DIR"
-            repeat 3 ./script/bootstrap >/dev/null 2>&1
-        )
     fi
 
     OTBIN_DIR=$OT_DIR/build/otns/examples/apps/cli
@@ -85,6 +79,9 @@ get_openthread()
 build_openthread()
 {
     get_openthread
+
+    install_openthread_buildtools
+
     (
         cd "$OT_DIR"
         mkdir -p build/otns
@@ -195,6 +192,10 @@ main()
             stress-tests)
                 stress_tests "$2"
                 shift 2
+                ;;
+            build-openthread)
+                build_openthread
+                shift 1
                 ;;
             *)
                 echo "Error: Unsupported test $1" >&2

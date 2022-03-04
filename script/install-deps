@@ -30,8 +30,6 @@
 # shellcheck source=script/common.sh
 . "$(dirname "$0")"/common.sh
 
-set -e
-
 apt_update_once=0
 
 install_packages()
