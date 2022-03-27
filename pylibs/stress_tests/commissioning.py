@@ -98,7 +98,7 @@ class CommissioningStressTest(BaseStressTest):
         ns.node_cmd(G[cr][cc], 'dataset commit active')
         ns.ifconfig_up(G[cr][cc])
         ns.thread_start(G[cr][cc])
-        ns.go(10)
+        ns.go(15)
         assert ns.get_state(G[cr][cc]) == 'leader'
         started[cr][cc] = joined[cr][cc] = True
 

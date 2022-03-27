@@ -57,7 +57,7 @@ class BasicTests(OTNSTestCase):
             logging.info("testOneNode round %d", i + 1)
             ns = self.ns
             ns.add("router")
-            ns.go(4)
+            ns.go(10)
             self.assertFormPartitions(1)
             self.tearDown()
             self.setUp()
@@ -65,7 +65,7 @@ class BasicTests(OTNSTestCase):
     def testAddNode(self):
         ns = self.ns
         ns.add("router")
-        self.go(4)
+        self.go(10)
         self.assertFormPartitions(1)
 
         ns.add("router")
@@ -94,7 +94,7 @@ class BasicTests(OTNSTestCase):
         ns = self.ns
         ns.add("router")
 
-        self.go(4)
+        self.go(10)
         self.assertEqual(ns.get_state(1), "leader")
 
         for type in ("router", "fed", "med", "sed"):
@@ -196,7 +196,7 @@ class BasicTests(OTNSTestCase):
     def testCliCmd(self):
         ns = self.ns
         id = ns.add("router")
-        self.go(4)
+        self.go(10)
         self.assertTrue(ns.get_state(id), 'leader')
 
     def testCounters(self):

@@ -50,7 +50,7 @@ MAX_N = 6
 REPEAT = int(os.getenv('STRESS_LEVEL', '1')) * 3
 
 EXPECTED_MERGE_TIME_MAX = [
-    None, 3, 6, 12, 20, 50, 100
+    None, 10, 13, 19, 27, 57, 107
 ]
 
 
