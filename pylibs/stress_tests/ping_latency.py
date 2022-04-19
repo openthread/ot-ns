@@ -34,7 +34,7 @@
 # Fault Injections:
 #   None
 # Pass Criteria:
-#   Max ping latency < 100ms
+#   Max ping latency < 300ms
 #
 import logging
 import math
@@ -152,7 +152,7 @@ class StressTest(BaseStressTest):
             row = ['%dB' % datasize]
             for n, s in latencys:
                 row.append('%dms' % (s / n) if n > 0 else 'NODATA')
-                self.result.fail_if(s / n > 100, "average ping latency > 100ms")
+                self.result.fail_if(s / n > 300, "average ping latency > 300ms")
 
             self.result.append_row(*row)
 
