@@ -47,6 +47,7 @@ jobs:
     name: Build (Go ${{ matrix.go }}, ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         include:
           - go: 1.13
