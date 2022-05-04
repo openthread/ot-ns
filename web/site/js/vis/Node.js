@@ -287,7 +287,15 @@ export default class Node extends VObject {
             selbox.scale.set(selboxsize / NODE_SELECTION_SCALE, selboxsize / NODE_SELECTION_SCALE);
             selbox.anchor.set(0.5, 0.5);
             this.root.addChildAt(selbox, 0);
-            this._selbox = selbox
+            this._selbox = selbox;
+
+            const rangeCircleSize = this.radioRange;
+            let rangeCircle = new PIXI.Graphics();
+            rangeCircle.beginFill(0x20ff20, 0.2);
+            rangeCircle.drawCircle(0, 0, rangeCircleSize);
+            rangeCircle.endFill();
+            this.root.addChildAt(rangeCircle, 0);
+            this._rangeCircle = rangeCircle;
         }
     }
 
@@ -296,6 +304,9 @@ export default class Node extends VObject {
         if (this._selbox) {
             this._selbox.destroy();
             delete this._selbox
+
+            this._rangeCircle.destroy();
+            delete this._rangeCircle
         }
     }
 
