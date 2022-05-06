@@ -105,41 +105,41 @@ export default class Node extends VObject {
         failedMask.scale.set(0.5, 0.5);
         failedMask.visible = false;
         this._root.addChild(failedMask);
-        this._failedMask = failedMask;
+        this._failedMask = failedMask
     }
 
     get failed() {
-        return this._failed;
+        return this._failed
     }
 
     set failed(v) {
         if (this._failed !== v) {
             this._failed = v;
-            this._failedMask.visible = this._failed;
+            this._failedMask.visible = this._failed
         }
     }
 
     get parent() {
-        return this._parent;
+        return this._parent
     }
 
     set parent(v) {
-        this._parent = v;
+        this._parent = v
     }
 
     get partition() {
-        return this._partition;
+        return this._partition
     }
 
     set partition(v) {
         if (v !== this._partition) {
             this._partition = v;
-            this._partitionSprite.tint = this.vis.getPartitionColor(this._partition);
+            this._partitionSprite.tint = this.vis.getPartitionColor(this._partition)
         }
     }
 
     getActionContext() {
-        return "node";
+        return "node"
     }
 
     _createStatusSprite() {
@@ -179,13 +179,13 @@ export default class Node extends VObject {
         this.x = x;
         this.y = y;
         if (!this.isDragging()) {
-            this.position.set(x, y);
+            this.position.set(x, y)
         }
     }
 
     _updateLabel() {
         let rloc16 = ('0000' + this.rloc16.toString(16).toUpperCase()).slice(-4);
-        this.label.text = this.id.toString() + "|" + rloc16;
+        this.label.text = this.id.toString() + "|" + rloc16
     }
 
     _updateSize() {
@@ -193,7 +193,7 @@ export default class Node extends VObject {
         switch (this.role) {
             case OtDeviceRole.OT_DEVICE_ROLE_LEADER:
             case OtDeviceRole.OT_DEVICE_ROLE_ROUTER:
-                radius = HEXAGONAL_SHAPE_RADIUS;
+                radius = HEXAGONAL_SHAPE_RADIUS
         }
         this._statusSprite.scale.x = this._statusSprite.scale.y = radius * 2 / NODE_SHAPE_SCALE;
         this._partitionSprite.scale.x = this._partitionSprite.scale.y = radius * 2 / NODE_SHAPE_SCALE / 1.5;
@@ -201,7 +201,7 @@ export default class Node extends VObject {
 
     setRloc16(rloc16) {
         this.rloc16 = rloc16;
-        this._updateLabel();
+        this._updateLabel()
     }
 
     setRole(role) {
@@ -210,7 +210,7 @@ export default class Node extends VObject {
             this._statusSprite.tint = this.getRoleColor();
             this._statusSprite.texture = this._getStatusSpriteTexture();
             this._partitionSprite.texture = this._getPartitionSpriteTexture();
-            this._updateSize();
+            this._updateSize()
         }
     }
 
@@ -223,7 +223,7 @@ export default class Node extends VObject {
 
     getRoleColor() {
         if (this.failed) {
-            return 0x757575;
+            return 0x757575
         }
 
         switch (this.role) {
@@ -236,25 +236,25 @@ export default class Node extends VObject {
             case OtDeviceRole.OT_DEVICE_ROLE_DETACHED:
                 return 0x546e7a;
             case OtDeviceRole.OT_DEVICE_ROLE_DISABLED:
-                return 0x757575;
+                return 0x757575
         }
         return 0x757575
     }
 
     addRouterTable(extaddr) {
-        this._neighbors[extaddr] = 1;
+        this._neighbors[extaddr] = 1
     }
 
     removeRouterTable(extaddr) {
-        delete this._neighbors[extaddr];
+        delete this._neighbors[extaddr]
     }
 
     addChildTable(extaddr) {
         this._children[extaddr] = 1
-    };
+    }
 
     removeChildTable(extaddr) {
-        delete this._children[extaddr];
+        delete this._children[extaddr]
     }
 
     onDraggingTimer() {
@@ -267,7 +267,7 @@ export default class Node extends VObject {
         let pos = this.position;
         this.vis.ctrlMoveNodeTo(this.id, pos.x, pos.y, (err, resp) => {
             if (err !== null) {
-                this.position.set(this.x, this.y);
+                this.position.set(this.x, this.y)
             }
         })
     }
@@ -291,7 +291,8 @@ export default class Node extends VObject {
 
             const rangeCircleSize = this.radioRange;
             let rangeCircle = new PIXI.Graphics();
-            rangeCircle.beginFill(0x20ff20, 0.2);
+            rangeCircle.beginFill(0x98ee99, 0.2);
+            rangeCircle.lineStyle({width: 1, color: 0x338a3e, alpha: 0.7});
             rangeCircle.drawCircle(0, 0, rangeCircleSize);
             rangeCircle.endFill();
             this.root.addChildAt(rangeCircle, 0);
