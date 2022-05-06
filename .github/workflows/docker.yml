@@ -40,9 +40,15 @@ jobs:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         if: "github.ref != 'refs/heads/main'"
 
-  buildx-playground:
-    name: buildx-playground
+  buildx:
+    name: buildx-${{ matrix.version }}
     runs-on: ubuntu-18.04
+    strategy:
+      fail-fast: false
+      matrix:
+        version:
+          - "environment"
+          - "playground"
     steps:
       - uses: actions/checkout@v2
       - name: Set up Docker Buildx
@@ -51,9 +57,9 @@ jobs:
         id: prepare
         run: |
           DOCKER_IMAGE=openthread/otns
-          DOCKER_FILE=etc/docker/playground/Dockerfile
+          DOCKER_FILE=etc/docker/${{ matrix.version }}/Dockerfile
           DOCKER_PLATFORMS=linux/amd64
-          VERSION=playground
+          VERSION=${{ matrix.version }}
 
           TAGS="--tag ${DOCKER_IMAGE}:${VERSION}"
 

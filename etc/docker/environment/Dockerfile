@@ -24,41 +24,15 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-name: Develop
+FROM golang:1.17-buster
 
-on:
-  pull_request:
-    branches:
-      - 'main'
+RUN apt-get update && apt-get install -y python3 python3-pip sudo unzip nodejs npm git && rm -rf /var/lib/apt/lists/*
 
-jobs:
-  cancel-previous-runs:
-    runs-on: ubuntu-20.04
-    steps:
-      - uses: rokroskar/workflow-run-cleanup-action@master
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        if: "github.ref != 'refs/heads/main'"
+COPY . /otns
+WORKDIR /otns
+RUN ./script/setup-dev
+RUN ./script/install-deps
+RUN ./script/pack-web
+RUN ./script/install
 
-  develop:
-    name: Develop (Go${{ matrix.go }},${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    env:
-      HOMEBREW_NO_AUTO_UPDATE: 1
-    strategy:
-      fail-fast: false
-      matrix:
-        go: [1.17, 1.18]
-        python-version: [3.6]
-        os: [ubuntu-20.04]
-    steps:
-      - uses: actions/setup-go@v1
-        with:
-          go-version: ${{ matrix.go }}
-      - uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.python-version }}
-      - uses: actions/checkout@v2
-      - name: Build
-        run: |
-          docker build -t otns-env -f etc/docker/environment/Dockerfile .
+ENTRYPOINT [ "bash" ]
