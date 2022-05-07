@@ -113,6 +113,10 @@ function install_pretty_tools()
 
 install_openthread_buildtools()
 {
+    if installed "ninja"; then
+        return 0
+    fi
+
     if [[ $Darwin == 1 ]]; then
         brew install ninja
     else
