@@ -73,7 +73,7 @@ class BasicTests(OTNSTestCase):
         ns.node_cmd(n1, "dataset commit active")
         ns.ifconfig_up(n1)
         ns.thread_start(n1)
-        self.go(30)
+        self.go(35)
         self.assertTrue(ns.get_state(n1) == "leader")
         ns.commissioner_start(n1)
         ns.commissioner_joiner_add(n1, "*", "TEST123")
