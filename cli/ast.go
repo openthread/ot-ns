@@ -60,6 +60,7 @@ type Command struct {
 	Speed               *SpeedCmd               `| @@` //nolint
 	Title               *TitleCmd               `| @@` //nolint
 	Web                 *WebCmd                 `| @@` //nolint
+	LogLevel            *LogLevelCmd            `| @@` //nolint
 }
 
 //noinspection GoStructTag
@@ -405,6 +406,12 @@ type CountersCmd struct {
 type PlrCmd struct {
 	Cmd struct{} `"plr"`             //nolint
 	Val *float64 `[ (@Int|@Float) ]` //nolint
+}
+
+//noinspection GoStructTag
+type LogLevelCmd struct {
+	Cmd   struct{} `"log"`                                //nolint
+	Level string   `[@( "debug"|"info"|"warn"|"error" )]` //nolint
 }
 
 //noinspection GoStructTag

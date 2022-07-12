@@ -215,6 +215,8 @@ func (rt *CmdRunner) execute(cmd *Command, output io.Writer) {
 		rt.executeWeb(cc, cc.Web)
 	} else if cmd.NetInfo != nil {
 		rt.executeNetInfo(cc, cc.NetInfo)
+	} else if cmd.LogLevel != nil {
+		rt.executeLogLevel(cc, cc.LogLevel)
 	} else {
 		simplelogger.Panicf("unimplemented command: %#v", cmd)
 	}
@@ -620,6 +622,14 @@ func (rt *CmdRunner) executeCounters(cc *CommandContext, counters *CountersCmd) 
 func (rt *CmdRunner) executeWeb(cc *CommandContext, webcmd *WebCmd) {
 	if err := web.OpenWeb(rt.ctx); err != nil {
 		cc.error(err)
+	}
+}
+
+func (rt *CmdRunner) executeLogLevel(cc *CommandContext, cmd *LogLevelCmd) {
+	if len(cmd.Level) == 0 {
+		cc.outputf("%v\n", simplelogger.GetLevel().String())
+	} else {
+		simplelogger.SetLevel(simplelogger.ParseLevel(cmd.Level))
 	}
 }
 

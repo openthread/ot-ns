@@ -15,6 +15,7 @@ Python libraries use the CLI to manage simulations.
 * [exit](#exit)
 * [go](#go-duration-seconds--ever)
 * [joins](#joins)
+* [log](#log-level)
 * [move](#move-node-id-x-y)
 * [netinfo](#netinfo-version-string-commit-string-real-yn)
 * [node](#node-node-id-command)
@@ -172,6 +173,21 @@ Connect finished joiner sessions.
 ```bash
 > joins
 node=2    join=4.899s session=5.000s
+Done
+```
+### log \[\<level\>\]
+
+Inspect the current log level, or set a new log level. The default is taken from the command line argument,
+or 'warn' if nothing specified. Use 'debug' to see detailed log messages.
+
+```bash
+> log
+warn
+Done
+> log debug
+Done
+> log
+debug
 Done
 ```
 
