@@ -6,12 +6,15 @@ import (
 	"github.com/simonlingoogle/go-simplelogger"
 )
 
+// RadioModelInterfereAll is a somewhat pessimistic radio model where one transmitter will always interfere
+// with all other transmitters in the simulation, regardless of distance. This means no 2 or more nodes
+// can transmit at the same time. It's useful to evaluate capacity-limited situations.
 type RadioModelInterfereAll struct {
 	isRfBusy bool
 }
 
 func (rm *RadioModelInterfereAll) GetTxRssi(evt *Event, srcNode *RadioNode, dstNode *RadioNode, distMeters float64) int8 {
-	simplelogger.AssertTrue(evt.Type == EventTypeRadioFrameToNode)
+	simplelogger.AssertTrue(evt.Type == EventTypeRadioReceived)
 	simplelogger.AssertTrue(srcNode != dstNode)
 	rssi := ComputeIndoorRssi(distMeters, srcNode.TxPower, dstNode.RxSensitivity)
 	return rssi
@@ -19,10 +22,10 @@ func (rm *RadioModelInterfereAll) GetTxRssi(evt *Event, srcNode *RadioNode, dstN
 
 func (rm *RadioModelInterfereAll) TxStart(node *RadioNode, q EventQueue, evt *Event) {
 	var nextEvt *Event
-	simplelogger.AssertTrue(evt.Type == EventTypeRadioFrameToSim || evt.Type == EventTypeRadioFrameAckToSim)
+	simplelogger.AssertTrue(evt.Type == EventTypeRadioTx || evt.Type == EventTypeRadioTxAck)
 	node.TxPower = evt.Param1     // get the Tx power from the OT node's event param.
 	node.CcaEdThresh = evt.Param2 // get CCA ED threshold also.
-	isAck := evt.Type == EventTypeRadioFrameAckToSim
+	isAck := evt.Type == EventTypeRadioTxAck
 
 	// check if a transmission is already ongoing? If so return OT_ERROR_ABORT.
 	if node.TxPhase > 0 {
@@ -72,8 +75,8 @@ func (rm *RadioModelInterfereAll) TxStart(node *RadioNode, q EventQueue, evt *Ev
 
 func (rm *RadioModelInterfereAll) TxOngoing(node *RadioNode, q EventQueue, evt *Event) {
 
-	simplelogger.AssertTrue(evt.Type == EventTypeRadioFrameToSim || evt.Type == EventTypeRadioFrameAckToSim)
-	isAck := evt.Type == EventTypeRadioFrameAckToSim
+	simplelogger.AssertTrue(evt.Type == EventTypeRadioTx || evt.Type == EventTypeRadioTxAck)
+	isAck := evt.Type == EventTypeRadioTxAck
 
 	node.TxPhase++
 	if node.TxPhase == 2 && isAck {
@@ -144,12 +147,12 @@ func (rm *RadioModelInterfereAll) TxOngoing(node *RadioNode, q EventQueue, evt *
 
 		// let other radios of Nodes receive the data (after 1 us propagation delay)
 		nextEvt = evt
-		nextEvt.Type = EventTypeRadioFrameToNode
+		nextEvt.Type = EventTypeRadioReceived
 		nextEvt.IsInternal = false
 		nextEvt.Timestamp += 1
 		nextEvt.Delay = 1
 		if node.IsTxFailed { // mark as interfered packet in case of failure
-			nextEvt.Type = EventTypeRadioFrameToNodeInterfered
+			nextEvt.Type = EventTypeRadioRxInterfered
 		}
 		q.AddEvent(nextEvt)
 	}
@@ -157,9 +160,9 @@ func (rm *RadioModelInterfereAll) TxOngoing(node *RadioNode, q EventQueue, evt *
 
 func (rm *RadioModelInterfereAll) HandleEvent(node *RadioNode, q EventQueue, evt *Event) {
 	switch evt.Type {
-	case EventTypeRadioFrameAckToSim:
+	case EventTypeRadioTxAck:
 		fallthrough
-	case EventTypeRadioFrameToSim:
+	case EventTypeRadioTx:
 		if !evt.IsInternal {
 			rm.TxStart(node, q, evt)
 		} else {

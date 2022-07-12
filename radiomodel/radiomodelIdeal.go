@@ -14,14 +14,14 @@ type RadioModelIdeal struct {
 }
 
 func (rm *RadioModelIdeal) GetTxRssi(evt *Event, srcNode *RadioNode, dstNode *RadioNode, distMeters float64) int8 {
-	simplelogger.AssertTrue(evt.Type == EventTypeRadioFrameToNode)
+	simplelogger.AssertTrue(evt.Type == EventTypeRadioReceived)
 	rssi := ComputeIndoorRssi(distMeters, srcNode.TxPower, dstNode.RxSensitivity)
 	return rssi
 }
 
 func (rm *RadioModelIdeal) TxStart(node *RadioNode, q EventQueue, evt *Event) {
 	var nextEvt *Event
-	simplelogger.AssertTrue(evt.Type == EventTypeRadioFrameToSim || evt.Type == EventTypeRadioFrameAckToSim)
+	simplelogger.AssertTrue(evt.Type == EventTypeRadioTx || evt.Type == EventTypeRadioTxAck)
 	node.TxPower = evt.Param1     // get the Tx power from the OT node's event param.
 	node.CcaEdThresh = evt.Param2 // get CCA ED threshold also.
 
@@ -37,7 +37,7 @@ func (rm *RadioModelIdeal) TxStart(node *RadioNode, q EventQueue, evt *Event) {
 
 	// let other radios of reachable Nodes receive the data (after N us propagation delay)
 	nextEvt = evt
-	nextEvt.Type = EventTypeRadioFrameToNode
+	nextEvt.Type = EventTypeRadioReceived
 	nextEvt.Timestamp += frameTransmitTimeUs
 	nextEvt.Delay = frameTransmitTimeUs
 	q.AddEvent(nextEvt)
@@ -46,9 +46,9 @@ func (rm *RadioModelIdeal) TxStart(node *RadioNode, q EventQueue, evt *Event) {
 
 func (rm *RadioModelIdeal) HandleEvent(node *RadioNode, q EventQueue, evt *Event) {
 	switch evt.Type {
-	case EventTypeRadioFrameAckToSim:
+	case EventTypeRadioTxAck:
 		fallthrough
-	case EventTypeRadioFrameToSim:
+	case EventTypeRadioTx:
 		rm.TxStart(node, q, evt)
 	default:
 		simplelogger.Panicf("event type not implemented: %v", evt.Type)

@@ -180,7 +180,7 @@ func NewDispatcher(ctx *progctx.ProgCtx, cfg *Config, cbHandler CallbackHandler)
 		goDurationChan:     make(chan goDuration, 10),
 		visOptions:         defaultVisualizationOptions(),
 		radioModel:         &radiomodel.RadioModelInterfereAll{},
-		//radioModel: &radiomodel.RadioModelIdeal{}, // TODO select radio model
+		//radioModel: &radiomodel.RadioModelIdeal{}, // TODO select radio model at runtime
 	}
 	d.speed = d.normalizeSpeed(d.speed)
 	if !d.cfg.NoPcap {
@@ -320,6 +320,11 @@ func (d *Dispatcher) handleRecvEvent(evt *Event) {
 	node := d.nodes[nodeid]
 	node.peerAddr = evt.SrcAddr
 
+	// detect highest event message version as used by OT node.
+	if evt.Version > node.eventMsgVersion {
+		node.eventMsgVersion = evt.Version
+	}
+
 	if d.isWatching(evt.NodeId) && evt.Type != EventTypeUartWrite {
 		simplelogger.Infof("Node %d <<< %+v, cur time %d, node time %d", evt.NodeId, *evt,
 			d.CurTime, node.CurTime)
@@ -334,11 +339,11 @@ func (d *Dispatcher) handleRecvEvent(evt *Event) {
 	}
 	// the event must happen in the now or in the future. Push (viz) or UART (setup) events may come a bit late
 	// due to current design; and that is ok. TODO investigate reason.
-	if evt.Type != EventTypeStatusPush && evt.Type != EventTypeUartWrite {
+	if evt.Type != EventTypeOtnsStatusPush && evt.Type != EventTypeUartWrite {
 		simplelogger.AssertTrue(evtTime >= dispTime)
 	}
 
-	if d.cfg.Real && (evt.Type != EventTypeUartWrite && evt.Type != EventTypeStatusPush) {
+	if d.cfg.Real && (evt.Type != EventTypeUartWrite && evt.Type != EventTypeOtnsStatusPush) {
 		// should not receive particular events in real mode
 		simplelogger.Warnf("unexpected Event in real mode: %v", evt.Type)
 		return
@@ -350,7 +355,7 @@ func (d *Dispatcher) handleRecvEvent(evt *Event) {
 		simplelogger.AssertTrue(evt.Delay > 0) // OT node can't send 0-delay alarm. That's an error.
 		d.setSleeping(nodeid)                  // Alarm is the final event sent by a node until all its actions are done.
 		d.alarmMgr.SetTimestamp(nodeid, evtTime)
-	case EventTypeStatusPush:
+	case EventTypeOtnsStatusPush:
 		d.Counters.StatusPushEvents += 1
 		simplelogger.AssertTrue(evt.Delay == 0)          // Currently, we expect all status push evts to be 'now'.
 		d.handleStatusPush(evt.NodeId, string(evt.Data)) // so that we can handle it directly without queueing.
@@ -490,9 +495,9 @@ func (d *Dispatcher) processNextEvent() bool {
 
 			// execute the event
 			switch evt.Type {
-			case EventTypeRadioFrameToNodeInterfered:
+			case EventTypeRadioRxInterfered:
 				fallthrough
-			case EventTypeRadioFrameToNode:
+			case EventTypeRadioReceived:
 				if !d.cfg.NoPcap {
 					d.pcapFrameChan <- pcapFrameItem{nextSendTime, evt.Data[RadioMessagePsduOffset:]}
 				}
@@ -592,12 +597,12 @@ func (d *Dispatcher) sendRadioFrameEventToNodes(evt *Event) {
 	pktframe := pktinfo.MacFrame
 
 	// for case of an interfered radio frame, only visualize.
-	if evt.Type == EventTypeRadioFrameToNodeInterfered {
+	if evt.Type == EventTypeRadioRxInterfered {
 		d.visSendFrame(srcnodeid, BroadcastNodeId, pktframe) // TODO may use other animation for interfered frame.
 		// TODO: consider if the interfered-packet needs to be delivered somehow to the OT-node (e.g. with checksum altered?)
 		return
 	}
-	simplelogger.AssertTrue(evt.Type == EventTypeRadioFrameToNode)
+	simplelogger.AssertTrue(evt.Type == EventTypeRadioReceived)
 
 	// try to dispatch the message by extaddr directly
 	dispatchedByDstAddr := false
@@ -690,7 +695,7 @@ func (d *Dispatcher) sendTxDoneEvent(evt *Event) {
 // sendOneRadioEvent sends RadioFrame Event from Node srcnode to Node dstnode via radio model.
 func (d *Dispatcher) sendOneRadioFrameEvent(evt *Event, srcNode *Node, dstNode *Node) bool {
 	simplelogger.AssertFalse(d.cfg.Real)
-	simplelogger.AssertTrue(EventTypeRadioFrameToNode == evt.Type)
+	simplelogger.AssertTrue(EventTypeRadioReceived == evt.Type)
 	simplelogger.AssertFalse(srcNode == dstNode)
 
 	// Tx failure cases below:  (these are still visualized as successful)

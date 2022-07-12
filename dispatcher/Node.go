@@ -75,37 +75,39 @@ type Node struct {
 	CurTime     uint64
 	Role        OtDeviceRole
 
-	peerAddr      *net.UDPAddr
-	failureCtrl   *FailureCtrl
-	isFailed      bool
-	radioRange    float64
-	radioRangeViz int
-	radioNode     *radiomodel.RadioNode
-	pendingPings  []*pingRequest
-	pingResults   []*PingResult
-	joinerState   OtJoinerState
-	joinerSession *joinerSession
-	joinResults   []*JoinResult
+	peerAddr        *net.UDPAddr
+	failureCtrl     *FailureCtrl
+	isFailed        bool
+	radioRange      float64
+	radioRangeViz   int
+	radioNode       *radiomodel.RadioNode
+	eventMsgVersion int
+	pendingPings    []*pingRequest
+	pingResults     []*PingResult
+	joinerState     OtJoinerState
+	joinerSession   *joinerSession
+	joinResults     []*JoinResult
 }
 
 func newNode(d *Dispatcher, nodeid NodeId, cfg *NodeConfig) *Node {
 	simplelogger.AssertTrue(cfg.RadioRange >= 0)
 
 	nc := &Node{
-		D:             d,
-		Id:            nodeid,
-		CurTime:       d.CurTime,
-		CreateTime:    d.CurTime,
-		X:             cfg.X,
-		Y:             cfg.Y,
-		ExtAddr:       InvalidExtAddr,
-		Rloc16:        threadconst.InvalidRloc16,
-		Role:          OtDeviceRoleDisabled,
-		peerAddr:      nil, // peer address will be set when the first Event is received
-		radioRange:    cfg.RadioRange,
-		radioRangeViz: cfg.RadioRangeViz,
-		radioNode:     radiomodel.NewRadioNode(),
-		joinerState:   OtJoinerStateIdle,
+		D:               d,
+		Id:              nodeid,
+		CurTime:         d.CurTime,
+		CreateTime:      d.CurTime,
+		X:               cfg.X,
+		Y:               cfg.Y,
+		ExtAddr:         InvalidExtAddr,
+		Rloc16:          threadconst.InvalidRloc16,
+		Role:            OtDeviceRoleDisabled,
+		peerAddr:        nil, // peer address will be set when the first Event is received
+		radioRange:      cfg.RadioRange,
+		radioRangeViz:   cfg.RadioRangeViz,
+		radioNode:       radiomodel.NewRadioNode(),
+		eventMsgVersion: 1, // default to 1 unless detected at runtime to be otherwise.
+		joinerState:     OtJoinerStateIdle,
 	}
 
 	nc.failureCtrl = newFailureCtrl(nc, NonFailTime)
@@ -120,6 +122,8 @@ func (node *Node) String() string {
 // SendEvent sends Event evt serialized to the node, over UDP and also handles delay time keeping.
 // WARNING modifies the evt.Delay value based on the target node's CurTime.
 func (node *Node) sendEvent(evt *Event) {
+	// set version field to what was previously detected.
+	evt.Version = node.eventMsgVersion
 	// time keeping - move node's time to the current send-event's time.
 	simplelogger.AssertTrue(evt.Timestamp == node.D.CurTime)
 	oldTime := node.CurTime
