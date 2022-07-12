@@ -29,7 +29,7 @@
 # Network Forming Stress Test:
 #   Different number of nodes form networks (a single partition) and measure the network forming delay.
 # Topology:
-#   1x1 Routers ~ 7x7 Routers
+#   1x1 Routers ~ 6x6 Routers
 # Fault Injections:
 #   None
 # Pass Criteria:
@@ -45,12 +45,12 @@ YGAP = 100
 RADIO_RANGE = int(XGAP * 1.5)
 
 MIN_N = 1
-MAX_N = 7
+MAX_N = 6
 
 REPEAT = int(os.getenv('STRESS_LEVEL', '1')) * 3
 
 EXPECTED_MERGE_TIME_MAX = [
-    None, 3, 6, 12, 20, 50, 100, 200
+    None, 10, 13, 19, 27, 57, 107
 ]
 
 

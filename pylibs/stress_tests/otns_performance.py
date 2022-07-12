@@ -70,7 +70,7 @@ class OtnsPerformanceStressTest(BaseStressTest):
                 ns.node_cmd(nid, 'routerdowngradethreshold 33')
                 expected_state = 'leader' if (r, c) == (0, 0) else 'router'
                 self.expect_node_state(nid, expected_state, 100)
-                ns.go(10)
+                ns.go(15)
 
         secs = 0
         formed_one_partition_ok = False

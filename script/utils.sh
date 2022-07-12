@@ -33,7 +33,7 @@ function die()
 
 function realpath()
 {
-    python -c "import os; print(os.path.realpath('$1'))"
+    python3 -c "import os; print(os.path.realpath('$1'))"
 }
 
 function installed()

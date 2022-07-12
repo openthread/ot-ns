@@ -33,7 +33,7 @@ RUN make -f examples/Makefile-simulation OTNS=1 BACKBONE_ROUTER=1 DUA=1 MLR=1 TH
 RUN strip /openthread/output/simulation/bin/ot-cli-ftd
 
 # Stage 1: build OTNS and dependencies
-FROM golang:buster
+FROM golang:1.17-buster
 
 RUN apt-get update
 RUN apt-get install -y python3 python3-pip unzip

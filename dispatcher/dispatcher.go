@@ -885,6 +885,8 @@ func (d *Dispatcher) handleStatusPush(srcid NodeId, data string) {
 		} else if sp[0] == "mode" {
 			mode := ParseNodeMode(sp[1])
 			d.vis.SetNodeMode(srcid, mode)
+		} else if sp[0] == "radio_state" {
+			// TODO: calculate energy consumption based on radio state changes of each node
 		} else {
 			simplelogger.Warnf("unknown status push: %s=%s", sp[0], sp[1])
 		}

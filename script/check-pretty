@@ -92,8 +92,8 @@ main()
     install_pretty_tools
 
     if [ $# == 0 ]; then
-        do_go_check
         do_go_mod_check
+        do_go_check
         do_shell_check
     elif [ "$1" == 'go' ]; then
         do_go_check
