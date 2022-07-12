@@ -30,7 +30,21 @@ cd otns
 
 OTNS uses POSIX simulation to simulate Thread nodes.
 
-To build OpenThread for OTNS:
+To build OpenThread for OTNS using 'cmake' (preferred): below shows an example build for OT-NS that has support 
+for OT-external RF/timing models. The build option OT_FULL_LOGS can also be set to 'ON' in this case, for extra
+debug info.
+
+```bash
+$ git clone https://github.com/openthread/openthread openthread
+$ cd openthread
+$ ./script/bootstrap
+$ ./bootstrap
+$ ./script/cmake-build simulation -DOT_PLATFORM=simulation -DOT_OTNS=ON -DOT_SIMULATION_EXT_RF_MODELS=ON\
+ -DOT_SIMULATION_VIRTUAL_TIME=ON -DOT_SIMULATION_VIRTUAL_TIME_UART=ON -DOT_SIMULATION_MAX_NETWORK_SIZE=999 \
+ -DOT_COMMISSIONER=ON -DOT_JOINER=ON -DOT_BORDER_ROUTER=ON -DOT_SERVICE=ON -DOT_COAP=ON -DOT_FULL_LOGS=OFF
+```
+
+To build OpenThread for OTNS using 'make' (not preferred):
 
 ```bash
 git clone https://github.com/openthread/openthread openthread
