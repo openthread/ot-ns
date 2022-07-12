@@ -186,7 +186,7 @@ Done
 
 ### netinfo \[version "\<string\>"\] \[commit "\<string\>"\] \[real y|n\]
 
-Set netowrk info.
+Set network info.
 
 ```bash
 > netinfo version "Latest"
