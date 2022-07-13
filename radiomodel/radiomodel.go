@@ -9,9 +9,7 @@ import (
 const symbolTimeUs uint64 = 16
 const symbolsPerOctet = 2
 const freqHz = 2400000000
-
-// aMaxSifsFrameSize as defined in IEEE 802.15.4-2015
-const aMaxSifsFrameSize = 18
+const aMaxSifsFrameSize = 18 // as defined in IEEE 802.15.4-2015
 const phyHeaderSize = 6
 const ccaTimeUs = symbolTimeUs * 8
 const aifsTimeUs = symbolTimeUs * 12
@@ -19,8 +17,14 @@ const lifsTimeUs = symbolTimeUs * 20
 const sifsTimeUs = symbolTimeUs * 12
 
 // default radio parameters
-const receiveSensitivityDbm = -100 // TODO for now MUST be equal to const in OpenThread node. Would like to adapt.
+const receiveSensitivityDbm = -100 // TODO for now MUST be manually kept equal to OT: SIM_RECEIVE_SENSITIVITY
+const txPowerDbm = 0               // Default, a V2 event msg will override it. OT: SIM_TX_POWER
+const ccaEdThresholdDbm = -75      // Default, a V2 event msg will override it. OT: SIM_CCA_ENERGY_DETECT_THRESHOLD
+
+// RSSI parameter encodings
 const RssiInvalid = 127
+const RssiMax = 126
+const RssiMin = -126
 const RssiMinusInfinity = -127
 
 // EventQueue is the abstraction of the queue where the radio model sends its outgoing (new) events to.
@@ -60,9 +64,11 @@ func ComputeIndoorRssi(dist float64, txPower int8, rxSensitivity int8) int8 {
 	}
 	rssi := float64(txPower) - pathloss
 	rssiInt := int(math.Round(rssi))
+	// constrain RSSI value to int8 and return it. If RSSI is below the receiver's rxSensitivity,
+	// then return the RssiMinusInfinity value.
 	if rssiInt >= RssiInvalid {
-		rssiInt = RssiInvalid // if too high, our int8 cannot hold the value anymore.
-	} else if rssi <= RssiMinusInfinity || rssiInt < int(rxSensitivity) {
+		rssiInt = RssiMax
+	} else if rssiInt < RssiMin || rssiInt < int(rxSensitivity) {
 		rssiInt = RssiMinusInfinity
 	}
 	return int8(rssiInt)

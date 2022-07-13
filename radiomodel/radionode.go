@@ -29,6 +29,8 @@ type RadioNode struct {
 
 func NewRadioNode() *RadioNode {
 	rn := &RadioNode{
+		TxPower:       txPowerDbm,
+		CcaEdThresh:   ccaEdThresholdDbm,
 		RxSensitivity: receiveSensitivityDbm,
 	}
 	return rn

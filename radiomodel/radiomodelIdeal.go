@@ -22,9 +22,10 @@ func (rm *RadioModelIdeal) GetTxRssi(evt *Event, srcNode *RadioNode, dstNode *Ra
 func (rm *RadioModelIdeal) TxStart(node *RadioNode, q EventQueue, evt *Event) {
 	var nextEvt *Event
 	simplelogger.AssertTrue(evt.Type == EventTypeRadioTx || evt.Type == EventTypeRadioTxAck)
-	node.TxPower = evt.Param1     // get the Tx power from the OT node's event param.
-	node.CcaEdThresh = evt.Param2 // get CCA ED threshold also.
-
+	if evt.Version > 1 {
+		node.TxPower = evt.Param1     // get the Tx power from the OT node's event param.
+		node.CcaEdThresh = evt.Param2 // get CCA ED threshold also.
+	}
 	// signal Tx Done event to sender.
 	nextEvt = &Event{
 		Type:      EventTypeRadioTxDone,

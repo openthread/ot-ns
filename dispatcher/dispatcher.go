@@ -179,7 +179,7 @@ func NewDispatcher(ctx *progctx.ProgCtx, cfg *Config, cbHandler CallbackHandler)
 		watchingNodes:      map[NodeId]struct{}{},
 		goDurationChan:     make(chan goDuration, 10),
 		visOptions:         defaultVisualizationOptions(),
-		radioModel:         &radiomodel.RadioModelInterfereAll{},
+		radioModel:         &radiomodel.RadioModelInterfereAll{}, // TODO select radio model at runtime
 		//radioModel: &radiomodel.RadioModelIdeal{}, // TODO select radio model at runtime
 	}
 	d.speed = d.normalizeSpeed(d.speed)
@@ -597,6 +597,11 @@ func (d *Dispatcher) sendRadioFrameEventToNodes(evt *Event) {
 		return
 	}
 
+	if srcnode.eventMsgVersion < 2 {
+		// send to self as notify for tx done (should do even if the node is failed)
+		srcnode.sendEvent(evt)
+	}
+
 	pktinfo := dissectpkt.Dissect(evt.Data)
 	pktframe := pktinfo.MacFrame
 
@@ -620,10 +625,10 @@ func (d *Dispatcher) sendRadioFrameEventToNodes(evt *Event) {
 				d.sendOneRadioFrameEvent(evt, srcnode, dstnode)
 				d.visSendFrame(srcnodeid, dstnode.Id, pktframe)
 			} else {
-				d.visSendFrame(srcnodeid, InvalidNodeId, pktframe)
+				d.visSendFrame(srcnodeid, InvalidNodeId, pktframe) // TODO check if viz is of right type.
 			}
-
 			d.Counters.DispatchByExtAddrSucc++
+
 		} else {
 			d.Counters.DispatchByExtAddrFail++
 			d.visSendFrame(srcnodeid, InvalidNodeId, pktframe)
@@ -673,7 +678,7 @@ func (d *Dispatcher) checkRadioReachable(evt *Event, src *Node, dst *Node) bool 
 	distMeters := src.GetDistanceInMeters(dst)
 	if dst != src && distMeters <= src.radioRange {
 		rssi := d.radioModel.GetTxRssi(evt, src.radioNode, dst.radioNode, distMeters)
-		if rssi > radiomodel.RssiMinusInfinity && rssi < radiomodel.RssiInvalid {
+		if rssi >= radiomodel.RssiMin && rssi <= radiomodel.RssiMax && rssi >= dst.radioNode.RxSensitivity {
 			return true
 		}
 	}
