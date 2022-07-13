@@ -142,6 +142,9 @@ func (e *Event) Deserialize(data []byte) {
 		e.Data = data2
 	} else {
 		e.Version = 1
+		e.NodeId = 0
+		e.Param1 = 0
+		e.Param2 = 0
 		simplelogger.AssertTrue(datalen == uint16(n-EventMessageV1HeaderLen))
 		data2 := make([]byte, datalen)
 		copy(data2, data[EventMessageV1HeaderLen:n])
