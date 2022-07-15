@@ -1,7 +1,6 @@
 package radiomodel
 
 import (
-	"github.com/openthread/ot-ns/openthread"
 	. "github.com/openthread/ot-ns/types"
 	"github.com/simonlingoogle/go-simplelogger"
 )
@@ -31,7 +30,7 @@ func (rm *RadioModelIdeal) TxStart(node *RadioNode, q EventQueue, evt *Event) {
 		Type:      EventTypeRadioTxDone,
 		Timestamp: evt.Timestamp + frameTransmitTimeUs,
 		Delay:     frameTransmitTimeUs,
-		Data:      []byte{openthread.OT_ERROR_NONE},
+		Data:      []byte{OT_ERROR_NONE},
 		NodeId:    evt.NodeId,
 	}
 	q.AddEvent(nextEvt)
