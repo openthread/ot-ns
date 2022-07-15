@@ -10,7 +10,7 @@ OTNS requires [Go 1.13+](https://golang.org/dl/) to build:
 ## Get OTNS code
 
 ```bash
-git clone https://github.com/openthread/ot-ns.git ./otns
+git clone --recurse-submodules https://github.com/openthread/ot-ns.git ./otns
 cd otns
 ```
 
