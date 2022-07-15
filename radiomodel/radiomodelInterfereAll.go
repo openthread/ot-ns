@@ -1,6 +1,7 @@
 package radiomodel
 
 import (
+	"github.com/openthread/ot-ns/openthread"
 	. "github.com/openthread/ot-ns/types"
 	"github.com/simonlingoogle/go-simplelogger"
 )
@@ -35,7 +36,7 @@ func (rm *RadioModelInterfereAll) TxStart(node *RadioNode, q EventQueue, evt *Ev
 			Type:      EventTypeRadioTxDone,
 			Timestamp: evt.Timestamp + 1,
 			Delay:     1,
-			Data:      []byte{OT_ERROR_ABORT},
+			Data:      []byte{openthread.OT_ERROR_ABORT},
 			NodeId:    evt.NodeId,
 		}
 		q.AddEvent(nextEvt)
@@ -106,7 +107,7 @@ func (rm *RadioModelInterfereAll) TxOngoing(node *RadioNode, q EventQueue, evt *
 				Type:      EventTypeRadioTxDone,
 				Timestamp: evt.Timestamp + 1,
 				Delay:     1,
-				Data:      []byte{OT_ERROR_CHANNEL_ACCESS_FAILURE},
+				Data:      []byte{openthread.OT_ERROR_CHANNEL_ACCESS_FAILURE},
 				NodeId:    evt.NodeId,
 			}
 			q.AddEvent(nextEvt)
@@ -135,7 +136,7 @@ func (rm *RadioModelInterfereAll) TxOngoing(node *RadioNode, q EventQueue, evt *
 			Type:      EventTypeRadioTxDone,
 			Timestamp: evt.Timestamp + 1,
 			Delay:     1,
-			Data:      []byte{OT_ERROR_NONE},
+			Data:      []byte{openthread.OT_ERROR_NONE},
 			NodeId:    evt.NodeId,
 		}
 		q.AddEvent(nextEvt)
