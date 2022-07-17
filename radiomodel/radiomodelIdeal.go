@@ -14,7 +14,7 @@ type RadioModelIdeal struct {
 
 func (rm *RadioModelIdeal) GetTxRssi(evt *Event, srcNode *RadioNode, dstNode *RadioNode, distMeters float64) int8 {
 	simplelogger.AssertTrue(evt.Type == EventTypeRadioReceived)
-	rssi := ComputeIndoorRssi(distMeters, srcNode.TxPower, dstNode.RxSensitivity)
+	rssi := int8(-20) //ComputeIndoorRssi(distMeters, srcNode.TxPower, dstNode.RxSensitivity) FIXME
 	return rssi
 }
 
@@ -29,19 +29,19 @@ func (rm *RadioModelIdeal) TxStart(node *RadioNode, q EventQueue, evt *Event) {
 	nextEvt = &Event{
 		Type:      EventTypeRadioTxDone,
 		Timestamp: evt.Timestamp + frameTransmitTimeUs,
-		Delay:     frameTransmitTimeUs,
 		Data:      []byte{OT_ERROR_NONE},
 		NodeId:    evt.NodeId,
 	}
 	q.AddEvent(nextEvt)
 
 	// let other radios of reachable Nodes receive the data (after N us propagation delay)
-	nextEvt = evt
-	nextEvt.Type = EventTypeRadioReceived
-	nextEvt.Timestamp += frameTransmitTimeUs
-	nextEvt.Delay = frameTransmitTimeUs
+	nextEvt = &Event{
+		Type:      EventTypeRadioReceived,
+		Timestamp: evt.Timestamp + frameTransmitTimeUs,
+		Data:      evt.Data,
+		NodeId:    evt.NodeId,
+	}
 	q.AddEvent(nextEvt)
-
 }
 
 func (rm *RadioModelIdeal) HandleEvent(node *RadioNode, q EventQueue, evt *Event) {

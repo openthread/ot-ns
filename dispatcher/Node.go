@@ -124,17 +124,16 @@ func (node *Node) String() string {
 func (node *Node) sendEvent(evt *Event) {
 	// set version field to what was previously detected.
 	evt.Version = node.eventMsgVersion
-	// time keeping - move node's time to the current send-event's time.
-	simplelogger.AssertTrue(evt.Timestamp == node.D.CurTime)
+	evt.NodeId = node.Id
 	oldTime := node.CurTime
 	evt.Delay = evt.Timestamp - oldTime // adjust Delay value for this target node.
+	// time keeping - move node's time to the current send-event's time.
+	simplelogger.AssertTrue(evt.Timestamp == node.D.CurTime)
 	node.sendRawData(evt.Serialize())
-	node.CurTime = evt.Timestamp
 	if evt.Timestamp > oldTime {
 		node.failureCtrl.OnTimeAdvanced(oldTime)
 	}
-	node.D.alarmMgr.SetNotified(node.Id)
-	node.D.setAlive(node.Id)
+	node.CurTime = evt.Timestamp
 }
 
 // sendRawData is INTERNAL to send bytes to UDP socket of node

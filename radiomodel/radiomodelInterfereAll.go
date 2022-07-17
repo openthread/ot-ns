@@ -34,7 +34,6 @@ func (rm *RadioModelInterfereAll) TxStart(node *RadioNode, q EventQueue, evt *Ev
 		nextEvt = &Event{
 			Type:      EventTypeRadioTxDone,
 			Timestamp: evt.Timestamp + 1,
-			Delay:     1,
 			Data:      []byte{OT_ERROR_ABORT},
 			NodeId:    evt.NodeId,
 		}
@@ -69,7 +68,6 @@ func (rm *RadioModelInterfereAll) TxStart(node *RadioNode, q EventQueue, evt *Ev
 	// re-use the current event as the next event, updating timing and marking it internally-sourced.
 	nextEvt = evt
 	nextEvt.Timestamp += delay
-	nextEvt.Delay = delay
 	nextEvt.IsInternal = true
 	q.AddEvent(nextEvt)
 }
@@ -93,7 +91,6 @@ func (rm *RadioModelInterfereAll) TxOngoing(node *RadioNode, q EventQueue, evt *
 		// re-use the current event as the next event for CCA period end, updating timing only.
 		nextEvt := evt
 		nextEvt.Timestamp += ccaTimeUs
-		nextEvt.Delay = ccaTimeUs
 		q.AddEvent(nextEvt)
 
 	case 3: // CCA second sample point and decision
@@ -105,7 +102,6 @@ func (rm *RadioModelInterfereAll) TxOngoing(node *RadioNode, q EventQueue, evt *
 			nextEvt := &Event{
 				Type:      EventTypeRadioTxDone,
 				Timestamp: evt.Timestamp + 1,
-				Delay:     1,
 				Data:      []byte{OT_ERROR_CHANNEL_ACCESS_FAILURE},
 				NodeId:    evt.NodeId,
 			}
@@ -124,7 +120,6 @@ func (rm *RadioModelInterfereAll) TxOngoing(node *RadioNode, q EventQueue, evt *
 			nextEvt := evt
 			d := rm.getFrameDurationUs(evt)
 			nextEvt.Timestamp += d
-			nextEvt.Delay = d
 			q.AddEvent(nextEvt)
 		}
 
@@ -134,7 +129,6 @@ func (rm *RadioModelInterfereAll) TxOngoing(node *RadioNode, q EventQueue, evt *
 		nextEvt := &Event{
 			Type:      EventTypeRadioTxDone,
 			Timestamp: evt.Timestamp + 1,
-			Delay:     1,
 			Data:      []byte{OT_ERROR_NONE},
 			NodeId:    evt.NodeId,
 		}
@@ -151,7 +145,6 @@ func (rm *RadioModelInterfereAll) TxOngoing(node *RadioNode, q EventQueue, evt *
 		nextEvt.Type = EventTypeRadioReceived
 		nextEvt.IsInternal = false
 		nextEvt.Timestamp += 1
-		nextEvt.Delay = 1
 		if node.IsTxFailed { // mark as interfered packet in case of failure
 			nextEvt.Type = EventTypeRadioRxInterfered
 		}
