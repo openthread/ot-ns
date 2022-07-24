@@ -49,7 +49,7 @@ jobs:
       fail-fast: false
       matrix:
         go: [1.17, 1.18]
-        python-version: [3.6]
+        python-version: [3.7]
         os: [ubuntu-20.04]
     steps:
       - uses: actions/setup-go@v1
