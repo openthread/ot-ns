@@ -50,7 +50,7 @@ jobs:
       matrix:
         go: [1.17, 1.18]
         python-version: [3.6]
-        os: [ubuntu-20.04, macos-10.15]
+        os: [ubuntu-20.04]
     steps:
       - uses: actions/setup-go@v1
         with:
@@ -61,6 +61,4 @@ jobs:
       - uses: actions/checkout@v2
       - name: Build
         run: |
-          ./script/setup-dev
-          ./script/pack-web
-          go build ./cmd/otns
+          docker build -t otns-env -f etc/docker/environment/Dockerfile .
