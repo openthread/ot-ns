@@ -48,7 +48,6 @@ jobs:
       matrix:
         os: [ubuntu-20.04, macos-10.15]
     env:
-      VIRTUAL_TIME_UART: 1
       HOMEBREW_NO_AUTO_UPDATE: 1
     steps:
       - uses: actions/setup-go@v1
@@ -62,16 +61,14 @@ jobs:
         uses: codecov/codecov-action@v1
 
   py-unittests:
-    name: Unittests (${{ matrix.os }}, VIRTUAL_TIME_UART=${{ matrix.VIRTUAL_TIME_UART }})
+    name: Unittests (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         python-version: [3.6]
         os: [ubuntu-20.04, macos-10.15]
-        VIRTUAL_TIME_UART: [0, 1]
     env:
-      VIRTUAL_TIME_UART: ${{ matrix.VIRTUAL_TIME_UART }}
       HOMEBREW_NO_AUTO_UPDATE: 1
     steps:
       - uses: actions/setup-go@v1
@@ -87,16 +84,14 @@ jobs:
           ./script/test py-unittests
 
   py-examples:
-    name: Examples (${{ matrix.os }}, VIRTUAL_TIME_UART=${{ matrix.VIRTUAL_TIME_UART }})
+    name: Examples (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         python-version: [3.6]
         os: [ubuntu-20.04, macos-10.15]
-        VIRTUAL_TIME_UART: [0, 1]
     env:
-      VIRTUAL_TIME_UART: ${{ matrix.VIRTUAL_TIME_UART }}
       HOMEBREW_NO_AUTO_UPDATE: 1
     steps:
       - uses: actions/setup-go@v1
@@ -112,16 +107,14 @@ jobs:
           ./script/test py-examples
 
   signals:
-    name: Signals (${{ matrix.os }}, VIRTUAL_TIME_UART=${{ matrix.VIRTUAL_TIME_UART }})
+    name: Signals (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         python-version: [3.6]
         os: [ubuntu-20.04, macos-10.15]
-        VIRTUAL_TIME_UART: [0, 1]
     env:
-      VIRTUAL_TIME_UART: ${{ matrix.VIRTUAL_TIME_UART }}
       HOMEBREW_NO_AUTO_UPDATE: 1
     steps:
       - uses: actions/setup-go@v1
