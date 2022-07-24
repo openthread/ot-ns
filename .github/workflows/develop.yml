@@ -48,7 +48,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        go: [1.13, 1.15]
+        go: [1.17, 1.18]
         python-version: [3.6]
         os: [ubuntu-20.04, macos-10.15]
     steps:
@@ -63,4 +63,4 @@ jobs:
         run: |
           ./script/setup-dev
           ./script/pack-web
-          go get ./cmd/otns
+          go build ./cmd/otns
