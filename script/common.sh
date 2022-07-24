@@ -25,18 +25,20 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-set -e
-
-# shellcheck source=script/utils.sh
-. "$(dirname "$0")"/utils.sh
+set -euox pipefail
 
 if [[ "$(uname)" == "Darwin" ]]; then
     export readonly Darwin=1
+    export readonly Linux=0
 elif [[ "$(uname)" == "Linux" ]]; then
+    export readonly Darwin=0
     export readonly Linux=1
 else
     die "Unknown OS: $(uname)"
 fi
+
+# shellcheck source=script/utils.sh
+. "$(dirname "$0")"/utils.sh
 
 export readonly SCRIPTDIR
 SCRIPTDIR=$(realpath "$(dirname "$0")")
