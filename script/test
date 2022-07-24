@@ -111,6 +111,9 @@ build_openthread()
         cmake -GNinja ../.. "${options[@]}"
         ninja
     )
+
+    OT_CLI_FTD_PATH="$OT_DIR/build/otns/examples/apps/cli/ot-cli-ftd"
+    echo "Please launch OTNS with command: otns -ot-cli $OT_CLI_FTD_PATH"
 }
 
 py_unittests()
