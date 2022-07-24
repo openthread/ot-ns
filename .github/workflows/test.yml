@@ -65,7 +65,7 @@ jobs:
         uses: codecov/codecov-action@v1
 
   py-unittests:
-    name: Unittests (Py${{ matrix.python-version }}, ${{ matrix.os }}, VIRTUAL_TIME_UART=${{ matrix.VIRTUAL_TIME_UART }})
+    name: Unittests (${{ matrix.os }}, VIRTUAL_TIME_UART=${{ matrix.VIRTUAL_TIME_UART }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -80,7 +80,7 @@ jobs:
       - uses: actions/setup-go@v1
         with:
           go-version: 1.13
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Set up Python
         uses: actions/setup-python@v1
         with:
           python-version: ${{ matrix.python-version }}
@@ -90,7 +90,7 @@ jobs:
           ./script/test py-unittests
 
   py-examples:
-    name: Examples (Py${{ matrix.python-version }}, ${{ matrix.os }}, VIRTUAL_TIME_UART=${{ matrix.VIRTUAL_TIME_UART }})
+    name: Examples (${{ matrix.os }}, VIRTUAL_TIME_UART=${{ matrix.VIRTUAL_TIME_UART }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -105,7 +105,7 @@ jobs:
       - uses: actions/setup-go@v1
         with:
           go-version: 1.13
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Set up Python
         uses: actions/setup-python@v1
         with:
           python-version: ${{ matrix.python-version }}
@@ -115,7 +115,7 @@ jobs:
           ./script/test py-examples
 
   signals:
-    name: Signals (Py${{ matrix.python-version }}, ${{ matrix.os }}, VIRTUAL_TIME_UART=${{ matrix.VIRTUAL_TIME_UART }})
+    name: Signals (${{ matrix.os }}, VIRTUAL_TIME_UART=${{ matrix.VIRTUAL_TIME_UART }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false

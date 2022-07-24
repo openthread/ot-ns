@@ -44,7 +44,7 @@ jobs:
         if: "github.ref != 'refs/heads/main'"
 
   develop:
-    name: Develop (Go${{ matrix.go }},Py${{matrix.python-version}},${{ matrix.os }})
+    name: Develop (Go${{ matrix.go }},${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     env:
       HOMEBREW_NO_AUTO_UPDATE: 1
@@ -52,7 +52,7 @@ jobs:
       fail-fast: false
       matrix:
         go: [1.13, 1.15]
-        python-version: [3.6, 3.8]
+        python-version: [3.6]
         os: [ubuntu-20.04, macos-10.15]
     steps:
       - uses: actions/setup-go@v1
