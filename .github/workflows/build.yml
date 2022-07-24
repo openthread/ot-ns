@@ -28,8 +28,8 @@ name: Build
 
 on:
   push:
-    branches-ignore:
-      - 'dependabot/**'
+    branches:
+      - 'main'
   pull_request:
     branches:
       - 'main'

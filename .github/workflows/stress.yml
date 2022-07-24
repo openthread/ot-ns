@@ -28,8 +28,8 @@ name: Stress
 
 on:
   push:
-    branches-ignore:
-      - 'dependabot/**'
+    branches:
+      - 'main'
   pull_request:
     branches:
       - 'main'
