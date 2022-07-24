@@ -62,3 +62,5 @@ jobs:
       - name: Build
         run: |
           docker build -t otns-env -f etc/docker/environment/Dockerfile .
+          docker run -t -v$PWD:/otns otns-env -c "./script/pack-web"
+          git diff --quiet
