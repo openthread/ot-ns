@@ -70,7 +70,7 @@ get_openthread()
 {
     if [[ -z $OT_DIR ]]; then
         OT_DIR=$PWD/openthread
-        git submodule update --init
+        git submodule update --init --depth 1
     fi
 
     OTBIN_DIR=$OT_DIR/build/otns/examples/apps/cli
