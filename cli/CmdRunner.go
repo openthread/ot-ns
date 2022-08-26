@@ -217,6 +217,8 @@ func (rt *CmdRunner) execute(cmd *Command, output io.Writer) {
 		rt.executeNetInfo(cc, cc.NetInfo)
 	} else if cmd.LogLevel != nil {
 		rt.executeLogLevel(cc, cc.LogLevel)
+	} else if cmd.RadioModel != nil {
+		rt.executeRadioModel(cc, cc.RadioModel)
 	} else {
 		simplelogger.Panicf("unimplemented command: %#v", cmd)
 	}
@@ -630,6 +632,27 @@ func (rt *CmdRunner) executeLogLevel(cc *CommandContext, cmd *LogLevelCmd) {
 		cc.outputf("%v\n", simplelogger.GetLevel().String())
 	} else {
 		simplelogger.SetLevel(simplelogger.ParseLevel(cmd.Level))
+	}
+}
+
+func (rt *CmdRunner) executeRadioModel(cc *CommandContext, cmd *RadioModelCmd) {
+	var name string
+	if len(cmd.Model) == 0 {
+		rt.postAsyncWait(func(sim *simulation.Simulation) {
+			name = sim.Dispatcher().GetRadioModel().GetName()
+		})
+		cc.outputf("%v\n", name)
+	} else {
+		name = cmd.Model
+		ok := false
+		rt.postAsyncWait(func(sim *simulation.Simulation) {
+			ok = sim.Dispatcher().SetRadioModel(name) != nil
+		})
+		if ok {
+			cc.outputf("%v\n", name)
+		} else {
+			cc.outputf("(Model '%v' does not exist.)\n", name)
+		}
 	}
 }
 

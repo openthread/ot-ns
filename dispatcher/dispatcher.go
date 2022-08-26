@@ -694,37 +694,32 @@ func (d *Dispatcher) sendTxDoneEvent(evt *Event) {
 // sendOneRadioEvent sends RadioFrame Event from Node srcnode to Node dstnode via radio model.
 func (d *Dispatcher) sendOneRadioFrameEvent(evt *Event, srcNode *Node, dstNode *Node) bool {
 	simplelogger.AssertTrue(EventTypeRadioReceived == evt.Type)
+	simplelogger.AssertTrue(srcNode != dstNode)
 
-	if srcNode != dstNode {
-		// Tx failure cases below:  (these are still visualized as successful)
-		//   1) 'failed' state dest node
-		//   2) global dispatcher's random loss Event (separate from radio model)
-		if dstNode.isFailed {
+	// Tx failure cases below:  (these are still visualized as successful)
+	//   1) 'failed' state dest node
+	//   2) global dispatcher's random loss Event (separate from radio model)
+	if dstNode.isFailed {
+		return false
+	}
+	if d.globalPacketLossRatio > 0 {
+		datalen := len(evt.Data)
+		succRate := math.Pow(1.0-d.globalPacketLossRatio, float64(datalen)/128.0)
+		if rand.Float64() >= succRate {
 			return false
 		}
-		if d.globalPacketLossRatio > 0 {
-			datalen := len(evt.Data)
-			succRate := math.Pow(1.0-d.globalPacketLossRatio, float64(datalen)/128.0)
-			if rand.Float64() >= succRate {
-				return false
-			}
-		}
-
-		// compute the RSSI in the event for Param1
-		dist := srcNode.GetDistanceInMeters(dstNode)
-		evt.Param1 = d.radioModel.GetTxRssi(evt, srcNode.radioNode, dstNode.radioNode, dist)
-		evt.Param2 = 0 // not used
 	}
+
+	// compute the RSSI in the event for Param1
+	dist := srcNode.GetDistanceInMeters(dstNode)
+	evt.Param1 = d.radioModel.GetTxRssi(evt, srcNode.radioNode, dstNode.radioNode, dist)
+	evt.Param2 = 0 // not used
 
 	// send the event plus time keeping - moves dstnode's time to the current send-event's time.
 	dstNode.sendEvent(evt)
 
 	if d.isWatching(dstNode.Id) {
-		if dstNode == srcNode {
-			simplelogger.Infof("Node %d >>> TX DONE", dstNode.Id)
-		} else {
-			simplelogger.Infof("Node %d <<< received radio-frame from node %d", dstNode.Id, srcNode.Id)
-		}
+		simplelogger.Infof("Node %d <<< received radio-frame from node %d", dstNode.Id, srcNode.Id)
 	}
 	return true
 }
@@ -1340,4 +1335,27 @@ func (d *Dispatcher) CollectCoapMessages() []*CoapMessage {
 	} else {
 		return nil
 	}
+}
+
+func (d *Dispatcher) GetRadioModel() radiomodel.RadioModel {
+	return d.radioModel
+}
+
+func (d *Dispatcher) SetRadioModel(modelName string) radiomodel.RadioModel {
+	var model radiomodel.RadioModel = nil
+	if modelName == d.GetRadioModel().GetName() {
+		return d.GetRadioModel()
+	}
+
+	switch modelName {
+	case "Ideal":
+		model = &radiomodel.RadioModelIdeal{}
+	case "InterfereAll":
+		model = &radiomodel.RadioModelInterfereAll{}
+	}
+
+	if model != nil {
+		d.radioModel = model // TODO check if multi-threaded issues. Wait/pause first?
+	}
+	return model
 }

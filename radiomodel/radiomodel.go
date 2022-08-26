@@ -42,6 +42,9 @@ type RadioModel interface {
 	// node must be the RadioNode object equivalent to the evt.NodeId node. Newly generated events may go back into
 	// the EventQueue q.
 	HandleEvent(node *RadioNode, q EventQueue, evt *Event)
+
+	// GetName gets the display name of this RadioModel
+	GetName() string
 }
 
 // IsLongDataFrame checks whether the radio frame in evt is 802.15.4 "long" (true) or not.

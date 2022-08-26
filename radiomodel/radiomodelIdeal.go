@@ -51,3 +51,7 @@ func (rm *RadioModelIdeal) HandleEvent(node *RadioNode, q EventQueue, evt *Event
 		simplelogger.Panicf("event type not implemented: %v", evt.Type)
 	}
 }
+
+func (rm *RadioModelIdeal) GetName() string {
+	return "Ideal"
+}

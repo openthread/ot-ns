@@ -25,6 +25,7 @@ Python libraries use the CLI to manage simulations.
 * [pings](#pings)
 * [plr](#plr)
 * [radio](#radio-node-id-node-id--on--off--ft-fail-duration-fail-interval)
+* [radiomodel](#radiomodel)
 * [scan](#scan-node-id)
 * [speed](#speed)
 * [title](#title-string)
@@ -318,6 +319,20 @@ Done
 ```
 
 `ft 10 60` means the nodes' radio will on average be non-functional for 10 seconds every 60 seconds. 
+
+### radiomodel \[\"\<modelName\>\"\]
+
+Get the name of the currently used radiomodel (RF propagation model and radio chip characteristics for all nodes)
+or set the current model to another model.
+
+```bash
+> radiomodel
+InterfereAll
+Done
+> radiomodel "Ideal"
+Ideal
+Done
+```
 
 ### scan \<node-id\>
 

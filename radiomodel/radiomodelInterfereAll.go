@@ -173,3 +173,7 @@ func (rm *RadioModelInterfereAll) getFrameDurationUs(evt *Event) uint64 {
 	n += phyHeaderSize                                   // add PHY preamble, sfd, PHR bytes
 	return n * symbolTimeUs * symbolsPerOctet
 }
+
+func (rm *RadioModelInterfereAll) GetName() string {
+	return "InterfereAll"
+}

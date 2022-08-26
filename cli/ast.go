@@ -47,6 +47,7 @@ type Command struct {
 	Exit                *ExitCmd                `| @@` //nolint
 	Go                  *GoCmd                  `| @@` //nolint
 	Joins               *JoinsCmd               `| @@` //nolint
+	LogLevel            *LogLevelCmd            `| @@` //nolint
 	Move                *Move                   `| @@` //nolint
 	NetInfo             *NetInfoCmd             `| @@` //nolint
 	Node                *NodeCmd                `| @@` //nolint
@@ -56,11 +57,11 @@ type Command struct {
 	Pings               *PingsCmd               `| @@` //nolint
 	Plr                 *PlrCmd                 `| @@` //nolint
 	Radio               *RadioCmd               `| @@` //nolint
+	RadioModel          *RadioModelCmd          `| @@` //nolint
 	Scan                *ScanCmd                `| @@` //nolint
 	Speed               *SpeedCmd               `| @@` //nolint
 	Title               *TitleCmd               `| @@` //nolint
 	Web                 *WebCmd                 `| @@` //nolint
-	LogLevel            *LogLevelCmd            `| @@` //nolint
 }
 
 //noinspection GoStructTag
@@ -412,6 +413,12 @@ type PlrCmd struct {
 type LogLevelCmd struct {
 	Cmd   struct{} `"log"`                                //nolint
 	Level string   `[@( "debug"|"info"|"warn"|"error" )]` //nolint
+}
+
+//noinspection GoStructTag
+type RadioModelCmd struct {
+	Cmd   struct{} `"radiomodel"` //nolint
+	Model string   `[ @String ]`  //nolint
 }
 
 //noinspection GoStructTag
