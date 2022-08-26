@@ -22,10 +22,8 @@ func (rm *RadioModelInterfereAll) GetTxRssi(evt *Event, srcNode *RadioNode, dstN
 func (rm *RadioModelInterfereAll) TxStart(node *RadioNode, q EventQueue, evt *Event) {
 	var nextEvt *Event
 	simplelogger.AssertTrue(evt.Type == EventTypeRadioTx || evt.Type == EventTypeRadioTxAck)
-	if evt.Version > 1 {
-		node.TxPower = evt.Param1     // get the Tx power from the OT node's event param.
-		node.CcaEdThresh = evt.Param2 // get CCA ED threshold also.
-	}
+	node.TxPower = evt.Param1     // get the Tx power from the OT node's event param.
+	node.CcaEdThresh = evt.Param2 // get CCA ED threshold also.
 	isAck := evt.Type == EventTypeRadioTxAck
 
 	// check if a transmission is already ongoing? If so return OT_ERROR_ABORT.

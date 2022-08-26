@@ -36,8 +36,8 @@ func DefaultNodeConfig() *NodeConfig {
 		IsRouter:       true,
 		IsMtd:          false,
 		RxOffWhenIdle:  false,
-		RadioRange:     1000.0, // 1000m max cut-off range (actual range determined by radio model)
-		RadioRangeViz:  200,    // radio-range visualized distance in pixels (for animations)
+		RadioRange:     16.0, // 1000m max cut-off range (actual range determined by radio model)
+		RadioRangeViz:  160,  // radio-range visualized distance in pixels (for animations)
 		ExecutablePath: "",
 		Restore:        false,
 	}

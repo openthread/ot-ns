@@ -29,7 +29,6 @@ package types
 import (
 	"encoding/binary"
 	"github.com/simonlingoogle/go-simplelogger"
-	"net"
 )
 
 const (
@@ -46,14 +45,14 @@ const (
 
 	EventTypeV2Format uint8 = 130
 
-	EventMessageV1HeaderLen int = 11
-	EventMessageV2HeaderLen int = 18
+	// EventMessageV1HeaderLen int = 11
+	EventMessageV2HeaderLen int = 26
 )
 
 type eventType = uint8
 
 type Event struct {
-	Version    int
+	MsgId      uint64
 	Timestamp  uint64
 	Delay      uint64
 	Type       eventType
@@ -61,7 +60,6 @@ type Event struct {
 	Param2     int8
 	NodeId     NodeId
 	Data       []byte
-	SrcAddr    *net.UDPAddr
 	IsInternal bool
 }
 
@@ -73,35 +71,9 @@ type RadioMessage struct {
 */
 const RadioMessagePsduOffset = 1
 
-// Serialize serializes this event into an event message of version as indicated by Version field.
-func (e *Event) Serialize() []byte {
-	switch e.Version {
-	case 1:
-		return e.SerializeV1()
-	case 2:
-		return e.SerializeV2()
-	default:
-		simplelogger.Panicf("Unsupported Event.Version: %d", e.Version)
-	}
-	return []byte{}
-}
-
-// SerializeV1 serializes this Event into []byte to send to OpenThread node that supports the
-// default V1 event message format, including fields partially.
-func (e *Event) SerializeV1() []byte {
-	msg := make([]byte, EventMessageV1HeaderLen+len(e.Data))
-	// e.Timestamp is not sent, only e.Delay.
-	binary.LittleEndian.PutUint64(msg[:8], e.Delay)
-	msg[8] = e.Type
-	binary.LittleEndian.PutUint16(msg[9:11], uint16(len(e.Data)))
-	n := copy(msg[EventMessageV1HeaderLen:], e.Data)
-	simplelogger.AssertTrue(n == len(e.Data))
-	return msg
-}
-
-// SerializeV2 serializes this Event into []byte to send to OpenThread node that supports the V2
+// Serialize serializes this Event into []byte to send to OpenThread node that supports the V2
 // event message format (builds with OT_SIMULATION_RF_EXT_MODELS=ON), including fields partially.
-func (e *Event) SerializeV2() []byte {
+func (e *Event) Serialize() []byte {
 	msg := make([]byte, EventMessageV2HeaderLen+len(e.Data))
 	// e.Timestamp is not sent, only e.Delay.
 	binary.LittleEndian.PutUint64(msg[:8], e.Delay)
@@ -111,6 +83,7 @@ func (e *Event) SerializeV2() []byte {
 	binary.LittleEndian.PutUint32(msg[12:16], uint32(e.NodeId))
 	msg[16] = byte(e.Param1)
 	msg[17] = byte(e.Param2)
+	binary.LittleEndian.PutUint64(msg[18:26], e.MsgId)
 	n := copy(msg[EventMessageV2HeaderLen:], e.Data)
 	simplelogger.AssertTrue(n == len(e.Data))
 	return msg
@@ -119,38 +92,23 @@ func (e *Event) SerializeV2() []byte {
 // Deserialize deserializes []byte Event fields (as received from OpenThread node) into Event object e.
 func (e *Event) Deserialize(data []byte) {
 	n := len(data)
-	if n < EventMessageV1HeaderLen {
+	if n < EventMessageV2HeaderLen {
 		simplelogger.Panicf("Event.Deserialize() message length too short: %d", n)
 	}
 	e.Delay = binary.LittleEndian.Uint64(data[:8])
 	e.Type = data[8]
 	datalen := binary.LittleEndian.Uint16(data[9:11])
 
-	isV2Format := (e.Type == EventTypeV2Format)
-	if isV2Format {
-		if n < EventMessageV2HeaderLen {
-			simplelogger.Panicf("Event.Deserialize() V2 message length too short: %d", n)
-		}
-		e.Version = 2
-		e.Type = data[11]
-		e.NodeId = NodeId(binary.LittleEndian.Uint32(data[12:16]))
-		e.Param1 = int8(data[16])
-		e.Param2 = int8(data[17])
-		simplelogger.AssertTrue(datalen == uint16(n-EventMessageV2HeaderLen))
-		data2 := make([]byte, datalen)
-		copy(data2, data[EventMessageV2HeaderLen:n])
-		e.Data = data2
-	} else {
-		e.Version = 1
-		e.NodeId = 0
-		e.Param1 = 0
-		e.Param2 = 0
-		simplelogger.AssertTrue(datalen == uint16(n-EventMessageV1HeaderLen))
-		data2 := make([]byte, datalen)
-		copy(data2, data[EventMessageV1HeaderLen:n])
-		e.Data = data2
-	}
-
+	simplelogger.AssertTrue(e.Type == EventTypeV2Format)
+	e.Type = data[11]
+	e.NodeId = NodeId(binary.LittleEndian.Uint32(data[12:16]))
+	e.Param1 = int8(data[16])
+	e.Param2 = int8(data[17])
+	e.MsgId = binary.LittleEndian.Uint64(data[18:26])
+	simplelogger.AssertTrue(datalen == uint16(n-EventMessageV2HeaderLen))
+	data2 := make([]byte, datalen)
+	copy(data2, data[EventMessageV2HeaderLen:n])
+	e.Data = data2
 	// e.Timestamp is not deserialized (not present)
 	e.Timestamp = 0
 }
