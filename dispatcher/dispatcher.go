@@ -179,8 +179,8 @@ func NewDispatcher(ctx *progctx.ProgCtx, cfg *Config, cbHandler CallbackHandler)
 		watchingNodes:      map[NodeId]struct{}{},
 		goDurationChan:     make(chan goDuration, 10),
 		visOptions:         defaultVisualizationOptions(),
-		//radioModel:         &radiomodel.RadioModelInterfereAll{}, // TODO select radio model at runtime
-		radioModel: &radiomodel.RadioModelIdeal{}, // TODO select radio model at runtime
+		radioModel:         &radiomodel.RadioModelInterfereAll{}, // TODO select radio model at runtime
+		//radioModel: &radiomodel.RadioModelIdeal{}, // TODO select radio model at runtime
 	}
 	d.speed = d.normalizeSpeed(d.speed)
 	if !d.cfg.NoPcap {
@@ -487,7 +487,7 @@ func (d *Dispatcher) processNextEvent() bool {
 				simplelogger.Infof("Dispat <<< %+v, new node time %d", *evt, node.CurTime)
 			}
 
-			// execute the event
+			// execute the event - it may come from the radioModel, or from an OT-node.
 			switch evt.Type {
 			case EventTypeRadioRxInterfered:
 				fallthrough
@@ -501,7 +501,7 @@ func (d *Dispatcher) processNextEvent() bool {
 				d.sendRadioFrameEventToNodes(evt)
 			case EventTypeRadioTxDone:
 				d.sendTxDoneEvent(evt)
-			default: // any not recognized is handled by the radio model.
+			default: // events coming from OT-node are handled by the radio model.
 				d.radioModel.HandleEvent(node.radioNode, d.evtQueue, evt)
 			}
 		}

@@ -1,6 +1,7 @@
 package radiomodel
 
 import (
+	"github.com/openthread/ot-ns/dissectpkt"
 	. "github.com/openthread/ot-ns/types"
 	"github.com/simonlingoogle/go-simplelogger"
 )
@@ -21,10 +22,10 @@ func (rm *RadioModelInterfereAll) GetTxRssi(evt *Event, srcNode *RadioNode, dstN
 
 func (rm *RadioModelInterfereAll) TxStart(node *RadioNode, q EventQueue, evt *Event) {
 	var nextEvt *Event
-	simplelogger.AssertTrue(evt.Type == EventTypeRadioTx || evt.Type == EventTypeRadioTxAck)
+	simplelogger.AssertTrue(evt.Type == EventTypeRadioTx)
 	node.TxPower = evt.Param1     // get the Tx power from the OT node's event param.
 	node.CcaEdThresh = evt.Param2 // get CCA ED threshold also.
-	isAck := evt.Type == EventTypeRadioTxAck
+	isAck := dissectpkt.IsAckFrame(evt.Data)
 
 	// check if a transmission is already ongoing? If so return OT_ERROR_ABORT.
 	if node.TxPhase > 0 {
@@ -32,7 +33,7 @@ func (rm *RadioModelInterfereAll) TxStart(node *RadioNode, q EventQueue, evt *Ev
 		nextEvt = &Event{
 			Type:      EventTypeRadioTxDone,
 			Timestamp: evt.Timestamp + 1,
-			Data:      []byte{OT_ERROR_ABORT},
+			Param1:    OT_ERROR_ABORT,
 			NodeId:    evt.NodeId,
 		}
 		q.AddEvent(nextEvt)
@@ -64,7 +65,7 @@ func (rm *RadioModelInterfereAll) TxStart(node *RadioNode, q EventQueue, evt *Ev
 		delay = aifsTimeUs // ack is sent after fixed delay and no CCA.
 	}
 	// re-use the current event as the next event, updating timing and marking it internally-sourced.
-	nextEvt = evt
+	nextEvt = evt // FIXME no copy
 	nextEvt.Timestamp += delay
 	nextEvt.IsInternal = true
 	q.AddEvent(nextEvt)
@@ -72,8 +73,8 @@ func (rm *RadioModelInterfereAll) TxStart(node *RadioNode, q EventQueue, evt *Ev
 
 func (rm *RadioModelInterfereAll) TxOngoing(node *RadioNode, q EventQueue, evt *Event) {
 
-	simplelogger.AssertTrue(evt.Type == EventTypeRadioTx || evt.Type == EventTypeRadioTxAck)
-	isAck := evt.Type == EventTypeRadioTxAck
+	simplelogger.AssertTrue(evt.Type == EventTypeRadioTx)
+	isAck := dissectpkt.IsAckFrame(evt.Data)
 
 	node.TxPhase++
 	if node.TxPhase == 2 && isAck {
@@ -100,7 +101,7 @@ func (rm *RadioModelInterfereAll) TxOngoing(node *RadioNode, q EventQueue, evt *
 			nextEvt := &Event{
 				Type:      EventTypeRadioTxDone,
 				Timestamp: evt.Timestamp + 1,
-				Data:      []byte{OT_ERROR_CHANNEL_ACCESS_FAILURE},
+				Param1:    OT_ERROR_CHANNEL_ACCESS_FAILURE,
 				NodeId:    evt.NodeId,
 			}
 			q.AddEvent(nextEvt)
@@ -138,7 +139,7 @@ func (rm *RadioModelInterfereAll) TxOngoing(node *RadioNode, q EventQueue, evt *
 		node.TxPhase = 0                         // reset back
 		rm.isRfBusy = false
 
-		// let other radios of Nodes receive the data (after 1 us propagation delay)
+		// let other radios of Nodes receive the data (after 1 us propagation & processing delay)
 		nextEvt = evt
 		nextEvt.Type = EventTypeRadioReceived
 		nextEvt.IsInternal = false
@@ -152,8 +153,6 @@ func (rm *RadioModelInterfereAll) TxOngoing(node *RadioNode, q EventQueue, evt *
 
 func (rm *RadioModelInterfereAll) HandleEvent(node *RadioNode, q EventQueue, evt *Event) {
 	switch evt.Type {
-	case EventTypeRadioTxAck:
-		fallthrough
 	case EventTypeRadioTx:
 		if !evt.IsInternal {
 			rm.TxStart(node, q, evt)

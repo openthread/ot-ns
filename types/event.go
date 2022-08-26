@@ -40,27 +40,24 @@ const (
 
 	EventTypeRadioTx           uint8 = 17 // Tx of frame from OT-node to OTNS
 	EventTypeRadioTxDone       uint8 = 18 // Tx-done signal from OTNS to OT-node
-	EventTypeRadioTxAck        uint8 = 19 // Tx of Ack from OT-node to OTNS
 	EventTypeRadioRxInterfered uint8 = 20 // Rx of interfered frame from OTNS to OT-node
 
-	EventTypeV2Format uint8 = 130
-
-	// EventMessageV1HeaderLen int = 11
-	EventMessageV2HeaderLen int = 26
+	EventMessageV2HeaderLen int = 25 // from OT platform-simulation.h struct Event { }
 )
 
 type eventType = uint8
 
 type Event struct {
-	MsgId      uint64
-	Timestamp  uint64
-	Delay      uint64
-	Type       eventType
-	Param1     int8
-	Param2     int8
-	NodeId     NodeId
-	Data       []byte
+	MsgId  uint64
+	NodeId NodeId
+	Delay  uint64
+	Type   eventType
+	Param1 int8
+	Param2 int8
+	Data   []byte
+
 	IsInternal bool
+	Timestamp  uint64
 }
 
 /* RadioMessagePsduOffset is the offset of Psdu data in a received OpenThread RadioMessage type.
@@ -71,19 +68,18 @@ type RadioMessage struct {
 */
 const RadioMessagePsduOffset = 1
 
-// Serialize serializes this Event into []byte to send to OpenThread node that supports the V2
-// event message format (builds with OT_SIMULATION_RF_EXT_MODELS=ON), including fields partially.
+// Serialize serializes this Event into []byte to send to OpenThread node,
+// including fields partially.
 func (e *Event) Serialize() []byte {
 	msg := make([]byte, EventMessageV2HeaderLen+len(e.Data))
+	binary.LittleEndian.PutUint64(msg[:8], e.MsgId)
+	binary.LittleEndian.PutUint32(msg[8:12], uint32(e.NodeId))
 	// e.Timestamp is not sent, only e.Delay.
-	binary.LittleEndian.PutUint64(msg[:8], e.Delay)
-	msg[8] = EventTypeV2Format
-	binary.LittleEndian.PutUint16(msg[9:11], uint16(len(e.Data)))
-	msg[11] = e.Type
-	binary.LittleEndian.PutUint32(msg[12:16], uint32(e.NodeId))
-	msg[16] = byte(e.Param1)
-	msg[17] = byte(e.Param2)
-	binary.LittleEndian.PutUint64(msg[18:26], e.MsgId)
+	binary.LittleEndian.PutUint64(msg[12:20], e.Delay)
+	msg[20] = e.Type
+	msg[21] = byte(e.Param1)
+	msg[22] = byte(e.Param2)
+	binary.LittleEndian.PutUint16(msg[23:25], uint16(len(e.Data)))
 	n := copy(msg[EventMessageV2HeaderLen:], e.Data)
 	simplelogger.AssertTrue(n == len(e.Data))
 	return msg
@@ -95,16 +91,14 @@ func (e *Event) Deserialize(data []byte) {
 	if n < EventMessageV2HeaderLen {
 		simplelogger.Panicf("Event.Deserialize() message length too short: %d", n)
 	}
-	e.Delay = binary.LittleEndian.Uint64(data[:8])
-	e.Type = data[8]
-	datalen := binary.LittleEndian.Uint16(data[9:11])
+	e.MsgId = binary.LittleEndian.Uint64(data[:8])
+	e.NodeId = NodeId(binary.LittleEndian.Uint32(data[8:12]))
+	e.Delay = binary.LittleEndian.Uint64(data[12:20])
+	e.Type = data[20]
+	e.Param1 = int8(data[21])
+	e.Param2 = int8(data[22])
+	datalen := binary.LittleEndian.Uint16(data[23:25])
 
-	simplelogger.AssertTrue(e.Type == EventTypeV2Format)
-	e.Type = data[11]
-	e.NodeId = NodeId(binary.LittleEndian.Uint32(data[12:16]))
-	e.Param1 = int8(data[16])
-	e.Param2 = int8(data[17])
-	e.MsgId = binary.LittleEndian.Uint64(data[18:26])
 	simplelogger.AssertTrue(datalen == uint16(n-EventMessageV2HeaderLen))
 	data2 := make([]byte, datalen)
 	copy(data2, data[EventMessageV2HeaderLen:n])

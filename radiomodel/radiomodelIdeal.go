@@ -20,7 +20,7 @@ func (rm *RadioModelIdeal) GetTxRssi(evt *Event, srcNode *RadioNode, dstNode *Ra
 
 func (rm *RadioModelIdeal) TxStart(node *RadioNode, q EventQueue, evt *Event) {
 	var nextEvt *Event
-	simplelogger.AssertTrue(evt.Type == EventTypeRadioTx || evt.Type == EventTypeRadioTxAck)
+	simplelogger.AssertTrue(evt.Type == EventTypeRadioTx)
 	node.TxPower = evt.Param1     // get the Tx power from the OT node's event param.
 	node.CcaEdThresh = evt.Param2 // get CCA ED threshold also.
 
@@ -28,7 +28,7 @@ func (rm *RadioModelIdeal) TxStart(node *RadioNode, q EventQueue, evt *Event) {
 	nextEvt = &Event{
 		Type:      EventTypeRadioTxDone,
 		Timestamp: evt.Timestamp + frameTransmitTimeUs,
-		Data:      []byte{OT_ERROR_NONE},
+		Param1:    OT_ERROR_NONE,
 		NodeId:    evt.NodeId,
 	}
 	q.AddEvent(nextEvt)
@@ -45,8 +45,6 @@ func (rm *RadioModelIdeal) TxStart(node *RadioNode, q EventQueue, evt *Event) {
 
 func (rm *RadioModelIdeal) HandleEvent(node *RadioNode, q EventQueue, evt *Event) {
 	switch evt.Type {
-	case EventTypeRadioTxAck:
-		fallthrough
 	case EventTypeRadioTx:
 		rm.TxStart(node, q, evt)
 	default:
