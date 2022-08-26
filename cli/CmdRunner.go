@@ -308,7 +308,8 @@ func (rt *CmdRunner) executeAddNode(cc *CommandContext, cmd *AddCmd) {
 	}
 
 	if cmd.RadioRange != nil {
-		cfg.RadioRange = float64(cmd.RadioRange.Val)
+		cfg.RadioRange = 0.1 * float64(cmd.RadioRange.Val)
+		cfg.RadioRangeViz = cmd.RadioRange.Val
 	}
 
 	if cmd.Executable != nil {

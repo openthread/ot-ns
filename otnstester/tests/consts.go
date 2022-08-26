@@ -35,5 +35,5 @@ const (
 )
 
 var (
-	DefaultRadioRange = simulation.DefaultNodeConfig().RadioRange
+	DefaultRadioRangeViz = simulation.DefaultNodeConfig().RadioRangeViz
 )

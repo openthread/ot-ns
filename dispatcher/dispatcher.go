@@ -179,8 +179,7 @@ func NewDispatcher(ctx *progctx.ProgCtx, cfg *Config, cbHandler CallbackHandler)
 		watchingNodes:      map[NodeId]struct{}{},
 		goDurationChan:     make(chan goDuration, 10),
 		visOptions:         defaultVisualizationOptions(),
-		radioModel:         &radiomodel.RadioModelInterfereAll{}, // TODO select radio model at runtime
-		//radioModel: &radiomodel.RadioModelIdeal{}, // TODO select radio model at runtime
+		radioModel:         &radiomodel.RadioModelIdeal{},
 	}
 	d.speed = d.normalizeSpeed(d.speed)
 	if !d.cfg.NoPcap {
@@ -711,8 +710,8 @@ func (d *Dispatcher) sendOneRadioFrameEvent(evt *Event, srcNode *Node, dstNode *
 	}
 
 	// compute the RSSI in the event for Param1
-	dist := srcNode.GetDistanceInMeters(dstNode)
-	evt.Param1 = d.radioModel.GetTxRssi(evt, srcNode.radioNode, dstNode.radioNode, dist)
+	distMeters := srcNode.GetDistanceInMeters(dstNode)
+	evt.Param1 = d.radioModel.GetTxRssi(evt, srcNode.radioNode, dstNode.radioNode, distMeters)
 	evt.Param2 = 0 // not used
 
 	// send the event plus time keeping - moves dstnode's time to the current send-event's time.
@@ -1349,7 +1348,13 @@ func (d *Dispatcher) SetRadioModel(modelName string) radiomodel.RadioModel {
 
 	switch modelName {
 	case "Ideal":
-		model = &radiomodel.RadioModelIdeal{}
+		model = &radiomodel.RadioModelIdeal{
+			UseVariableRssi: false,
+		}
+	case "IdealRssi":
+		model = &radiomodel.RadioModelIdeal{
+			UseVariableRssi: true,
+		}
 	case "InterfereAll":
 		model = &radiomodel.RadioModelInterfereAll{}
 	}

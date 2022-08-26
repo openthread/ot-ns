@@ -9,12 +9,16 @@ const frameTransmitTimeUs uint64 = 1 // the fixed frame transmit time.
 
 // RadioModelIdeal is an ideal radio model with infinite capacity and always const transmit time.
 type RadioModelIdeal struct {
-	//
+	// UseVariableRssi when true uses distance-dependent RSSI model, else fixed RSSI.
+	UseVariableRssi bool
 }
 
 func (rm *RadioModelIdeal) GetTxRssi(evt *Event, srcNode *RadioNode, dstNode *RadioNode, distMeters float64) int8 {
 	simplelogger.AssertTrue(evt.Type == EventTypeRadioReceived)
-	rssi := int8(-20) //ComputeIndoorRssi(distMeters, srcNode.TxPower, dstNode.RxSensitivity) FIXME
+	rssi := int8(-20) // in the most ideal case, always assume a good RSSI up until the max range.
+	if rm.UseVariableRssi {
+		rssi = ComputeIndoorRssi(distMeters, srcNode.TxPower, dstNode.RxSensitivity)
+	}
 	return rssi
 }
 
@@ -53,5 +57,8 @@ func (rm *RadioModelIdeal) HandleEvent(node *RadioNode, q EventQueue, evt *Event
 }
 
 func (rm *RadioModelIdeal) GetName() string {
+	if rm.UseVariableRssi {
+		return "IdealRssi"
+	}
 	return "Ideal"
 }

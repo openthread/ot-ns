@@ -158,7 +158,7 @@ func (node *Node) GetDistanceTo(other *Node) (dist int) {
 // GetDistanceInMeters gets the distance in meters to another Node.
 func (node *Node) GetDistanceInMeters(other *Node) (dist float64) {
 	dx := float64(other.X-node.X) * 0.10 // TODO make scaling configurable.
-	dy := float64(other.Y-node.Y) * 0.10
+	dy := float64(other.Y-node.Y) * 0.10 // Now, 1 pixel is hardcoded to 0.1m.
 	dist = math.Sqrt(dx*dx + dy*dy)
 	return
 }
