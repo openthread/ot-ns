@@ -21,7 +21,6 @@ func (rm *RadioModelInterfereAll) GetTxRssi(evt *Event, srcNode *RadioNode, dstN
 }
 
 func (rm *RadioModelInterfereAll) TxStart(node *RadioNode, q EventQueue, evt *Event) {
-	var nextEvt *Event
 	simplelogger.AssertTrue(evt.Type == EventTypeRadioTx)
 	node.TxPower = evt.Param1     // get the Tx power from the OT node's event param.
 	node.CcaEdThresh = evt.Param2 // get CCA ED threshold also.
@@ -30,7 +29,7 @@ func (rm *RadioModelInterfereAll) TxStart(node *RadioNode, q EventQueue, evt *Ev
 	// check if a transmission is already ongoing? If so return OT_ERROR_ABORT.
 	if node.TxPhase > 0 {
 		// FIXME: submac layer of OpenThread shouldn't start Tx when it's still ongoing.
-		nextEvt = &Event{
+		var nextEvt = &Event{
 			Type:      EventTypeRadioTxDone,
 			Timestamp: evt.Timestamp + 1,
 			Param1:    OT_ERROR_ABORT,
@@ -64,8 +63,8 @@ func (rm *RadioModelInterfereAll) TxStart(node *RadioNode, q EventQueue, evt *Ev
 	} else {
 		delay = aifsTimeUs // ack is sent after fixed delay and no CCA.
 	}
-	// re-use the current event as the next event, updating timing and marking it internally-sourced.
-	nextEvt = evt // FIXME no copy
+	// create an internal event to continue the transmission later on
+	nextEvt := evt.Copy()
 	nextEvt.Timestamp += delay
 	nextEvt.IsInternal = true
 	q.AddEvent(nextEvt)
@@ -88,7 +87,7 @@ func (rm *RadioModelInterfereAll) TxOngoing(node *RadioNode, q EventQueue, evt *
 			node.IsCcaFailed = true // TODO use the node.CcaEdThresh to determine this.
 		}
 		// re-use the current event as the next event for CCA period end, updating timing only.
-		nextEvt := evt
+		nextEvt := evt.Copy()
 		nextEvt.Timestamp += ccaTimeUs
 		q.AddEvent(nextEvt)
 
@@ -116,7 +115,7 @@ func (rm *RadioModelInterfereAll) TxOngoing(node *RadioNode, q EventQueue, evt *
 				rm.isRfBusy = true
 			}
 			// schedule the end-of-frame-transmission event.
-			nextEvt := evt
+			nextEvt := evt.Copy()
 			d := rm.getFrameDurationUs(evt)
 			nextEvt.Timestamp += d
 			q.AddEvent(nextEvt)
@@ -128,7 +127,7 @@ func (rm *RadioModelInterfereAll) TxOngoing(node *RadioNode, q EventQueue, evt *
 		nextEvt := &Event{
 			Type:      EventTypeRadioTxDone,
 			Timestamp: evt.Timestamp + 1,
-			Data:      []byte{OT_ERROR_NONE},
+			Param1:    OT_ERROR_NONE,
 			NodeId:    evt.NodeId,
 		}
 		q.AddEvent(nextEvt)
@@ -140,14 +139,16 @@ func (rm *RadioModelInterfereAll) TxOngoing(node *RadioNode, q EventQueue, evt *
 		rm.isRfBusy = false
 
 		// let other radios of Nodes receive the data (after 1 us propagation & processing delay)
-		nextEvt = evt
-		nextEvt.Type = EventTypeRadioReceived
-		nextEvt.IsInternal = false
-		nextEvt.Timestamp += 1
+		nextEvt2 := evt.Copy()
+		nextEvt2.Type = EventTypeRadioReceived
+		nextEvt2.Timestamp += 1
+		nextEvt2.Param1 = OT_ERROR_NONE
+
 		if node.IsTxFailed { // mark as interfered packet in case of failure
-			nextEvt.Type = EventTypeRadioRxInterfered
+			nextEvt2.Type = EventTypeRadioRxInterfered
+			nextEvt2.Param1 = OT_ERROR_FCS
 		}
-		q.AddEvent(nextEvt)
+		q.AddEvent(nextEvt2)
 	}
 }
 

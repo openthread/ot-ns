@@ -106,3 +106,19 @@ func (e *Event) Deserialize(data []byte) {
 	// e.Timestamp is not deserialized (not present)
 	e.Timestamp = 0
 }
+
+// Copy creates a shallow copy of the Event.
+func (e *Event) Copy() *Event {
+	ev := &Event{
+		MsgId:      e.MsgId,
+		NodeId:     e.NodeId,
+		Delay:      e.Delay,
+		Type:       e.Type,
+		Param1:     e.Param1,
+		Param2:     e.Param2,
+		Data:       e.Data,
+		IsInternal: e.IsInternal,
+		Timestamp:  e.Timestamp,
+	}
+	return ev
+}

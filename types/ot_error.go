@@ -8,4 +8,5 @@ const (
 	OT_ERROR_NONE                   = 0
 	OT_ERROR_ABORT                  = 11
 	OT_ERROR_CHANNEL_ACCESS_FAILURE = 15
+	OT_ERROR_FCS                    = 17
 )

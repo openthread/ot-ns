@@ -124,7 +124,7 @@ func (node *Node) String() string {
 func (node *Node) sendEvent(evt *Event) {
 	evt.NodeId = node.Id
 	oldTime := node.CurTime
-	evt.Delay = evt.Timestamp - oldTime // adjust Delay value for this target node.
+	evt.Delay = evt.Timestamp - oldTime // compute Delay value for this target node.
 	node.msgId++
 	evt.MsgId = node.msgId
 	// time keeping - move node's time to the current send-event's time.
