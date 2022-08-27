@@ -116,7 +116,7 @@ func (rm *RadioModelInterfereAll) TxOngoing(node *RadioNode, q EventQueue, evt *
 			}
 			// schedule the end-of-frame-transmission event.
 			nextEvt := evt.Copy()
-			d := rm.getFrameDurationUs(evt)
+			d := getFrameDurationUs(evt)
 			nextEvt.Timestamp += d
 			q.AddEvent(nextEvt)
 		}
@@ -163,15 +163,6 @@ func (rm *RadioModelInterfereAll) HandleEvent(node *RadioNode, q EventQueue, evt
 	default:
 		simplelogger.Panicf("event type not implemented: %v", evt.Type)
 	}
-}
-
-// getFrameDurationUs gets the duration of the PHY frame in us indicated by evt of type eventTypeRadioFrame*
-func (rm *RadioModelInterfereAll) getFrameDurationUs(evt *Event) uint64 {
-	var n uint64
-	simplelogger.AssertTrue(len(evt.Data) >= RadioMessagePsduOffset)
-	n = (uint64)(len(evt.Data) - RadioMessagePsduOffset) // PSDU size 5..127
-	n += phyHeaderSize                                   // add PHY preamble, sfd, PHR bytes
-	return n * symbolTimeUs * symbolsPerOctet
 }
 
 func (rm *RadioModelInterfereAll) GetName() string {

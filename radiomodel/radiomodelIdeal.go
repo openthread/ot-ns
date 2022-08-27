@@ -5,12 +5,13 @@ import (
 	"github.com/simonlingoogle/go-simplelogger"
 )
 
-const frameTransmitTimeUs uint64 = 1 // the fixed frame transmit time.
-
-// RadioModelIdeal is an ideal radio model with infinite capacity and always const transmit time.
+// RadioModelIdeal is an ideal radio model with infinite parallel transmission capacity. Frame
+// transmit time can be set constant, or to realistic 802.15.4 frame time.
 type RadioModelIdeal struct {
 	// UseVariableRssi when true uses distance-dependent RSSI model, else fixed RSSI.
-	UseVariableRssi bool
+	UseVariableRssi      bool
+	UseRealFrameDuration bool
+	FixedFrameDuration   uint64
 }
 
 func (rm *RadioModelIdeal) GetTxRssi(evt *Event, srcNode *RadioNode, dstNode *RadioNode, distMeters float64) int8 {
@@ -28,10 +29,15 @@ func (rm *RadioModelIdeal) TxStart(node *RadioNode, q EventQueue, evt *Event) {
 	node.TxPower = evt.Param1     // get the Tx power from the OT node's event param.
 	node.CcaEdThresh = evt.Param2 // get CCA ED threshold also.
 
+	frameDuration := rm.FixedFrameDuration
+	if rm.UseRealFrameDuration {
+		frameDuration = getFrameDurationUs(evt)
+	}
+
 	// signal Tx Done event to sender.
 	nextEvt = &Event{
 		Type:      EventTypeRadioTxDone,
-		Timestamp: evt.Timestamp + frameTransmitTimeUs,
+		Timestamp: evt.Timestamp + frameDuration,
 		Param1:    OT_ERROR_NONE,
 		NodeId:    evt.NodeId,
 	}
@@ -40,7 +46,7 @@ func (rm *RadioModelIdeal) TxStart(node *RadioNode, q EventQueue, evt *Event) {
 	// let other radios of reachable Nodes receive the data (after N us propagation delay)
 	nextEvt = &Event{
 		Type:      EventTypeRadioReceived,
-		Timestamp: evt.Timestamp + frameTransmitTimeUs,
+		Timestamp: evt.Timestamp + frameDuration,
 		Data:      evt.Data,
 		NodeId:    evt.NodeId,
 	}

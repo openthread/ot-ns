@@ -2,6 +2,7 @@ package radiomodel
 
 import (
 	. "github.com/openthread/ot-ns/types"
+	"github.com/simonlingoogle/go-simplelogger"
 	"math"
 )
 
@@ -47,15 +48,48 @@ type RadioModel interface {
 	GetName() string
 }
 
+// Create creates a new RadioModel with given name, or nil if model not found.
+func Create(modelName string) RadioModel {
+	var model RadioModel = nil
+	switch modelName {
+	case "Ideal":
+		model = &RadioModelIdeal{
+			FixedFrameDuration: 1,
+		}
+	case "Ideal_Rssi":
+		model = &RadioModelIdeal{
+			UseVariableRssi:    true,
+			FixedFrameDuration: 1,
+		}
+	case "Ideal_Rssi_Dur":
+		model = &RadioModelIdeal{
+			UseVariableRssi:      true,
+			UseRealFrameDuration: true,
+		}
+	case "InterfereAll":
+		model = &RadioModelInterfereAll{}
+	}
+	return model
+}
+
 // IsLongDataFrame checks whether the radio frame in evt is 802.15.4 "long" (true) or not.
 func IsLongDataframe(evt *Event) bool {
 	return (len(evt.Data) - RadioMessagePsduOffset) > aMaxSifsFrameSize
 }
 
+// getFrameDurationUs gets the duration of the PHY frame in us indicated by evt of type eventTypeRadioFrame*
+func getFrameDurationUs(evt *Event) uint64 {
+	var n uint64
+	simplelogger.AssertTrue(len(evt.Data) >= RadioMessagePsduOffset)
+	n = (uint64)(len(evt.Data) - RadioMessagePsduOffset) // PSDU size 5..127
+	n += phyHeaderSize                                   // add PHY preamble, sfd, PHR bytes
+	return n * symbolTimeUs * symbolsPerOctet
+}
+
 // InterferePsduData simulates the interference (garbling) of PSDU data
 func InterferePsduData(d []byte) []byte {
-	ret := make([]byte, len(d))
-	ret[0] = d[0] // keep channel info
+	ret := make([]byte, len(d)) // make all 0 bytes
+	ret[0] = d[0]               // keep channel info
 	return ret
 }
 

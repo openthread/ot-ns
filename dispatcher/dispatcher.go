@@ -179,7 +179,7 @@ func NewDispatcher(ctx *progctx.ProgCtx, cfg *Config, cbHandler CallbackHandler)
 		watchingNodes:      map[NodeId]struct{}{},
 		goDurationChan:     make(chan goDuration, 10),
 		visOptions:         defaultVisualizationOptions(),
-		radioModel:         &radiomodel.RadioModelIdeal{},
+		radioModel:         radiomodel.Create("Ideal"),
 	}
 	d.speed = d.normalizeSpeed(d.speed)
 	if !d.cfg.NoPcap {
@@ -1346,18 +1346,7 @@ func (d *Dispatcher) SetRadioModel(modelName string) radiomodel.RadioModel {
 		return d.GetRadioModel()
 	}
 
-	switch modelName {
-	case "Ideal":
-		model = &radiomodel.RadioModelIdeal{
-			UseVariableRssi: false,
-		}
-	case "IdealRssi":
-		model = &radiomodel.RadioModelIdeal{
-			UseVariableRssi: true,
-		}
-	case "InterfereAll":
-		model = &radiomodel.RadioModelInterfereAll{}
-	}
+	model = radiomodel.Create(modelName)
 
 	if model != nil {
 		d.radioModel = model // TODO check if multi-threaded issues. Wait/pause first?
