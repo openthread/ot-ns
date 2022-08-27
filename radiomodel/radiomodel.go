@@ -19,8 +19,8 @@ const sifsTimeUs = symbolTimeUs * 12
 
 // default radio parameters
 const receiveSensitivityDbm = -100 // TODO for now MUST be manually kept equal to OT: SIM_RECEIVE_SENSITIVITY
-const txPowerDbm = 0               // Default, a V2 event msg will override it. OT: SIM_TX_POWER
-const ccaEdThresholdDbm = -75      // Default, a V2 event msg will override it. OT: SIM_CCA_ENERGY_DETECT_THRESHOLD
+const txPowerDbm = 0               // Default, event msg Param1 will override it. OT: SIM_TX_POWER
+const ccaEdThresholdDbm = -75      // Default, event msg Param2 will override it. OT: SIM_CCA_ENERGY_DETECT_THRESHOLD
 
 // RSSI parameter encodings
 const RssiInvalid = 127
