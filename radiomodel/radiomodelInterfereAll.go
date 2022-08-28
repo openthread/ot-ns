@@ -26,14 +26,15 @@ func (rm *RadioModelInterfereAll) TxStart(node *RadioNode, q EventQueue, evt *Ev
 	node.CcaEdThresh = evt.Param2 // get CCA ED threshold also.
 	isAck := dissectpkt.IsAckFrame(evt.Data)
 
-	// check if a transmission is already ongoing? If so return OT_ERROR_ABORT.
+	// check if a transmission is already ongoing? If so signal OT_ERROR_ABORT back
+	// to the OT stack, which will retry later without marking it as 'CCA failure'.
 	if node.TxPhase > 0 {
-		// FIXME: submac layer of OpenThread shouldn't start Tx when it's still ongoing.
-		var nextEvt = &Event{
+		nextEvt := &Event{
 			Type:      EventTypeRadioTxDone,
 			Timestamp: evt.Timestamp + 1,
 			Param1:    OT_ERROR_ABORT,
 			NodeId:    evt.NodeId,
+			Data:      evt.Data,
 		}
 		q.AddEvent(nextEvt)
 		return
@@ -83,7 +84,7 @@ func (rm *RadioModelInterfereAll) TxOngoing(node *RadioNode, q EventQueue, evt *
 	switch node.TxPhase {
 	case 2: // CCA first sample point
 		//perform CCA check at current time point 1.
-		if rm.isRfBusy {
+		if rm.isRfBusy && !isAck {
 			node.IsCcaFailed = true // TODO use the node.CcaEdThresh to determine this.
 		}
 		// re-use the current event as the next event for CCA period end, updating timing only.
@@ -95,26 +96,33 @@ func (rm *RadioModelInterfereAll) TxOngoing(node *RadioNode, q EventQueue, evt *
 		if rm.isRfBusy && !isAck {
 			node.IsCcaFailed = true // TODO use the node.CcaEdThresh to determine this.
 		}
-		if node.IsCcaFailed && !isAck {
-			// if CCA fails, then respond Tx Done event with error code.
+		if node.IsCcaFailed {
+			// if CCA failed, then respond Tx Done event with error code ...
 			nextEvt := &Event{
 				Type:      EventTypeRadioTxDone,
 				Timestamp: evt.Timestamp + 1,
 				Param1:    OT_ERROR_CHANNEL_ACCESS_FAILURE,
 				NodeId:    evt.NodeId,
+				Data:      evt.Data,
 			}
 			q.AddEvent(nextEvt)
-			node.TxPhase = 0 // reset back
+
+			// ... and reset back to start state.
+			node.TxPhase = 0
+			node.IsTxFailed = false
+			node.IsCcaFailed = false
 
 		} else {
-			if rm.isRfBusy && isAck {
-				// if ACK collides with existing transmission, mark ACK as failed.
+			if rm.isRfBusy {
+				// if collides with existing ongoing transmission, mark failed.
+				// FIXME mark the other ongoing transmission as failed, too.
 				node.IsTxFailed = true
-			} else {
-				// CCA was successful, or it's an ACK, so start frame transmission now.
-				rm.isRfBusy = true
 			}
-			// schedule the end-of-frame-transmission event.
+
+			// Start frame transmission at time=now.
+			rm.isRfBusy = true
+
+			// schedule the end-of-frame-transmission event, d us later.
 			nextEvt := evt.Copy()
 			d := getFrameDurationUs(evt)
 			nextEvt.Timestamp += d
@@ -129,14 +137,9 @@ func (rm *RadioModelInterfereAll) TxOngoing(node *RadioNode, q EventQueue, evt *
 			Timestamp: evt.Timestamp + 1,
 			Param1:    OT_ERROR_NONE,
 			NodeId:    evt.NodeId,
+			Data:      evt.Data,
 		}
 		q.AddEvent(nextEvt)
-
-		// bookkeeping
-		node.TimeLastTxEnded = evt.Timestamp     // for data frames and ACKs
-		node.IsLastTxLong = IsLongDataframe(evt) // for data frames and ACKs
-		node.TxPhase = 0                         // reset back
-		rm.isRfBusy = false
 
 		// let other radios of Nodes receive the data (after 1 us propagation & processing delay)
 		nextEvt2 := evt.Copy()
@@ -145,10 +148,18 @@ func (rm *RadioModelInterfereAll) TxOngoing(node *RadioNode, q EventQueue, evt *
 		nextEvt2.Param1 = OT_ERROR_NONE
 
 		if node.IsTxFailed { // mark as interfered packet in case of failure
-			nextEvt2.Type = EventTypeRadioRxInterfered
 			nextEvt2.Param1 = OT_ERROR_FCS
 		}
 		q.AddEvent(nextEvt2)
+
+		// final state done, bookkeeping for node and globally
+		node.TimeLastTxEnded = evt.Timestamp     // for data frames and ACKs
+		node.IsLastTxLong = IsLongDataframe(evt) // for data frames and ACKs
+		node.TxPhase = 0                         // reset back
+		node.IsTxFailed = false
+		node.IsCcaFailed = false
+		rm.isRfBusy = false
+
 	}
 }
 
