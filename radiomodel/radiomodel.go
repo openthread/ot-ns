@@ -9,7 +9,6 @@ import (
 // IEEE 802.15.4-2015 O-QPSK PHY
 const symbolTimeUs uint64 = 16
 const symbolsPerOctet = 2
-const freqHz = 2400000000
 const aMaxSifsFrameSize = 18 // as defined in IEEE 802.15.4-2015
 const phyHeaderSize = 6
 const ccaTimeUs = symbolTimeUs * 8

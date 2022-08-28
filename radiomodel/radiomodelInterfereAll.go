@@ -46,7 +46,7 @@ func (rm *RadioModelInterfereAll) TxStart(node *RadioNode, q EventQueue, evt *Ev
 
 	// node starts Tx - first phase is to wait any mandatory 802.15.4 silence time (LIFS/SIFS)
 	// before CCA can commence.
-	var delay uint64 = 0
+	var delay uint64
 	if !isAck {
 		var ifs uint64 = sifsTimeUs
 		if node.IsLastTxLong {
