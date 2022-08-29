@@ -59,6 +59,8 @@ type Command struct {
 	Scan                *ScanCmd                `| @@` //nolint
 	Speed               *SpeedCmd               `| @@` //nolint
 	Title               *TitleCmd               `| @@` //nolint
+	Unwatch             *UnwatchCmd             `| @@` //nolint
+	Watch               *WatchCmd               `| @@` //nolint
 	Web                 *WebCmd                 `| @@` //nolint
 }
 
@@ -405,6 +407,18 @@ type CountersCmd struct {
 type PlrCmd struct {
 	Cmd struct{} `"plr"`             //nolint
 	Val *float64 `[ (@Int|@Float) ]` //nolint
+}
+
+//noinspection GoStructTag
+type WatchCmd struct {
+	Cmd   struct{}       `"watch"`     //nolint
+	Nodes []NodeSelector `[ ( @@ )+ ]` //nolint
+}
+
+//noinspection GoStructTag
+type UnwatchCmd struct {
+	Cmd   struct{}       `"unwatch"` //nolint
+	Nodes []NodeSelector `( @@ )+`   //nolint
 }
 
 //noinspection GoStructTag
