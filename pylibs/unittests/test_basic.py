@@ -311,21 +311,14 @@ class BasicTests(OTNSTestCase):
         # Node 2 ~ 10 should become Routers by sending `a/as`
         self.assertEqual(set(routers), set(range(2, 11)))
 
-    def testLoglevel(self):
+    def testWatch(self):
         ns: OTNS = self.ns
-        ns.loglevel = "warn"
-        id = ns.add("router")
-        self.go(10)
-        self.assertEqual(ns.loglevel, "warn")
-        ns.loglevel = "debug"
-        id = ns.add("router")
-        self.go(10)
-        self.assertEqual(ns.loglevel, "debug")
-        with self.assertRaises(errors.OTNSCliError):
-            ns.loglevel = "invalid_log_level"
-        self.assertEqual(ns.loglevel, "debug")
-        ns.loglevel = "info"
-        ns.loglevel = "error"
+        for i in range(10):
+            ns.add('router')
+            ns.go(2)
+        ns.watch(3, 4, 5, 6, 8)
+        ns.go(5)
+        ns.unwatch(5, 6)
 
 if __name__ == '__main__':
     unittest.main()
