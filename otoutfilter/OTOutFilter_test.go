@@ -39,13 +39,13 @@ func TestOTOutFilter(t *testing.T) {
 		"Error: fail\n" +
 		"\n" +
 		"> cmd3\n" +
-		//NONE|CRIT|WARN|NOTE|INFO|DEBG
-		"A[NONE]log1\n" +
-		"B[CRIT]log2\n" +
-		"C[WARN]log3\n" +
-		"D[NOTE]log4\n" +
-		"E[INFO]log5\n" +
-		"\n[DEBG]log6\n" +
+		//-|C|W|N|I|D
+		"A00:00:17.817 [-]log1\n" +
+		"B01:00:17.817 [C]log2\n" +
+		"C02:43:37.817 [W] log3\n" +
+		"D33:00:17.817 [N] log4\n" +
+		"E44:33:22.123 [I]log5\n" +
+		"\n[D]log6\n" +
 		"Done\n" +
 		""
 	expectOutput := "cmd1\n" +
@@ -55,10 +55,11 @@ func TestOTOutFilter(t *testing.T) {
 		"\n" +
 		"cmd3\n" +
 		"ABCDE\n" +
+		"[D]log6\n" +
 		"Done\n" +
 		""
 
-	r := NewOTOutFilter(strings.NewReader(input), "Node<1>")
+	r := NewOTOutFilter(strings.NewReader(input), "Node<1>", nil)
 	output, err := ioutil.ReadAll(r)
 	if err != nil {
 		t.Fatal(err)
