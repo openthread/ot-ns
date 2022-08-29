@@ -311,6 +311,14 @@ class BasicTests(OTNSTestCase):
         # Node 2 ~ 10 should become Routers by sending `a/as`
         self.assertEqual(set(routers), set(range(2, 11)))
 
+    def testWatch(self):
+        ns: OTNS = self.ns
+        for i in range(10):
+            ns.add('router')
+            ns.go(2)
+        ns.watch(3, 4, 5, 6, 8)
+        ns.go(5)
+        ns.unwatch(5, 6)
 
 if __name__ == '__main__':
     unittest.main()
