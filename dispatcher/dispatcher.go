@@ -311,7 +311,7 @@ func (d *Dispatcher) handleRecvEvent(evt *event) {
 	node.peerAddr = evt.SrcAddr
 
 	if d.isWatching(evt.NodeId) {
-		simplelogger.Debugf("Node %d <<< %+v, cur time %d, node time %d, delay %d", evt.NodeId, *evt,
+		simplelogger.Infof("Node %d <<< %+v, cur time %d, node time %d, delay %d", evt.NodeId, *evt,
 			d.CurTime, int64(d.nodes[nodeid].CurTime)-int64(d.CurTime), evt.Delay)
 	}
 
@@ -552,7 +552,7 @@ func (d *Dispatcher) advanceNodeTime(id NodeId, timestamp uint64, force bool) {
 	d.alarmMgr.SetNotified(id)
 	d.setAlive(id)
 	if d.isWatching(id) {
-		simplelogger.Debugf("Node %d >>> advance time %v -> %v", id, oldTime, timestamp)
+		simplelogger.Infof("Node %d >>> advance time %v -> %v", id, oldTime, timestamp)
 	}
 }
 
