@@ -311,23 +311,21 @@ class BasicTests(OTNSTestCase):
         # Node 2 ~ 10 should become Routers by sending `a/as`
         self.assertEqual(set(routers), set(range(2, 11)))
 
-    def testMultiRadioChannel(self):
-        ns = self.ns
-        radio_range = 100
-        ns.add("router", 0, 0, radio_range=radio_range)
-        ns.add("router", 0, 50, radio_range=radio_range)
-        ns.add("router", 50, 0, radio_range=radio_range)
-        ns.add("router", 50, 50, radio_range=radio_range)
-        self.go(20)
-        self.assertFormPartitions(1)
-
-        for n in [1,2]:
-            ns.node_cmd(n, "ifconfig down")
-            ns.node_cmd(n, "channel 20")
-            ns.node_cmd(n, "ifconfig up")
-            ns.node_cmd(n, "thread start")
-        self.go(20)
-        self.assertFormPartitions(2)
+    def testLoglevel(self):
+        ns: OTNS = self.ns
+        ns.loglevel = "warn"
+        id = ns.add("router")
+        self.go(10)
+        self.assertEqual(ns.loglevel, "warn")
+        ns.loglevel = "debug"
+        id = ns.add("router")
+        self.go(10)
+        self.assertEqual(ns.loglevel, "debug")
+        with self.assertRaises(errors.OTNSCliError):
+            ns.loglevel = "invalid_log_level"
+        self.assertEqual(ns.loglevel, "debug")
+        ns.loglevel = "info"
+        ns.loglevel = "error"
 
 if __name__ == '__main__':
     unittest.main()

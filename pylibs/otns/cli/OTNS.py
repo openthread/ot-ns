@@ -124,20 +124,21 @@ class OTNS(object):
         self._do_command(f'speed {speed}')
 
     @property
-    def radiomodel(self) -> str:
+    def loglevel(self) -> str:
         """
-        :return: current radio model used
+        :return: current log-level setting for OT-NS and Node log messages.
         """
-        return self._expect_str(self._do_command(f'radiomodel'))
+        level = self._expect_str(self._do_command(f'log'))
+        return level
 
-    @radiomodel.setter
-    def radiomodel(self, model: str) -> None:
+    @loglevel.setter
+    def loglevel(self, level: str) -> None:
         """
-        Set radiomodel for simulation.
+        Set log-level for all OT-NS and Node log messages.
 
-        :param model: name of new radio model to use. Default is "Ideal".
+        :param level: new log-level name, debug | info | warn | error
         """
-        assert self._do_command(f'radiomodel {model}')[0] == model
+        self._do_command(f'log {level}')
 
     def set_poll_period(self, nodeid: int, period: float) -> None:
         ms = int(period * 1000)
