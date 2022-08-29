@@ -123,6 +123,23 @@ class OTNS(object):
 
         self._do_command(f'speed {speed}')
 
+    @property
+    def loglevel(self) -> str:
+        """
+        :return: current log-level setting for OT-NS and Node log messages.
+        """
+        level = self._expect_str(self._do_command(f'log'))
+        return level
+
+    @loglevel.setter
+    def loglevel(self, level: str) -> None:
+        """
+        Set log-level for all OT-NS and Node log messages.
+
+        :param level: new log-level name, debug | info | warn | error
+        """
+        self._do_command(f'log {level}')
+
     def set_poll_period(self, nodeid: int, period: float) -> None:
         ms = int(period * 1000)
         self.node_cmd(nodeid, f'pollperiod {ms}')
