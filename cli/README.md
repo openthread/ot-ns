@@ -425,8 +425,13 @@ Disable the watch status for one or more nodes. See [watch](#watch-node-id-node-
 ### watch \[\<node-id\>\] \[<node-id> ...\]
 
 Enable additional, detailed log messages on selected node(s) only. This can be useful for interactive debugging or 
-inspection of a node's behavior. To see all of the additional log messages, set the overall log-level to "debug" 
-using the "-log debug" command line switch. To see all nodes currently being watched, use "watch" without parameters.
+inspection of a node's behavior. 
+
+* To see all nodes currently being watched, use "watch" without parameters. 
+* To see all of the additional log messages, set the overall log-level to "debug" 
+using the "-log debug" command line switch.
+* To see most of the additional log messages, set the overall log-level to "info"
+using the "-log info" command line switch. 
 
 ```bash
 > watch 1
