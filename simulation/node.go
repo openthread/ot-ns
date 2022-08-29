@@ -600,7 +600,7 @@ func (node *Node) ConfigActiveDataset(channel int, networkkey string, panid uint
 
 func (node *Node) lineReader(reader io.Reader, uartType NodeUartType) {
 	// close the line channel after line reader routine exit
-	scanner := bufio.NewScanner(otoutfilter.NewOTOutFilter(bufio.NewReader(reader), node.String()))
+	scanner := bufio.NewScanner(otoutfilter.NewOTOutFilter(bufio.NewReader(reader), node.String(), node.handlerLogMsg))
 	scanner.Split(bufio.ScanLines)
 
 	isNodeError := false
@@ -633,6 +633,30 @@ func (node *Node) lineReader(reader io.Reader, uartType NodeUartType) {
 	// when the stderr of the node closes and errors were printed, delete the node.
 	if isNodeError {
 		node.S.OnNodeProcessFailure(node)
+	}
+}
+
+// handles an incoming log message from the OT-Node. The policy may be changed in the future,
+// or made configurable.
+func (node *Node) handlerLogMsg(otLevel string, msg string) {
+	switch otLevel {
+	case "D":
+		fallthrough
+	case "I":
+		// only display detailed log msgs if in Node's context. Otherwise, too much.
+		if node.S.cmdRunner.GetContextNodeId() == node.Id {
+			simplelogger.Infof(msg)
+		}
+	case "N":
+		simplelogger.Infof(msg)
+	case "W":
+		simplelogger.Warnf(msg)
+	case "E":
+		fallthrough
+	case "-":
+		fallthrough
+	default:
+		simplelogger.Errorf(msg)
 	}
 }
 
