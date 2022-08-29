@@ -626,7 +626,7 @@ func (rt *CmdRunner) executeWeb(cc *CommandContext, webcmd *WebCmd) {
 }
 
 func (rt *CmdRunner) executeLogLevel(cc *CommandContext, cmd *LogLevelCmd) {
-	if len(cmd.Level) == 0 {
+	if cmd.Level == "" {
 		cc.outputf("%v\n", simplelogger.GetLevel().String())
 	} else {
 		simplelogger.SetLevel(simplelogger.ParseLevel(cmd.Level))
