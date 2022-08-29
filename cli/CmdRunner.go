@@ -215,8 +215,10 @@ func (rt *CmdRunner) execute(cmd *Command, output io.Writer) {
 		rt.executeWeb(cc, cc.Web)
 	} else if cmd.NetInfo != nil {
 		rt.executeNetInfo(cc, cc.NetInfo)
-	} else if cmd.LogLevel != nil {
-		rt.executeLogLevel(cc, cc.LogLevel)
+	} else if cmd.Watch != nil {
+		rt.executeWatch(cc, cmd.Watch)
+	} else if cmd.Unwatch != nil {
+		rt.executeUnwatch(cc, cmd.Unwatch)
 	} else {
 		simplelogger.Panicf("unimplemented command: %#v", cmd)
 	}
@@ -625,12 +627,35 @@ func (rt *CmdRunner) executeWeb(cc *CommandContext, webcmd *WebCmd) {
 	}
 }
 
-func (rt *CmdRunner) executeLogLevel(cc *CommandContext, cmd *LogLevelCmd) {
-	if cmd.Level == "" {
-		cc.outputf("%v\n", simplelogger.GetLevel().String())
-	} else {
-		simplelogger.SetLevel(simplelogger.ParseLevel(cmd.Level))
-	}
+func (rt *CmdRunner) executeWatch(cc *CommandContext, cmd *WatchCmd) {
+	rt.postAsyncWait(func(sim *simulation.Simulation) {
+		if len(cmd.Nodes) == 0 {
+			watchedList := strings.Trim(fmt.Sprintf("%v", sim.Dispatcher().GetWatchingNodes()), "[]")
+			cc.outputf("%v\n", watchedList)
+		} else {
+			for _, sel := range cmd.Nodes {
+				node, _ := rt.getNode(sim, sel)
+				if node == nil {
+					cc.errorf("node %v not found", sel)
+					continue
+				}
+				sim.Dispatcher().WatchNode(node.Id)
+			}
+		}
+	})
+}
+
+func (rt *CmdRunner) executeUnwatch(cc *CommandContext, cmd *UnwatchCmd) {
+	rt.postAsyncWait(func(sim *simulation.Simulation) {
+		for _, sel := range cmd.Nodes {
+			node, _ := rt.getNode(sim, sel)
+			if node == nil {
+				cc.errorf("node %v not found", sel)
+				continue
+			}
+			sim.Dispatcher().UnwatchNode(node.Id)
+		}
+	})
 }
 
 func (rt *CmdRunner) executePlr(cc *CommandContext, cmd *PlrCmd) {

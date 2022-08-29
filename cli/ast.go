@@ -61,6 +61,8 @@ type Command struct {
 	Scan                *ScanCmd                `| @@` //nolint
 	Speed               *SpeedCmd               `| @@` //nolint
 	Title               *TitleCmd               `| @@` //nolint
+	Unwatch             *UnwatchCmd             `| @@` //nolint
+	Watch               *WatchCmd               `| @@` //nolint
 	Web                 *WebCmd                 `| @@` //nolint
 	Energy              *EnergyCmd              `| @@` //nolint
 }
@@ -423,9 +425,15 @@ type PlrCmd struct {
 }
 
 //noinspection GoStructTag
-type LogLevelCmd struct {
-	Cmd   struct{} `"log"`                                //nolint
-	Level string   `[@( "debug"|"info"|"warn"|"error" )]` //nolint
+type WatchCmd struct {
+	Cmd   struct{}       `"watch"`     //nolint
+	Nodes []NodeSelector `[ ( @@ )+ ]` //nolint
+}
+
+//noinspection GoStructTag
+type UnwatchCmd struct {
+	Cmd   struct{}       `"unwatch"` //nolint
+	Nodes []NodeSelector `( @@ )+`   //nolint
 }
 
 //noinspection GoStructTag
