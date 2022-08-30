@@ -66,23 +66,25 @@ type pcapFrameItem struct {
 }
 
 type Config struct {
-	Speed        float64
-	Real         bool
-	Host         string
-	Port         int
-	DumpPackets  bool
-	NoPcap       bool
-	UnitDistance float64
+	Speed          float64
+	Real           bool
+	Host           string
+	Port           int
+	DumpPackets    bool
+	NoPcap         bool
+	UnitDistance   float64
+	RadioModelName string
 }
 
 func DefaultConfig() *Config {
 	return &Config{
-		Speed:        1,
-		Real:         false,
-		Host:         "localhost",
-		Port:         threadconst.InitialDispatcherPort,
-		DumpPackets:  false,
-		UnitDistance: 1.0, // note: simulation class configures actual (default) value.
+		Speed:          1,
+		Real:           false,
+		Host:           "localhost",
+		Port:           threadconst.InitialDispatcherPort,
+		DumpPackets:    false,
+		UnitDistance:   1.0,     // note: simulation class configures actual (default) value.
+		RadioModelName: "Ideal", // note: simulation class configures actual (default) value.
 	}
 }
 
@@ -181,7 +183,7 @@ func NewDispatcher(ctx *progctx.ProgCtx, cfg *Config, cbHandler CallbackHandler)
 		watchingNodes:      map[NodeId]struct{}{},
 		goDurationChan:     make(chan goDuration, 10),
 		visOptions:         defaultVisualizationOptions(),
-		radioModel:         radiomodel.Create("Ideal"),
+		radioModel:         radiomodel.Create(cfg.RadioModelName),
 	}
 	d.speed = d.normalizeSpeed(d.speed)
 	if !d.cfg.NoPcap {
