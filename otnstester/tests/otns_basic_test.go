@@ -48,19 +48,19 @@ func testAddNode(test *otnstester.OtnsTest) {
 	test.ExpectTrue(nodeid == 1)
 	test.Go(time.Second * 3)
 	test.ExpectTrue(test.GetNodeState(nodeid) == RoleLeader)
-	test.ExpectVisualizeAddNode(nodeid, 0, 0, DefaultRadioRangeViz)
+	test.ExpectVisualizeAddNode(nodeid, 0, 0, DefaultRadioRange)
 
 	router2 := test.AddNode("router")
 	test.ExpectTrue(router2 == 2)
 	test.Go(time.Second * 10)
 	test.ExpectTrue(test.GetNodeState(router2) == RoleRouter)
-	test.ExpectVisualizeAddNode(router2, 0, 0, DefaultRadioRangeViz)
+	test.ExpectVisualizeAddNode(router2, 0, 0, DefaultRadioRange)
 
 	test.Command("add fed x 50 y 60")
 	fed := 3
 	test.Go(time.Second * 10)
 	test.ExpectTrue(test.GetNodeState(fed) == RoleChild)
-	test.ExpectVisualizeAddNode(fed, 50, 60, DefaultRadioRangeViz)
+	test.ExpectVisualizeAddNode(fed, 50, 60, DefaultRadioRange)
 
 	fedInfo := test.ListNodes()[fed]
 	test.ExpectTrue(fedInfo.X == 50)
@@ -80,7 +80,7 @@ func testAddNode(test *otnstester.OtnsTest) {
 	sed := 5
 	test.Go(time.Second * 10)
 	test.ExpectTrue(test.GetNodeState(sed) == RoleChild)
-	test.ExpectVisualizeAddNode(sed, 30, 40, DefaultRadioRangeViz)
+	test.ExpectVisualizeAddNode(sed, 30, 40, DefaultRadioRange)
 	sedInfo := test.ListNodes()[sed]
 	test.ExpectTrue(sedInfo.X == 30)
 	test.ExpectTrue(sedInfo.Y == 40)

@@ -78,8 +78,7 @@ type Node struct {
 	peerAddr      *net.UDPAddr
 	failureCtrl   *FailureCtrl
 	isFailed      bool
-	radioRange    float64
-	radioRangeViz int
+	radioRange    int
 	radioNode     *radiomodel.RadioNode
 	pendingPings  []*pingRequest
 	pingResults   []*PingResult
@@ -104,7 +103,6 @@ func newNode(d *Dispatcher, nodeid NodeId, cfg *NodeConfig) *Node {
 		Role:          OtDeviceRoleDisabled,
 		peerAddr:      nil, // peer address will be set when the first Event is received
 		radioRange:    cfg.RadioRange,
-		radioRangeViz: cfg.RadioRangeViz,
 		radioNode:     radiomodel.NewRadioNode(),
 		joinerState:   OtJoinerStateIdle,
 		msgId:         0,
