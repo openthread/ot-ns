@@ -618,20 +618,15 @@ func (node *Node) lineReader(reader io.Reader, uartType NodeUartType) {
 // or made configurable.
 func (node *Node) handlerLogMsg(otLevel string, msg string) {
 	switch otLevel {
-	case "D":
-		fallthrough
-	case "I":
-		// only display detailed log msgs if in Node's context. Otherwise, too much.
-		if node.S.cmdRunner.GetContextNodeId() == node.Id {
+	case "D", "I", "N":
+		// only display detailed log msgs if in Node's context or watching that Node.
+		// Otherwise, too much is displayed.
+		if node.S.cmdRunner.GetContextNodeId() == node.Id || node.S.Dispatcher().IsWatching(node.Id) {
 			simplelogger.Infof(msg)
 		}
-	case "N":
-		simplelogger.Infof(msg)
 	case "W":
 		simplelogger.Warnf(msg)
-	case "E":
-		fallthrough
-	case "-":
+	case "E", "-":
 		fallthrough
 	default:
 		simplelogger.Errorf(msg)
