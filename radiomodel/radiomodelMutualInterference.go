@@ -6,21 +6,21 @@ import (
 	"github.com/simonlingoogle/go-simplelogger"
 )
 
-// RadioModelInterfereAll is a somewhat pessimistic radio model where one transmitter will always interfere
+// RadioModelMutualInterference is a somewhat pessimistic radio model where one transmitter will always interfere
 // with all other transmitters in the simulation, regardless of distance. This means no 2 or more nodes
 // can transmit at the same time. It's useful to evaluate capacity-limited situations.
-type RadioModelInterfereAll struct {
+type RadioModelMutualInterference struct {
 	isRfBusy bool
 }
 
-func (rm *RadioModelInterfereAll) GetTxRssi(evt *Event, srcNode *RadioNode, dstNode *RadioNode, distMeters float64) int8 {
+func (rm *RadioModelMutualInterference) GetTxRssi(evt *Event, srcNode *RadioNode, dstNode *RadioNode, distMeters float64) int8 {
 	simplelogger.AssertTrue(evt.Type == EventTypeRadioReceived)
 	simplelogger.AssertTrue(srcNode != dstNode)
 	rssi := ComputeIndoorRssi(distMeters, srcNode.TxPower, dstNode.RxSensitivity)
 	return rssi
 }
 
-func (rm *RadioModelInterfereAll) TxStart(node *RadioNode, q EventQueue, evt *Event) {
+func (rm *RadioModelMutualInterference) TxStart(node *RadioNode, q EventQueue, evt *Event) {
 	simplelogger.AssertTrue(evt.Type == EventTypeRadioTx)
 	node.TxPower = evt.Param1     // get the Tx power from the OT node's event param.
 	node.CcaEdThresh = evt.Param2 // get CCA ED threshold also.
@@ -71,7 +71,7 @@ func (rm *RadioModelInterfereAll) TxStart(node *RadioNode, q EventQueue, evt *Ev
 	q.AddEvent(nextEvt)
 }
 
-func (rm *RadioModelInterfereAll) TxOngoing(node *RadioNode, q EventQueue, evt *Event) {
+func (rm *RadioModelMutualInterference) TxOngoing(node *RadioNode, q EventQueue, evt *Event) {
 
 	simplelogger.AssertTrue(evt.Type == EventTypeRadioTx)
 	isAck := dissectpkt.IsAckFrame(evt.Data)
@@ -163,7 +163,7 @@ func (rm *RadioModelInterfereAll) TxOngoing(node *RadioNode, q EventQueue, evt *
 	}
 }
 
-func (rm *RadioModelInterfereAll) HandleEvent(node *RadioNode, q EventQueue, evt *Event) {
+func (rm *RadioModelMutualInterference) HandleEvent(node *RadioNode, q EventQueue, evt *Event) {
 	switch evt.Type {
 	case EventTypeRadioTx:
 		if !evt.IsInternal {
@@ -176,6 +176,6 @@ func (rm *RadioModelInterfereAll) HandleEvent(node *RadioNode, q EventQueue, evt
 	}
 }
 
-func (rm *RadioModelInterfereAll) GetName() string {
-	return "InterfereAll"
+func (rm *RadioModelMutualInterference) GetName() string {
+	return "MutualInterference"
 }

@@ -6,17 +6,20 @@ import (
 )
 
 // RadioModelIdeal is an ideal radio model with infinite parallel transmission capacity. Frame
-// transmit time can be set constant, or to realistic 802.15.4 frame time.
+// transmit time can be set constant, or to realistic 802.15.4 frame time. RSSI at the receiver
+// can be set to an ideal constant RSSI value, or variable based on an average RF propagation model.
 type RadioModelIdeal struct {
+	Name string
 	// UseVariableRssi when true uses distance-dependent RSSI model, else fixed RSSI.
 	UseVariableRssi      bool
+	FixedRssi            int8
 	UseRealFrameDuration bool
-	FixedFrameDuration   uint64
+	FixedFrameDuration   uint64 // only used if UseRealFramDuration == false
 }
 
 func (rm *RadioModelIdeal) GetTxRssi(evt *Event, srcNode *RadioNode, dstNode *RadioNode, distMeters float64) int8 {
 	simplelogger.AssertTrue(evt.Type == EventTypeRadioReceived)
-	rssi := int8(-20) // in the most ideal case, always assume a good RSSI up until the max range.
+	rssi := int8(rm.FixedRssi) // in the most ideal case, always assume a good RSSI up until the max range.
 	if rm.UseVariableRssi {
 		rssi = ComputeIndoorRssi(distMeters, srcNode.TxPower, dstNode.RxSensitivity)
 	}
@@ -63,8 +66,5 @@ func (rm *RadioModelIdeal) HandleEvent(node *RadioNode, q EventQueue, evt *Event
 }
 
 func (rm *RadioModelIdeal) GetName() string {
-	if rm.UseVariableRssi {
-		return "IdealRssi"
-	}
-	return "Ideal"
+	return rm.Name
 }

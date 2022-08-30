@@ -53,20 +53,24 @@ func Create(modelName string) RadioModel {
 	switch modelName {
 	case "Ideal":
 		model = &RadioModelIdeal{
+			Name:               modelName,
 			FixedFrameDuration: 1,
+			FixedRssi:          -20,
 		}
 	case "Ideal_Rssi":
 		model = &RadioModelIdeal{
 			UseVariableRssi:    true,
 			FixedFrameDuration: 1,
+			Name:               modelName,
 		}
 	case "Ideal_Rssi_Dur":
 		model = &RadioModelIdeal{
 			UseVariableRssi:      true,
 			UseRealFrameDuration: true,
+			Name:                 modelName,
 		}
-	case "InterfereAll":
-		model = &RadioModelInterfereAll{}
+	case "MutualInterference":
+		model = &RadioModelMutualInterference{}
 	}
 	return model
 }
