@@ -29,10 +29,11 @@ package simulation
 import "github.com/openthread/ot-ns/threadconst"
 
 const (
-	DefaultNetworkName = "OTSIM"
-	DefaultNetworkKey  = "00112233445566778899aabbccddeeff"
-	DefaultPanid       = 0xface
-	DefaultChannel     = 11
+	DefaultNetworkName  = "OTSIM"
+	DefaultNetworkKey   = "00112233445566778899aabbccddeeff"
+	DefaultPanid        = 0xface
+	DefaultChannel      = 11
+	DefaultUnitDistance = 0.10 // A single OT-NS distance unit represents how many meters.
 )
 
 type Config struct {
@@ -48,6 +49,7 @@ type Config struct {
 	DispatcherHost string
 	DispatcherPort int
 	DumpPackets    bool
+	UnitDistance   float64
 }
 
 func DefaultConfig() *Config {
@@ -63,5 +65,6 @@ func DefaultConfig() *Config {
 		Real:           false,
 		DispatcherHost: "localhost",
 		DispatcherPort: threadconst.InitialDispatcherPort,
+		UnitDistance:   DefaultUnitDistance,
 	}
 }

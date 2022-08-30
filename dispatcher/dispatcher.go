@@ -66,21 +66,23 @@ type pcapFrameItem struct {
 }
 
 type Config struct {
-	Speed       float64
-	Real        bool
-	Host        string
-	Port        int
-	DumpPackets bool
-	NoPcap      bool
+	Speed        float64
+	Real         bool
+	Host         string
+	Port         int
+	DumpPackets  bool
+	NoPcap       bool
+	UnitDistance float64
 }
 
 func DefaultConfig() *Config {
 	return &Config{
-		Speed:       1,
-		Real:        false,
-		Host:        "localhost",
-		Port:        threadconst.InitialDispatcherPort,
-		DumpPackets: false,
+		Speed:        1,
+		Real:         false,
+		Host:         "localhost",
+		Port:         threadconst.InitialDispatcherPort,
+		DumpPackets:  false,
+		UnitDistance: 1.0, // note: simulation class configures actual (default) value.
 	}
 }
 
@@ -304,6 +306,9 @@ func (d *Dispatcher) goUntilPauseTime() {
 // It may only process events immediately that do not have timing implications on the simulation correctness;
 // e.g. like visualization events or UART messages for setup of new nodes.
 func (d *Dispatcher) handleRecvEvent(evt *Event) {
+	if d.stopped {
+		return
+	}
 	nodeid := evt.NodeId
 	if _, ok := d.nodes[nodeid]; !ok {
 		if _, deleted := d.deletedNodes[nodeid]; !deleted {
@@ -317,13 +322,12 @@ func (d *Dispatcher) handleRecvEvent(evt *Event) {
 		// old message in pipeline? TODO
 		return
 	}
-	simplelogger.AssertTrue(d.isAlive(nodeid) || d.stopped)
+	simplelogger.AssertTrue(d.isAlive(nodeid))
 
 	if d.isWatching(nodeid) && evt.Type != EventTypeUartWrite {
 		simplelogger.Infof("Node %d <<< %+v, cur time %d, node time %d", nodeid, *evt,
 			d.CurTime, node.CurTime)
 	}
-
 
 	// time keeping: infer abs time this event should happen, from the delta Delay given.
 	evt.Timestamp = node.CurTime + evt.Delay // infer Timestamp for ext recv event.
@@ -523,6 +527,9 @@ func (d *Dispatcher) eventsReader() {
 	for {
 		// loop and read events from UDP socket until all nodes are asleep
 		n, srcaddr, err := udpln.ReadFromUDP(readbuf)
+		if d.stopped {
+			break
+		}
 		if err != nil {
 			if nerr, ok := err.(net.Error); ok && nerr.Temporary() {
 				time.Sleep(time.Millisecond * 100)
@@ -674,8 +681,9 @@ func (d *Dispatcher) sendRadioFrameEventToNodes(evt *Event) {
 
 func (d *Dispatcher) checkRadioReachable(evt *Event, src *Node, dst *Node) bool {
 	simplelogger.AssertTrue(src != dst)
-	distMeters := src.GetDistanceInMeters(dst)
-	if distMeters <= src.radioRange {
+	distMeters := src.GetDistanceInMeters(dst, d.cfg.UnitDistance)
+	srcRadioRangeMeters := d.cfg.UnitDistance * float64(src.radioRange)
+	if distMeters <= srcRadioRangeMeters {
 		rssi := d.radioModel.GetTxRssi(evt, src.radioNode, dst.radioNode, distMeters)
 		if rssi >= radiomodel.RssiMin && rssi <= radiomodel.RssiMax && rssi >= dst.radioNode.RxSensitivity {
 			return true
@@ -720,7 +728,7 @@ func (d *Dispatcher) sendOneRadioFrameEvent(evt *Event, srcNode *Node, dstNode *
 	}
 
 	// compute the RSSI in the event for Param1
-	distMeters := srcNode.GetDistanceInMeters(dstNode)
+	distMeters := srcNode.GetDistanceInMeters(dstNode, d.cfg.UnitDistance)
 	evt.Param1 = d.radioModel.GetTxRssi(evt, srcNode.radioNode, dstNode.radioNode, distMeters)
 	evt.Param2 = 0 // not used
 
@@ -744,7 +752,7 @@ func (d *Dispatcher) newNode(nodeid NodeId, cfg *NodeConfig) (node *Node) {
 }
 
 func (d *Dispatcher) setAlive(nodeid NodeId) {
-    if d.cfg.Real {
+	if d.cfg.Real {
 		// real devices are always considered sleeping
 		return
 	}

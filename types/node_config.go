@@ -32,8 +32,7 @@ type NodeConfig struct {
 	IsMtd          bool
 	IsRouter       bool
 	RxOffWhenIdle  bool
-	RadioRange     float64
-	RadioRangeViz  int
+	RadioRange     int
 	ExecutablePath string
 	Restore        bool
 }

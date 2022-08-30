@@ -92,20 +92,20 @@ func newNode(d *Dispatcher, nodeid NodeId, cfg *NodeConfig) *Node {
 	simplelogger.AssertTrue(cfg.RadioRange >= 0)
 
 	nc := &Node{
-		D:             d,
-		Id:            nodeid,
-		CurTime:       d.CurTime,
-		CreateTime:    d.CurTime,
-		X:             cfg.X,
-		Y:             cfg.Y,
-		ExtAddr:       InvalidExtAddr,
-		Rloc16:        threadconst.InvalidRloc16,
-		Role:          OtDeviceRoleDisabled,
-		peerAddr:      nil, // peer address will be set when the first Event is received
-		radioRange:    cfg.RadioRange,
-		radioNode:     radiomodel.NewRadioNode(),
-		joinerState:   OtJoinerStateIdle,
-		msgId:         0,
+		D:           d,
+		Id:          nodeid,
+		CurTime:     d.CurTime,
+		CreateTime:  d.CurTime,
+		X:           cfg.X,
+		Y:           cfg.Y,
+		ExtAddr:     InvalidExtAddr,
+		Rloc16:      threadconst.InvalidRloc16,
+		Role:        OtDeviceRoleDisabled,
+		peerAddr:    nil, // peer address will be set when the first Event is received
+		radioRange:  cfg.RadioRange,
+		radioNode:   radiomodel.NewRadioNode(),
+		joinerState: OtJoinerStateIdle,
+		msgId:       0,
 	}
 
 	nc.failureCtrl = newFailureCtrl(nc, NonFailTime)
@@ -128,12 +128,12 @@ func (node *Node) sendEvent(evt *Event) {
 	// time keeping - move node's time to the current send-event's time.
 	simplelogger.AssertTrue(evt.Timestamp == node.D.CurTime)
 	node.sendRawData(evt.Serialize())
+	node.CurTime = evt.Timestamp
 	if evt.Timestamp > oldTime {
 		node.failureCtrl.OnTimeAdvanced(oldTime)
 	}
-	node.CurTime = evt.Timestamp
-	node.D.setAlive(node.Id)
 	node.D.alarmMgr.SetNotified(node.Id)
+	node.D.setAlive(node.Id)
 }
 
 // sendRawData is INTERNAL to send bytes to UDP socket of node
@@ -145,18 +145,11 @@ func (node *Node) sendRawData(msg []byte) {
 	}
 }
 
-// GetDistanceTo gets the distance in screen pixels to another Node.
-func (node *Node) GetDistanceTo(other *Node) (dist int) {
-	dx := other.X - node.X
-	dy := other.Y - node.Y
-	dist = int(math.Sqrt(float64(dx*dx + dy*dy)))
-	return
-}
-
-// GetDistanceInMeters gets the distance in meters to another Node.
-func (node *Node) GetDistanceInMeters(other *Node) (dist float64) {
-	dx := float64(other.X-node.X) * 0.10 // TODO make scaling configurable.
-	dy := float64(other.Y-node.Y) * 0.10 // Now, 1 pixel is hardcoded to 0.1m.
+// GetDistanceInMeters gets the distance in meters to another Node, based on the
+// provided scaling in meters/pixel.
+func (node *Node) GetDistanceInMeters(other *Node, metersPerPixel float64) (dist float64) {
+	dx := float64(other.X-node.X) * metersPerPixel
+	dy := float64(other.Y-node.Y) * metersPerPixel
 	dist = math.Sqrt(dx*dx + dy*dy)
 	return
 }
