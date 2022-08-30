@@ -411,7 +411,7 @@ type PlrCmd struct {
 //noinspection GoStructTag
 type RadioModelCmd struct {
 	Cmd   struct{} `"radiomodel"` //nolint
-	Model string   `[ @String ]`  //nolint
+	Model string   `[ @Ident ]`   //nolint
 }
 
 //noinspection GoStructTag

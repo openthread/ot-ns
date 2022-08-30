@@ -641,7 +641,7 @@ func (rt *CmdRunner) executeRadioModel(cc *CommandContext, cmd *RadioModelCmd) {
 		if ok {
 			cc.outputf("%v\n", name)
 		} else {
-			cc.outputf("(Model '%v' does not exist.)\n", name)
+			cc.outputf("(Radiomodel '%v' does not exist.)\n", name)
 		}
 	}
 }
