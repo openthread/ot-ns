@@ -20,7 +20,7 @@ const sifsTimeUs = symbolTimeUs * 12
 // default radio parameters
 const receiveSensitivityDbm = -100 // TODO for now MUST be manually kept equal to OT: SIM_RECEIVE_SENSITIVITY
 const txPowerDbm = 0               // Default, event msg Param1 will override it. OT: SIM_TX_POWER
-const ccaEdThresholdDbm = -75      // Default, event msg Param2 will override it. OT: SIM_CCA_ENERGY_DETECT_THRESHOLD
+const ccaEdThresholdDbm = -91      // Default, event msg Param2 will override it. OT: SIM_CCA_ENERGY_DETECT_THRESHOLD
 
 // RSSI parameter encodings
 const RssiInvalid = 127
@@ -56,7 +56,7 @@ func Create(modelName string) RadioModel {
 		model = &RadioModelIdeal{
 			Name:               modelName,
 			FixedFrameDuration: 1,
-			FixedRssi:          -20,
+			FixedRssi:          -60,
 		}
 	case "Ideal_Rssi":
 		model = &RadioModelIdeal{
@@ -100,7 +100,7 @@ func InterferePsduData(d []byte) []byte {
 // ComputeIndoorRssi computes the RSSI for a receiver at distance dist, using a simple indoor exponent=3.xx loss model.
 func ComputeIndoorRssi(dist float64, txPower int8, rxSensitivity int8) int8 {
 	pathloss := 0.0
-	if dist > 0.01 {
+	if dist >= 0.072 {
 		pathloss = 35.0*math.Log10(dist) + 40.0
 	}
 	rssi := float64(txPower) - pathloss
