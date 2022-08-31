@@ -28,27 +28,24 @@ package dispatcher
 
 import (
 	"fmt"
-	"github.com/openthread/ot-ns/radiomodel"
+	"math"
 	"math/rand"
+	"net"
 	"os"
 	"strconv"
 	"strings"
 	"sync"
-
-	"github.com/openthread/ot-ns/progctx"
+	"time"
 
 	"github.com/openthread/ot-ns/dissectpkt"
 	"github.com/openthread/ot-ns/dissectpkt/wpan"
 	"github.com/openthread/ot-ns/pcap"
+	"github.com/openthread/ot-ns/progctx"
+	"github.com/openthread/ot-ns/radiomodel"
 	"github.com/openthread/ot-ns/threadconst"
+	. "github.com/openthread/ot-ns/types"
 	"github.com/openthread/ot-ns/visualize"
 	"github.com/simonlingoogle/go-simplelogger"
-
-	"math"
-	"net"
-	"time"
-
-	. "github.com/openthread/ot-ns/types"
 )
 
 const (

@@ -2,7 +2,7 @@ package radiomodel
 
 import (
 	"math"
-    
+
 	. "github.com/openthread/ot-ns/types"
 	"github.com/simonlingoogle/go-simplelogger"
 )
