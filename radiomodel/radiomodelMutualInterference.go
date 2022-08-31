@@ -72,7 +72,6 @@ func (rm *RadioModelMutualInterference) TxStart(node *RadioNode, q EventQueue, e
 }
 
 func (rm *RadioModelMutualInterference) TxOngoing(node *RadioNode, q EventQueue, evt *Event) {
-
 	simplelogger.AssertTrue(evt.Type == EventTypeRadioTx)
 	isAck := dissectpkt.IsAckFrame(evt.Data)
 
@@ -111,7 +110,6 @@ func (rm *RadioModelMutualInterference) TxOngoing(node *RadioNode, q EventQueue,
 			node.TxPhase = 0
 			node.IsTxFailed = false
 			node.IsCcaFailed = false
-
 		} else {
 			if rm.isRfBusy {
 				// if collides with existing ongoing transmission, mark failed.
@@ -159,7 +157,6 @@ func (rm *RadioModelMutualInterference) TxOngoing(node *RadioNode, q EventQueue,
 		node.IsTxFailed = false
 		node.IsCcaFailed = false
 		rm.isRfBusy = false
-
 	}
 }
 

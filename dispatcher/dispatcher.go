@@ -595,7 +595,6 @@ func (d *Dispatcher) SendToUART(id NodeId, data []byte) {
 
 // sendRadioFrameEventToNodes sends RadioFrame Event to all neighbor nodes, reachable by radio
 func (d *Dispatcher) sendRadioFrameEventToNodes(evt *Event) {
-
 	srcnodeid := evt.NodeId
 	srcnode := d.nodes[srcnodeid]
 	if srcnode == nil {
@@ -707,7 +706,6 @@ func (d *Dispatcher) sendTxDoneEvent(evt *Event) {
 	if d.isWatching(dstnodeid) {
 		simplelogger.Infof("Node %d >>> TX DONE, %+v", dstnodeid, *evt)
 	}
-
 }
 
 // sendOneRadioEvent sends RadioFrame Event from Node srcnode to Node dstnode via radio model.
@@ -768,12 +766,14 @@ func (d *Dispatcher) isAlive(nodeid NodeId) bool {
 	return false
 }
 
+/*
 func (d *Dispatcher) isDeleted(nodeid NodeId) bool {
 	if _, ok := d.deletedNodes[nodeid]; ok {
 		return true
 	}
 	return false
 }
+*/
 
 func (d *Dispatcher) setSleeping(nodeid NodeId) {
 	simplelogger.AssertFalse(d.cfg.Real)
@@ -1373,12 +1373,11 @@ func (d *Dispatcher) GetRadioModel() radiomodel.RadioModel {
 }
 
 func (d *Dispatcher) SetRadioModel(modelName string) radiomodel.RadioModel {
-	var model radiomodel.RadioModel = nil
 	if modelName == d.GetRadioModel().GetName() {
 		return d.GetRadioModel()
 	}
 
-	model = radiomodel.Create(modelName)
+	model := radiomodel.Create(modelName)
 
 	if model != nil {
 		d.radioModel = model // TODO check if multi-threaded issues. Wait/pause first?

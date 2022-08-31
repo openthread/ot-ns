@@ -1,9 +1,10 @@
 package radiomodel
 
 import (
+	"math"
+    
 	. "github.com/openthread/ot-ns/types"
 	"github.com/simonlingoogle/go-simplelogger"
-	"math"
 )
 
 // IEEE 802.15.4-2015 O-QPSK PHY

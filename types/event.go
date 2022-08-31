@@ -28,6 +28,7 @@ package types
 
 import (
 	"encoding/binary"
+    
 	"github.com/simonlingoogle/go-simplelogger"
 )
 
