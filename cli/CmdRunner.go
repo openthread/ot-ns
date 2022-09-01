@@ -273,7 +273,7 @@ func (rt *CmdRunner) postAsyncWait(f func(sim *simulation.Simulation)) {
 
 func (rt *CmdRunner) executeAddNode(cc *CommandContext, cmd *AddCmd) {
 	simplelogger.Infof("Add: %#v", *cmd)
-	cfg := simulation.DefaultNodeConfig()
+	cfg := DefaultNodeConfig()
 	if cmd.X != nil {
 		cfg.X = *cmd.X
 	}

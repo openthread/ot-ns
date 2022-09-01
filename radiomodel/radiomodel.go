@@ -35,9 +35,13 @@ type EventQueue interface {
 
 // RadioModel provides access to any type of radio model.
 type RadioModel interface {
-	// GetTxRssi checks whether the radio frame Tx indicated by evt is successful or not, according to the radio model.
-	// It returns the RSSI value at dstNode if successful, or RssiMinusInfinity if not successful.
-	GetTxRssi(evt *Event, srcNode *RadioNode, dstNode *RadioNode, distMeters float64) int8
+	// GetTxRssi calculates at what RSSI level the radio frame Tx indicated by evt would be received by
+	// dstNode, according to the radio model, in the ideal case of no other transmitters/interferers.
+	// It returns the expected RSSI value at dstNode, or RssiMinusInfinity if the RSSI value will
+	// fall below the minimum Rx sensitivity of the dstNode.
+	GetTxRssi(evt *Event, srcNode *RadioNode, dstNode *RadioNode) int8
+
+	ApplyInterference(evt *Event, srcNode *RadioNode, dstNode *RadioNode)
 
 	// HandleEvent handles all radio-model events coming out of the simulator event queue.
 	// node must be the RadioNode object equivalent to the evt.NodeId node. Newly generated events may go back into
@@ -46,6 +50,11 @@ type RadioModel interface {
 
 	// GetName gets the display name of this RadioModel
 	GetName() string
+
+	// AllowsUnicastDispatch indicates whether the model allows efficient unicast dispatch of radio-frame
+	// received events to only the Node(s) that are addressed by the frame. If false, the dispatcher will
+	// dispatch a frame to all nodes in radio range regardless of MAC header addressing.
+	AllowUnicastDispatch() bool
 }
 
 // Create creates a new RadioModel with given name, or nil if model not found.
@@ -71,7 +80,9 @@ func Create(modelName string) RadioModel {
 			Name:                 modelName,
 		}
 	case "MutualInterference":
-		model = &RadioModelMutualInterference{}
+		model = &RadioModelMutualInterference{
+			activeTransmitters: make(map[NodeId]*RadioNode),
+		}
 	}
 	return model
 }

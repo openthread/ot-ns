@@ -33,32 +33,34 @@ import (
 )
 
 const (
+	// Event type IDs (external, shared between OT-NS and OT node)
 	EventTypeAlarmFired       uint8 = 0
 	EventTypeRadioReceived    uint8 = 1 // Rx of frame from OTNS to OT-node
 	EventTypeUartWrite        uint8 = 2
 	EventTypeRadioSpinelWrite uint8 = 3
 	EventTypeOtnsStatusPush   uint8 = 5
+	EventTypeRadioTx          uint8 = 17 // Tx of frame from OT-node to OTNS
+	EventTypeRadioTxDone      uint8 = 18 // Tx-done signal from OTNS to OT-node
+	//EventTypeRadioRxInterfered uint8 = 20 // Rx of interfered frame from OTNS to OT-node
 
-	EventTypeRadioTx           uint8 = 17 // Tx of frame from OT-node to OTNS
-	EventTypeRadioTxDone       uint8 = 18 // Tx-done signal from OTNS to OT-node
-	EventTypeRadioRxInterfered uint8 = 20 // Rx of interfered frame from OTNS to OT-node
+	// Internal radiomodel events
+	EventTypeRadioTxOngoing uint8 = 128
 
+	// Other constants
 	EventMessageV2HeaderLen int = 25 // from OT platform-simulation.h struct Event { }
 )
 
 type eventType = uint8
 
 type Event struct {
-	MsgId  uint64
-	NodeId NodeId
-	Delay  uint64
-	Type   eventType
-	Param1 int8
-	Param2 int8
-	Data   []byte
-
-	IsInternal bool
-	Timestamp  uint64
+	MsgId     uint64
+	NodeId    NodeId
+	Delay     uint64
+	Type      eventType
+	Param1    int8
+	Param2    int8
+	Data      []byte
+	Timestamp uint64
 }
 
 /* RadioMessagePsduOffset is the offset of Psdu data in a received OpenThread RadioMessage type.
@@ -111,15 +113,14 @@ func (e *Event) Deserialize(data []byte) {
 // Copy creates a shallow copy of the Event.
 func (e *Event) Copy() *Event {
 	ev := &Event{
-		MsgId:      e.MsgId,
-		NodeId:     e.NodeId,
-		Delay:      e.Delay,
-		Type:       e.Type,
-		Param1:     e.Param1,
-		Param2:     e.Param2,
-		Data:       e.Data,
-		IsInternal: e.IsInternal,
-		Timestamp:  e.Timestamp,
+		MsgId:     e.MsgId,
+		NodeId:    e.NodeId,
+		Delay:     e.Delay,
+		Type:      e.Type,
+		Param1:    e.Param1,
+		Param2:    e.Param2,
+		Data:      e.Data,
+		Timestamp: e.Timestamp,
 	}
 	return ev
 }

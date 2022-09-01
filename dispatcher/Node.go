@@ -103,7 +103,7 @@ func newNode(d *Dispatcher, nodeid NodeId, cfg *NodeConfig) *Node {
 		Role:        OtDeviceRoleDisabled,
 		peerAddr:    nil, // peer address will be set when the first Event is received
 		radioRange:  cfg.RadioRange,
-		radioNode:   radiomodel.NewRadioNode(),
+		radioNode:   radiomodel.NewRadioNode(cfg),
 		joinerState: OtJoinerStateIdle,
 		msgId:       0,
 	}
@@ -145,11 +145,10 @@ func (node *Node) sendRawData(msg []byte) {
 	}
 }
 
-// GetDistanceInMeters gets the distance in meters to another Node, based on the
-// provided scaling in meters/pixel.
-func (node *Node) GetDistanceInMeters(other *Node, metersPerPixel float64) (dist float64) {
-	dx := float64(other.X-node.X) * metersPerPixel
-	dy := float64(other.Y-node.Y) * metersPerPixel
+// GetDistanceTo gets the distance to another Node, in dimensionless units.
+func (node *Node) GetDistanceTo(other *Node) (dist float64) {
+	dx := float64(other.X - node.X)
+	dy := float64(other.Y - node.Y)
 	dist = math.Sqrt(dx*dx + dy*dy)
 	return
 }

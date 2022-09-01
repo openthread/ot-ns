@@ -17,10 +17,11 @@ type RadioModelIdeal struct {
 	FixedFrameDuration   uint64 // only used if UseRealFramDuration == false
 }
 
-func (rm *RadioModelIdeal) GetTxRssi(evt *Event, srcNode *RadioNode, dstNode *RadioNode, distMeters float64) int8 {
+func (rm *RadioModelIdeal) GetTxRssi(evt *Event, srcNode *RadioNode, dstNode *RadioNode) int8 {
 	simplelogger.AssertTrue(evt.Type == EventTypeRadioReceived)
 	rssi := rm.FixedRssi // in the most ideal case, always assume a good RSSI up until the max range.
 	if rm.UseVariableRssi {
+		distMeters := srcNode.GetDistanceTo(dstNode) * 0.1 // FIXME
 		rssi = ComputeIndoorRssi(distMeters, srcNode.TxPower, dstNode.RxSensitivity)
 	}
 	return rssi
@@ -45,6 +46,7 @@ func (rm *RadioModelIdeal) TxStart(node *RadioNode, q EventQueue, evt *Event) {
 		NodeId:    evt.NodeId,
 	}
 	q.AddEvent(nextEvt)
+	node.TimeLastTxEnded = nextEvt.Timestamp
 
 	// let other radios of reachable Nodes receive the data (after N us propagation delay)
 	nextEvt = &Event{
@@ -54,6 +56,10 @@ func (rm *RadioModelIdeal) TxStart(node *RadioNode, q EventQueue, evt *Event) {
 		NodeId:    evt.NodeId,
 	}
 	q.AddEvent(nextEvt)
+}
+
+func (rm *RadioModelIdeal) ApplyInterference(evt *Event, src *RadioNode, dst *RadioNode) {
+	// No interference modeled.
 }
 
 func (rm *RadioModelIdeal) HandleEvent(node *RadioNode, q EventQueue, evt *Event) {
@@ -67,4 +73,8 @@ func (rm *RadioModelIdeal) HandleEvent(node *RadioNode, q EventQueue, evt *Event
 
 func (rm *RadioModelIdeal) GetName() string {
 	return rm.Name
+}
+
+func (rm *RadioModelIdeal) AllowUnicastDispatch() bool {
+	return true
 }

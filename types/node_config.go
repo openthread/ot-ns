@@ -36,3 +36,17 @@ type NodeConfig struct {
 	ExecutablePath string
 	Restore        bool
 }
+
+func DefaultNodeConfig() *NodeConfig {
+	return &NodeConfig{
+		ID:             -1, // -1 for the next available nodeid
+		X:              0,
+		Y:              0,
+		IsRouter:       true,
+		IsMtd:          false,
+		RxOffWhenIdle:  false,
+		RadioRange:     160,
+		ExecutablePath: "",
+		Restore:        false,
+	}
+}
