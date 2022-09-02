@@ -118,7 +118,8 @@ func (node *Node) String() string {
 }
 
 // SendEvent sends Event evt serialized to the node, over UDP.
-// WARNING modifies the evt.Delay value based on the target node's CurTime.
+// Modifies the evt.Delay value based on the target node's CurTime, and updates other Event members too
+// for bookkeeping purposes.
 func (node *Node) sendEvent(evt *Event) {
 	evt.NodeId = node.Id
 	oldTime := node.CurTime

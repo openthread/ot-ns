@@ -10,38 +10,38 @@ import (
 // with all other transmitters in the simulation, regardless of distance. This means no 2 or more nodes
 // can transmit at the same time. It's useful to evaluate capacity-limited situations.
 type RadioModelMutualInterference struct {
-	activeTransmitters map[NodeId]*RadioNode
+	ActiveTransmitters map[NodeId]*RadioNode
+	UnitDistance       float64
+	MinSirDb           int
 }
 
 func (rm *RadioModelMutualInterference) GetTxRssi(evt *Event, srcNode *RadioNode, dstNode *RadioNode) int8 {
 	simplelogger.AssertTrue(srcNode != dstNode)
-	distMeters := srcNode.GetDistanceTo(dstNode) * 0.1 // FIXME
+	distMeters := srcNode.GetDistanceTo(dstNode) * rm.UnitDistance
 	rssi := ComputeIndoorRssi(distMeters, srcNode.TxPower, dstNode.RxSensitivity)
 	return rssi
 }
 
 func (rm *RadioModelMutualInterference) TxStart(node *RadioNode, q EventQueue, evt *Event) {
 	simplelogger.AssertTrue(evt.Type == EventTypeRadioTx)
-	node.TxPower = evt.Param1     // get the Tx power from the OT node's event param.
-	node.CcaEdThresh = evt.Param2 // get CCA ED threshold also.
+	node.TxPower = evt.TxPower        // get the Tx power from the OT node's event param.
+	node.CcaEdThresh = evt.CcaEdTresh // get CCA ED threshold also.
 	isAck := dissectpkt.IsAckFrame(evt.Data)
 
 	// check if a transmission is already ongoing by itself? If so signal OT_ERROR_ABORT back
 	// to the OT stack, which will retry later without marking it as 'CCA failure'.
 	if node.TxPhase > 0 {
-		nextEvt := &Event{
-			Type:      EventTypeRadioTxDone,
-			Timestamp: evt.Timestamp + 1,
-			Param1:    OT_ERROR_ABORT,
-			NodeId:    evt.NodeId,
-			Data:      evt.Data,
-		}
-		q.AddEvent(nextEvt)
+		nextEvt := evt.Copy()
+		nextEvt.Type = EventTypeRadioTxDone
+		nextEvt.Timestamp += 1
+		nextEvt.Error = OT_ERROR_ABORT
+		q.AddEvent(&nextEvt)
 		return
 	}
 
 	node.IsCcaFailed = false
 	node.IsTxFailed = false
+	node.InterferedBy = make(map[NodeId]*RadioNode) // clear map
 	node.TxPhase++
 
 	// node starts Tx - first phase is to wait any mandatory 802.15.4 silence time (LIFS/SIFS)
@@ -66,9 +66,9 @@ func (rm *RadioModelMutualInterference) TxStart(node *RadioNode, q EventQueue, e
 	}
 	// create an internal event to continue the transmission procedure later on
 	nextEvt := evt.Copy()
-	nextEvt.Timestamp += delay
 	nextEvt.Type = EventTypeRadioTxOngoing
-	q.AddEvent(nextEvt)
+	nextEvt.Timestamp += delay
+	q.AddEvent(&nextEvt)
 }
 
 func (rm *RadioModelMutualInterference) TxOngoing(node *RadioNode, q EventQueue, evt *Event) {
@@ -86,10 +86,10 @@ func (rm *RadioModelMutualInterference) TxOngoing(node *RadioNode, q EventQueue,
 		if !isAck && rm.ccaDetectsBusy(node, evt) {
 			node.IsCcaFailed = true
 		}
-		// re-use the current event as the next event for CCA period end, updating timing only.
+		// next event is for CCA period end
 		nextEvt := evt.Copy()
 		nextEvt.Timestamp += ccaTimeUs
-		q.AddEvent(nextEvt)
+		q.AddEvent(&nextEvt)
 
 	case 3: // CCA second sample point and decision
 		if !isAck && rm.ccaDetectsBusy(node, evt) {
@@ -97,51 +97,41 @@ func (rm *RadioModelMutualInterference) TxOngoing(node *RadioNode, q EventQueue,
 		}
 		if node.IsCcaFailed {
 			// if CCA failed, then respond Tx Done event with error code ...
-			nextEvt := &Event{
-				Type:      EventTypeRadioTxDone,
-				Timestamp: evt.Timestamp + 1,
-				Param1:    OT_ERROR_CHANNEL_ACCESS_FAILURE,
-				NodeId:    evt.NodeId,
-				Data:      evt.Data,
-			}
-			q.AddEvent(nextEvt)
+			node.IsTxFailed = true
+			nextEvt := evt.Copy()
+			nextEvt.Type = EventTypeRadioTxDone
+			nextEvt.Timestamp += 1
+			nextEvt.Error = OT_ERROR_CHANNEL_ACCESS_FAILURE
+			q.AddEvent(&nextEvt)
 
 			// ... and reset back to start state.
 			node.TxPhase = 0
-			node.IsTxFailed = false
-			node.IsCcaFailed = false
 		} else {
 			// Start frame transmission at time=now.
 			rm.startTransmission(node, evt)
 
 			// schedule the end-of-frame-transmission event, d us later.
 			nextEvt := evt.Copy()
-			d := getFrameDurationUs(evt)
-			nextEvt.Timestamp += d
-			q.AddEvent(nextEvt)
+			nextEvt.Timestamp += getFrameDurationUs(evt)
+			q.AddEvent(&nextEvt)
 		}
 
 	case 4: // End of frame transmit event
-		rm.endTransmission(node, evt)
-
 		// signal Tx Done event to sender.
-		nextEvt := &Event{
-			Type:      EventTypeRadioTxDone,
-			Timestamp: evt.Timestamp + 1,
-			Param1:    OT_ERROR_NONE,
-			NodeId:    evt.NodeId,
-			Data:      evt.Data,
-		}
-		q.AddEvent(nextEvt)
+		nextEvt := evt.Copy()
+		nextEvt.Type = EventTypeRadioTxDone
+		nextEvt.Timestamp += 1
+		nextEvt.Error = OT_ERROR_NONE
+		q.AddEvent(&nextEvt)
 
-		// let other radios of Nodes receive the data (after 1 us propagation & processing delay)
+		// let other radios of Nodes receive the data
 		nextEvt2 := evt.Copy()
 		nextEvt2.Type = EventTypeRadioReceived
 		nextEvt2.Timestamp += 1
-		nextEvt2.Param1 = OT_ERROR_NONE
+		nextEvt2.Error = OT_ERROR_NONE
+		q.AddEvent(&nextEvt2)
 
-		// Interference errors are later on applied by the radiomodel, during 1:1 event delivery.
-		q.AddEvent(nextEvt2)
+		rm.endTransmission(node, evt)
 	}
 }
 
@@ -166,8 +156,8 @@ func (rm *RadioModelMutualInterference) AllowUnicastDispatch() bool {
 
 func (rm *RadioModelMutualInterference) ccaDetectsBusy(node *RadioNode, evt *Event) bool {
 	// loop all active transmitters, see if any one transmits above my CCA ED Threshold.
-	for _, v := range rm.activeTransmitters {
-		rssi := rm.GetTxRssi(evt, v, node)
+	for _, v := range rm.ActiveTransmitters {
+		rssi := rm.GetTxRssi(nil, v, node)
 		if rssi == RssiInvalid {
 			continue
 		}
@@ -179,32 +169,43 @@ func (rm *RadioModelMutualInterference) ccaDetectsBusy(node *RadioNode, evt *Eve
 }
 
 func (rm *RadioModelMutualInterference) startTransmission(node *RadioNode, evt *Event) {
-	_, nodeTransmits := rm.activeTransmitters[evt.NodeId]
+	_, nodeTransmits := rm.ActiveTransmitters[evt.NodeId]
 	simplelogger.AssertFalse(nodeTransmits)
 
 	// mark what this new transmission will interfere with.
-	for id, interferingTransmitter := range rm.activeTransmitters {
+	for id, interferingTransmitter := range rm.ActiveTransmitters {
 		node.InterferedBy[id] = interferingTransmitter
+		interferingTransmitter.InterferedBy[evt.NodeId] = node
 	}
 
-	rm.activeTransmitters[evt.NodeId] = node
+	rm.ActiveTransmitters[evt.NodeId] = node
 
 }
 
 func (rm *RadioModelMutualInterference) endTransmission(node *RadioNode, evt *Event) {
-	_, nodeTransmits := rm.activeTransmitters[evt.NodeId]
+	_, nodeTransmits := rm.ActiveTransmitters[evt.NodeId]
 	simplelogger.AssertTrue(nodeTransmits)
-	delete(rm.activeTransmitters, evt.NodeId)
+	delete(rm.ActiveTransmitters, evt.NodeId)
 
-	// reset values back for future transmission
+	// set values for future transmission
 	node.TimeLastTxEnded = evt.Timestamp     // for data frames and ACKs
 	node.IsLastTxLong = IsLongDataframe(evt) // for data frames and ACKs
-	node.TxPhase = 0                         // reset back
-	node.IsTxFailed = false
-	node.IsCcaFailed = false
-	node.InterferedBy = make(map[NodeId]*RadioNode) // clear map
+	node.TxPhase = 0                         // reset the phase back.
 }
 
 func (rm *RadioModelMutualInterference) ApplyInterference(evt *Event, src *RadioNode, dst *RadioNode) {
-	// No interference modeled.
+	for _, interferer := range src.InterferedBy {
+		if interferer == dst { // if dst node was at some point transmitting itself, fail the Rx
+			evt.Error = OT_ERROR_ABORT
+			return
+		}
+		rssiInterferer := int(rm.GetTxRssi(nil, interferer, dst))
+		rssi := int(evt.Rssi)
+		sirDb := rssi - rssiInterferer
+		if sirDb < rm.MinSirDb {
+			// interfering signal gets too close to the transmission rssi, impacts the signal.
+			evt.Data = InterferePsduData(evt.Data, float64(sirDb))
+			evt.Error = OT_ERROR_FCS
+		}
+	}
 }

@@ -15,23 +15,23 @@ type RadioModelIdeal struct {
 	FixedRssi            int8
 	UseRealFrameDuration bool
 	FixedFrameDuration   uint64 // only used if UseRealFramDuration == false
+	UnitDistance         float64
 }
 
 func (rm *RadioModelIdeal) GetTxRssi(evt *Event, srcNode *RadioNode, dstNode *RadioNode) int8 {
 	simplelogger.AssertTrue(evt.Type == EventTypeRadioReceived)
 	rssi := rm.FixedRssi // in the most ideal case, always assume a good RSSI up until the max range.
 	if rm.UseVariableRssi {
-		distMeters := srcNode.GetDistanceTo(dstNode) * 0.1 // FIXME
+		distMeters := srcNode.GetDistanceTo(dstNode) * rm.UnitDistance
 		rssi = ComputeIndoorRssi(distMeters, srcNode.TxPower, dstNode.RxSensitivity)
 	}
 	return rssi
 }
 
 func (rm *RadioModelIdeal) TxStart(node *RadioNode, q EventQueue, evt *Event) {
-	var nextEvt *Event
 	simplelogger.AssertTrue(evt.Type == EventTypeRadioTx)
-	node.TxPower = evt.Param1     // get the Tx power from the OT node's event param.
-	node.CcaEdThresh = evt.Param2 // get CCA ED threshold also.
+	node.TxPower = evt.TxPower // get last node's properties from the OT node's event params.
+	node.CcaEdThresh = evt.CcaEdTresh
 
 	frameDuration := rm.FixedFrameDuration
 	if rm.UseRealFrameDuration {
@@ -39,23 +39,19 @@ func (rm *RadioModelIdeal) TxStart(node *RadioNode, q EventQueue, evt *Event) {
 	}
 
 	// signal Tx Done event to sender.
-	nextEvt = &Event{
-		Type:      EventTypeRadioTxDone,
-		Timestamp: evt.Timestamp + frameDuration,
-		Param1:    OT_ERROR_NONE,
-		NodeId:    evt.NodeId,
-	}
-	q.AddEvent(nextEvt)
-	node.TimeLastTxEnded = nextEvt.Timestamp
+	nextEvt := evt.Copy()
+	nextEvt.Type = EventTypeRadioTxDone
+	nextEvt.Timestamp += frameDuration
+	nextEvt.Error = OT_ERROR_NONE
+	q.AddEvent(&nextEvt)
+	node.TimeLastTxEnded = evt.Timestamp
 
 	// let other radios of reachable Nodes receive the data (after N us propagation delay)
-	nextEvt = &Event{
-		Type:      EventTypeRadioReceived,
-		Timestamp: evt.Timestamp + frameDuration,
-		Data:      evt.Data,
-		NodeId:    evt.NodeId,
-	}
-	q.AddEvent(nextEvt)
+	nextEvt2 := evt.Copy()
+	nextEvt2.Type = EventTypeRadioReceived
+	nextEvt2.Timestamp += frameDuration
+	nextEvt2.Error = OT_ERROR_NONE
+	q.AddEvent(&nextEvt2)
 }
 
 func (rm *RadioModelIdeal) ApplyInterference(evt *Event, src *RadioNode, dst *RadioNode) {

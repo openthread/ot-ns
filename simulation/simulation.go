@@ -27,6 +27,7 @@
 package simulation
 
 import (
+	"github.com/openthread/ot-ns/radiomodel"
 	"os"
 	"sort"
 	"time"
@@ -61,19 +62,19 @@ func NewSimulation(ctx *progctx.ProgCtx, cfg *Config, dispatcherCfg *dispatcher.
 	}
 	s.networkInfo.Real = cfg.Real
 
-	// start the event_dispatcher for virtual time
+	// start the event_dispatcher for virtual time, and create radiomodel, and visualizer
 	if dispatcherCfg == nil {
 		dispatcherCfg = dispatcher.DefaultConfig()
 	}
-
 	dispatcherCfg.Speed = cfg.Speed
 	dispatcherCfg.Real = cfg.Real
 	dispatcherCfg.Host = cfg.DispatcherHost
 	dispatcherCfg.Port = cfg.DispatcherPort
 	dispatcherCfg.DumpPackets = cfg.DumpPackets
-
 	s.d = dispatcher.NewDispatcher(s.ctx, dispatcherCfg, s)
+	s.d.SetRadioModel(radiomodel.Create(cfg.RadioModel))
 	s.vis = s.d.GetVisualizer()
+
 	if err := s.removeTmpDir(); err != nil {
 		simplelogger.Panicf("remove tmp directory failed: %+v", err)
 	}

@@ -63,23 +63,21 @@ type pcapFrameItem struct {
 }
 
 type Config struct {
-	Speed          float64
-	Real           bool
-	Host           string
-	Port           int
-	DumpPackets    bool
-	NoPcap         bool
-	RadioModelName string
+	Speed       float64
+	Real        bool
+	Host        string
+	Port        int
+	DumpPackets bool
+	NoPcap      bool
 }
 
 func DefaultConfig() *Config {
 	return &Config{
-		Speed:          1,
-		Real:           false,
-		Host:           "localhost",
-		Port:           threadconst.InitialDispatcherPort,
-		DumpPackets:    false,
-		RadioModelName: "Ideal",
+		Speed:       1,
+		Real:        false,
+		Host:        "localhost",
+		Port:        threadconst.InitialDispatcherPort,
+		DumpPackets: false,
 	}
 }
 
@@ -178,7 +176,6 @@ func NewDispatcher(ctx *progctx.ProgCtx, cfg *Config, cbHandler CallbackHandler)
 		watchingNodes:      map[NodeId]struct{}{},
 		goDurationChan:     make(chan goDuration, 10),
 		visOptions:         defaultVisualizationOptions(),
-		radioModel:         radiomodel.Create(cfg.RadioModelName),
 	}
 	d.speed = d.normalizeSpeed(d.speed)
 	if !d.cfg.NoPcap {
@@ -540,6 +537,12 @@ func (d *Dispatcher) eventsReader() {
 		evt := &Event{}
 		evt.Deserialize(readbuf[0:n])
 		node := d.nodes[evt.NodeId]
+		if node == nil {
+			if d.isDeleted(evt.NodeId) || d.stopped {
+				continue
+			}
+			simplelogger.Panicf("UDP received Event for unknown Node %v", evt.NodeId)
+		}
 		//evt.Timestamp is not present yet in externally rcv event.
 		// store src address of node n, once
 		if node.peerAddr == nil {
@@ -588,8 +591,10 @@ func (d *Dispatcher) SendToUART(id NodeId, data []byte) {
 	node.sendEvent(evt)
 }
 
-// sendRadioFrameEventToNodes sends RadioFrame Event to all neighbor nodes, reachable by radio
+// sendRadioFrameEventToNodes sends RadioFrame Event to all neighbor nodes, reachable by radio by dispatching
+// event copies to each targeted node.
 func (d *Dispatcher) sendRadioFrameEventToNodes(evt *Event) {
+	//evt := evtPtr.Copy() // create copy of e
 	simplelogger.AssertTrue(evt.Type == EventTypeRadioReceived)
 	srcnodeid := evt.NodeId
 	srcnode := d.nodes[srcnodeid]
@@ -711,6 +716,7 @@ func (d *Dispatcher) sendTxDoneEvent(evt *Event) {
 }
 
 // sendOneRadioEvent sends RadioFrame Event from Node srcnode to Node dstnode via radio model.
+// Returns true if a frame was dispatched, false if not dispatched due to Tx-failure cases.
 func (d *Dispatcher) sendOneRadioFrameEvent(evt *Event, srcNode *Node, dstNode *Node) bool {
 	simplelogger.AssertTrue(EventTypeRadioReceived == evt.Type)
 	simplelogger.AssertTrue(srcNode != dstNode)
@@ -728,16 +734,19 @@ func (d *Dispatcher) sendOneRadioFrameEvent(evt *Event, srcNode *Node, dstNode *
 			return false
 		}
 	}
-	// compute the RSSI in the event for Param1
-	evt.Param1 = d.radioModel.GetTxRssi(evt, srcNode.radioNode, dstNode.radioNode)
-	evt.Param2 = 0 // not used
+
+	// create new Event for individual dispatch to dstNode.
+	evt2 := evt.Copy()
+
+	// compute the RSSI in the event
+	evt2.Rssi = d.radioModel.GetTxRssi(evt, srcNode.radioNode, dstNode.radioNode)
 
 	// Tx failure cases below:
 	//   3) radio model indicates failure on this specific link (e.g. interference) now
-	d.radioModel.ApplyInterference(evt, srcNode.radioNode, dstNode.radioNode)
+	d.radioModel.ApplyInterference(&evt2, srcNode.radioNode, dstNode.radioNode)
 
 	// send the event plus time keeping - moves dstnode's time to the current send-event's time.
-	dstNode.sendEvent(evt)
+	dstNode.sendEvent(&evt2)
 
 	if d.isWatching(dstNode.Id) {
 		simplelogger.Infof("Node %d <<< received radio-frame from node %d", dstNode.Id, srcNode.Id)
@@ -1376,15 +1385,6 @@ func (d *Dispatcher) GetRadioModel() radiomodel.RadioModel {
 	return d.radioModel
 }
 
-func (d *Dispatcher) SetRadioModel(modelName string) radiomodel.RadioModel {
-	if modelName == d.GetRadioModel().GetName() {
-		return d.GetRadioModel()
-	}
-
-	model := radiomodel.Create(modelName)
-
-	if model != nil {
-		d.radioModel = model // TODO check if multi-threaded issues. Wait/pause first?
-	}
-	return model
+func (d *Dispatcher) SetRadioModel(model radiomodel.RadioModel) {
+	d.radioModel = model
 }

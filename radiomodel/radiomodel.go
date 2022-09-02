@@ -1,10 +1,10 @@
 package radiomodel
 
 import (
-	"math"
-
 	. "github.com/openthread/ot-ns/types"
 	"github.com/simonlingoogle/go-simplelogger"
+	"math"
+	"math/rand"
 )
 
 // IEEE 802.15.4-2015 O-QPSK PHY
@@ -21,6 +21,7 @@ const sifsTimeUs = symbolTimeUs * 12
 const receiveSensitivityDbm = -100 // TODO for now MUST be manually kept equal to OT: SIM_RECEIVE_SENSITIVITY
 const txPowerDbm = 0               // Default, event msg Param1 will override it. OT: SIM_TX_POWER
 const ccaEdThresholdDbm = -91      // Default, event msg Param2 will override it. OT: SIM_CCA_ENERGY_DETECT_THRESHOLD
+const defaultUnitDistance = 0.10   // Default, a RadioModel may override it.
 
 // RSSI parameter encodings
 const RssiInvalid = 127
@@ -41,6 +42,8 @@ type RadioModel interface {
 	// fall below the minimum Rx sensitivity of the dstNode.
 	GetTxRssi(evt *Event, srcNode *RadioNode, dstNode *RadioNode) int8
 
+	// ApplyInterference applies any interference to a frame in transit, prior to delivery of the
+	// frame at a single receiving radio dstNode.
 	ApplyInterference(evt *Event, srcNode *RadioNode, dstNode *RadioNode)
 
 	// HandleEvent handles all radio-model events coming out of the simulator event queue.
@@ -66,22 +69,27 @@ func Create(modelName string) RadioModel {
 			Name:               modelName,
 			FixedFrameDuration: 1,
 			FixedRssi:          -60,
+			UnitDistance:       defaultUnitDistance,
 		}
 	case "Ideal_Rssi":
 		model = &RadioModelIdeal{
+			Name:               modelName,
 			UseVariableRssi:    true,
 			FixedFrameDuration: 1,
-			Name:               modelName,
+			UnitDistance:       defaultUnitDistance,
 		}
 	case "Ideal_Rssi_Dur":
 		model = &RadioModelIdeal{
+			Name:                 modelName,
 			UseVariableRssi:      true,
 			UseRealFrameDuration: true,
-			Name:                 modelName,
+			UnitDistance:         defaultUnitDistance,
 		}
 	case "MutualInterference":
 		model = &RadioModelMutualInterference{
-			activeTransmitters: make(map[NodeId]*RadioNode),
+			ActiveTransmitters: make(map[NodeId]*RadioNode),
+			UnitDistance:       defaultUnitDistance,
+			MinSirDb:           1, // minimum Signal-to-Interference (SIR) (dB) required to detect signal
 		}
 	}
 	return model
@@ -101,11 +109,14 @@ func getFrameDurationUs(evt *Event) uint64 {
 	return n * symbolTimeUs * symbolsPerOctet
 }
 
-// InterferePsduData simulates the interference (garbling) of PSDU data
-func InterferePsduData(d []byte) []byte {
-	ret := make([]byte, len(d)) // make all 0 bytes
-	ret[0] = d[0]               // keep channel info
-	return ret
+// InterferePsduData simulates the interference (garbling) of PSDU data based on a given SIR level (dB).
+func InterferePsduData(data []byte, sirDb float64) []byte {
+	intfData := data
+	if sirDb < 0 {
+		rand.Read(intfData)
+	}
+	intfData[0] = data[0] // keep channel info correct.
+	return intfData
 }
 
 // ComputeIndoorRssi computes the RSSI for a receiver at distance dist, using a simple indoor exponent=3.xx loss model.

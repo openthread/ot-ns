@@ -29,6 +29,7 @@ package cli
 import (
 	"context"
 	"fmt"
+	"github.com/openthread/ot-ns/radiomodel"
 	"io"
 	"reflect"
 	"strings"
@@ -636,7 +637,11 @@ func (rt *CmdRunner) executeRadioModel(cc *CommandContext, cmd *RadioModelCmd) {
 		name = cmd.Model
 		ok := false
 		rt.postAsyncWait(func(sim *simulation.Simulation) {
-			ok = sim.Dispatcher().SetRadioModel(name) != nil
+			model := radiomodel.Create(name)
+			ok = model != nil
+			if ok {
+				sim.Dispatcher().SetRadioModel(model)
+			}
 		})
 		if ok {
 			cc.outputf("%v\n", name)
