@@ -25,6 +25,8 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+readonly Darwin
+
 function die()
 {
     echo "fatal: $1"
@@ -102,9 +104,22 @@ install_package()
 function install_pretty_tools()
 {
     if ! installed golangci-lint; then
-        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b "$(go env GOPATH)"/bin v1.23.6
+        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b "$(go env GOPATH)"/bin v1.47.2
     fi
 
     install_package shfmt --brew shfmt
     install_package shellcheck --apt shellcheck --brew shellcheck
+}
+
+install_openthread_buildtools()
+{
+    if installed "ninja"; then
+        return 0
+    fi
+
+    if [[ $Darwin == 1 ]]; then
+        brew install ninja
+    else
+        sudo apt-get install ninja-build
+    fi
 }

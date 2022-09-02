@@ -37,6 +37,8 @@ import (
 	"testing"
 	"time"
 
+	"google.golang.org/grpc/credentials/insecure"
+
 	visualize_grpc_pb "github.com/openthread/ot-ns/visualize/grpc/pb"
 	"google.golang.org/grpc"
 
@@ -368,7 +370,7 @@ func NewOtnsTest(t *testing.T) *OtnsTest {
 		})
 	}()
 
-	grpcConn, err := grpc.Dial("localhost:8999", grpc.WithInsecure())
+	grpcConn, err := grpc.Dial("localhost:8999", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	ot.ExpectNoError(err)
 
 	grpcClient := visualize_grpc_pb.NewVisualizeGrpcServiceClient(grpcConn)

@@ -28,8 +28,6 @@
 # shellcheck source=script/common.sh
 . "$(dirname "$0")"/common.sh
 
-set -euox pipefail
-
 OT_DIR=${OT_DIR:-}
 OTBIN_DIR=
 
@@ -72,11 +70,7 @@ get_openthread()
 {
     if [[ -z $OT_DIR ]]; then
         OT_DIR=$PWD/openthread
-        git submodule update --init
-        (
-            cd "$OT_DIR"
-            repeat 3 ./script/bootstrap >/dev/null 2>&1
-        )
+        git submodule update --init --depth 1
     fi
 
     OTBIN_DIR=$OT_DIR/build/otns/examples/apps/cli
@@ -85,6 +79,9 @@ get_openthread()
 build_openthread()
 {
     get_openthread
+
+    install_openthread_buildtools
+
     (
         cd "$OT_DIR"
         mkdir -p build/otns
@@ -94,7 +91,7 @@ build_openthread()
             "-DOT_PLATFORM=simulation"
             "-DOT_OTNS=ON"
             "-DOT_SIMULATION_VIRTUAL_TIME=ON"
-            "-DOT_SIMULATION_VIRTUAL_TIME_UART=${VIRTUAL_TIME_UART:-OFF}"
+            "-DOT_SIMULATION_VIRTUAL_TIME_UART=ON"
             "-DOT_SIMULATION_MAX_NETWORK_SIZE=999"
             "-DOT_COMMISSIONER=ON"
             "-DOT_JOINER=ON"
@@ -114,6 +111,9 @@ build_openthread()
         cmake -GNinja ../.. "${options[@]}"
         ninja
     )
+
+    OT_CLI_FTD_PATH="$OT_DIR/build/otns/examples/apps/cli/ot-cli-ftd"
+    echo "Please launch OTNS with command: otns -ot-cli $OT_CLI_FTD_PATH"
 }
 
 py_unittests()
@@ -195,6 +195,10 @@ main()
             stress-tests)
                 stress_tests "$2"
                 shift 2
+                ;;
+            build-openthread)
+                build_openthread
+                shift 1
                 ;;
             *)
                 echo "Error: Unsupported test $1" >&2

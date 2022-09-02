@@ -525,7 +525,7 @@ func (d *Dispatcher) eventsReader() {
 			break
 		}
 		if err != nil {
-			if nerr, ok := err.(net.Error); ok && nerr.Temporary() {
+			if nerr, ok := err.(net.Error); ok && nerr.Timeout() {
 				time.Sleep(time.Millisecond * 100)
 				continue
 			}
