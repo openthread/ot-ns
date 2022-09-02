@@ -74,3 +74,7 @@ func (rm *RadioModelIdeal) GetName() string {
 func (rm *RadioModelIdeal) AllowUnicastDispatch() bool {
 	return true
 }
+
+func (rm *RadioModelIdeal) GetMaxTxDistance() int {
+	return MaxTxDistanceUndefined
+}

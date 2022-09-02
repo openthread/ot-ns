@@ -24,7 +24,10 @@ func (rm *RadioModelMutualInterference) GetTxRssi(evt *Event, srcNode *RadioNode
 
 func (rm *RadioModelMutualInterference) TxStart(node *RadioNode, q EventQueue, evt *Event) {
 	simplelogger.AssertTrue(evt.Type == EventTypeRadioTx)
-	node.TxPower = evt.TxPower        // get the Tx power from the OT node's event param.
+	if node.TxPower != evt.TxPower {
+		node.TxPower = evt.TxPower // get the Tx power from the OT node's event param.
+		node.RadioRange = ComputeIndoorMaxRange(node.TxPower, node.RxSensitivity) / rm.UnitDistance
+	}
 	node.CcaEdThresh = evt.CcaEdTresh // get CCA ED threshold also.
 	isAck := dissectpkt.IsAckFrame(evt.Data)
 
@@ -208,4 +211,8 @@ func (rm *RadioModelMutualInterference) ApplyInterference(evt *Event, src *Radio
 			evt.Error = OT_ERROR_FCS
 		}
 	}
+}
+
+func (rm *RadioModelMutualInterference) GetMaxTxDistance() int {
+	return int(ComputeIndoorMaxRange(0, -100) / rm.UnitDistance)
 }

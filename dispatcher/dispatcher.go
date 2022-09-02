@@ -538,14 +538,11 @@ func (d *Dispatcher) eventsReader() {
 		evt.Deserialize(readbuf[0:n])
 		node := d.nodes[evt.NodeId]
 		if node == nil {
-			if d.isDeleted(evt.NodeId) || d.stopped {
-				continue
-			}
-			simplelogger.Panicf("UDP received Event for unknown Node %v", evt.NodeId)
+			simplelogger.Warnf("Received UDP event for (yet) unknown node id: %v", evt.NodeId)
 		}
 		//evt.Timestamp is not present yet in externally rcv event.
 		// store src address of node n, once
-		if node.peerAddr == nil {
+		if node != nil && node.peerAddr == nil {
 			node.peerAddr = srcaddr
 		}
 

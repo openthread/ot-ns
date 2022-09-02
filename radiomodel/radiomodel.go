@@ -22,6 +22,7 @@ const receiveSensitivityDbm = -100 // TODO for now MUST be manually kept equal t
 const txPowerDbm = 0               // Default, event msg Param1 will override it. OT: SIM_TX_POWER
 const ccaEdThresholdDbm = -91      // Default, event msg Param2 will override it. OT: SIM_CCA_ENERGY_DETECT_THRESHOLD
 const defaultUnitDistance = 0.10   // Default, a RadioModel may override it.
+const MaxTxDistanceUndefined = -1  // Indicates an undefined max Tx distance for a radiomodel.
 
 // RSSI parameter encodings
 const RssiInvalid = 127
@@ -41,6 +42,8 @@ type RadioModel interface {
 	// It returns the expected RSSI value at dstNode, or RssiMinusInfinity if the RSSI value will
 	// fall below the minimum Rx sensitivity of the dstNode.
 	GetTxRssi(evt *Event, srcNode *RadioNode, dstNode *RadioNode) int8
+
+	GetMaxTxDistance() int
 
 	// ApplyInterference applies any interference to a frame in transit, prior to delivery of the
 	// frame at a single receiving radio dstNode.
@@ -135,4 +138,11 @@ func ComputeIndoorRssi(dist float64, txPower int8, rxSensitivity int8) int8 {
 		rssiInt = RssiMinusInfinity
 	}
 	return int8(rssiInt)
+}
+
+func ComputeIndoorMaxRange(txPower int8, rxSensitivity int8) float64 {
+	simplelogger.AssertTrue(txPower >= rxSensitivity)
+	maxPathloss := float64(txPower - rxSensitivity)
+	dist := math.Pow(10.0, (maxPathloss-40.0)/35.0)
+	return dist
 }
