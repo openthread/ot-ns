@@ -187,15 +187,16 @@ func (node *Node) onPingReply(timestamp uint64, dstaddr string, datasize int, ho
 		// if datasize < 4, timestamp is 0, these ping replies are ignored
 		return
 	}
-	const maxPingDelayUs uint64 = 10 * 1000000
+
+	pingTimeout := node.D.cfg.PingTimeout
 	var leftPingRequests []*pingRequest
 	for _, req := range node.pendingPings {
 		if req.Timestamp == timestamp && req.Dst == dstaddr {
 			// ping replied
 			node.addPingResult(req.Dst, req.DataSize, node.D.CurTime-req.Timestamp)
-		} else if req.Timestamp+maxPingDelayUs < node.D.CurTime {
+		} else if req.Timestamp+pingTimeout < node.D.CurTime {
 			// ping timeout
-			node.addPingResult(req.Dst, req.DataSize, maxPingDelayUs)
+			node.addPingResult(req.Dst, req.DataSize, pingTimeout)
 		} else {
 			leftPingRequests = append(leftPingRequests, req)
 		}

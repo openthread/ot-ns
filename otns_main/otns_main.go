@@ -77,6 +77,7 @@ type MainArgs struct {
 	DumpPackets    bool
 	NoPcap         bool
 	NoReplay       bool
+	PingTimeout    float64
 }
 
 var (
@@ -101,6 +102,7 @@ func parseArgs() {
 	flag.BoolVar(&args.DumpPackets, "dump-packets", false, "dump packets")
 	flag.BoolVar(&args.NoPcap, "no-pcap", false, "do not generate Pcap")
 	flag.BoolVar(&args.NoReplay, "no-replay", false, "do not generate Replay")
+	flag.Float64Var(&args.PingTimeout, "ping-timeout", 10, "set ping timeout")
 
 	flag.Parse()
 }
@@ -254,6 +256,7 @@ func createSimulation(ctx *progctx.ProgCtx) *simulation.Simulation {
 
 	dispatcherCfg := dispatcher.DefaultConfig()
 	dispatcherCfg.NoPcap = args.NoPcap
+	dispatcherCfg.PingTimeout = uint64(args.PingTimeout * 1000000) // Dispatcher uses microseconds
 
 	sim, err := simulation.NewSimulation(ctx, simcfg, dispatcherCfg)
 	simplelogger.FatalIfError(err)
