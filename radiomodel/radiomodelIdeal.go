@@ -15,15 +15,25 @@ type RadioModelIdeal struct {
 	FixedRssi            int8
 	UseRealFrameDuration bool
 	FixedFrameDuration   uint64 // only used if UseRealFramDuration == false
-	UnitDistance         float64
+}
+
+func (rm *RadioModelIdeal) CheckRadioReachable(evt *Event, src *RadioNode, dst *RadioNode) bool {
+	simplelogger.AssertTrue(src != dst)
+	dist := src.GetDistanceTo(dst)
+	if dist <= src.RadioRange {
+		rssi := rm.GetTxRssi(evt, src, dst)
+		if rssi >= RssiMin && rssi <= RssiMax && rssi >= dst.RxSensitivity {
+			return true
+		}
+	}
+	return false
 }
 
 func (rm *RadioModelIdeal) GetTxRssi(evt *Event, srcNode *RadioNode, dstNode *RadioNode) int8 {
 	simplelogger.AssertTrue(evt.Type == EventTypeRadioReceived)
 	rssi := rm.FixedRssi // in the most ideal case, always assume a good RSSI up until the max range.
 	if rm.UseVariableRssi {
-		distMeters := srcNode.GetDistanceTo(dstNode) * rm.UnitDistance
-		rssi = ComputeIndoorRssi(distMeters, srcNode.TxPower, dstNode.RxSensitivity)
+		rssi = ComputeIndoorRssi(srcNode.RadioRange, srcNode.GetDistanceTo(dstNode), srcNode.TxPower, dstNode.RxSensitivity)
 	}
 	return rssi
 }
@@ -73,8 +83,4 @@ func (rm *RadioModelIdeal) GetName() string {
 
 func (rm *RadioModelIdeal) AllowUnicastDispatch() bool {
 	return true
-}
-
-func (rm *RadioModelIdeal) GetMaxTxDistance() int {
-	return MaxTxDistanceUndefined
 }

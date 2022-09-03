@@ -105,11 +105,6 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 	s.nodes[nodeid] = node
 
 	simplelogger.Infof("simulation:CtrlAddNode: %+v, rawMode=%v", cfg, s.rawMode)
-	radioModelMaxDist := s.d.GetRadioModel().GetMaxTxDistance()
-	if cfg.RadioRange < radioModelMaxDist {
-		// extend default range, if needed for radiomodel.
-		cfg.RadioRange = radioModelMaxDist
-	}
 	s.d.AddNode(nodeid, cfg)
 
 	node.detectVirtualTimeUART()

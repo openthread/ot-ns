@@ -18,11 +18,11 @@ const lifsTimeUs = symbolTimeUs * 20
 const sifsTimeUs = symbolTimeUs * 12
 
 // default radio parameters
-const receiveSensitivityDbm = -100 // TODO for now MUST be manually kept equal to OT: SIM_RECEIVE_SENSITIVITY
-const txPowerDbm = 0               // Default, event msg Param1 will override it. OT: SIM_TX_POWER
-const ccaEdThresholdDbm = -91      // Default, event msg Param2 will override it. OT: SIM_CCA_ENERGY_DETECT_THRESHOLD
-const defaultUnitDistance = 0.10   // Default, a RadioModel may override it.
-const MaxTxDistanceUndefined = -1  // Indicates an undefined max Tx distance for a radiomodel.
+const receiveSensitivityDbm = -100        // TODO for now MUST be manually kept equal to OT: SIM_RECEIVE_SENSITIVITY
+const txPowerDbm = 0                      // Default, event msg Param1 will override it. OT: SIM_TX_POWER
+const ccaEdThresholdDbm = -91             // Default, event msg Param2 will override it. OT: SIM_CCA_ENERGY_DETECT_THRESHOLD
+const radioRangeIndoorDistInMeters = 37.0 // Handtuned - for indoor model, how many meters r is RadioRange disc until Link
+// quality drops below 1.
 
 // RSSI parameter encodings
 const RssiInvalid = 127
@@ -37,13 +37,13 @@ type EventQueue interface {
 
 // RadioModel provides access to any type of radio model.
 type RadioModel interface {
+	CheckRadioReachable(evt *Event, srcNode *RadioNode, dstNode *RadioNode) bool
+
 	// GetTxRssi calculates at what RSSI level the radio frame Tx indicated by evt would be received by
 	// dstNode, according to the radio model, in the ideal case of no other transmitters/interferers.
 	// It returns the expected RSSI value at dstNode, or RssiMinusInfinity if the RSSI value will
 	// fall below the minimum Rx sensitivity of the dstNode.
 	GetTxRssi(evt *Event, srcNode *RadioNode, dstNode *RadioNode) int8
-
-	GetMaxTxDistance() int
 
 	// ApplyInterference applies any interference to a frame in transit, prior to delivery of the
 	// frame at a single receiving radio dstNode.
@@ -72,26 +72,22 @@ func Create(modelName string) RadioModel {
 			Name:               modelName,
 			FixedFrameDuration: 1,
 			FixedRssi:          -60,
-			UnitDistance:       defaultUnitDistance,
 		}
 	case "Ideal_Rssi":
 		model = &RadioModelIdeal{
 			Name:               modelName,
 			UseVariableRssi:    true,
 			FixedFrameDuration: 1,
-			UnitDistance:       defaultUnitDistance,
 		}
 	case "Ideal_Rssi_Dur":
 		model = &RadioModelIdeal{
 			Name:                 modelName,
 			UseVariableRssi:      true,
 			UseRealFrameDuration: true,
-			UnitDistance:         defaultUnitDistance,
 		}
 	case "MutualInterference":
 		model = &RadioModelMutualInterference{
 			ActiveTransmitters: make(map[NodeId]*RadioNode),
-			UnitDistance:       defaultUnitDistance,
 			MinSirDb:           1, // minimum Signal-to-Interference (SIR) (dB) required to detect signal
 		}
 	}
@@ -123,10 +119,11 @@ func InterferePsduData(data []byte, sirDb float64) []byte {
 }
 
 // ComputeIndoorRssi computes the RSSI for a receiver at distance dist, using a simple indoor exponent=3.xx loss model.
-func ComputeIndoorRssi(dist float64, txPower int8, rxSensitivity int8) int8 {
+func ComputeIndoorRssi(srcRadioRange float64, dist float64, txPower int8, rxSensitivity int8) int8 {
 	pathloss := 0.0
-	if dist >= 0.072 {
-		pathloss = 35.0*math.Log10(dist) + 40.0
+	distMeters := dist * radioRangeIndoorDistInMeters / srcRadioRange
+	if distMeters >= 0.072 {
+		pathloss = 35.0*math.Log10(distMeters) + 40.0
 	}
 	rssi := float64(txPower) - pathloss
 	rssiInt := int(math.Round(rssi))
@@ -138,11 +135,4 @@ func ComputeIndoorRssi(dist float64, txPower int8, rxSensitivity int8) int8 {
 		rssiInt = RssiMinusInfinity
 	}
 	return int8(rssiInt)
-}
-
-func ComputeIndoorMaxRange(txPower int8, rxSensitivity int8) float64 {
-	simplelogger.AssertTrue(txPower >= rxSensitivity)
-	maxPathloss := float64(txPower - rxSensitivity)
-	dist := math.Pow(10.0, (maxPathloss-40.0)/35.0)
-	return dist
 }

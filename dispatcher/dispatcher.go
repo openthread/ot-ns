@@ -686,15 +686,7 @@ func (d *Dispatcher) sendRadioFrameEventToNodes(evt *Event) {
 }
 
 func (d *Dispatcher) checkRadioReachable(evt *Event, src *Node, dst *Node) bool {
-	simplelogger.AssertTrue(src != dst)
-	dist := src.GetDistanceTo(dst)
-	if dist <= float64(src.radioRange) {
-		rssi := d.radioModel.GetTxRssi(evt, src.radioNode, dst.radioNode)
-		if rssi >= radiomodel.RssiMin && rssi <= radiomodel.RssiMax && rssi >= dst.radioNode.RxSensitivity {
-			return true
-		}
-	}
-	return false
+	return d.radioModel.CheckRadioReachable(evt, src.radioNode, dst.radioNode)
 }
 
 // sendTxDoneEvent sends the Tx done Event to node when Tx of frame is done and the Rx of the Ack can start.

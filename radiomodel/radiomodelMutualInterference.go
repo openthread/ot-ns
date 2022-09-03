@@ -11,14 +11,17 @@ import (
 // can transmit at the same time. It's useful to evaluate capacity-limited situations.
 type RadioModelMutualInterference struct {
 	ActiveTransmitters map[NodeId]*RadioNode
-	UnitDistance       float64
 	MinSirDb           int
+}
+
+func (rm *RadioModelMutualInterference) CheckRadioReachable(evt *Event, src *RadioNode, dst *RadioNode) bool {
+	rssi := rm.GetTxRssi(evt, src, dst)
+	return rssi >= RssiMin && rssi <= RssiMax && rssi >= dst.RxSensitivity
 }
 
 func (rm *RadioModelMutualInterference) GetTxRssi(evt *Event, srcNode *RadioNode, dstNode *RadioNode) int8 {
 	simplelogger.AssertTrue(srcNode != dstNode)
-	distMeters := srcNode.GetDistanceTo(dstNode) * rm.UnitDistance
-	rssi := ComputeIndoorRssi(distMeters, srcNode.TxPower, dstNode.RxSensitivity)
+	rssi := ComputeIndoorRssi(srcNode.RadioRange, srcNode.GetDistanceTo(dstNode), srcNode.TxPower, dstNode.RxSensitivity)
 	return rssi
 }
 
@@ -26,7 +29,6 @@ func (rm *RadioModelMutualInterference) TxStart(node *RadioNode, q EventQueue, e
 	simplelogger.AssertTrue(evt.Type == EventTypeRadioTx)
 	if node.TxPower != evt.TxPower {
 		node.TxPower = evt.TxPower // get the Tx power from the OT node's event param.
-		node.RadioRange = ComputeIndoorMaxRange(node.TxPower, node.RxSensitivity) / rm.UnitDistance
 	}
 	node.CcaEdThresh = evt.CcaEdTresh // get CCA ED threshold also.
 	isAck := dissectpkt.IsAckFrame(evt.Data)
@@ -211,8 +213,4 @@ func (rm *RadioModelMutualInterference) ApplyInterference(evt *Event, src *Radio
 			evt.Error = OT_ERROR_FCS
 		}
 	}
-}
-
-func (rm *RadioModelMutualInterference) GetMaxTxDistance() int {
-	return int(ComputeIndoorMaxRange(0, -100) / rm.UnitDistance)
 }
