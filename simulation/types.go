@@ -1,8 +1,9 @@
 package simulation
 
 import (
-	"github.com/openthread/ot-ns/types"
 	"io"
+
+	"github.com/openthread/ot-ns/types"
 )
 
 type CmdRunner interface {
