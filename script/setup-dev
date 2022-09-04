@@ -71,7 +71,7 @@ function install_protoc()
         sudo rm -rf protoc.zip
     )
 
-    installed protoc || die "protoc-gen-go not found, make sure /usr/local/bin is included in $PATH"
+    installed protoc || die "protoc not found, make sure /usr/local/bin is included in $PATH"
 }
 
 install_protoc_gen_go()
@@ -80,7 +80,7 @@ install_protoc_gen_go()
         return 0
     fi
 
-    go get -u github.com/golang/protobuf/protoc-gen-go@v${PROTOC_GEN_GO_VERSION}
+    go_install github.com/golang/protobuf/protoc-gen-go@v${PROTOC_GEN_GO_VERSION}
     installed protoc-gen-go || die "protoc-gen-go not found, make sure $(go env GOPATH)/bin is included in $PATH"
 }
 
@@ -124,7 +124,7 @@ install_go_bindata()
         return 0
     fi
 
-    go get -u github.com/jteeuwen/go-bindata/go-bindata@v${GO_BINDATA_VERSION}
+    go_install github.com/jteeuwen/go-bindata/go-bindata@v${GO_BINDATA_VERSION}
     installed go-bindata || die "go-bindata not found, make sure $(go env GOPATH)/bin is included in $PATH"
 }
 
@@ -139,5 +139,6 @@ install_protoc_gen_grpc_web
 install_nodejs
 install_go_bindata
 install_py_libraries
-install_pretty_tools
+install_pretty_tools || true
+install_openthread_buildtools
 go mod tidy
