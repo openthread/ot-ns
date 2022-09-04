@@ -47,6 +47,7 @@ type Command struct {
 	Exit                *ExitCmd                `| @@` //nolint
 	Go                  *GoCmd                  `| @@` //nolint
 	Joins               *JoinsCmd               `| @@` //nolint
+	LogLevel            *LogLevelCmd            `| @@` //nolint
 	Move                *Move                   `| @@` //nolint
 	NetInfo             *NetInfoCmd             `| @@` //nolint
 	Node                *NodeCmd                `| @@` //nolint
@@ -405,6 +406,12 @@ type CountersCmd struct {
 type PlrCmd struct {
 	Cmd struct{} `"plr"`             //nolint
 	Val *float64 `[ (@Int|@Float) ]` //nolint
+}
+
+//noinspection GoStructTag
+type LogLevelCmd struct {
+	Cmd   struct{} `"log"`                                //nolint
+	Level string   `[@( "debug"|"info"|"warn"|"error" )]` //nolint
 }
 
 //noinspection GoStructTag
