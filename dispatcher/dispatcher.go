@@ -488,7 +488,7 @@ func (d *Dispatcher) eventsReader() {
 		// wait until all nodes are sleepd
 		n, srcaddr, err := udpln.ReadFromUDP(readbuf)
 		if err != nil {
-			if nerr, ok := err.(net.Error); ok && nerr.Temporary() {
+			if nerr, ok := err.(net.Error); ok && nerr.Timeout() {
 				time.Sleep(time.Millisecond * 100)
 				continue
 			}
