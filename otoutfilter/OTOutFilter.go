@@ -36,7 +36,7 @@ import (
 )
 
 var (
-	logPattern = regexp.MustCompile(`\d\d:\d\d:\d\d\.\d\d\d \[(-|C|W|N|I|D)].*\n`)
+	logPattern = regexp.MustCompile(`(\d\d:\d\d:\d\d\.\d\d\d )?\[(-|C|W|N|I|D)].*\n`)
 )
 
 type otOutFilter struct {
@@ -87,7 +87,7 @@ func (cc *otOutFilter) readFirstLine(p []byte) int {
 			sn += 2
 		}
 
-		logIdx := logPattern.FindStringIndex(firstline)
+		logIdx := logPattern.FindStringSubmatchIndex(firstline)
 
 		if logIdx == nil {
 			rn += copy(p, firstline[:])
@@ -97,10 +97,13 @@ func (cc *otOutFilter) readFirstLine(p []byte) int {
 			} else {
 				// remove the log
 				simplelogger.AssertTrue(logIdx[1] == len(firstline))
+				n1 := len(logIdx) - 2
+				n2 := len(logIdx) - 1
+				simplelogger.AssertTrue(logIdx[n1] >= 0 && logIdx[n2] > logIdx[n1])
 				logStr := strings.TrimSpace(firstline)
-				logIdxStr := logPattern.FindStringSubmatch(firstline)
-				simplelogger.AssertTrue(len(logIdxStr[1]) == 1)
-				cc.printLog(logIdxStr[1], logStr)
+				logLevelIndicatorStr := firstline[logIdx[n1]:logIdx[n2]]
+				simplelogger.AssertTrue(len(logLevelIndicatorStr) == 1)
+				cc.printLog(logLevelIndicatorStr, logStr)
 				sn += logIdx[1]
 			}
 		}
