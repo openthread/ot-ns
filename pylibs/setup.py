@@ -39,6 +39,6 @@ setuptools.setup(
         "License :: OSI Approved :: BSD 3-Clause License",
         "Operating System :: OS Independent",
     ],
-    python_requires='>=3.6',
+    python_requires='>=3.7',
     install_requires=['PyYAML'],
 )

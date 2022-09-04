@@ -1,4 +1,4 @@
-# Copyright (c) 2020, The OTNS Authors.
+# Copyright (c) 2022, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -24,32 +24,15 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-name: Lint
+FROM golang:1.17-buster
 
-on:
-  pull_request:
-    branches:
-      - 'main'
+RUN apt-get update && apt-get install -y python3 python3-pip sudo unzip nodejs npm git && rm -rf /var/lib/apt/lists/*
 
-jobs:
-  cancel-previous-runs:
-    runs-on: ubuntu-20.04
-    steps:
-      - uses: rokroskar/workflow-run-cleanup-action@master
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        if: "github.ref != 'refs/heads/main'"
+COPY . /otns
+WORKDIR /otns
+RUN ./script/setup-dev
+RUN ./script/install-deps
+RUN ./script/pack-web
+RUN ./script/install
 
-  go-lint:
-    name: Go Lint
-    runs-on: ubuntu-20.04
-    env:
-      HOMEBREW_NO_AUTO_UPDATE: 1
-    steps:
-      - uses: actions/setup-go@v1
-        with:
-          go-version: 1.18
-      - uses: actions/checkout@v2
-      - name: Check pretty
-        run: |
-          ./script/check-pretty
+ENTRYPOINT [ "bash" ]
