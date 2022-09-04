@@ -25,18 +25,20 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-set -e
-
-# shellcheck source=script/utils.sh
-. "$(dirname "$0")"/utils.sh
+set -euox pipefail
 
 if [[ "$(uname)" == "Darwin" ]]; then
     export readonly Darwin=1
+    export readonly Linux=0
 elif [[ "$(uname)" == "Linux" ]]; then
+    export readonly Darwin=0
     export readonly Linux=1
 else
     die "Unknown OS: $(uname)"
 fi
+
+# shellcheck source=script/utils.sh
+. "$(dirname "$0")"/utils.sh
 
 export readonly SCRIPTDIR
 SCRIPTDIR=$(realpath "$(dirname "$0")")
@@ -47,7 +49,13 @@ GOPATH=$(go env GOPATH)
 export PATH=$PATH:"$GOPATH"/bin
 mkdir -p "$GOPATH"/bin
 
-export readonly GOLINT_ARGS=(-E goimports -E whitespace -E goconst -E scopelint -E unconvert)
+export readonly GOLINT_ARGS=(-E goimports -E whitespace -E goconst -E exportloopref -E unconvert)
 export readonly OTNS_BUILD_JOBS
 OTNS_BUILD_JOBS=$(getconf _NPROCESSORS_ONLN)
 export readonly OTNS_EXCLUDE_DIRS=(web/site/node_modules/)
+
+go_install()
+{
+    local pkg=$1
+    go install "${pkg}" || go get "${pkg}"
+}

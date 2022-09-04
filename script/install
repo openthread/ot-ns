@@ -32,7 +32,8 @@
 
 install_otns()
 {
-    repeat 3 go get ./cmd/...
+    go mod tidy
+    repeat 3 go_install ./cmd/...
     echo "otns installed: $(command -v otns)"
 }
 
