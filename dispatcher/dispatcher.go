@@ -591,7 +591,6 @@ func (d *Dispatcher) SendToUART(id NodeId, data []byte) {
 // sendRadioFrameEventToNodes sends RadioFrame Event to all neighbor nodes, reachable by radio by dispatching
 // event copies to each targeted node.
 func (d *Dispatcher) sendRadioFrameEventToNodes(evt *Event) {
-	//evt := evtPtr.Copy() // create copy of e
 	simplelogger.AssertTrue(evt.Type == EventTypeRadioReceived)
 	srcnodeid := evt.NodeId
 	srcnode := d.nodes[srcnodeid]
@@ -612,76 +611,67 @@ func (d *Dispatcher) sendRadioFrameEventToNodes(evt *Event) {
 	dispatchedByDstAddr := false
 	dstAddrMode := pktframe.FrameControl.DstAddrMode()
 
-	if d.radioModel.AllowUnicastDispatch() {
+	// try to dispatch the message by extaddr directly
+	if dstAddrMode == wpan.DstAddrModeExtended {
+		dstnode := d.extaddrMap[pktframe.DstAddrExtended]
+		if dstnode != srcnode && dstnode != nil && d.checkRadioReachable(evt, srcnode, dstnode) {
+			d.sendOneRadioFrameEvent(evt, srcnode, dstnode)
+			d.Counters.DispatchByExtAddrSucc++
+			d.visSendFrame(srcnodeid, dstnode.Id, pktframe)
+		} else {
+			d.Counters.DispatchByExtAddrFail++
+			d.visSendFrame(srcnodeid, InvalidNodeId, pktframe)
+		}
+		dispatchedByDstAddr = true
 
-		// try to dispatch the message by extaddr directly
-		if dstAddrMode == wpan.DstAddrModeExtended {
-			// the message should only be dispatched to the target node with the extaddr
-			dstnode := d.extaddrMap[pktframe.DstAddrExtended]
-			if dstnode != srcnode && dstnode != nil {
-				if d.checkRadioReachable(evt, srcnode, dstnode) {
-					d.sendOneRadioFrameEvent(evt, srcnode, dstnode)
-					d.visSendFrame(srcnodeid, dstnode.Id, pktframe)
-				} else {
-					d.visSendFrame(srcnodeid, InvalidNodeId, pktframe) // TODO check if viz is of right type.
+	} else if dstAddrMode == wpan.DstAddrModeShort {
+		// try to dispatch by short unicast addr directly
+		if pktframe.DstAddrShort != threadconst.BroadcastRloc16 {
+			// unicast message should only be dispatched to target node with the rloc16
+			dstnodes := d.rloc16Map[pktframe.DstAddrShort]
+			dispatchCnt := 0
+
+			if len(dstnodes) > 0 {
+				for _, dstnode := range dstnodes {
+					if srcnode != dstnode && d.checkRadioReachable(evt, srcnode, dstnode) {
+						d.sendOneRadioFrameEvent(evt, srcnode, dstnode)
+						dispatchCnt++
+						d.visSendFrame(srcnodeid, dstnode.Id, pktframe)
+					}
 				}
+				if dispatchCnt > 0 {
+					d.Counters.DispatchByShortAddrSucc++
+				}
+			}
 
-				d.Counters.DispatchByExtAddrSucc++
-			} else {
-				d.Counters.DispatchByExtAddrFail++
+			if dispatchCnt == 0 {
+				d.Counters.DispatchByShortAddrFail++
 				d.visSendFrame(srcnodeid, InvalidNodeId, pktframe)
 			}
-
 			dispatchedByDstAddr = true
-		} else if dstAddrMode == wpan.DstAddrModeShort {
-			// try to dispatch by short addr directly
-			if pktframe.DstAddrShort != threadconst.BroadcastRloc16 {
-				// unicast message should only be dispatched to target node with the rloc16
-				dstnodes := d.rloc16Map[pktframe.DstAddrShort]
-				dispatchCnt := 0
-
-				if len(dstnodes) > 0 {
-					for _, dstnode := range dstnodes {
-						if srcnode != dstnode && d.checkRadioReachable(evt, srcnode, dstnode) {
-							d.sendOneRadioFrameEvent(evt, srcnode, dstnode)
-							d.visSendFrame(srcnodeid, dstnode.Id, pktframe)
-							dispatchCnt++
-						}
-					}
-					if dispatchCnt > 0 {
-						d.Counters.DispatchByShortAddrSucc++
-					}
-				}
-
-				if dispatchCnt == 0 {
-					d.visSendFrame(srcnodeid, InvalidNodeId, pktframe)
-					d.Counters.DispatchByShortAddrFail++
-				}
-
-				dispatchedByDstAddr = true
-			}
 		}
 	}
 
 	if !dispatchedByDstAddr {
 		dispatchCnt := 0
 		isBroadcastFrame := dstAddrMode == wpan.DstAddrModeShort && pktframe.DstAddrShort == threadconst.BroadcastRloc16
+		isAckFrame := pktframe.FrameControl.FrameType() == wpan.FrameTypeAck
 		for _, dstnode := range d.nodes {
 			if srcnode != dstnode && d.checkRadioReachable(evt, srcnode, dstnode) {
 				d.sendOneRadioFrameEvent(evt, srcnode, dstnode)
 				dispatchCnt++
-				if !isBroadcastFrame {
+				if !isBroadcastFrame && !isAckFrame {
 					d.visSendFrame(srcnodeid, dstnode.Id, pktframe)
 				}
 			}
 		}
 
-		if isBroadcastFrame {
+		if isBroadcastFrame || isAckFrame {
 			d.visSendFrame(srcnodeid, BroadcastNodeId, pktframe)
 		} else if dispatchCnt == 0 {
 			d.visSendFrame(srcnodeid, InvalidNodeId, pktframe)
 		}
-		d.Counters.DispatchAllInRange++
+		d.Counters.DispatchAllInRange++ // includes case of 0 nodes in range.
 	}
 }
 
@@ -693,9 +683,12 @@ func (d *Dispatcher) checkRadioReachable(evt *Event, src *Node, dst *Node) bool 
 func (d *Dispatcher) sendTxDoneEvent(evt *Event) {
 	simplelogger.AssertTrue(evt.Type == EventTypeRadioTxDone)
 	dstnodeid := evt.NodeId
-	dstnode := d.GetNode(dstnodeid)
-	simplelogger.AssertNotNil(dstnode)
 	simplelogger.AssertTrue(dstnodeid > 0)
+	dstnode := d.GetNode(dstnodeid)
+	if dstnode == nil && d.isDeleted(dstnodeid) {
+		return
+	}
+	simplelogger.AssertNotNil(dstnode)
 
 	dstnode.sendEvent(evt)
 
@@ -710,12 +703,12 @@ func (d *Dispatcher) sendOneRadioFrameEvent(evt *Event, srcNode *Node, dstNode *
 	simplelogger.AssertTrue(EventTypeRadioReceived == evt.Type)
 	simplelogger.AssertTrue(srcNode != dstNode)
 
-	// Tx failure cases below:  (these are still visualized as successful)
-	//   1) 'failed' state dest node
+	// Tx failure cases below:
+	//   1) 'failed' state of the dest node
 	if dstNode.isFailed {
 		return false
 	}
-	//   2) global dispatcher's random loss Event (separate from radio model)
+	//   2) global dispatcher's random packet loss Event (separate from radio model)
 	if d.globalPacketLossRatio > 0 {
 		datalen := len(evt.Data)
 		succRate := math.Pow(1.0-d.globalPacketLossRatio, float64(datalen)/128.0)
@@ -727,8 +720,8 @@ func (d *Dispatcher) sendOneRadioFrameEvent(evt *Event, srcNode *Node, dstNode *
 	// create new Event for individual dispatch to dstNode.
 	evt2 := evt.Copy()
 
-	// compute the RSSI in the event
-	evt2.Rssi = d.radioModel.GetTxRssi(evt, srcNode.radioNode, dstNode.radioNode)
+	// compute the RSSI and store in the event
+	evt2.Rssi = d.radioModel.GetTxRssi(&evt2, srcNode.radioNode, dstNode.radioNode)
 
 	// Tx failure cases below:
 	//   3) radio model indicates failure on this specific link (e.g. interference) now

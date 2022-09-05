@@ -155,10 +155,6 @@ func (rm *RadioModelMutualInterference) GetName() string {
 	return "MutualInterference"
 }
 
-func (rm *RadioModelMutualInterference) AllowUnicastDispatch() bool {
-	return false
-}
-
 func (rm *RadioModelMutualInterference) ccaDetectsBusy(node *RadioNode, evt *Event) bool {
 	// loop all active transmitters, see if any one transmits above my CCA ED Threshold.
 	for _, v := range rm.ActiveTransmitters {
@@ -184,7 +180,6 @@ func (rm *RadioModelMutualInterference) startTransmission(node *RadioNode, evt *
 	}
 
 	rm.ActiveTransmitters[evt.NodeId] = node
-
 }
 
 func (rm *RadioModelMutualInterference) endTransmission(node *RadioNode, evt *Event) {

@@ -56,11 +56,6 @@ type RadioModel interface {
 
 	// GetName gets the display name of this RadioModel
 	GetName() string
-
-	// AllowsUnicastDispatch indicates whether the model allows efficient unicast dispatch of radio-frame
-	// received events to only the Node(s) that are addressed by the frame. If false, the dispatcher will
-	// dispatch a frame to all nodes in radio range regardless of MAC header addressing.
-	AllowUnicastDispatch() bool
 }
 
 // Create creates a new RadioModel with given name, or nil if model not found.
