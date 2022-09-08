@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2020-2022, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -312,10 +312,6 @@ func (d *Dispatcher) handleRecvEvent(evt *Event) {
 		return
 	}
 	node := d.nodes[nodeid]
-	if evt.MsgId > 0 && node.msgId == 0 {
-		// old message in pipeline? TODO
-		return
-	}
 	simplelogger.AssertTrue(d.isAlive(nodeid))
 
 	if d.isWatching(nodeid) && evt.Type != EventTypeUartWrite {
@@ -345,16 +341,9 @@ func (d *Dispatcher) handleRecvEvent(evt *Event) {
 	case EventTypeAlarmFired:
 		d.Counters.AlarmEvents += 1
 		simplelogger.AssertTrue(evt.Delay > 0) // OT node can't send 0-delay alarm. That's an error.
-		if evt.MsgId > node.msgId {
-			simplelogger.Warnf("evt.MsgId %v > %v", evt.MsgId, node.msgId)
-			for i, n := range d.nodes {
-				simplelogger.Warnf(" %v -> %v", i, n.msgId)
-			}
-		}
-		simplelogger.AssertTrue(evt.MsgId <= node.msgId)
-		if evt.MsgId == node.msgId { // the last msg sent was processed by OT-node.
-			d.setSleeping(nodeid) // Alarm is the final event sent by a node when all its actions are done.
-		}
+		//FIXME if evt.MsgId == node.msgId {           // the last msg sent was processed by OT-node.
+		d.setSleeping(nodeid) // Alarm is the final event sent by a node when all its actions are done.
+		//}
 		d.alarmMgr.SetTimestamp(nodeid, evtTime)
 	case EventTypeOtnsStatusPush:
 		d.Counters.StatusPushEvents += 1
@@ -491,7 +480,7 @@ func (d *Dispatcher) processNextEvent() bool {
 
 			// execute the event - it may originate from the radioModel, or from an OT-node.
 			switch evt.Type {
-			case EventTypeRadioReceived:
+			case EventTypeRadioRx:
 				if !d.cfg.NoPcap {
 					d.pcapFrameChan <- pcapFrameItem{nextSendTime, evt.Data[RadioMessagePsduOffset:]}
 				}
@@ -536,6 +525,7 @@ func (d *Dispatcher) eventsReader() {
 
 		evt := &Event{}
 		evt.Deserialize(readbuf[0:n])
+		evt.NodeId = srcaddr.Port - d.cfg.Port
 		node := d.nodes[evt.NodeId]
 		if node == nil {
 			simplelogger.Warnf("Received UDP event for (yet) unknown node id: %v", evt.NodeId)
@@ -591,7 +581,7 @@ func (d *Dispatcher) SendToUART(id NodeId, data []byte) {
 // sendRadioFrameEventToNodes sends RadioFrame Event to all neighbor nodes, reachable by radio by dispatching
 // event copies to each targeted node.
 func (d *Dispatcher) sendRadioFrameEventToNodes(evt *Event) {
-	simplelogger.AssertTrue(evt.Type == EventTypeRadioReceived)
+	simplelogger.AssertTrue(evt.Type == EventTypeRadioRx)
 	srcnodeid := evt.NodeId
 	srcnode := d.nodes[srcnodeid]
 	if srcnode == nil {
@@ -700,7 +690,7 @@ func (d *Dispatcher) sendTxDoneEvent(evt *Event) {
 // sendOneRadioEvent sends RadioFrame Event from Node srcnode to Node dstnode via radio model.
 // Returns true if a frame was dispatched, false if not dispatched due to Tx-failure cases.
 func (d *Dispatcher) sendOneRadioFrameEvent(evt *Event, srcNode *Node, dstNode *Node) bool {
-	simplelogger.AssertTrue(EventTypeRadioReceived == evt.Type)
+	simplelogger.AssertTrue(EventTypeRadioRx == evt.Type)
 	simplelogger.AssertTrue(srcNode != dstNode)
 
 	// Tx failure cases below:
@@ -721,7 +711,7 @@ func (d *Dispatcher) sendOneRadioFrameEvent(evt *Event, srcNode *Node, dstNode *
 	evt2 := evt.Copy()
 
 	// compute the RSSI and store in the event
-	evt2.Rssi = d.radioModel.GetTxRssi(&evt2, srcNode.radioNode, dstNode.radioNode)
+	evt2.RxData.Rssi = d.radioModel.GetTxRssi(&evt2, srcNode.radioNode, dstNode.radioNode)
 
 	// Tx failure cases below:
 	//   3) radio model indicates failure on this specific link (e.g. interference) now

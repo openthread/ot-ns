@@ -27,10 +27,10 @@ func (rm *RadioModelMutualInterference) GetTxRssi(evt *Event, srcNode *RadioNode
 
 func (rm *RadioModelMutualInterference) TxStart(node *RadioNode, q EventQueue, evt *Event) {
 	simplelogger.AssertTrue(evt.Type == EventTypeRadioTx)
-	if node.TxPower != evt.TxPower {
-		node.TxPower = evt.TxPower // get the Tx power from the OT node's event param.
+	if node.TxPower != evt.TxData.TxPower {
+		node.TxPower = evt.TxData.TxPower // get the Tx power from the OT node's event param.
 	}
-	node.CcaEdThresh = evt.CcaEdTresh // get CCA ED threshold also.
+	node.CcaEdThresh = evt.TxData.CcaEdTresh // get CCA ED threshold also.
 	isAck := dissectpkt.IsAckFrame(evt.Data)
 
 	// check if a transmission is already ongoing by itself? If so signal OT_ERROR_ABORT back
@@ -39,7 +39,7 @@ func (rm *RadioModelMutualInterference) TxStart(node *RadioNode, q EventQueue, e
 		nextEvt := evt.Copy()
 		nextEvt.Type = EventTypeRadioTxDone
 		nextEvt.Timestamp += 1
-		nextEvt.Error = OT_ERROR_ABORT
+		nextEvt.TxDoneData.Error = OT_ERROR_ABORT
 		q.AddEvent(&nextEvt)
 		return
 	}
@@ -106,7 +106,7 @@ func (rm *RadioModelMutualInterference) TxOngoing(node *RadioNode, q EventQueue,
 			nextEvt := evt.Copy()
 			nextEvt.Type = EventTypeRadioTxDone
 			nextEvt.Timestamp += 1
-			nextEvt.Error = OT_ERROR_CHANNEL_ACCESS_FAILURE
+			nextEvt.TxDoneData.Error = OT_ERROR_CHANNEL_ACCESS_FAILURE
 			q.AddEvent(&nextEvt)
 
 			// ... and reset back to start state.
@@ -126,14 +126,14 @@ func (rm *RadioModelMutualInterference) TxOngoing(node *RadioNode, q EventQueue,
 		nextEvt := evt.Copy()
 		nextEvt.Type = EventTypeRadioTxDone
 		nextEvt.Timestamp += 1
-		nextEvt.Error = OT_ERROR_NONE
+		nextEvt.TxDoneData.Error = OT_ERROR_NONE
 		q.AddEvent(&nextEvt)
 
 		// let other radios of Nodes receive the data
 		nextEvt2 := evt.Copy()
-		nextEvt2.Type = EventTypeRadioReceived
+		nextEvt2.Type = EventTypeRadioRx
 		nextEvt2.Timestamp += 1
-		nextEvt2.Error = OT_ERROR_NONE
+		nextEvt2.TxDoneData.Error = OT_ERROR_NONE
 		q.AddEvent(&nextEvt2)
 
 		rm.endTransmission(node, evt)
@@ -194,18 +194,19 @@ func (rm *RadioModelMutualInterference) endTransmission(node *RadioNode, evt *Ev
 }
 
 func (rm *RadioModelMutualInterference) ApplyInterference(evt *Event, src *RadioNode, dst *RadioNode) {
+	simplelogger.AssertTrue(evt.Type == EventTypeRadioRx)
 	for _, interferer := range src.InterferedBy {
 		if interferer == dst { // if dst node was at some point transmitting itself, fail the Rx
-			evt.Error = OT_ERROR_ABORT
+			evt.RxData.Error = OT_ERROR_ABORT
 			return
 		}
 		rssiInterferer := int(rm.GetTxRssi(nil, interferer, dst))
-		rssi := int(evt.Rssi)
+		rssi := int(evt.RxData.Rssi)
 		sirDb := rssi - rssiInterferer
 		if sirDb < rm.MinSirDb {
 			// interfering signal gets too close to the transmission rssi, impacts the signal.
 			evt.Data = InterferePsduData(evt.Data, float64(sirDb))
-			evt.Error = OT_ERROR_FCS
+			evt.RxData.Error = OT_ERROR_FCS
 		}
 	}
 }

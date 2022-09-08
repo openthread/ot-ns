@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2020-2022, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -30,38 +30,60 @@ import (
 	"encoding/binary"
 
 	"github.com/simonlingoogle/go-simplelogger"
-)
-
-const (
-	// Event type IDs (external, shared between OT-NS and OT node)
-	EventTypeAlarmFired       uint8 = 0
-	EventTypeRadioReceived    uint8 = 1 // Rx of frame from OTNS to OT-node
-	EventTypeUartWrite        uint8 = 2
-	EventTypeRadioSpinelWrite uint8 = 3
-	EventTypeOtnsStatusPush   uint8 = 5
-	EventTypeRadioTx          uint8 = 17 // Tx of frame from OT-node to OTNS
-	EventTypeRadioTxDone      uint8 = 18 // Tx-done signal from OTNS to OT-node
-
-	// Internal radiomodel events
-	EventTypeRadioTxOngoing uint8 = 128
-
-	// Other constants
-	EventMessageV2HeaderLen int = 27 // from OT platform-simulation.h struct Event { }
+	"math"
 )
 
 type eventType = uint8
 
+const (
+	// Event type IDs (external, shared between OT-NS and OT node)
+	EventTypeAlarmFired       eventType = 0
+	EventTypeRadioReceived    eventType = 1 // Rx of frame from OTNS to OT-node
+	EventTypeUartWrite        eventType = 2
+	EventTypeRadioSpinelWrite eventType = 3
+	EventTypePostCmd          eventType = 4
+	EventTypeOtnsStatusPush   eventType = 5
+	EventTypeRadioRx          eventType = 16 // Rx of frame from OTNS to OT-node with additional status info
+	EventTypeRadioTx          eventType = 17 // Tx of frame from OT-node to OTNS
+	EventTypeRadioTxDone      eventType = 18 // Tx-done signal from OTNS to OT-node
+
+	// Internal radiomodel events
+	EventTypeRadioTxOngoing eventType = 128
+)
+
+const EventMsgHeaderLen = 11 // from OT platform-simulation.h struct Event { }
 type Event struct {
-	MsgId      uint64
+	Delay uint64
+	Type  eventType
+	//DataLen uint16
+	Data []byte
+
+	// supplementary information stored depending on event type.
 	NodeId     NodeId
-	Delay      uint64
-	Type       eventType
-	Error      uint8
-	Rssi       int8
+	Timestamp  uint64
+	TxData     TxEventData
+	RxData     RxEventData
+	TxDoneData TxDoneEventData
+}
+
+const TxEventDataHeaderLen = 3 // from OT platform-simulation.h struct
+type TxEventData struct {
+	Channel    uint8
 	TxPower    int8
 	CcaEdTresh int8
-	Data       []byte
-	Timestamp  uint64
+}
+
+const RxEventDataHeaderLen = 3 // from OT platform-simulation.h struct
+type RxEventData struct {
+	Channel uint8
+	Error   uint8
+	Rssi    int8
+}
+
+const TxDoneEventDataHeaderLen = 2 // from OT platform-simulation.h struct
+type TxDoneEventData struct {
+	Channel uint8
+	Error   uint8
 }
 
 /* RadioMessagePsduOffset is the offset of Psdu data in a received OpenThread RadioMessage type.
@@ -75,44 +97,68 @@ const RadioMessagePsduOffset = 1
 // Serialize serializes this Event into []byte to send to OpenThread node,
 // including fields partially.
 func (e *Event) Serialize() []byte {
-	msg := make([]byte, EventMessageV2HeaderLen+len(e.Data))
-	binary.LittleEndian.PutUint64(msg[:8], e.MsgId)
-	binary.LittleEndian.PutUint32(msg[8:12], uint32(e.NodeId))
+	// Detect composite event types
+	extraFields := []byte{}
+	switch e.Type {
+	case EventTypeRadioRx:
+		extraFields = serializeRadioRxData(e.RxData)
+	default:
+		break
+	}
+
+	payload := append(extraFields, e.Data...)
+	msg := make([]byte, EventMsgHeaderLen+len(payload))
 	// e.Timestamp is not sent, only e.Delay.
-	binary.LittleEndian.PutUint64(msg[12:20], e.Delay)
-	msg[20] = e.Type
-	msg[21] = e.Error
-	msg[22] = byte(e.Rssi)
-	msg[23] = byte(e.TxPower)
-	msg[24] = byte(e.CcaEdTresh)
-	binary.LittleEndian.PutUint16(msg[25:27], uint16(len(e.Data)))
-	n := copy(msg[EventMessageV2HeaderLen:], e.Data)
-	simplelogger.AssertTrue(n == len(e.Data))
+	binary.LittleEndian.PutUint64(msg[:8], e.Delay)
+	msg[8] = e.Type
+	binary.LittleEndian.PutUint16(msg[9:11], uint16(len(payload)))
+	n := copy(msg[EventMsgHeaderLen:], payload)
+	simplelogger.AssertTrue(n == len(payload))
+
 	return msg
 }
 
 // Deserialize deserializes []byte Event fields (as received from OpenThread node) into Event object e.
 func (e *Event) Deserialize(data []byte) {
 	n := len(data)
-	if n < EventMessageV2HeaderLen {
+	if n < EventMsgHeaderLen {
 		simplelogger.Panicf("Event.Deserialize() message length too short: %d", n)
 	}
-	e.MsgId = binary.LittleEndian.Uint64(data[:8])
-	e.NodeId = NodeId(binary.LittleEndian.Uint32(data[8:12]))
-	e.Delay = binary.LittleEndian.Uint64(data[12:20])
-	e.Type = data[20]
-	e.Error = data[21]
-	e.Rssi = int8(data[22])
-	e.TxPower = int8(data[23])
-	e.CcaEdTresh = int8(data[24])
-	datalen := binary.LittleEndian.Uint16(data[25:27])
-
-	simplelogger.AssertTrue(datalen == uint16(n-EventMessageV2HeaderLen))
+	e.Delay = binary.LittleEndian.Uint64(data[:8])
+	e.Type = data[8]
+	datalen := binary.LittleEndian.Uint16(data[9:11])
+	simplelogger.AssertTrue(datalen == uint16(n-EventMsgHeaderLen))
 	data2 := make([]byte, datalen)
-	copy(data2, data[EventMessageV2HeaderLen:n])
+	copy(data2, data[EventMsgHeaderLen:n])
 	e.Data = data2
-	// e.Timestamp is not deserialized (not present)
-	e.Timestamp = 0
+
+	// Detect composite event types
+	switch e.Type {
+	case EventTypeRadioTx:
+		e.DeserializeRadioTxEvent()
+	default:
+		break
+	}
+	// e.Timestamp is not in the event, so set to invalid initially.
+	e.Timestamp = math.MaxUint64
+}
+
+// DeserializeRadioTxEvent deserializes the specific extra TxEvent parameters that are provided in the
+// RadioTx event.
+func (e *Event) DeserializeRadioTxEvent() {
+	n := len(e.Data)
+	if n < TxEventDataHeaderLen {
+		simplelogger.Panicf("Event.DeserializeRadioTxEvent() message length too short: %d", n)
+	}
+	e.TxData = TxEventData{Channel: e.Data[0], TxPower: int8(e.Data[1]), CcaEdTresh: int8(e.Data[2])}
+}
+
+func serializeRadioRxData(rxData RxEventData) []byte {
+	b := []byte{0, 0, 0}
+	b[0] = rxData.Channel
+	b[1] = rxData.Error
+	b[2] = uint8(rxData.Rssi)
+	return b
 }
 
 // Copy creates a (struct) copy of the Event.

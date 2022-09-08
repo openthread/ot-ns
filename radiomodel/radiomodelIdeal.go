@@ -30,7 +30,7 @@ func (rm *RadioModelIdeal) CheckRadioReachable(evt *Event, src *RadioNode, dst *
 }
 
 func (rm *RadioModelIdeal) GetTxRssi(evt *Event, srcNode *RadioNode, dstNode *RadioNode) int8 {
-	simplelogger.AssertTrue(evt.Type == EventTypeRadioReceived)
+	simplelogger.AssertTrue(evt.Type == EventTypeRadioRx)
 	rssi := rm.FixedRssi // in the most ideal case, always assume a good RSSI up until the max range.
 	if rm.UseVariableRssi {
 		rssi = ComputeIndoorRssi(srcNode.RadioRange, srcNode.GetDistanceTo(dstNode), srcNode.TxPower, dstNode.RxSensitivity)
@@ -40,8 +40,8 @@ func (rm *RadioModelIdeal) GetTxRssi(evt *Event, srcNode *RadioNode, dstNode *Ra
 
 func (rm *RadioModelIdeal) TxStart(node *RadioNode, q EventQueue, evt *Event) {
 	simplelogger.AssertTrue(evt.Type == EventTypeRadioTx)
-	node.TxPower = evt.TxPower // get last node's properties from the OT node's event params.
-	node.CcaEdThresh = evt.CcaEdTresh
+	node.TxPower = evt.TxData.TxPower // get last node's properties from the OT node's event params.
+	node.CcaEdThresh = evt.TxData.CcaEdTresh
 
 	frameDuration := rm.FixedFrameDuration
 	if rm.UseRealFrameDuration {
@@ -52,15 +52,15 @@ func (rm *RadioModelIdeal) TxStart(node *RadioNode, q EventQueue, evt *Event) {
 	nextEvt := evt.Copy()
 	nextEvt.Type = EventTypeRadioTxDone
 	nextEvt.Timestamp += frameDuration
-	nextEvt.Error = OT_ERROR_NONE
+	nextEvt.TxDoneData.Error = OT_ERROR_NONE
 	q.AddEvent(&nextEvt)
 	node.TimeLastTxEnded = evt.Timestamp
 
 	// let other radios of reachable Nodes receive the data (after N us propagation delay)
 	nextEvt2 := evt.Copy()
-	nextEvt2.Type = EventTypeRadioReceived
+	nextEvt2.Type = EventTypeRadioRx
 	nextEvt2.Timestamp += frameDuration
-	nextEvt2.Error = OT_ERROR_NONE
+	nextEvt2.RxData.Error = OT_ERROR_NONE
 	q.AddEvent(&nextEvt2)
 }
 

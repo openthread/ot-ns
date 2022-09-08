@@ -28,7 +28,6 @@ package dispatcher
 
 import (
 	"fmt"
-	"math"
 	"net"
 
 	"github.com/openthread/ot-ns/radiomodel"
@@ -125,7 +124,7 @@ func (node *Node) sendEvent(evt *Event) {
 	oldTime := node.CurTime
 	evt.Delay = evt.Timestamp - oldTime // compute Delay value for this target node.
 	node.msgId++
-	evt.MsgId = node.msgId
+	// FIXME evt.MsgId = node.msgId
 	// time keeping - move node's time to the current send-event's time.
 	simplelogger.AssertTrue(evt.Timestamp == node.D.CurTime)
 	node.sendRawData(evt.Serialize())
@@ -144,14 +143,6 @@ func (node *Node) sendRawData(msg []byte) {
 	} else {
 		simplelogger.Errorf("%s does not have a peer address", node)
 	}
-}
-
-// GetDistanceTo gets the distance to another Node, in dimensionless units.
-func (node *Node) GetDistanceTo(other *Node) (dist float64) {
-	dx := float64(other.X - node.X)
-	dy := float64(other.Y - node.Y)
-	dist = math.Sqrt(dx*dx + dy*dy)
-	return
 }
 
 func (node *Node) IsFailed() bool {
