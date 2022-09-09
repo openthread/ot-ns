@@ -230,7 +230,7 @@ loop:
 		select {
 		case f := <-d.taskChan:
 			f()
-			break
+			// break //ineffective break statement in Golang. Leave it here for visual understanding.
 		case duration := <-d.goDurationChan:
 			// sync the speed start time with the current time
 			if len(d.nodes) == 0 {
@@ -265,7 +265,7 @@ loop:
 				_ = d.pcap.Sync()
 			}
 			close(duration.done)
-			break
+			// break //ineffective break statement in Golang. Leave it here for visual understanding.
 		case <-done:
 			break loop
 		}
@@ -784,7 +784,7 @@ func (d *Dispatcher) GetVisualizer() visualize.Visualizer {
 }
 
 func (d *Dispatcher) handleStatusPush(srcid NodeId, data string) {
-	simplelogger.Debugf("status push: %d: %#v", srcid, data)
+	simplelogger.Debugf("[%d] status push: %d: %#v", d.CurTime, srcid, data)
 	srcnode := d.nodes[srcid]
 	if srcnode == nil {
 		simplelogger.Warnf("node not found: %d", srcid)
