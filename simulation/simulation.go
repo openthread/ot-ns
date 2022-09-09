@@ -187,6 +187,12 @@ func (s *Simulation) OnNodeRecover(nodeid NodeId) {
 	simplelogger.AssertNotNil(node)
 }
 
+func (s *Simulation) OnNodeProcessFailure(nodeid NodeId, errorMsg string) {
+	node := s.nodes[nodeid]
+	simplelogger.Fatalf("Node %v process failed: %v", node.Id, errorMsg)
+	node.Exit()
+}
+
 // OnUartWrite notifies the simulation that a node has received some data from UART.
 // It is part of implementation of dispatcher.CallbackHandler.
 func (s *Simulation) OnUartWrite(nodeid NodeId, data []byte) {

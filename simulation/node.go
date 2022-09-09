@@ -61,6 +61,7 @@ const (
 	NodeUartTypeUndefined   NodeUartType = iota
 	NodeUartTypeRealTime    NodeUartType = iota
 	NodeUartTypeVirtualTime NodeUartType = iota
+	NodeUartTypeErrors      NodeUartType = iota
 )
 
 func newNode(s *Simulation, id NodeId, cfg *NodeConfig) (*Node, error) {
@@ -112,6 +113,8 @@ func newNode(s *Simulation, id NodeId, cfg *NodeConfig) (*Node, error) {
 
 	go node.lineReader(node.pipeOut, NodeUartTypeRealTime)
 	go node.lineReader(node.virtualUartReader, NodeUartTypeVirtualTime)
+	go node.lineReader(node.pipeErr, NodeUartTypeErrors)
+
 	return node, nil
 }
 
@@ -593,7 +596,9 @@ func (node *Node) lineReader(reader io.Reader, uartType NodeUartType) {
 	for scanner.Scan() {
 		line := scanner.Text()
 
-		if node.uartType == NodeUartTypeUndefined {
+		if uartType == NodeUartTypeErrors {
+			node.S.OnNodeProcessFailure(node.Id, line)
+		} else if node.uartType == NodeUartTypeUndefined {
 			simplelogger.Debugf("%v's UART type is %v", node, uartType)
 			node.uartType = uartType
 		}
