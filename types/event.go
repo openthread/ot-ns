@@ -127,30 +127,34 @@ func (e *Event) Deserialize(data []byte) {
 	e.Delay = binary.LittleEndian.Uint64(data[:8])
 	e.Type = data[8]
 	datalen := binary.LittleEndian.Uint16(data[9:11])
+	var payloadOffset uint16 = 0
 	simplelogger.AssertTrue(datalen == uint16(n-EventMsgHeaderLen))
-	data2 := make([]byte, datalen)
-	copy(data2, data[EventMsgHeaderLen:n])
-	e.Data = data2
+	e.Data = data[EventMsgHeaderLen:]
 
 	// Detect composite event types
 	switch e.Type {
 	case EventTypeRadioTx:
-		e.DeserializeRadioTxEvent()
+		e.TxData = deserializeRadioTxData(e.Data)
+		payloadOffset += TxEventDataHeaderLen
 	default:
 		break
 	}
+
+	data2 := make([]byte, datalen-payloadOffset)
+	copy(data2, e.Data[payloadOffset:])
+	e.Data = data2
+
 	// e.Timestamp is not in the event, so set to invalid initially.
 	e.Timestamp = math.MaxUint64
 }
 
 // DeserializeRadioTxEvent deserializes the specific extra TxEvent parameters that are provided in the
 // RadioTx event.
-func (e *Event) DeserializeRadioTxEvent() {
-	n := len(e.Data)
-	if n < TxEventDataHeaderLen {
-		simplelogger.Panicf("Event.DeserializeRadioTxEvent() message length too short: %d", n)
-	}
-	e.TxData = TxEventData{Channel: e.Data[0], TxPower: int8(e.Data[1]), CcaEdTresh: int8(e.Data[2])}
+func deserializeRadioTxData(data []byte) TxEventData {
+	n := len(data)
+	simplelogger.AssertTrue(n >= TxEventDataHeaderLen)
+	txData := TxEventData{Channel: data[0], TxPower: int8(data[1]), CcaEdTresh: int8(data[2])}
+	return txData
 }
 
 func serializeRadioRxData(rxData RxEventData) []byte {
