@@ -8,27 +8,33 @@ import (
 )
 
 // IEEE 802.15.4-2015 O-QPSK PHY
-const symbolTimeUs uint64 = 16
-const symbolsPerOctet = 2
-const aMaxSifsFrameSize = 18 // as defined in IEEE 802.15.4-2015
-const phyHeaderSize = 6
-const ccaTimeUs = symbolTimeUs * 8
-const aifsTimeUs = symbolTimeUs * 12
-const lifsTimeUs = symbolTimeUs * 20
-const sifsTimeUs = symbolTimeUs * 12
+const (
+	symbolTimeUs      uint64 = 16
+	symbolsPerOctet          = 2
+	aMaxSifsFrameSize        = 18 // as defined in IEEE 802.15.4-2015
+	phyHeaderSize            = 6
+	ccaTimeUs                = symbolTimeUs * 8
+	aifsTimeUs               = symbolTimeUs * 12
+	lifsTimeUs               = symbolTimeUs * 20
+	sifsTimeUs               = symbolTimeUs * 12
+)
 
 // default radio parameters
-const receiveSensitivityDbm = -100        // TODO for now MUST be manually kept equal to OT: SIM_RECEIVE_SENSITIVITY
-const txPowerDbm = 0                      // Default, event msg Param1 will override it. OT: SIM_TX_POWER
-const ccaEdThresholdDbm = -91             // Default, event msg Param2 will override it. OT: SIM_CCA_ENERGY_DETECT_THRESHOLD
-const radioRangeIndoorDistInMeters = 37.0 // Handtuned - for indoor model, how many meters r is RadioRange disc until Link
-// quality drops below 1.
+const (
+	receiveSensitivityDbm        = -100 // TODO for now MUST be manually kept equal to OT: SIM_RECEIVE_SENSITIVITY
+	DefaultTxPowerDbm            = 0    // Default, RadioTxEvent msg will override it. OT: SIM_TX_POWER
+	DefaultCcaEdThresholdDbm     = -91  // Default, RadioTxEvent msg will override it. OT: SIM_CCA_ENERGY_DETECT_THRESHOLD
+	radioRangeIndoorDistInMeters = 37.0 // Handtuned - for indoor model, how many meters r is RadioRange disc until Link
+	// quality drops below 1.
+)
 
 // RSSI parameter encodings
-const RssiInvalid = 127
-const RssiMax = 126
-const RssiMin = -126
-const RssiMinusInfinity = -127
+const (
+	RssiInvalid       = 127
+	RssiMax           = 126
+	RssiMin           = -126
+	RssiMinusInfinity = -127
+)
 
 // EventQueue is the abstraction of the queue where the radio model sends its outgoing (new) events to.
 type EventQueue interface {

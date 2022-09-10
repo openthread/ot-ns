@@ -67,6 +67,14 @@ func (sq sendQueue) NextTimestamp() uint64 {
 	}
 }
 
+func (sq sendQueue) NextEvent() *Event {
+	if len(sq.q) > 0 {
+		return sq.q[0]
+	} else {
+		return nil
+	}
+}
+
 func (sq *sendQueue) Add(timestamp uint64, id NodeId, data []byte) {
 	heap.Push(sq, &Event{
 		Timestamp: timestamp,

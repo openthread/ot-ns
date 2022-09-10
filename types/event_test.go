@@ -78,6 +78,21 @@ func TestSerializeRadioRxEvent(t *testing.T) {
 	assert.Equal(t, dataExpected, data)
 }
 
+func TestSerializeRadioTxDoneEvent(t *testing.T) {
+	dataExpected, _ := hex.DecodeString("04030201000000001202000b00")
+	evData := TxDoneEventData{
+		Channel: 11,
+		Error:   OT_ERROR_NONE,
+	}
+	ev := &Event{
+		Delay:      16909060,
+		Type:       EventTypeRadioTxDone,
+		TxDoneData: evData,
+	}
+	data := ev.Serialize()
+	assert.Equal(t, dataExpected, data)
+}
+
 func TestEventCopy(t *testing.T) {
 	ev := &Event{
 		Type:  EventTypeRadioTxDone,

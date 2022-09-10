@@ -29,8 +29,11 @@ package types
 import (
 	"encoding/binary"
 
+	"fmt"
 	"github.com/simonlingoogle/go-simplelogger"
 	"math"
+	"strings"
+	"unicode"
 )
 
 type eventType = uint8
@@ -46,11 +49,17 @@ const (
 	EventTypeRadioRx          eventType = 16 // Rx of frame from OTNS to OT-node with additional status info
 	EventTypeRadioTx          eventType = 17 // Tx of frame from OT-node to OTNS
 	EventTypeRadioTxDone      eventType = 18 // Tx-done signal from OTNS to OT-node
+	EventTypePing             eventType = 19 // Ping from OTNS to OT-node
 
 	// Internal radiomodel events
 	EventTypeRadioTxOngoing eventType = 128
 )
 
+const (
+	InvalidTimestamp uint64 = math.MaxUint64
+)
+
+// Basic event format also used by legacy OT nodes.
 const EventMsgHeaderLen = 11 // from OT platform-simulation.h struct Event { }
 type Event struct {
 	Delay uint64
@@ -64,6 +73,14 @@ type Event struct {
 	TxData     TxEventData
 	RxData     RxEventData
 	TxDoneData TxDoneEventData
+	AlarmData  AlarmEventData
+}
+
+// All further ...EventData formats below only used by OT nodes supporting advanced
+// RF simulation.
+const AlarmDataHeaderLen = 8 // from OT platform-simulation.h struct
+type AlarmEventData struct {
+	MsgId uint64
 }
 
 const TxEventDataHeaderLen = 3 // from OT platform-simulation.h struct
@@ -102,6 +119,8 @@ func (e *Event) Serialize() []byte {
 	switch e.Type {
 	case EventTypeRadioRx:
 		extraFields = serializeRadioRxData(e.RxData)
+	case EventTypeRadioTxDone:
+		extraFields = serializeRadioTxDoneData(e.TxDoneData)
 	default:
 		break
 	}
@@ -133,6 +152,10 @@ func (e *Event) Deserialize(data []byte) {
 
 	// Detect composite event types
 	switch e.Type {
+	case EventTypeAlarmFired:
+		if len(e.Data) >= 8 {
+			e.AlarmData = AlarmEventData{MsgId: binary.LittleEndian.Uint64(e.Data[:8])}
+		}
 	case EventTypeRadioTx:
 		e.TxData = deserializeRadioTxData(e.Data)
 		payloadOffset += TxEventDataHeaderLen
@@ -145,7 +168,7 @@ func (e *Event) Deserialize(data []byte) {
 	e.Data = data2
 
 	// e.Timestamp is not in the event, so set to invalid initially.
-	e.Timestamp = math.MaxUint64
+	e.Timestamp = InvalidTimestamp
 }
 
 // DeserializeRadioTxEvent deserializes the specific extra TxEvent parameters that are provided in the
@@ -165,8 +188,33 @@ func serializeRadioRxData(rxData RxEventData) []byte {
 	return b
 }
 
+func serializeRadioTxDoneData(txDoneData TxDoneEventData) []byte {
+	b := []byte{0, 0}
+	b[0] = txDoneData.Channel
+	b[1] = txDoneData.Error
+	return b
+}
+
 // Copy creates a (struct) copy of the Event.
 func (e Event) Copy() Event {
 	newEv := e
 	return newEv
+}
+
+func (e *Event) String() string {
+	paylStr := ""
+	if len(e.Data) > 0 {
+		paylStr = fmt.Sprintf(",payl=%v", keepPrintableChars(string(e.Data)))
+	}
+	s := fmt.Sprintf("Ev{%2d,dly=%v%v}", e.Type, e.Delay, paylStr)
+	return s
+}
+
+func keepPrintableChars(s string) string {
+	return strings.Map(func(r rune) rune {
+		if unicode.IsPrint(r) {
+			return r
+		}
+		return -1
+	}, s)
 }

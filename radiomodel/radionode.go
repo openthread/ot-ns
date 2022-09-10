@@ -46,8 +46,8 @@ type RadioNode struct {
 
 func NewRadioNode(cfg *NodeConfig) *RadioNode {
 	rn := &RadioNode{
-		TxPower:       txPowerDbm,
-		CcaEdThresh:   ccaEdThresholdDbm,
+		TxPower:       DefaultTxPowerDbm,
+		CcaEdThresh:   DefaultCcaEdThresholdDbm,
 		RxSensitivity: receiveSensitivityDbm,
 		X:             float64(cfg.X),
 		Y:             float64(cfg.Y),

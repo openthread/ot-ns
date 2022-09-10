@@ -84,7 +84,7 @@ type Node struct {
 	joinerState   OtJoinerState
 	joinerSession *joinerSession
 	joinResults   []*JoinResult
-	msgId         uint64
+	isLegacy      bool // set to true for legacy OT node not supporting EventTypeRadioTx
 }
 
 func newNode(d *Dispatcher, nodeid NodeId, cfg *NodeConfig) *Node {
@@ -104,7 +104,6 @@ func newNode(d *Dispatcher, nodeid NodeId, cfg *NodeConfig) *Node {
 		radioRange:  cfg.RadioRange,
 		radioNode:   radiomodel.NewRadioNode(cfg),
 		joinerState: OtJoinerStateIdle,
-		msgId:       0,
 	}
 
 	nc.failureCtrl = newFailureCtrl(nc, NonFailTime)
@@ -116,30 +115,38 @@ func (node *Node) String() string {
 	return fmt.Sprintf("Node<%016x@%d,%d>", node.ExtAddr, node.X, node.Y)
 }
 
-// SendEvent sends Event evt serialized to the node, over UDP.
-// Modifies the evt.Delay value based on the target node's CurTime, and updates other Event members too
-// for bookkeeping purposes.
+// SendEvent sends Event evt serialized to the node, over UDP. If evt.Timestamp != InvalidTimestamp,
+// it uses the valid timestamp and modifies the evt.Delay value based on the target node's CurTime,
+// and may update other Event fields too for bookkeeping purposes.
 func (node *Node) sendEvent(evt *Event) {
 	evt.NodeId = node.Id
 	oldTime := node.CurTime
-	evt.Delay = evt.Timestamp - oldTime // compute Delay value for this target node.
-	node.msgId++
-	// FIXME evt.MsgId = node.msgId
+	if evt.Timestamp != InvalidTimestamp {
+		simplelogger.AssertTrue(evt.Timestamp == node.D.CurTime)
+		if evt.Timestamp >= oldTime {
+			evt.Delay = evt.Timestamp - oldTime // compute Delay value for this target node.
+		} else {
+			evt.Delay = 0 // node can't go back in time.
+		}
+	}
 	// time keeping - move node's time to the current send-event's time.
-	simplelogger.AssertTrue(evt.Timestamp == node.D.CurTime)
-	node.sendRawData(evt.Serialize())
-	node.CurTime = evt.Timestamp
-	if evt.Timestamp > oldTime {
+	node.D.setAlive(node.Id)
+	node.D.alarmMgr.SetNotified(node.Id)
+	node.CurTime += evt.Delay
+	simplelogger.AssertTrue(evt.Delay == 0 || node.CurTime >= node.D.CurTime)
+	if evt.Timestamp > oldTime && evt.Delay > 0 {
 		node.failureCtrl.OnTimeAdvanced(oldTime)
 	}
-	node.D.alarmMgr.SetNotified(node.Id)
-	node.D.setAlive(node.Id)
+	//simplelogger.Debugf("N%v sendEvent -> %v", node.Id, evt.String())
+	node.sendRawData(evt.Serialize())
 }
 
 // sendRawData is INTERNAL to send bytes to UDP socket of node
 func (node *Node) sendRawData(msg []byte) {
 	if node.peerAddr != nil {
-		_, _ = node.D.udpln.WriteToUDP(msg, node.peerAddr)
+		n, err := node.D.udpln.WriteToUDP(msg, node.peerAddr)
+		simplelogger.AssertTrue(len(msg) == n)
+		simplelogger.AssertNil(err, "WriteToUDP error: %v", err)
 	} else {
 		simplelogger.Errorf("%s does not have a peer address", node)
 	}
