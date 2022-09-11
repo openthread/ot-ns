@@ -281,14 +281,15 @@ func (d *Dispatcher) goUntilPauseTime() {
 		// keep receiving events from OT nodes until all are asleep i.e. will not produce more events.
 		d.RecvEvents()
 		d.syncAliveNodes() // normally there should not be any alive nodes anymore.
-		d.syncLegacyNodes()
 
-		// all are asleep now - process the next Events in queue, either alarm or other type, for a single time.
-		goon := d.processNextEvent()
-		simplelogger.AssertTrue(d.CurTime <= d.pauseTime)
+		if len(d.aliveNodes) == 0 {
+			// all are asleep now - process the next Events in queue, either alarm or other type, for a single time.
+			goon := d.processNextEvent()
+			simplelogger.AssertTrue(d.CurTime <= d.pauseTime)
 
-		if !goon && len(d.aliveNodes) == 0 {
-			d.advanceTime(d.pauseTime) // if nothing more to do before d.pauseTime.
+			if !goon && len(d.aliveNodes) == 0 {
+				d.advanceTime(d.pauseTime) // if nothing more to do before d.pauseTime.
+			}
 		}
 	}
 }
@@ -297,9 +298,6 @@ func (d *Dispatcher) goUntilPauseTime() {
 // It may only process events immediately that do not have timing implications on the simulation correctness;
 // e.g. like visualization events or UART messages for setup of new nodes.
 func (d *Dispatcher) handleRecvEvent(evt *Event) {
-	if d.stopped {
-		return
-	}
 	nodeid := evt.NodeId
 	if _, ok := d.nodes[nodeid]; !ok {
 		if !d.isDeleted(nodeid) {
@@ -317,7 +315,7 @@ func (d *Dispatcher) handleRecvEvent(evt *Event) {
 	}
 
 	// time keeping: infer abs time this event should happen, from the delta Delay given.
-	evt.Timestamp = node.CurTime + evt.Delay // infer Timestamp for ext recv event.
+	evt.Timestamp = d.CurTime + evt.Delay // infer Timestamp for ext recv event.
 	evtTime := evt.Timestamp
 	if evt.Delay >= 2147483647 {
 		evtTime = Ever
@@ -382,7 +380,6 @@ func (d *Dispatcher) processNextEvent() bool {
 	// fetch time of next alarm/normal event
 	nextAlarmTime := d.alarmMgr.NextTimestamp()
 	nextSendTime := d.evtQueue.NextTimestamp()
-	simplelogger.Debugf("1_D:%v nA%v nS%v", d.CurTime, d.alarmMgr.NextAlarm(), d.evtQueue.NextEvent())
 	nextEventTime := nextAlarmTime
 	if nextAlarmTime > nextSendTime {
 		nextEventTime = nextSendTime
@@ -429,7 +426,6 @@ func (d *Dispatcher) processNextEvent() bool {
 		return false
 	}
 
-	simplelogger.Debugf("2_D:%v nA%v nS%v", d.CurTime, d.alarmMgr.NextAlarm(), d.evtQueue.NextEvent())
 	simplelogger.AssertTrue(nextAlarmTime >= d.CurTime && nextSendTime >= d.CurTime, "d.CurTime=%v nextAlarmTime=%v nextSendTime=%v", d.CurTime, nextAlarmTime, nextSendTime)
 	var procUntilTime uint64 = nextEventTime + ProcessEventTimeErrorUs
 
@@ -452,7 +448,6 @@ func (d *Dispatcher) processNextEvent() bool {
 			// processed, so this node can now be actively time-advanced until current event's/dispatcher's time.
 			d.advanceNodeTime(nextAlarm.NodeId, nextAlarmTime, false)
 			// above marks the node as alive. It also enables the OT node to perform any tasks.
-			simplelogger.Debugf("3_D:%v nA%v nS%v", d.CurTime, d.alarmMgr.NextAlarm(), d.evtQueue.NextEvent())
 		} else {
 			// process the next queued non-alarm Event; similar to above alarm event.
 			evt := d.evtQueue.PopNext()
@@ -464,7 +459,6 @@ func (d *Dispatcher) processNextEvent() bool {
 			if d.isWatching(evt.NodeId) {
 				simplelogger.Infof("Dispat <<< %+v, new node time %d", *evt, node.CurTime)
 			}
-			simplelogger.Debugf("4_D:%v nA%v nS%v", d.CurTime, d.alarmMgr.NextAlarm(), d.evtQueue.NextEvent())
 
 			// execute the event - it may originate from the radioModel, or from an OT-node.
 			switch evt.Type {
@@ -505,7 +499,6 @@ func (d *Dispatcher) processNextEvent() bool {
 
 		nextAlarmTime = d.alarmMgr.NextTimestamp()
 		nextSendTime = d.evtQueue.NextTimestamp()
-		simplelogger.Debugf("5_D:%v nA%v nS%v", d.CurTime, d.alarmMgr.NextAlarm(), d.evtQueue.NextEvent())
 	} // for
 	return len(d.nodes) > 0
 }

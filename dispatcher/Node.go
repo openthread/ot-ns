@@ -121,20 +121,22 @@ func (node *Node) String() string {
 func (node *Node) sendEvent(evt *Event) {
 	evt.NodeId = node.Id
 	oldTime := node.CurTime
-	if evt.Timestamp != InvalidTimestamp {
-		simplelogger.AssertTrue(evt.Timestamp == node.D.CurTime)
-		if evt.Timestamp >= oldTime {
-			evt.Delay = evt.Timestamp - oldTime // compute Delay value for this target node.
-		} else {
-			evt.Delay = 0 // node can't go back in time.
-		}
+	if evt.Timestamp == InvalidTimestamp {
+		evt.Timestamp = node.D.CurTime
 	}
+	simplelogger.AssertTrue(evt.Timestamp == node.D.CurTime)
+	if evt.Timestamp >= oldTime {
+		evt.Delay = evt.Timestamp - oldTime // compute Delay value for this target node.
+	} else {
+		evt.Delay = 0 // node can't go back in time.
+	}
+
 	// time keeping - move node's time to the current send-event's time.
 	node.D.setAlive(node.Id)
 	node.D.alarmMgr.SetNotified(node.Id)
 	node.CurTime += evt.Delay
-	simplelogger.AssertTrue(evt.Delay == 0 || node.CurTime >= node.D.CurTime)
-	if evt.Timestamp > oldTime && evt.Delay > 0 {
+	simplelogger.AssertTrue(evt.Delay == 0 || node.CurTime == node.D.CurTime)
+	if evt.Timestamp > oldTime {
 		node.failureCtrl.OnTimeAdvanced(oldTime)
 	}
 	//simplelogger.Debugf("N%v sendEvent -> %v", node.Id, evt.String())
