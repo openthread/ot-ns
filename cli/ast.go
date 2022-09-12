@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2022, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -60,6 +60,7 @@ type Command struct {
 	Speed               *SpeedCmd               `| @@` //nolint
 	Title               *TitleCmd               `| @@` //nolint
 	Web                 *WebCmd                 `| @@` //nolint
+	Energy              *EnergyCmd              `| @@` //nolint
 }
 
 // noinspection GoStructTag
@@ -327,7 +328,19 @@ type WebCmd struct {
 	Cmd struct{} `"web"` //nolint
 }
 
-// noinspection GoStructTag
+//noinspection GoStructTag
+type EnergyCmd struct {
+	Cmd  struct{}  `"energy"` //nolint
+	Save *SaveFlag `( @@ )?`  //nolint
+	Name string    `@String?` //nolint
+}
+
+//noinspection GoStructTag
+type SaveFlag struct {
+	Dummy struct{} `"save"` //nolint
+}
+
+//noinspection GoStructTag
 type RadioCmd struct {
 	Cmd      struct{}        `"radio"` //nolint
 	Nodes    []NodeSelector  `( @@ )+` //nolint

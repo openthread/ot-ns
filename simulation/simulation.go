@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2022, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -31,6 +31,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/openthread/ot-ns/energy"
 	"github.com/openthread/ot-ns/progctx"
 
 	"github.com/openthread/ot-ns/dispatcher"
@@ -41,14 +42,15 @@ import (
 )
 
 type Simulation struct {
-	ctx         *progctx.ProgCtx
-	cfg         *Config
-	nodes       map[NodeId]*Node
-	d           *dispatcher.Dispatcher
-	vis         visualize.Visualizer
-	cmdRunner   CmdRunner
-	rawMode     bool
-	networkInfo visualize.NetworkInfo
+	ctx            *progctx.ProgCtx
+	cfg            *Config
+	nodes          map[NodeId]*Node
+	d              *dispatcher.Dispatcher
+	vis            visualize.Visualizer
+	cmdRunner      CmdRunner
+	rawMode        bool
+	networkInfo    visualize.NetworkInfo
+	energyAnalyser *energy.EnergyAnalyser
 }
 
 func NewSimulation(ctx *progctx.ProgCtx, cfg *Config, dispatcherCfg *dispatcher.Config) (*Simulation, error) {
@@ -77,6 +79,10 @@ func NewSimulation(ctx *progctx.ProgCtx, cfg *Config, dispatcherCfg *dispatcher.
 	if err := s.removeTmpDir(); err != nil {
 		simplelogger.Panicf("remove tmp directory failed: %+v", err)
 	}
+
+	//TODO add a flag to turn on/off the energy analyzer
+	s.energyAnalyser = energy.NewEnergyAnalyser()
+	s.d.SetEnergyAnalyser(s.energyAnalyser)
 
 	return s, nil
 }
@@ -274,6 +280,7 @@ func (s *Simulation) IsStopped() bool {
 
 func (s *Simulation) SetTitleInfo(titleInfo visualize.TitleInfo) {
 	s.vis.SetTitle(titleInfo)
+	s.energyAnalyser.SetTitle(titleInfo.Title)
 }
 
 func (s *Simulation) SetCmdRunner(cmdRunner CmdRunner) {
@@ -288,4 +295,8 @@ func (s *Simulation) GetNetworkInfo() visualize.NetworkInfo {
 func (s *Simulation) SetNetworkInfo(networkInfo visualize.NetworkInfo) {
 	s.networkInfo = networkInfo
 	s.vis.SetNetworkInfo(networkInfo)
+}
+
+func (s *Simulation) GetEnergyAnalyser() *energy.EnergyAnalyser {
+	return s.energyAnalyser
 }
