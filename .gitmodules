@@ -1,4 +1,3 @@
 [submodule "openthread"]
 	path = openthread
-	url = https://github.com/EskoDijk/openthread.git
-	branch = pr-rf-simulator
+	url = https://github.com/openthread/openthread.git
