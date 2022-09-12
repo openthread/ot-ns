@@ -302,7 +302,7 @@ func (d *Dispatcher) handleRecvEvent(evt *Event) {
 	if _, ok := d.nodes[nodeid]; !ok {
 		if !d.isDeleted(nodeid) {
 			// can not find the node, and the node is not registered (created by OTNS)
-			simplelogger.Warnf("unexpected Event (type %v) received from Node %v", evt.Type, evt.NodeId)
+			simplelogger.Warnf("Event (type %v) received from unknown Node %v, discarding.", evt.Type, evt.NodeId)
 		}
 		return
 	}
@@ -453,45 +453,48 @@ func (d *Dispatcher) processNextEvent() bool {
 			// process the next queued non-alarm Event; similar to above alarm event.
 			evt := d.evtQueue.PopNext()
 			node := d.nodes[evt.NodeId]
-			simplelogger.AssertNotNil(node)
-			simplelogger.AssertTrue(evt.Timestamp == nextSendTime)
-			d.advanceTime(nextSendTime)
+			if node != nil {
+				simplelogger.AssertTrue(evt.Timestamp == nextSendTime)
+				d.advanceTime(nextSendTime)
 
-			if d.isWatching(evt.NodeId) {
-				simplelogger.Infof("Dispat <<< %+v, new node time %d", *evt, node.CurTime)
-			}
+				if d.isWatching(evt.NodeId) {
+					simplelogger.Infof("Dispat <<< %+v, new node time %d", *evt, node.CurTime)
+				}
 
-			// execute the event - it may originate from the radioModel, or from an OT-node.
-			switch evt.Type {
-			case EventTypeRadioRx:
-				if !d.cfg.NoPcap {
-					d.pcapFrameChan <- pcapFrameItem{nextSendTime, evt.Data[RadioMessagePsduOffset:]}
+				// execute the event - it may originate from the radioModel, or from an OT-node.
+				switch evt.Type {
+				case EventTypeRadioRx:
+					if !d.cfg.NoPcap {
+						d.pcapFrameChan <- pcapFrameItem{nextSendTime, evt.Data[RadioMessagePsduOffset:]}
+					}
+					if d.cfg.DumpPackets {
+						d.dumpPacket(evt)
+					}
+					d.sendRadioFrameEventToNodes(evt)
+				case EventTypeRadioTxDone:
+					if !node.isLegacy {
+						d.sendTxDoneEvent(evt)
+					} else {
+						d.sendEchoTxDoneEvent(evt)
+					}
+				case EventTypeRadioReceived: // legacy OT node frame transmission
+					node.isLegacy = true
+					// augment the data that is not present in a legacy tx event
+					evt.Type = EventTypeRadioTx
+					evt.TxData = TxEventData{
+						CcaEdTresh: radiomodel.DefaultCcaEdThresholdDbm,
+						TxPower:    radiomodel.DefaultTxPowerDbm,
+						Channel:    evt.Data[0],
+					}
+					fallthrough
+				case EventTypeRadioTx:
+					d.Counters.RadioEvents += 1
+					fallthrough
+				default: // radioModel may define its own internal events, handled by the queue.
+					d.radioModel.HandleEvent(node.radioNode, d.evtQueue, evt)
 				}
-				if d.cfg.DumpPackets {
-					d.dumpPacket(evt)
-				}
-				d.sendRadioFrameEventToNodes(evt)
-			case EventTypeRadioTxDone:
-				if !node.isLegacy {
-					d.sendTxDoneEvent(evt)
-				} else {
-					d.sendEchoTxDoneEvent(evt)
-				}
-			case EventTypeRadioReceived: // legacy OT node frame transmission
-				node.isLegacy = true
-				// augment the data that is not present in a legacy tx event
-				evt.Type = EventTypeRadioTx
-				evt.TxData = TxEventData{
-					CcaEdTresh: radiomodel.DefaultCcaEdThresholdDbm,
-					TxPower:    radiomodel.DefaultTxPowerDbm,
-					Channel:    evt.Data[0],
-				}
-				fallthrough
-			case EventTypeRadioTx:
-				d.Counters.RadioEvents += 1
-				fallthrough
-			default: // radioModel may define its own internal events, handled by the queue.
-				d.radioModel.HandleEvent(node.radioNode, d.evtQueue, evt)
+			} else {
+				simplelogger.Debugf("processNextEvent() skipping event for deleted/unknown node: ", evt.NodeId)
 			}
 		}
 
@@ -568,7 +571,12 @@ func (d *Dispatcher) SendToUART(id NodeId, data []byte) {
 		Data:      data,
 		NodeId:    id,
 	}
-	d.nodes[id].sendEvent(evt)
+	dstnode := d.nodes[id]
+	if dstnode != nil {
+		dstnode.sendEvent(evt)
+	} else {
+		simplelogger.Debugf("SendToUART() failed to send to deleted/unknown node: %v", id)
+	}
 }
 
 // sendRadioFrameEventToNodes sends RadioFrame Event to all neighbor nodes, reachable by radio by dispatching
@@ -577,14 +585,7 @@ func (d *Dispatcher) sendRadioFrameEventToNodes(evt *Event) {
 	simplelogger.AssertTrue(evt.Type == EventTypeRadioRx)
 	srcnodeid := evt.NodeId
 	srcnode := d.nodes[srcnodeid]
-	if srcnode == nil {
-		if !d.isDeleted(srcnodeid) {
-			simplelogger.Errorf("%s: node %d not found", d, srcnodeid)
-		}
-		return
-	}
-
-	if srcnode.isFailed {
+	if srcnode == nil || srcnode.isFailed {
 		return
 	}
 
@@ -668,9 +669,16 @@ func (d *Dispatcher) sendEchoTxDoneEvent(evt *Event) {
 	evt.Type = EventTypeRadioReceived
 	dstnodeid := evt.NodeId
 	simplelogger.AssertTrue(dstnodeid > 0)
-	dstnode := d.GetNode(dstnodeid)
+	dstnode := d.nodes[dstnodeid]
+	if dstnode == nil {
+		return
+	}
 	simplelogger.AssertTrue(dstnode.isLegacy)
 	dstnode.sendEvent(evt)
+
+	if d.isWatching(dstnodeid) {
+		simplelogger.Infof("Node %d >>> TX DONE (Echo), %+v", dstnodeid, *evt)
+	}
 }
 
 // sendTxDoneEvent sends the Tx done Event to node when Tx of frame is done and the Rx of the Ack can start.
@@ -678,12 +686,11 @@ func (d *Dispatcher) sendTxDoneEvent(evt *Event) {
 	simplelogger.AssertTrue(evt.Type == EventTypeRadioTxDone)
 	dstnodeid := evt.NodeId
 	simplelogger.AssertTrue(dstnodeid > 0)
-	dstnode := d.GetNode(dstnodeid)
-	if dstnode == nil && d.isDeleted(dstnodeid) {
+	dstnode := d.nodes[dstnodeid]
+	if dstnode == nil {
 		return
 	}
-	simplelogger.AssertNotNil(dstnode)
-
+	simplelogger.AssertFalse(dstnode.isLegacy)
 	dstnode.sendEvent(evt)
 
 	if d.isWatching(dstnodeid) {
@@ -792,15 +799,6 @@ func (d *Dispatcher) syncAllNodes() {
 	}
 }
 
-// syncLegacyNodes advances legacy node's time to current dispatcher time.
-func (d *Dispatcher) syncLegacyNodes() {
-	for nodeid, node := range d.nodes {
-		if node.isLegacy {
-			d.advanceNodeTime(nodeid, d.CurTime, false)
-		}
-	}
-}
-
 func (d *Dispatcher) pcapFrameWriter() {
 	d.waitGroup.Add(1)
 	defer d.waitGroup.Done()
@@ -833,7 +831,6 @@ func (d *Dispatcher) handleStatusPush(srcid NodeId, data string) {
 	simplelogger.Debugf("status push: %d: %#v", srcid, data)
 	srcnode := d.nodes[srcid]
 	if srcnode == nil {
-		simplelogger.Warnf("node not found: %d", srcid)
 		return
 	}
 
@@ -1298,11 +1295,7 @@ func (d *Dispatcher) dumpPacket(item *Event) {
 
 func (d *Dispatcher) setNodeRole(id NodeId, role OtDeviceRole) {
 	node := d.nodes[id]
-	if node == nil {
-		simplelogger.Warnf("setNodeRole: node %d not found", id)
-		return
-	}
-
+	simplelogger.AssertNotNil(node)
 	node.Role = role
 	d.vis.SetNodeRole(id, role)
 }
