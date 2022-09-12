@@ -33,7 +33,7 @@ from OTNSTestCase import OTNSTestCase
 tracemalloc.start()
 
 
-class BasicTests(OTNSTestCase):
+class PingTests(OTNSTestCase):
 
     def testPing(self):
         ns = self.ns
@@ -53,6 +53,36 @@ class BasicTests(OTNSTestCase):
 
         self.assertFalse(ns.pings())
 
+    def testPingLineTopology(self):
+        ns = self.ns
+        pingDelays = []
+        pingDataSize = 128
+
+        for i in range(10):
+            ns.add("router", i*120, 0)
+        ns.go(600)
+
+        for i in range(100):
+            ns.ping(1, 10, datasize=pingDataSize)
+            ns.ping(10, 1, datasize=pingDataSize)
+            ns.go(11)
+
+        pings = ns.pings()
+        self.assertTrue(pings)
+        for srcid, dst, datasize, delay in pings:
+            self.assertTrue(srcid in (1, 10))
+            self.assertTrue(datasize == pingDataSize)
+            pingDelays.append(delay)
+
+        self.assertFalse(ns.pings())
+
+        pingSuccess = 1.0 - (pingDelays.count(10000) / len(pingDelays))
+        pingDelays = list(filter(lambda a: a < 10000, pingDelays))
+        pingAvg = sum(pingDelays) / len(pingDelays)
+
+        print("Ping success rate   : ", pingSuccess)
+        print("Average ping latency: ", pingAvg)
+        self.assertTrue(pingAvg < 150 and pingSuccess > 0.8)
 
 if __name__ == '__main__':
     unittest.main()
