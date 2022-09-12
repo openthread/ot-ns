@@ -7,16 +7,20 @@ import (
 	"math/rand"
 )
 
+type ChannelId = uint8
+
 // IEEE 802.15.4-2015 O-QPSK PHY
 const (
-	symbolTimeUs      uint64 = 16
-	symbolsPerOctet          = 2
-	aMaxSifsFrameSize        = 18 // as defined in IEEE 802.15.4-2015
-	phyHeaderSize            = 6
-	ccaTimeUs                = symbolTimeUs * 8
-	aifsTimeUs               = symbolTimeUs * 12
-	lifsTimeUs               = symbolTimeUs * 20
-	sifsTimeUs               = symbolTimeUs * 12
+	symbolTimeUs      uint64    = 16
+	symbolsPerOctet             = 2
+	aMaxSifsFrameSize           = 18 // as defined in IEEE 802.15.4-2015
+	phyHeaderSize               = 6
+	ccaTimeUs                   = symbolTimeUs * 8
+	aifsTimeUs                  = symbolTimeUs * 12
+	lifsTimeUs                  = symbolTimeUs * 20
+	sifsTimeUs                  = symbolTimeUs * 12
+	minChannelNumber  ChannelId = 11
+	maxChannelNumber  ChannelId = 26
 )
 
 // default radio parameters
@@ -62,6 +66,9 @@ type RadioModel interface {
 
 	// GetName gets the display name of this RadioModel
 	GetName() string
+
+	// init initializes the RadioModel
+	init()
 }
 
 // Create creates a new RadioModel with given name, or nil if model not found.
@@ -88,10 +95,10 @@ func Create(modelName string) RadioModel {
 		}
 	case "MutualInterference":
 		model = &RadioModelMutualInterference{
-			ActiveTransmitters: make(map[NodeId]*RadioNode),
-			MinSirDb:           1, // minimum Signal-to-Interference (SIR) (dB) required to detect signal
+			MinSirDb: 1, // minimum Signal-to-Interference (SIR) (dB) required to detect signal
 		}
 	}
+	model.init()
 	return model
 }
 

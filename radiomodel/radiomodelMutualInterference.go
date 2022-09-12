@@ -10,7 +10,7 @@ import (
 // with all other transmitters in the simulation, regardless of distance. This means no 2 or more nodes
 // can transmit at the same time. It's useful to evaluate capacity-limited situations.
 type RadioModelMutualInterference struct {
-	ActiveTransmitters map[NodeId]*RadioNode
+	ActiveTransmitters map[ChannelId]map[NodeId]*RadioNode
 	MinSirDb           int
 }
 
@@ -155,9 +155,16 @@ func (rm *RadioModelMutualInterference) GetName() string {
 	return "MutualInterference"
 }
 
+func (rm *RadioModelMutualInterference) init() {
+	rm.ActiveTransmitters = map[ChannelId]map[NodeId]*RadioNode{}
+	for c := minChannelNumber; c <= maxChannelNumber; c++ {
+		rm.ActiveTransmitters[c] = map[NodeId]*RadioNode{}
+	}
+}
+
 func (rm *RadioModelMutualInterference) ccaDetectsBusy(node *RadioNode, evt *Event) bool {
 	// loop all active transmitters, see if any one transmits above my CCA ED Threshold.
-	for _, v := range rm.ActiveTransmitters {
+	for _, v := range rm.ActiveTransmitters[evt.TxData.Channel] {
 		rssi := rm.GetTxRssi(nil, v, node)
 		if rssi == RssiInvalid {
 			continue
@@ -170,22 +177,22 @@ func (rm *RadioModelMutualInterference) ccaDetectsBusy(node *RadioNode, evt *Eve
 }
 
 func (rm *RadioModelMutualInterference) startTransmission(node *RadioNode, evt *Event) {
-	_, nodeTransmits := rm.ActiveTransmitters[evt.NodeId]
+	_, nodeTransmits := rm.ActiveTransmitters[evt.TxData.Channel][evt.NodeId]
 	simplelogger.AssertFalse(nodeTransmits)
 
 	// mark what this new transmission will interfere with.
-	for id, interferingTransmitter := range rm.ActiveTransmitters {
+	for id, interferingTransmitter := range rm.ActiveTransmitters[evt.TxData.Channel] {
 		node.InterferedBy[id] = interferingTransmitter
 		interferingTransmitter.InterferedBy[evt.NodeId] = node
 	}
 
-	rm.ActiveTransmitters[evt.NodeId] = node
+	rm.ActiveTransmitters[evt.TxData.Channel][evt.NodeId] = node
 }
 
 func (rm *RadioModelMutualInterference) endTransmission(node *RadioNode, evt *Event) {
-	_, nodeTransmits := rm.ActiveTransmitters[evt.NodeId]
+	_, nodeTransmits := rm.ActiveTransmitters[evt.TxData.Channel][evt.NodeId]
 	simplelogger.AssertTrue(nodeTransmits)
-	delete(rm.ActiveTransmitters, evt.NodeId)
+	delete(rm.ActiveTransmitters[evt.TxData.Channel], evt.NodeId)
 
 	// set values for future transmission
 	node.TimeLastTxEnded = evt.Timestamp     // for data frames and ACKs

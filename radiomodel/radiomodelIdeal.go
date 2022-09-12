@@ -87,3 +87,7 @@ func (rm *RadioModelIdeal) HandleEvent(node *RadioNode, q EventQueue, evt *Event
 func (rm *RadioModelIdeal) GetName() string {
 	return rm.Name
 }
+
+func (rm *RadioModelIdeal) init() {
+	rm.Name = "Ideal"
+}
