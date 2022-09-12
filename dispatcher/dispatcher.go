@@ -374,6 +374,7 @@ loop:
 }
 
 // processNextEvent processes all next events from the internal alarmMgr/evtQueue queues for current time instant.
+// Returns true if the simulation needs to continue, or false if not (e.g. it's time to pause).
 func (d *Dispatcher) processNextEvent() bool {
 	simplelogger.AssertTrue(d.CurTime <= d.pauseTime)
 
@@ -473,15 +474,12 @@ func (d *Dispatcher) processNextEvent() bool {
 			case EventTypeRadioTxDone:
 				if !node.isLegacy {
 					d.sendTxDoneEvent(evt)
+				} else {
+					d.sendEchoTxDoneEvent(evt)
 				}
 			case EventTypeRadioReceived: // legacy OT node frame transmission
 				node.isLegacy = true
-				// send echo frame to source
-				evtEcho := evt.Copy()
-				evtEcho.Timestamp = InvalidTimestamp
-				evtEcho.Delay = 0
-				node.sendEvent(&evtEcho)
-
+				// augment the data that is not present in a legacy tx event
 				evt.Type = EventTypeRadioTx
 				evt.TxData = TxEventData{
 					CcaEdTresh: radiomodel.DefaultCcaEdThresholdDbm,
@@ -662,6 +660,17 @@ func (d *Dispatcher) sendRadioFrameEventToNodes(evt *Event) {
 
 func (d *Dispatcher) checkRadioReachable(evt *Event, src *Node, dst *Node) bool {
 	return d.radioModel.CheckRadioReachable(evt, src.radioNode, dst.radioNode)
+}
+
+// sendEchoTxDoneEvent sends a legacy type of Tx-done Event to a node, which is the
+// echo event - an exact copy of the RadioMessage to signal transmission is done.
+func (d *Dispatcher) sendEchoTxDoneEvent(evt *Event) {
+	evt.Type = EventTypeRadioReceived
+	dstnodeid := evt.NodeId
+	simplelogger.AssertTrue(dstnodeid > 0)
+	dstnode := d.GetNode(dstnodeid)
+	simplelogger.AssertTrue(dstnode.isLegacy)
+	dstnode.sendEvent(evt)
 }
 
 // sendTxDoneEvent sends the Tx done Event to node when Tx of frame is done and the Rx of the Ack can start.
