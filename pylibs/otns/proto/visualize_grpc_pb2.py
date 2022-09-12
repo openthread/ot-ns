@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=b'Z-github.com/openthread/ot-ns/visualize/grpc/pb',
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\x14visualize_grpc.proto\x12\x11visualize_grpc_pb\"\x12\n\x10VisualizeRequest\"\xb7\x0b\n\x0eVisualizeEvent\x12\x33\n\x08\x61\x64\x64_node\x18\x01 \x01(\x0b\x32\x1f.visualize_grpc_pb.AddNodeEventH\x00\x12\x39\n\x0b\x64\x65lete_node\x18\x02 \x01(\x0b\x32\".visualize_grpc_pb.DeleteNodeEventH\x00\x12@\n\x0fset_node_rloc16\x18\x03 \x01(\x0b\x32%.visualize_grpc_pb.SetNodeRloc16EventH\x00\x12<\n\rset_node_role\x18\x04 \x01(\x0b\x32#.visualize_grpc_pb.SetNodeRoleEventH\x00\x12:\n\x0cset_node_pos\x18\x05 \x01(\x0b\x32\".visualize_grpc_pb.SetNodePosEventH\x00\x12K\n\x15set_node_partition_id\x18\x06 \x01(\x0b\x32*.visualize_grpc_pb.SetNodePartitionIdEventH\x00\x12:\n\x0con_node_fail\x18\x07 \x01(\x0b\x32\".visualize_grpc_pb.OnNodeFailEventH\x00\x12@\n\x0fon_node_recover\x18\x08 \x01(\x0b\x32%.visualize_grpc_pb.OnNodeRecoverEventH\x00\x12\x37\n\nset_parent\x18\t \x01(\x0b\x32!.visualize_grpc_pb.SetParentEventH\x00\x12\x37\n\ncount_down\x18\n \x01(\x0b\x32!.visualize_grpc_pb.CountDownEventH\x00\x12\x42\n\x10show_demo_legend\x18\x0b \x01(\x0b\x32&.visualize_grpc_pb.ShowDemoLegendEventH\x00\x12;\n\x0c\x61\x64vance_time\x18\x0c \x01(\x0b\x32#.visualize_grpc_pb.AdvanceTimeEventH\x00\x12\x42\n\x10\x61\x64\x64_router_table\x18\r \x01(\x0b\x32&.visualize_grpc_pb.AddRouterTableEventH\x00\x12H\n\x13remove_router_table\x18\x0e \x01(\x0b\x32).visualize_grpc_pb.RemoveRouterTableEventH\x00\x12@\n\x0f\x61\x64\x64_child_table\x18\x0f \x01(\x0b\x32%.visualize_grpc_pb.AddChildTableEventH\x00\x12\x46\n\x12remove_child_table\x18\x10 \x01(\x0b\x32(.visualize_grpc_pb.RemoveChildTableEventH\x00\x12,\n\x04send\x18\x11 \x01(\x0b\x32\x1c.visualize_grpc_pb.SendEventH\x00\x12\x35\n\tset_speed\x18\x12 \x01(\x0b\x32 .visualize_grpc_pb.SetSpeedEventH\x00\x12\x36\n\theartbeat\x18\x13 \x01(\x0b\x32!.visualize_grpc_pb.HeartbeatEventH\x00\x12\x45\n\x12on_ext_addr_change\x18\x14 \x01(\x0b\x32\'.visualize_grpc_pb.OnExtAddrChangeEventH\x00\x12\x35\n\tset_title\x18\x15 \x01(\x0b\x32 .visualize_grpc_pb.SetTitleEventH\x00\x12<\n\rset_node_mode\x18\x16 \x01(\x0b\x32#.visualize_grpc_pb.SetNodeModeEventH\x00\x12\x42\n\x10set_network_info\x18\x17 \x01(\x0b\x32&.visualize_grpc_pb.SetNetworkInfoEventH\x00\x42\x06\n\x04type\"a\n\tSendEvent\x12\x0e\n\x06src_id\x18\x01 \x01(\x05\x12\x0e\n\x06\x64st_id\x18\x02 \x01(\x05\x12\x34\n\x07mv_info\x18\x03 \x01(\x0b\x32#.visualize_grpc_pb.MsgVisualizeInfo\"z\n\x10MsgVisualizeInfo\x12\x0f\n\x07\x63hannel\x18\x01 \x01(\r\x12\x15\n\rframe_control\x18\x02 \x01(\r\x12\x0b\n\x03seq\x18\x03 \x01(\r\x12\x16\n\x0e\x64st_addr_short\x18\x04 \x01(\r\x12\x19\n\x11\x64st_addr_extended\x18\x05 \x01(\x04\"8\n\x13\x41\x64\x64RouterTableEvent\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\x12\x10\n\x08\x65xt_addr\x18\x02 \x01(\x04\";\n\x16RemoveRouterTableEvent\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\x12\x10\n\x08\x65xt_addr\x18\x02 \x01(\x04\"7\n\x12\x41\x64\x64\x43hildTableEvent\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\x12\x10\n\x08\x65xt_addr\x18\x02 \x01(\x04\":\n\x15RemoveChildTableEvent\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\x12\x10\n\x08\x65xt_addr\x18\x02 \x01(\x04\"\x1e\n\rSetSpeedEvent\x12\r\n\x05speed\x18\x01 \x01(\x01\"\x10\n\x0eHeartbeatEvent\"-\n\x10\x41\x64vanceTimeEvent\x12\n\n\x02ts\x18\x01 \x01(\x04\x12\r\n\x05speed\x18\x02 \x01(\x01\"3\n\x0eSetParentEvent\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\x12\x10\n\x08\x65xt_addr\x18\x02 \x01(\x04\"3\n\x0e\x43ountDownEvent\x12\x13\n\x0b\x64uration_ms\x18\x01 \x01(\x03\x12\x0c\n\x04text\x18\x02 \x01(\t\":\n\x13ShowDemoLegendEvent\x12\t\n\x01x\x18\x01 \x01(\x05\x12\t\n\x01y\x18\x02 \x01(\x05\x12\r\n\x05title\x18\x03 \x01(\t\"8\n\x0fSetNodePosEvent\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\x12\t\n\x01x\x18\x02 \x01(\x05\x12\t\n\x01y\x18\x03 \x01(\x05\"R\n\x10SetNodeRoleEvent\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\x12-\n\x04role\x18\x02 \x01(\x0e\x32\x1f.visualize_grpc_pb.OtDeviceRole\"@\n\x17SetNodePartitionIdEvent\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\x12\x14\n\x0cpartition_id\x18\x02 \x01(\r\"\"\n\x0fOnNodeFailEvent\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\"%\n\x12OnNodeRecoverEvent\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\"\"\n\x0f\x44\x65leteNodeEvent\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\"J\n\x0c\x41\x64\x64NodeEvent\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\x12\t\n\x01x\x18\x02 \x01(\x05\x12\t\n\x01y\x18\x03 \x01(\x05\x12\x13\n\x0bradio_range\x18\x04 \x01(\x05\"x\n\x08NodeMode\x12\x17\n\x0frx_on_when_idle\x18\x01 \x01(\x08\x12\x1c\n\x14secure_data_requests\x18\x02 \x01(\x08\x12\x1a\n\x12\x66ull_thread_device\x18\x03 \x01(\x08\x12\x19\n\x11\x66ull_network_data\x18\x04 \x01(\x08\"5\n\x12SetNodeRloc16Event\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\x12\x0e\n\x06rloc16\x18\x02 \x01(\r\"9\n\x14OnExtAddrChangeEvent\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\x12\x10\n\x08\x65xt_addr\x18\x02 \x01(\x04\"G\n\rSetTitleEvent\x12\r\n\x05title\x18\x01 \x01(\t\x12\t\n\x01x\x18\x02 \x01(\x05\x12\t\n\x01y\x18\x03 \x01(\x05\x12\x11\n\tfont_size\x18\x04 \x01(\x05\"S\n\x10SetNodeModeEvent\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\x12.\n\tnode_mode\x18\x02 \x01(\x0b\x32\x1b.visualize_grpc_pb.NodeMode\"D\n\x13SetNetworkInfoEvent\x12\x0c\n\x04real\x18\x01 \x01(\x08\x12\x0f\n\x07version\x18\x02 \x01(\t\x12\x0e\n\x06\x63ommit\x18\x03 \x01(\t\"!\n\x0e\x43ommandRequest\x12\x0f\n\x07\x63ommand\x18\x01 \x01(\t\"!\n\x0f\x43ommandResponse\x12\x0e\n\x06output\x18\x01 \x03(\t\"R\n\x0bReplayEntry\x12\x11\n\ttimestamp\x18\x01 \x01(\x04\x12\x30\n\x05\x65vent\x18\x02 \x01(\x0b\x32!.visualize_grpc_pb.VisualizeEvent\"\x07\n\x05\x45mpty*\x98\x01\n\x0cOtDeviceRole\x12\x1b\n\x17OT_DEVICE_ROLE_DISABLED\x10\x00\x12\x1b\n\x17OT_DEVICE_ROLE_DETACHED\x10\x01\x12\x18\n\x14OT_DEVICE_ROLE_CHILD\x10\x02\x12\x19\n\x15OT_DEVICE_ROLE_ROUTER\x10\x03\x12\x19\n\x15OT_DEVICE_ROLE_LEADER\x10\x04\x32\xbf\x01\n\x14VisualizeGrpcService\x12U\n\tVisualize\x12#.visualize_grpc_pb.VisualizeRequest\x1a!.visualize_grpc_pb.VisualizeEvent0\x01\x12P\n\x07\x43ommand\x12!.visualize_grpc_pb.CommandRequest\x1a\".visualize_grpc_pb.CommandResponseB/Z-github.com/openthread/ot-ns/visualize/grpc/pbb\x06proto3'
+  serialized_pb=b'\n\x14visualize_grpc.proto\x12\x11visualize_grpc_pb\"\x12\n\x10VisualizeRequest\"\xb7\x0b\n\x0eVisualizeEvent\x12\x33\n\x08\x61\x64\x64_node\x18\x01 \x01(\x0b\x32\x1f.visualize_grpc_pb.AddNodeEventH\x00\x12\x39\n\x0b\x64\x65lete_node\x18\x02 \x01(\x0b\x32\".visualize_grpc_pb.DeleteNodeEventH\x00\x12@\n\x0fset_node_rloc16\x18\x03 \x01(\x0b\x32%.visualize_grpc_pb.SetNodeRloc16EventH\x00\x12<\n\rset_node_role\x18\x04 \x01(\x0b\x32#.visualize_grpc_pb.SetNodeRoleEventH\x00\x12:\n\x0cset_node_pos\x18\x05 \x01(\x0b\x32\".visualize_grpc_pb.SetNodePosEventH\x00\x12K\n\x15set_node_partition_id\x18\x06 \x01(\x0b\x32*.visualize_grpc_pb.SetNodePartitionIdEventH\x00\x12:\n\x0con_node_fail\x18\x07 \x01(\x0b\x32\".visualize_grpc_pb.OnNodeFailEventH\x00\x12@\n\x0fon_node_recover\x18\x08 \x01(\x0b\x32%.visualize_grpc_pb.OnNodeRecoverEventH\x00\x12\x37\n\nset_parent\x18\t \x01(\x0b\x32!.visualize_grpc_pb.SetParentEventH\x00\x12\x37\n\ncount_down\x18\n \x01(\x0b\x32!.visualize_grpc_pb.CountDownEventH\x00\x12\x42\n\x10show_demo_legend\x18\x0b \x01(\x0b\x32&.visualize_grpc_pb.ShowDemoLegendEventH\x00\x12;\n\x0c\x61\x64vance_time\x18\x0c \x01(\x0b\x32#.visualize_grpc_pb.AdvanceTimeEventH\x00\x12\x42\n\x10\x61\x64\x64_router_table\x18\r \x01(\x0b\x32&.visualize_grpc_pb.AddRouterTableEventH\x00\x12H\n\x13remove_router_table\x18\x0e \x01(\x0b\x32).visualize_grpc_pb.RemoveRouterTableEventH\x00\x12@\n\x0f\x61\x64\x64_child_table\x18\x0f \x01(\x0b\x32%.visualize_grpc_pb.AddChildTableEventH\x00\x12\x46\n\x12remove_child_table\x18\x10 \x01(\x0b\x32(.visualize_grpc_pb.RemoveChildTableEventH\x00\x12,\n\x04send\x18\x11 \x01(\x0b\x32\x1c.visualize_grpc_pb.SendEventH\x00\x12\x35\n\tset_speed\x18\x12 \x01(\x0b\x32 .visualize_grpc_pb.SetSpeedEventH\x00\x12\x36\n\theartbeat\x18\x13 \x01(\x0b\x32!.visualize_grpc_pb.HeartbeatEventH\x00\x12\x45\n\x12on_ext_addr_change\x18\x14 \x01(\x0b\x32\'.visualize_grpc_pb.OnExtAddrChangeEventH\x00\x12\x35\n\tset_title\x18\x15 \x01(\x0b\x32 .visualize_grpc_pb.SetTitleEventH\x00\x12<\n\rset_node_mode\x18\x16 \x01(\x0b\x32#.visualize_grpc_pb.SetNodeModeEventH\x00\x12\x42\n\x10set_network_info\x18\x17 \x01(\x0b\x32&.visualize_grpc_pb.SetNetworkInfoEventH\x00\x42\x06\n\x04type\"a\n\tSendEvent\x12\x0e\n\x06src_id\x18\x01 \x01(\x05\x12\x0e\n\x06\x64st_id\x18\x02 \x01(\x05\x12\x34\n\x07mv_info\x18\x03 \x01(\x0b\x32#.visualize_grpc_pb.MsgVisualizeInfo\"z\n\x10MsgVisualizeInfo\x12\x0f\n\x07\x63hannel\x18\x01 \x01(\r\x12\x15\n\rframe_control\x18\x02 \x01(\r\x12\x0b\n\x03seq\x18\x03 \x01(\r\x12\x16\n\x0e\x64st_addr_short\x18\x04 \x01(\r\x12\x19\n\x11\x64st_addr_extended\x18\x05 \x01(\x04\"8\n\x13\x41\x64\x64RouterTableEvent\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\x12\x10\n\x08\x65xt_addr\x18\x02 \x01(\x04\";\n\x16RemoveRouterTableEvent\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\x12\x10\n\x08\x65xt_addr\x18\x02 \x01(\x04\"7\n\x12\x41\x64\x64\x43hildTableEvent\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\x12\x10\n\x08\x65xt_addr\x18\x02 \x01(\x04\":\n\x15RemoveChildTableEvent\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\x12\x10\n\x08\x65xt_addr\x18\x02 \x01(\x04\"\x1e\n\rSetSpeedEvent\x12\r\n\x05speed\x18\x01 \x01(\x01\"\x10\n\x0eHeartbeatEvent\"-\n\x10\x41\x64vanceTimeEvent\x12\n\n\x02ts\x18\x01 \x01(\x04\x12\r\n\x05speed\x18\x02 \x01(\x01\"3\n\x0eSetParentEvent\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\x12\x10\n\x08\x65xt_addr\x18\x02 \x01(\x04\"3\n\x0e\x43ountDownEvent\x12\x13\n\x0b\x64uration_ms\x18\x01 \x01(\x03\x12\x0c\n\x04text\x18\x02 \x01(\t\":\n\x13ShowDemoLegendEvent\x12\t\n\x01x\x18\x01 \x01(\x05\x12\t\n\x01y\x18\x02 \x01(\x05\x12\r\n\x05title\x18\x03 \x01(\t\"8\n\x0fSetNodePosEvent\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\x12\t\n\x01x\x18\x02 \x01(\x05\x12\t\n\x01y\x18\x03 \x01(\x05\"R\n\x10SetNodeRoleEvent\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\x12-\n\x04role\x18\x02 \x01(\x0e\x32\x1f.visualize_grpc_pb.OtDeviceRole\"@\n\x17SetNodePartitionIdEvent\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\x12\x14\n\x0cpartition_id\x18\x02 \x01(\r\"\"\n\x0fOnNodeFailEvent\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\"%\n\x12OnNodeRecoverEvent\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\"\"\n\x0f\x44\x65leteNodeEvent\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\"J\n\x0c\x41\x64\x64NodeEvent\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\x12\t\n\x01x\x18\x02 \x01(\x05\x12\t\n\x01y\x18\x03 \x01(\x05\x12\x13\n\x0bradio_range\x18\x04 \x01(\x05\"x\n\x08NodeMode\x12\x17\n\x0frx_on_when_idle\x18\x01 \x01(\x08\x12\x1c\n\x14secure_data_requests\x18\x02 \x01(\x08\x12\x1a\n\x12\x66ull_thread_device\x18\x03 \x01(\x08\x12\x19\n\x11\x66ull_network_data\x18\x04 \x01(\x08\"5\n\x12SetNodeRloc16Event\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\x12\x0e\n\x06rloc16\x18\x02 \x01(\r\"9\n\x14OnExtAddrChangeEvent\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\x12\x10\n\x08\x65xt_addr\x18\x02 \x01(\x04\"G\n\rSetTitleEvent\x12\r\n\x05title\x18\x01 \x01(\t\x12\t\n\x01x\x18\x02 \x01(\x05\x12\t\n\x01y\x18\x03 \x01(\x05\x12\x11\n\tfont_size\x18\x04 \x01(\x05\"S\n\x10SetNodeModeEvent\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\x12.\n\tnode_mode\x18\x02 \x01(\x0b\x32\x1b.visualize_grpc_pb.NodeMode\"D\n\x13SetNetworkInfoEvent\x12\x0c\n\x04real\x18\x01 \x01(\x08\x12\x0f\n\x07version\x18\x02 \x01(\t\x12\x0e\n\x06\x63ommit\x18\x03 \x01(\t\"V\n\nNodeEnergy\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\x12\x10\n\x08\x64isabled\x18\x02 \x01(\x01\x12\r\n\x05sleep\x18\x03 \x01(\x01\x12\n\n\x02tx\x18\x04 \x01(\x01\x12\n\n\x02rx\x18\x05 \x01(\x01\"!\n\x0e\x43ommandRequest\x12\x0f\n\x07\x63ommand\x18\x01 \x01(\t\"!\n\x0f\x43ommandResponse\x12\x0e\n\x06output\x18\x01 \x03(\t\"R\n\x0bReplayEntry\x12\x11\n\ttimestamp\x18\x01 \x01(\x04\x12\x30\n\x05\x65vent\x18\x02 \x01(\x0b\x32!.visualize_grpc_pb.VisualizeEvent\"\x07\n\x05\x45mpty*\x98\x01\n\x0cOtDeviceRole\x12\x1b\n\x17OT_DEVICE_ROLE_DISABLED\x10\x00\x12\x1b\n\x17OT_DEVICE_ROLE_DETACHED\x10\x01\x12\x18\n\x14OT_DEVICE_ROLE_CHILD\x10\x02\x12\x19\n\x15OT_DEVICE_ROLE_ROUTER\x10\x03\x12\x19\n\x15OT_DEVICE_ROLE_LEADER\x10\x04\x32\xbf\x01\n\x14VisualizeGrpcService\x12U\n\tVisualize\x12#.visualize_grpc_pb.VisualizeRequest\x1a!.visualize_grpc_pb.VisualizeEvent0\x01\x12P\n\x07\x43ommand\x12!.visualize_grpc_pb.CommandRequest\x1a\".visualize_grpc_pb.CommandResponseB/Z-github.com/openthread/ot-ns/visualize/grpc/pbb\x06proto3'
 )
 
 _OTDEVICEROLE = _descriptor.EnumDescriptor(
@@ -58,8 +58,8 @@ _OTDEVICEROLE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=3274,
-  serialized_end=3426,
+  serialized_start=3362,
+  serialized_end=3514,
 )
 _sym_db.RegisterEnumDescriptor(_OTDEVICEROLE)
 
@@ -1312,6 +1312,66 @@ _SETNETWORKINFOEVENT = _descriptor.Descriptor(
 )
 
 
+_NODEENERGY = _descriptor.Descriptor(
+  name='NodeEnergy',
+  full_name='visualize_grpc_pb.NodeEnergy',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='node_id', full_name='visualize_grpc_pb.NodeEnergy.node_id', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='disabled', full_name='visualize_grpc_pb.NodeEnergy.disabled', index=1,
+      number=2, type=1, cpp_type=5, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='sleep', full_name='visualize_grpc_pb.NodeEnergy.sleep', index=2,
+      number=3, type=1, cpp_type=5, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='tx', full_name='visualize_grpc_pb.NodeEnergy.tx', index=3,
+      number=4, type=1, cpp_type=5, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='rx', full_name='visualize_grpc_pb.NodeEnergy.rx', index=4,
+      number=5, type=1, cpp_type=5, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=3110,
+  serialized_end=3196,
+)
+
+
 _COMMANDREQUEST = _descriptor.Descriptor(
   name='CommandRequest',
   full_name='visualize_grpc_pb.CommandRequest',
@@ -1339,8 +1399,8 @@ _COMMANDREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3110,
-  serialized_end=3143,
+  serialized_start=3198,
+  serialized_end=3231,
 )
 
 
@@ -1371,8 +1431,8 @@ _COMMANDRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3145,
-  serialized_end=3178,
+  serialized_start=3233,
+  serialized_end=3266,
 )
 
 
@@ -1410,8 +1470,8 @@ _REPLAYENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3180,
-  serialized_end=3262,
+  serialized_start=3268,
+  serialized_end=3350,
 )
 
 
@@ -1435,8 +1495,8 @@ _EMPTY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3264,
-  serialized_end=3271,
+  serialized_start=3352,
+  serialized_end=3359,
 )
 
 _VISUALIZEEVENT.fields_by_name['add_node'].message_type = _ADDNODEEVENT
@@ -1562,6 +1622,7 @@ DESCRIPTOR.message_types_by_name['OnExtAddrChangeEvent'] = _ONEXTADDRCHANGEEVENT
 DESCRIPTOR.message_types_by_name['SetTitleEvent'] = _SETTITLEEVENT
 DESCRIPTOR.message_types_by_name['SetNodeModeEvent'] = _SETNODEMODEEVENT
 DESCRIPTOR.message_types_by_name['SetNetworkInfoEvent'] = _SETNETWORKINFOEVENT
+DESCRIPTOR.message_types_by_name['NodeEnergy'] = _NODEENERGY
 DESCRIPTOR.message_types_by_name['CommandRequest'] = _COMMANDREQUEST
 DESCRIPTOR.message_types_by_name['CommandResponse'] = _COMMANDRESPONSE
 DESCRIPTOR.message_types_by_name['ReplayEntry'] = _REPLAYENTRY
@@ -1758,6 +1819,13 @@ SetNetworkInfoEvent = _reflection.GeneratedProtocolMessageType('SetNetworkInfoEv
   })
 _sym_db.RegisterMessage(SetNetworkInfoEvent)
 
+NodeEnergy = _reflection.GeneratedProtocolMessageType('NodeEnergy', (_message.Message,), {
+  'DESCRIPTOR' : _NODEENERGY,
+  '__module__' : 'visualize_grpc_pb2'
+  # @@protoc_insertion_point(class_scope:visualize_grpc_pb.NodeEnergy)
+  })
+_sym_db.RegisterMessage(NodeEnergy)
+
 CommandRequest = _reflection.GeneratedProtocolMessageType('CommandRequest', (_message.Message,), {
   'DESCRIPTOR' : _COMMANDREQUEST,
   '__module__' : 'visualize_grpc_pb2'
@@ -1796,8 +1864,8 @@ _VISUALIZEGRPCSERVICE = _descriptor.ServiceDescriptor(
   index=0,
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_start=3429,
-  serialized_end=3620,
+  serialized_start=3517,
+  serialized_end=3708,
   methods=[
   _descriptor.MethodDescriptor(
     name='Visualize',
