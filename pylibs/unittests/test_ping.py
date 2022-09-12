@@ -82,7 +82,7 @@ class PingTests(OTNSTestCase):
 
         print("Ping success rate   : ", pingSuccess)
         print("Average ping latency: ", pingAvg)
-        self.assertTrue(pingAvg < 150 and pingSuccess > 0.8)
+        self.assertTrue(pingAvg < 900 and pingSuccess > 0.7)
 
 if __name__ == '__main__':
     unittest.main()
