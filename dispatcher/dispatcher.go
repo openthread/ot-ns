@@ -607,7 +607,6 @@ func (d *Dispatcher) sendRadioFrameEventToNodes(evt *Event) {
 			d.visSendFrame(srcnodeid, InvalidNodeId, pktframe)
 		}
 		dispatchedByDstAddr = true
-
 	} else if dstAddrMode == wpan.DstAddrModeShort {
 		// try to dispatch by short unicast addr directly
 		if pktframe.DstAddrShort != threadconst.BroadcastRloc16 {

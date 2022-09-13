@@ -1,10 +1,11 @@
 package radiomodel
 
 import (
-	. "github.com/openthread/ot-ns/types"
-	"github.com/simonlingoogle/go-simplelogger"
 	"math"
 	"math/rand"
+
+	. "github.com/openthread/ot-ns/types"
+	"github.com/simonlingoogle/go-simplelogger"
 )
 
 type ChannelId = uint8

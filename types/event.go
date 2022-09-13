@@ -28,12 +28,12 @@ package types
 
 import (
 	"encoding/binary"
-
 	"fmt"
-	"github.com/simonlingoogle/go-simplelogger"
 	"math"
 	"strings"
 	"unicode"
+
+	"github.com/simonlingoogle/go-simplelogger"
 )
 
 type eventType = uint8
