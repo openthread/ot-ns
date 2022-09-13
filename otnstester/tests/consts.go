@@ -26,7 +26,7 @@
 
 package main
 
-import "github.com/openthread/ot-ns/simulation"
+import "github.com/openthread/ot-ns/types"
 
 const (
 	RoleLeader = "leader"
@@ -35,5 +35,5 @@ const (
 )
 
 var (
-	DefaultRadioRange = simulation.DefaultNodeConfig().RadioRange
+	DefaultRadioRange = types.DefaultNodeConfig().RadioRange
 )
