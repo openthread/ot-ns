@@ -29,7 +29,6 @@ package cli
 import (
 	"context"
 	"fmt"
-	"github.com/openthread/ot-ns/radiomodel"
 	"io"
 	"reflect"
 	"strings"
@@ -38,13 +37,10 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/openthread/ot-ns/visualize"
-
 	"github.com/openthread/ot-ns/web"
-
 	"github.com/openthread/ot-ns/progctx"
-
 	"github.com/openthread/ot-ns/dispatcher"
-
+	"github.com/openthread/ot-ns/radiomodel"
 	"github.com/openthread/ot-ns/simulation"
 	. "github.com/openthread/ot-ns/types"
 	"github.com/pkg/errors"
