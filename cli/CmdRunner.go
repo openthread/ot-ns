@@ -36,13 +36,13 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/openthread/ot-ns/visualize"
-	"github.com/openthread/ot-ns/web"
-	"github.com/openthread/ot-ns/progctx"
 	"github.com/openthread/ot-ns/dispatcher"
+	"github.com/openthread/ot-ns/progctx"
 	"github.com/openthread/ot-ns/radiomodel"
 	"github.com/openthread/ot-ns/simulation"
 	. "github.com/openthread/ot-ns/types"
+	"github.com/openthread/ot-ns/visualize"
+	"github.com/openthread/ot-ns/web"
 	"github.com/pkg/errors"
 	"github.com/simonlingoogle/go-simplelogger"
 )
