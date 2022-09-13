@@ -190,7 +190,7 @@ func (s *Simulation) OnNodeRecover(nodeid NodeId) {
 func (s *Simulation) OnNodeProcessFailure(nodeid NodeId, errorMsg string) {
 	node := s.nodes[nodeid]
 	simplelogger.Fatalf("Node %v process failed: %v", node.Id, errorMsg)
-	node.Exit()
+	s.DeleteNode(nodeid)
 }
 
 // OnUartWrite notifies the simulation that a node has received some data from UART.
