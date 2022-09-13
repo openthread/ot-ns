@@ -74,7 +74,7 @@ type RadioModel interface {
 
 // Create creates a new RadioModel with given name, or nil if model not found.
 func Create(modelName string) RadioModel {
-	var model RadioModel = nil
+	var model RadioModel
 	switch modelName {
 	case "Ideal":
 		model = &RadioModelIdeal{
@@ -98,8 +98,12 @@ func Create(modelName string) RadioModel {
 		model = &RadioModelMutualInterference{
 			MinSirDb: 1, // minimum Signal-to-Interference (SIR) (dB) required to detect signal
 		}
+	default:
+		model = nil
 	}
-	model.init()
+	if model != nil {
+		model.init()
+	}
 	return model
 }
 

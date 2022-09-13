@@ -53,6 +53,28 @@ class BasicTests_MutualInterference(BasicTests):
         self.go(10)
         self.assertFormPartitions(2)
 
+    def testRadioModelSwitching(self):
+        ns = self.ns
+        ns.radiomodel = 'Ideal'
+        radio_range = 100
+        ns.add("router",0, 0, radio_range=radio_range)
+        ns.add("router",0, radio_range+1, radio_range=radio_range)
+        ns.add("router",radio_range+1, radio_range+1, radio_range=radio_range)
+        ns.go(20)
+        self.assertFormPartitions(3)
+
+        ns.radiomodel = 'MutualInterference'
+        ns.go(20)
+        self.assertFormPartitions(1)
+
+        ns.radiomodel = 'Ideal_Rssi_Dur'
+        ns.go(180)
+        self.assertFormPartitions(3)
+
+        with self.assertRaises(errors.OTNSCliError):
+            ns.radiomodel = 'NotExistingName'
+
+
 class BasicTests_IdealRssi(BasicTests):
     #override
     def setUp(self):
