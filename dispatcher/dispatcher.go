@@ -327,7 +327,7 @@ func (d *Dispatcher) handleRecvEvent(evt *Event) {
 		evtTime = Ever
 	}
 
-	simplelogger.AssertTrue(d.isAlive(nodeid))
+	simplelogger.AssertTrue(d.isAlive(nodeid) || d.cfg.Real)
 	switch evt.Type {
 	case EventTypeAlarmFired:
 		d.Counters.AlarmEvents += 1
