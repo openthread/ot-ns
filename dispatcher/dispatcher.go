@@ -742,16 +742,6 @@ func (d *Dispatcher) sendOneRadioFrameEvent(evt *Event, srcNode *Node, dstNode *
 	return true
 }
 
-func (d *Dispatcher) newNode(nodeid NodeId, cfg *NodeConfig) (node *Node) {
-	node = newNode(d, nodeid, cfg)
-	d.nodes[nodeid] = node
-	d.alarmMgr.AddNode(nodeid)
-	d.setAlive(nodeid)
-
-	d.vis.AddNode(nodeid, cfg.X, cfg.Y, cfg.RadioRange)
-	return
-}
-
 func (d *Dispatcher) setAlive(nodeid NodeId) {
 	if d.cfg.Real {
 		// real devices are always considered sleeping
@@ -925,10 +915,14 @@ func (d *Dispatcher) handleStatusPush(srcid NodeId, data string) {
 	}
 }
 
-func (d *Dispatcher) AddNode(nodeid NodeId, cfg *NodeConfig) *Node {
+func (d *Dispatcher) AddNode(nodeid NodeId, cfg *NodeConfig) {
 	simplelogger.AssertNil(d.nodes[nodeid])
 	simplelogger.Infof("dispatcher add node %d", nodeid)
-	return d.newNode(nodeid, cfg)
+	node := newNode(d, nodeid, cfg)
+	d.nodes[nodeid] = node
+	d.alarmMgr.AddNode(nodeid)
+	d.setAlive(nodeid)
+	d.vis.AddNode(nodeid, cfg.X, cfg.Y, cfg.RadioRange)
 }
 
 // DetectNodeExtAddress waits until node's extended address is emitted (but not for real devices).
