@@ -307,13 +307,11 @@ func (d *Dispatcher) handleRecvEvent(evt *Event) {
 		}
 		return
 	}
-	node := d.nodes[nodeid]
 	d.setAlive(nodeid)
 
-	// store src address of node n, once
-	if node.peerAddr == nil {
-		node.peerAddr = evt.SrcAddr
-	}
+	// assign source address from event to node
+	node := d.nodes[nodeid]
+	node.peerAddr = evt.SrcAddr
 
 	if d.isWatching(nodeid) && evt.Type != EventTypeUartWrite {
 		simplelogger.Infof("Node %d <<< %+v, cur time %d, node time %d", nodeid, *evt,
