@@ -30,11 +30,11 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math"
+	"net"
 	"strings"
 	"unicode"
 
 	"github.com/simonlingoogle/go-simplelogger"
-	"net"
 )
 
 type eventType = uint8

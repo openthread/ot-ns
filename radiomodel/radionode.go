@@ -1,8 +1,9 @@
 package radiomodel
 
 import (
-	. "github.com/openthread/ot-ns/types"
 	"math"
+
+	. "github.com/openthread/ot-ns/types"
 )
 
 // RadioNode is the status of a single radio node of the radio model, used by all radio models.

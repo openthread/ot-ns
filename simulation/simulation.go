@@ -27,14 +27,13 @@
 package simulation
 
 import (
-	"github.com/openthread/ot-ns/radiomodel"
 	"os"
 	"sort"
 	"time"
 
-	"github.com/openthread/ot-ns/progctx"
-
 	"github.com/openthread/ot-ns/dispatcher"
+	"github.com/openthread/ot-ns/progctx"
+	"github.com/openthread/ot-ns/radiomodel"
 	. "github.com/openthread/ot-ns/types"
 	"github.com/openthread/ot-ns/visualize"
 	"github.com/pkg/errors"
@@ -194,7 +193,7 @@ func (s *Simulation) OnNodeRecover(nodeid NodeId) {
 func (s *Simulation) OnNodeProcessFailure(node *Node, errorMsg string) {
 	simplelogger.Fatalf("Node %v process failed: %v", node.Id, errorMsg)
 	s.PostAsync(false, func() {
-		s.DeleteNode(node.Id)
+		_ = s.DeleteNode(node.Id)
 	})
 }
 
