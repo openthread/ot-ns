@@ -107,7 +107,7 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 	simplelogger.Infof("simulation:CtrlAddNode: %+v, rawMode=%v", cfg, s.rawMode)
 
 	// After creating dispatcher / simulation node objects, perform address/UART detection and setup.
-	if !s.d.cfg.Real {
+	if !s.cfg.Real {
 		err = s.d.DetectNodeExtAddress(nodeid, cfg)
 		if err != nil {
 			simplelogger.Errorf("%v", err)
