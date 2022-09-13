@@ -45,6 +45,7 @@ import (
 	"github.com/openthread/ot-ns/threadconst"
 	. "github.com/openthread/ot-ns/types"
 	"github.com/openthread/ot-ns/visualize"
+	"github.com/pkg/errors"
 	"github.com/simonlingoogle/go-simplelogger"
 )
 
@@ -924,27 +925,30 @@ func (d *Dispatcher) handleStatusPush(srcid NodeId, data string) {
 	}
 }
 
-func (d *Dispatcher) AddNode(nodeid NodeId, cfg *NodeConfig) {
+func (d *Dispatcher) AddNode(nodeid NodeId, cfg *NodeConfig) *Node {
 	simplelogger.AssertNil(d.nodes[nodeid])
 	simplelogger.Infof("dispatcher add node %d", nodeid)
-	node := d.newNode(nodeid, cfg)
+	return d.newNode(nodeid, cfg)
+}
 
-	if !d.cfg.Real {
-		// Wait until node's extended address is emitted (but not for real devices)
-		// This helps OTNS to make sure that the child process is ready to receive UDP events
-		t0 := time.Now()
-		deadline := t0.Add(time.Second * 10)
-		for node.ExtAddr == InvalidExtAddr && time.Now().Before(deadline) {
-			d.RecvEvents()
-		}
-
-		if node.ExtAddr == InvalidExtAddr {
-			simplelogger.Panicf("expect node %d's extaddr to be valid, but failed", nodeid)
-		} else {
-			takeTime := time.Since(t0)
-			simplelogger.Debugf("node %d's extaddr becomes valid in %v", nodeid, takeTime)
-		}
+// DetectNodeExtAddress waits until node's extended address is emitted (but not for real devices).
+// This helps OTNS to make sure that the child process is ready to receive UDP events
+func (d *Dispatcher) DetectNodeExtAddress(nodeid NodeId, cfg *NodeConfig) error {
+	node := d.nodes[nodeid]
+	simplelogger.AssertNotNil(node)
+	t0 := time.Now()
+	deadline := t0.Add(time.Second * 10)
+	for node.ExtAddr == InvalidExtAddr && time.Now().Before(deadline) {
+		d.RecvEvents()
 	}
+
+	if node.ExtAddr == InvalidExtAddr {
+		return errors.Errorf("expect node %d's extaddr to be valid, but failed", nodeid)
+	} else {
+		takeTime := time.Since(t0)
+		simplelogger.Debugf("node %d's extaddr becomes valid in %v", nodeid, takeTime)
+	}
+	return nil
 }
 
 func (d *Dispatcher) setNodeRloc16(srcid NodeId, rloc16 uint16) {

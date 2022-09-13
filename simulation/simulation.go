@@ -96,21 +96,25 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 		return nil, errors.Errorf("node %d already exists", nodeid)
 	}
 
+	// Add dispatcher's node before starting the OT node process. This is needed because the OT
+	// node immediately starts emitting UDP events which the dispatcher needs to catch.
+	s.d.AddNode(nodeid, cfg)
 	node, err := newNode(s, nodeid, cfg)
 	if err != nil {
 		simplelogger.Errorf("simulation add node failed: %v", err)
 		return nil, err
 	}
-
 	s.nodes[nodeid] = node
-
 	simplelogger.Infof("simulation:CtrlAddNode: %+v, rawMode=%v", cfg, s.rawMode)
-	s.d.AddNode(nodeid, cfg)
 
+	// After creating dispatcher / simulation node objects, perform address/UART detection and setup.
+	err = s.d.DetectNodeExtAddress(nodeid, cfg)
+	if err != nil {
+		simplelogger.Errorf("%v", err)
+		return nil, err
+	}
 	node.detectVirtualTimeUART()
-
 	node.setupMode()
-
 	if !s.rawMode {
 		node.SetupNetworkParameters(s)
 		node.Start()
