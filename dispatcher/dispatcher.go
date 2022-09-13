@@ -310,6 +310,11 @@ func (d *Dispatcher) handleRecvEvent(evt *Event) {
 	node := d.nodes[nodeid]
 	d.setAlive(nodeid)
 
+	// store src address of node n, once
+	if node.peerAddr == nil {
+		node.peerAddr = evt.SrcAddr
+	}
+
 	if d.isWatching(nodeid) && evt.Type != EventTypeUartWrite {
 		simplelogger.Infof("Node %d <<< %+v, cur time %d, node time %d", nodeid, *evt,
 			d.CurTime, node.CurTime)
@@ -525,12 +530,7 @@ func (d *Dispatcher) eventsReader() {
 		evt := &Event{}
 		evt.Deserialize(readbuf[0:n])
 		evt.NodeId = srcaddr.Port - d.cfg.Port
-
-		// store src address of node n, once
-		node := d.nodes[evt.NodeId]
-		if node != nil && node.peerAddr == nil {
-			node.peerAddr = srcaddr
-		}
+		evt.SrcAddr = srcaddr
 
 		//simplelogger.Debugf("N%v eventChan <- %v", evt.NodeId, evt.String())
 		d.eventChan <- evt

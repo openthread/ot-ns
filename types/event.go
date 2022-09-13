@@ -34,6 +34,7 @@ import (
 	"unicode"
 
 	"github.com/simonlingoogle/go-simplelogger"
+	"net"
 )
 
 type eventType = uint8
@@ -69,6 +70,7 @@ type Event struct {
 
 	// supplementary information stored depending on event type.
 	NodeId     NodeId
+	SrcAddr    *net.UDPAddr
 	Timestamp  uint64
 	TxData     TxEventData
 	RxData     RxEventData

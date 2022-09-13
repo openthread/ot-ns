@@ -597,7 +597,7 @@ func (node *Node) lineReader(reader io.Reader, uartType NodeUartType) {
 		line := scanner.Text()
 
 		if uartType == NodeUartTypeErrors {
-			node.S.OnNodeProcessFailure(node.Id, line)
+			node.S.OnNodeProcessFailure(node, line)
 		} else if node.uartType == NodeUartTypeUndefined {
 			simplelogger.Debugf("%v's UART type is %v", node, uartType)
 			node.uartType = uartType
