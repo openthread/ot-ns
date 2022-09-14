@@ -117,7 +117,7 @@ const RadioMessagePsduOffset = 1
 // including fields partially.
 func (e *Event) Serialize() []byte {
 	// Detect composite event types
-	extraFields := []byte{}
+	var extraFields []byte
 	switch e.Type {
 	case EventTypeRadioRx:
 		extraFields = serializeRadioRxData(e.RxData)
