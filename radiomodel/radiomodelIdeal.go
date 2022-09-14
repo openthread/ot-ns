@@ -89,5 +89,5 @@ func (rm *RadioModelIdeal) GetName() string {
 }
 
 func (rm *RadioModelIdeal) init() {
-	rm.Name = "Ideal"
+	// Nothing to init.
 }

@@ -64,16 +64,17 @@ class BasicTests_MutualInterference(BasicTests):
         self.assertFormPartitions(3)
 
         ns.radiomodel = 'MutualInterference'
+        self.assertEqual('MutualInterference', ns.radiomodel)
         ns.go(20)
         self.assertFormPartitions(1)
 
         ns.radiomodel = 'Ideal_Rssi_Dur'
         ns.go(180)
         self.assertFormPartitions(3)
+        self.assertEqual('Ideal_Rssi_Dur', ns.radiomodel)
 
         with self.assertRaises(errors.OTNSCliError):
             ns.radiomodel = 'NotExistingName'
-
 
 class BasicTests_IdealRssi(BasicTests):
     #override
