@@ -281,8 +281,9 @@ func (d *Dispatcher) goUntilPauseTime() {
 
 		// keep receiving events from OT nodes until all are asleep i.e. will not produce more events.
 		d.RecvEvents()
-		d.syncAliveNodes() // normally there should not be any alive nodes anymore.
-
+		if !d.stopped {
+			d.syncAliveNodes() // normally there should not be any alive nodes anymore.
+		}
 		if len(d.aliveNodes) == 0 {
 			// all are asleep now - process the next Events in queue, either alarm or other type, for a single time.
 			goon := d.processNextEvent()
