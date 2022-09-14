@@ -37,6 +37,8 @@ const (
 	eventTypeRadioReceived = 1
 	eventTypeUartWrite     = 2
 	eventTypeStatusPush    = 5
+	eventTypeRadioComm     = 6
+	eventTypeRadioTxDone   = 7
 )
 
 type eventType = uint8
