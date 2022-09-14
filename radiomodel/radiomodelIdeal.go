@@ -33,7 +33,7 @@ func (rm *RadioModelIdeal) GetTxRssi(evt *Event, srcNode *RadioNode, dstNode *Ra
 	simplelogger.AssertTrue(evt.Type == EventTypeRadioRx)
 	rssi := rm.FixedRssi // in the most ideal case, always assume a good RSSI up until the max range.
 	if rm.UseVariableRssi {
-		rssi = ComputeIndoorRssi(srcNode.RadioRange, srcNode.GetDistanceTo(dstNode), srcNode.TxPower, dstNode.RxSensitivity)
+		rssi = computeIndoorRssi(srcNode.RadioRange, srcNode.GetDistanceTo(dstNode), srcNode.TxPower, dstNode.RxSensitivity)
 	}
 	return rssi
 }

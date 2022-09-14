@@ -108,7 +108,7 @@ func Create(modelName string) RadioModel {
 }
 
 // IsLongDataFrame checks whether the radio frame in evt is 802.15.4 "long" (true) or not.
-func IsLongDataframe(evt *Event) bool {
+func isLongDataframe(evt *Event) bool {
 	return (len(evt.Data) - RadioMessagePsduOffset) > aMaxSifsFrameSize
 }
 
@@ -121,8 +121,8 @@ func getFrameDurationUs(evt *Event) uint64 {
 	return n * symbolTimeUs * symbolsPerOctet
 }
 
-// InterferePsduData simulates the interference (garbling) of PSDU data based on a given SIR level (dB).
-func InterferePsduData(data []byte, sirDb float64) []byte {
+// interferePsduData simulates the interference (garbling) of PSDU data based on a given SIR level (dB).
+func interferePsduData(data []byte, sirDb float64) []byte {
 	intfData := data
 	if sirDb < 0 {
 		rand.Read(intfData)
@@ -131,8 +131,8 @@ func InterferePsduData(data []byte, sirDb float64) []byte {
 	return intfData
 }
 
-// ComputeIndoorRssi computes the RSSI for a receiver at distance dist, using a simple indoor exponent=3.xx loss model.
-func ComputeIndoorRssi(srcRadioRange float64, dist float64, txPower int8, rxSensitivity int8) int8 {
+// computeIndoorRssi computes the RSSI for a receiver at distance dist, using a simple indoor exponent=3.xx loss model.
+func computeIndoorRssi(srcRadioRange float64, dist float64, txPower int8, rxSensitivity int8) int8 {
 	pathloss := 0.0
 	distMeters := dist * radioRangeIndoorDistInMeters / srcRadioRange
 	if distMeters >= 0.072 {

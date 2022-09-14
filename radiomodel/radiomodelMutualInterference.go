@@ -10,7 +10,7 @@ import (
 // with all other transmitters in the simulation, regardless of distance. This means no 2 or more nodes
 // can transmit at the same time. It's useful to evaluate capacity-limited situations.
 type RadioModelMutualInterference struct {
-	ActiveTransmitters map[ChannelId]map[NodeId]*RadioNode
+	activeTransmitters map[ChannelId]map[NodeId]*RadioNode
 	MinSirDb           int
 }
 
@@ -21,7 +21,7 @@ func (rm *RadioModelMutualInterference) CheckRadioReachable(evt *Event, src *Rad
 
 func (rm *RadioModelMutualInterference) GetTxRssi(evt *Event, srcNode *RadioNode, dstNode *RadioNode) int8 {
 	simplelogger.AssertTrue(srcNode != dstNode)
-	rssi := ComputeIndoorRssi(srcNode.RadioRange, srcNode.GetDistanceTo(dstNode), srcNode.TxPower, dstNode.RxSensitivity)
+	rssi := computeIndoorRssi(srcNode.RadioRange, srcNode.GetDistanceTo(dstNode), srcNode.TxPower, dstNode.RxSensitivity)
 	return rssi
 }
 
@@ -76,7 +76,7 @@ func (rm *RadioModelMutualInterference) TxStart(node *RadioNode, q EventQueue, e
 	q.AddEvent(&nextEvt)
 }
 
-func (rm *RadioModelMutualInterference) TxOngoing(node *RadioNode, q EventQueue, evt *Event) {
+func (rm *RadioModelMutualInterference) txOngoing(node *RadioNode, q EventQueue, evt *Event) {
 	simplelogger.AssertTrue(evt.Type == EventTypeRadioTxOngoing)
 	isAck := dissectpkt.IsAckFrame(evt.Data)
 
@@ -145,7 +145,7 @@ func (rm *RadioModelMutualInterference) HandleEvent(node *RadioNode, q EventQueu
 	case EventTypeRadioTx:
 		rm.TxStart(node, q, evt)
 	case EventTypeRadioTxOngoing:
-		rm.TxOngoing(node, q, evt)
+		rm.txOngoing(node, q, evt)
 	default:
 		simplelogger.Panicf("event type not implemented: %v", evt.Type)
 	}
@@ -156,15 +156,15 @@ func (rm *RadioModelMutualInterference) GetName() string {
 }
 
 func (rm *RadioModelMutualInterference) init() {
-	rm.ActiveTransmitters = map[ChannelId]map[NodeId]*RadioNode{}
+	rm.activeTransmitters = map[ChannelId]map[NodeId]*RadioNode{}
 	for c := minChannelNumber; c <= maxChannelNumber; c++ {
-		rm.ActiveTransmitters[c] = map[NodeId]*RadioNode{}
+		rm.activeTransmitters[c] = map[NodeId]*RadioNode{}
 	}
 }
 
 func (rm *RadioModelMutualInterference) ccaDetectsBusy(node *RadioNode, evt *Event) bool {
 	// loop all active transmitters, see if any one transmits above my CCA ED Threshold.
-	for _, v := range rm.ActiveTransmitters[evt.TxData.Channel] {
+	for _, v := range rm.activeTransmitters[evt.TxData.Channel] {
 		rssi := rm.GetTxRssi(nil, v, node)
 		if rssi == RssiInvalid {
 			continue
@@ -177,26 +177,26 @@ func (rm *RadioModelMutualInterference) ccaDetectsBusy(node *RadioNode, evt *Eve
 }
 
 func (rm *RadioModelMutualInterference) startTransmission(node *RadioNode, evt *Event) {
-	_, nodeTransmits := rm.ActiveTransmitters[evt.TxData.Channel][evt.NodeId]
+	_, nodeTransmits := rm.activeTransmitters[evt.TxData.Channel][evt.NodeId]
 	simplelogger.AssertFalse(nodeTransmits)
 
 	// mark what this new transmission will interfere with.
-	for id, interferingTransmitter := range rm.ActiveTransmitters[evt.TxData.Channel] {
+	for id, interferingTransmitter := range rm.activeTransmitters[evt.TxData.Channel] {
 		node.InterferedBy[id] = interferingTransmitter
 		interferingTransmitter.InterferedBy[evt.NodeId] = node
 	}
 
-	rm.ActiveTransmitters[evt.TxData.Channel][evt.NodeId] = node
+	rm.activeTransmitters[evt.TxData.Channel][evt.NodeId] = node
 }
 
 func (rm *RadioModelMutualInterference) endTransmission(node *RadioNode, evt *Event) {
-	_, nodeTransmits := rm.ActiveTransmitters[evt.TxData.Channel][evt.NodeId]
+	_, nodeTransmits := rm.activeTransmitters[evt.TxData.Channel][evt.NodeId]
 	simplelogger.AssertTrue(nodeTransmits)
-	delete(rm.ActiveTransmitters[evt.TxData.Channel], evt.NodeId)
+	delete(rm.activeTransmitters[evt.TxData.Channel], evt.NodeId)
 
 	// set values for future transmission
 	node.TimeLastTxEnded = evt.Timestamp     // for data frames and ACKs
-	node.IsLastTxLong = IsLongDataframe(evt) // for data frames and ACKs
+	node.IsLastTxLong = isLongDataframe(evt) // for data frames and ACKs
 	node.TxPhase = 0                         // reset the phase back.
 }
 
@@ -212,7 +212,7 @@ func (rm *RadioModelMutualInterference) ApplyInterference(evt *Event, src *Radio
 		sirDb := rssi - rssiInterferer
 		if sirDb < rm.MinSirDb {
 			// interfering signal gets too close to the transmission rssi, impacts the signal.
-			evt.Data = InterferePsduData(evt.Data, float64(sirDb))
+			evt.Data = interferePsduData(evt.Data, float64(sirDb))
 			evt.RxData.Error = OT_ERROR_FCS
 		}
 	}
