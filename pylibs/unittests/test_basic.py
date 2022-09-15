@@ -151,7 +151,7 @@ class BasicTests(OTNSTestCase):
         radio_range = 100
         ns.add("router", 0, 0, radio_range=radio_range)
         ns.add("router", 0, radio_range - 1, radio_range=radio_range)
-        self.go(10)
+        self.go(15)
         self.assertFormPartitions(1)
 
     def testRadioNotInRange(self):

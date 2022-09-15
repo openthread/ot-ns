@@ -59,7 +59,7 @@ class PingTests(OTNSTestCase):
         pingDataSize = 128
 
         for i in range(10):
-            ns.add("router", i*120, 0)
+            ns.add("router", i*80, 0)
         ns.go(600)
 
         for i in range(100):
