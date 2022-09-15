@@ -52,6 +52,16 @@ install_grpcwebproxy()
     fi
 }
 
+install_golangci_lint()
+{
+    if [[ $Darwin == 1 ]]; then
+        brew install golangci-lint
+        brew upgrade golangci-lint
+    else
+        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.49.0
+    fi
+}
+
 install_python_libs()
 {
     python3 -m pip install --user setuptools
@@ -62,6 +72,7 @@ main()
     install_packages
     install_grpcwebproxy
     install_python_libs
+    install_golangci_lint
 }
 
 main
