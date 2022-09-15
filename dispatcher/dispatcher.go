@@ -132,6 +132,7 @@ type Dispatcher struct {
 		RadioEvents      uint64
 		StatusPushEvents uint64
 		UartWriteEvents  uint64
+		CollisionEvents  uint64
 		// Packet dispatching counters
 		DispatchByExtAddrSucc   uint64
 		DispatchByExtAddrFail   uint64
@@ -351,6 +352,8 @@ func (d *Dispatcher) handleRecvEvent(evt *event) {
 	case eventTypeUartWrite:
 		d.Counters.UartWriteEvents += 1
 		d.handleUartWrite(evt.NodeId, evt.Data)
+	case eventTypeChannelActivity:
+		d.sendChannelActivity(nodeid, evt.Data[0], evtTime)
 	default:
 		simplelogger.Panicf("event type not implemented: %v", evt.Type)
 	}
@@ -718,6 +721,9 @@ func (d *Dispatcher) sendNodeMessageCollisionAware(sit *sendItem) {
 				d.visSendFrame(srcnodeid, dstnode.Id, pktframe)
 			} else {
 				d.visSendFrame(srcnodeid, InvalidNodeId, pktframe)
+				if dstnode.IsCollisionEvent(srcnode) {
+					d.Counters.CollisionEvents++
+				}
 			}
 
 			d.Counters.DispatchByExtAddrSucc++
@@ -739,6 +745,8 @@ func (d *Dispatcher) sendNodeMessageCollisionAware(sit *sendItem) {
 						d.sendOneMessage(sit, srcnode, dstnode)
 						d.visSendFrame(srcnodeid, dstnode.Id, pktframe)
 						dispatchCnt++
+					} else if dstnode.IsCollisionEvent(srcnode) {
+						d.Counters.CollisionEvents++
 					}
 				}
 				d.Counters.DispatchByShortAddrSucc++
@@ -760,15 +768,17 @@ func (d *Dispatcher) sendNodeMessageCollisionAware(sit *sendItem) {
 			if d.checkRadioReachable(srcnode, dstnode) && dstnode.IsReceptionSuccess(srcnode.RadioChannel) {
 				d.sendOneMessage(sit, srcnode, dstnode)
 				dstnode.InformAckReceived(pktframe.Seq)
+			} else if dstnode.IsCollisionEvent(srcnode) && dstnode.IsWaitingAck(pktframe.Seq) {
+				d.Counters.CollisionEvents++
 			}
 		}
 
 		d.visSendFrame(srcnodeid, BroadcastNodeId, pktframe)
 	}
 
-	// for _, node := range d.nodes {
-	// 	node.UpdateCollisionCondition()
-	// }
+	for _, node := range d.nodes {
+		node.UpdateCollisionCondition()
+	}
 }
 
 func (d *Dispatcher) checkRadioReachable(src *Node, dst *Node) bool {
@@ -1489,6 +1499,11 @@ func (d *Dispatcher) changeNodeRadioState(nodeid NodeId, state, channel string) 
 	simplelogger.AssertTrue(u >= minChannel && u <= maxChannel)
 
 	node.RadioChannel = uint8(u)
+
+	// Any change of state during reception will stop its reception
+	if node.IsChannelBusy(node.RadioChannel) {
+		node.SetInvalidReception()
+	}
 }
 
 func (d *Dispatcher) startNewtransmission(srcid NodeId, txDuration, usingChannelUntil uint64) {
@@ -1508,4 +1523,27 @@ func (d *Dispatcher) startNewtransmission(srcid NodeId, txDuration, usingChannel
 			dst.ReceivePacket(src.RadioChannel, usingChannelUntil)
 		}
 	}
+}
+
+func (d *Dispatcher) sendChannelActivity(nodeid NodeId, channel uint8, ccaChannelUntil uint64) {
+	var elapsed uint64
+	var activity int8
+	dst := d.nodes[nodeid]
+
+	simplelogger.AssertTrue(channel >= minChannel && channel <= maxChannel)
+
+	oldTime := dst.CurTime
+	if d.CurTime > oldTime {
+		elapsed = d.CurTime - oldTime
+	} else {
+		elapsed = 0
+	}
+
+	// TODO: improve CCA model in the simulator
+	if !dst.IsChannelBusy(channel) {
+		activity = -128
+	}
+	dst.SendChannelActivity(channel, activity, elapsed)
+
+	simplelogger.Debugf("[%d] Node %d doing CCA on channel %d until t=%d us", d.CurTime, nodeid, dst.RadioChannel, ccaChannelUntil)
 }
