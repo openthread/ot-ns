@@ -66,7 +66,7 @@ func (rm *RadioModelIdeal) TxStart(node *RadioNode, q EventQueue, evt *Event) {
 	nextEvt2.RxData = RxEventData{
 		Channel: evt.TxData.Channel,
 		Error:   OT_ERROR_NONE,
-		Rssi:    RssiInvalid,
+		Rssi:    RssiInvalid, // Rssi will be computed upon individual event delivery to node.
 	}
 	q.AddEvent(&nextEvt2)
 }
@@ -80,7 +80,7 @@ func (rm *RadioModelIdeal) HandleEvent(node *RadioNode, q EventQueue, evt *Event
 	case EventTypeRadioTx:
 		rm.TxStart(node, q, evt)
 	default:
-		simplelogger.Panicf("event type not implemented: %v", evt.Type)
+		simplelogger.Errorf("Radiomodel event type not implemented: %v", evt.Type)
 	}
 }
 

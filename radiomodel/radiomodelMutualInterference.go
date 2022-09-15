@@ -39,7 +39,10 @@ func (rm *RadioModelMutualInterference) TxStart(node *RadioNode, q EventQueue, e
 		nextEvt := evt.Copy()
 		nextEvt.Type = EventTypeRadioTxDone
 		nextEvt.Timestamp += 1
-		nextEvt.TxDoneData.Error = OT_ERROR_ABORT
+		nextEvt.TxDoneData = TxDoneEventData{
+			Channel: evt.TxData.Channel,
+			Error:   OT_ERROR_ABORT,
+		}
 		q.AddEvent(&nextEvt)
 		return
 	}
@@ -106,7 +109,10 @@ func (rm *RadioModelMutualInterference) txOngoing(node *RadioNode, q EventQueue,
 			nextEvt := evt.Copy()
 			nextEvt.Type = EventTypeRadioTxDone
 			nextEvt.Timestamp += 1
-			nextEvt.TxDoneData.Error = OT_ERROR_CHANNEL_ACCESS_FAILURE
+			nextEvt.TxDoneData = TxDoneEventData{
+				Channel: evt.TxData.Channel,
+				Error:   OT_ERROR_CHANNEL_ACCESS_FAILURE,
+			}
 			q.AddEvent(&nextEvt)
 
 			// ... and reset back to start state.
@@ -126,14 +132,21 @@ func (rm *RadioModelMutualInterference) txOngoing(node *RadioNode, q EventQueue,
 		nextEvt := evt.Copy()
 		nextEvt.Type = EventTypeRadioTxDone
 		nextEvt.Timestamp += 1
-		nextEvt.TxDoneData.Error = OT_ERROR_NONE
+		nextEvt.TxDoneData = TxDoneEventData{
+			Channel: evt.TxData.Channel,
+			Error:   OT_ERROR_NONE,
+		}
 		q.AddEvent(&nextEvt)
 
 		// let other radios of Nodes receive the data
 		nextEvt2 := evt.Copy()
 		nextEvt2.Type = EventTypeRadioRx
 		nextEvt2.Timestamp += 1
-		nextEvt2.TxDoneData.Error = OT_ERROR_NONE
+		nextEvt2.RxData = RxEventData{
+			Channel: evt.TxData.Channel,
+			Error:   OT_ERROR_NONE,
+			Rssi:    RssiInvalid, // Rssi will be computed upon individual event delivery to node.
+		}
 		q.AddEvent(&nextEvt2)
 
 		rm.endTransmission(node, evt)
@@ -147,7 +160,7 @@ func (rm *RadioModelMutualInterference) HandleEvent(node *RadioNode, q EventQueu
 	case EventTypeRadioTxOngoing:
 		rm.txOngoing(node, q, evt)
 	default:
-		simplelogger.Panicf("event type not implemented: %v", evt.Type)
+		simplelogger.Errorf("Radiomodel event type not implemented: %v", evt.Type)
 	}
 }
 
