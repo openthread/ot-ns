@@ -74,6 +74,12 @@ waitloop:
 	return nil
 }
 
+func (gs *grpcService) EnergyReport(req *pb.VisualizeRequest, stream pb.VisualizeGrpcService_EnergyReportServer) error {
+	//TODO: implement energy report for replay, if it fits.
+	var err error
+	return err
+}
+
 func (gs *grpcService) Command(context.Context, *pb.CommandRequest) (*pb.CommandResponse, error) {
 	// TODO: implement some commands for replay (e.g. speed)
 	return nil, errors.Errorf("can not run command on replay")

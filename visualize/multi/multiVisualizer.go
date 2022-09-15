@@ -29,7 +29,9 @@ package visualize_multi
 import (
 	"time"
 
+	"github.com/openthread/ot-ns/energy"
 	. "github.com/openthread/ot-ns/types"
+	"github.com/openthread/ot-ns/visualize/grpc/pb"
 
 	"github.com/openthread/ot-ns/visualize"
 )
@@ -186,6 +188,18 @@ func (mv *multiVisualizer) SetParent(id NodeId, extaddr uint64) {
 func (mv *multiVisualizer) SetTitle(titleInfo visualize.TitleInfo) {
 	for _, v := range mv.vs {
 		v.SetTitle(titleInfo)
+	}
+}
+
+func (mv *multiVisualizer) UpdateNodesEnergy(node []*pb.NodeEnergy, timestamp uint64, updateView bool) {
+	for _, v := range mv.vs {
+		v.UpdateNodesEnergy(node, timestamp, updateView)
+	}
+}
+
+func (mv *multiVisualizer) SetEnergyAnalyser(ea *energy.EnergyAnalyser) {
+	for _, v := range mv.vs {
+		v.SetEnergyAnalyser(ea)
 	}
 }
 

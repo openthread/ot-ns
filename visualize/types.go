@@ -31,7 +31,9 @@ import (
 	"time"
 
 	"github.com/openthread/ot-ns/dissectpkt/wpan"
+	"github.com/openthread/ot-ns/energy"
 	. "github.com/openthread/ot-ns/types"
+	"github.com/openthread/ot-ns/visualize/grpc/pb"
 )
 
 type Visualizer interface {
@@ -62,6 +64,8 @@ type Visualizer interface {
 	OnExtAddrChange(id NodeId, extaddr uint64)
 	SetTitle(titleInfo TitleInfo)
 	SetNetworkInfo(networkInfo NetworkInfo)
+	UpdateNodesEnergy(node []*pb.NodeEnergy, timestamp uint64, updateView bool)
+	SetEnergyAnalyser(ea *energy.EnergyAnalyser)
 }
 
 type MsgVisualizeInfo struct {
