@@ -50,7 +50,7 @@ func TestSerializeAlarmEvent(t *testing.T) {
 }
 
 func TestDeserializeRadioTxEvent(t *testing.T) {
-	data, _ := hex.DecodeString("04030201000000001109000cf6a3ff1020304050")
+	data, _ := hex.DecodeString("04030201000000001109000cf6a30c1020304050")
 	var ev Event
 	ev.Deserialize(data)
 	assert.True(t, 16909060 == ev.Delay)
@@ -58,7 +58,7 @@ func TestDeserializeRadioTxEvent(t *testing.T) {
 	assert.True(t, -93 == ev.TxData.CcaEdTresh)
 	assert.True(t, 12 == ev.TxData.Channel)
 	assert.True(t, -10 == ev.TxData.TxPower)
-	assert.Equal(t, []byte{0xff, 0x10, 0x20, 0x30, 0x40, 0x50}, ev.Data)
+	assert.Equal(t, []byte{12, 0x10, 0x20, 0x30, 0x40, 0x50}, ev.Data)
 }
 
 func TestSerializeRadioRxEvent(t *testing.T) {
