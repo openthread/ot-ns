@@ -83,6 +83,7 @@ func NewSimulation(ctx *progctx.ProgCtx, cfg *Config, dispatcherCfg *dispatcher.
 	//TODO add a flag to turn on/off the energy analyzer
 	s.energyAnalyser = energy.NewEnergyAnalyser()
 	s.d.SetEnergyAnalyser(s.energyAnalyser)
+	s.vis.SetEnergyAnalyser(s.energyAnalyser)
 
 	return s, nil
 }

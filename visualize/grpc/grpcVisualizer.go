@@ -27,9 +27,11 @@
 package visualize_grpc
 
 import (
+	"math"
 	"sync"
 	"time"
 
+	"github.com/openthread/ot-ns/energy"
 	"github.com/openthread/ot-ns/visualize/grpc/replay"
 
 	"github.com/simonlingoogle/go-simplelogger"
@@ -46,6 +48,7 @@ type grpcVisualizer struct {
 	f                   *grpcField
 	showDemoLegendEvent *pb.VisualizeEvent
 	replay              *replay.Replay
+	energyAnalyser      *energy.EnergyAnalyser
 
 	sync.Mutex
 }
@@ -488,6 +491,31 @@ func (gv *grpcVisualizer) AddVisualizationEvent(event *pb.VisualizeEvent, trivia
 		gv.replay.Append(event, trivial)
 	}
 	gv.server.SendEvent(event, trivial)
+}
+
+func (gv *grpcVisualizer) UpdateNodesEnergy(nodes []*pb.NodeEnergy, timestamp uint64, updateView bool) {
+	gv.Lock()
+	defer gv.Unlock()
+
+	simplelogger.Debugf("Updating Nodes Energy to the charts")
+	gv.server.SendEnergyEvent(&pb.NetworkEnergyEvent{
+		Timestamp:   timestamp / 1000000, // convert to s
+		NodesEnergy: nodes,
+	})
+	if updateView {
+		gv.server.SendEnergyEvent(&pb.NetworkEnergyEvent{
+			Timestamp:   math.MaxUint64, // convert to s
+			NodesEnergy: make([]*pb.NodeEnergy, 0),
+		},
+		)
+	}
+}
+
+func (gc *grpcVisualizer) SetEnergyAnalyser(ea *energy.EnergyAnalyser) {
+	gc.Lock()
+	defer gc.Unlock()
+
+	gc.energyAnalyser = ea
 }
 
 func NewGrpcVisualizer(address string, replayFn string) visualize.Visualizer {

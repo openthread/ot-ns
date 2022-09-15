@@ -208,6 +208,11 @@ message NodeEnergy {
     double rx = 5;
 }
 
+message NetworkEnergyEvent {
+    uint64 timestamp = 1;
+    repeated NodeEnergy NodesEnergy = 2;
+}
+
 message CommandRequest {
     string command = 1;
 }
@@ -225,6 +230,7 @@ service VisualizeGrpcService {
     //    rpc Echo (EchoRequest) returns (EchoResponse);
     rpc Visualize (VisualizeRequest) returns (stream VisualizeEvent);
     rpc Command (CommandRequest) returns (CommandResponse);
+    rpc EnergyReport (VisualizeRequest) returns (stream NetworkEnergyEvent);
 }
 
 message Empty {

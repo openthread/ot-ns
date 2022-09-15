@@ -934,6 +934,7 @@ func (d *Dispatcher) SetVisualizer(vis visualize.Visualizer) {
 	simplelogger.AssertNotNil(vis)
 	d.vis = vis
 	d.vis.SetSpeed(d.speed)
+	d.vis.SetEnergyAnalyser(d.energyAnalyser)
 }
 
 func (d *Dispatcher) GetVisualizer() visualize.Visualizer {
@@ -1194,6 +1195,9 @@ func (d *Dispatcher) advanceTime(ts uint64) {
 
 			if d.energyAnalyser != nil && ts%energy.ComputePeriod == 0 {
 				d.energyAnalyser.StoreNetworkEnergy(ts)
+				if d.vis != nil {
+					d.vis.UpdateNodesEnergy(d.energyAnalyser.GetLatestEnergyOfNodes(), ts, true)
+				}
 			}
 		}
 

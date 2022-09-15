@@ -39,10 +39,11 @@ import (
 )
 
 type grpcServer struct {
-	vis                *grpcVisualizer
-	server             *grpc.Server
-	address            string
-	visualizingStreams map[*grpcStream]struct{}
+	vis                      *grpcVisualizer
+	server                   *grpc.Server
+	address                  string
+	visualizingStreams       map[*grpcStream]struct{}
+	visualizingEnergyStreams map[*grpcEnergyStream]struct{}
 }
 
 func (gs *grpcServer) Visualize(req *pb.VisualizeRequest, stream pb.VisualizeGrpcService_VisualizeServer) error {
@@ -89,6 +90,32 @@ exit:
 	return err
 }
 
+func (gs *grpcServer) EnergyReport(req *pb.VisualizeRequest, stream pb.VisualizeGrpcService_EnergyReportServer) error {
+	var err error
+	contextDone := stream.Context().Done()
+
+	//TODO: do we need a heartbeat and a idle checker here too?
+
+	gstream := newGrpcEnergyStream(stream)
+	simplelogger.Debugf("New energy report request got.")
+
+	gs.visualizingEnergyStreams[gstream] = struct{}{}
+	defer gs.disposeEnergyStream(gstream)
+
+	energyHist := gs.vis.energyAnalyser.GetNetworkEnergyHistory()
+	energyHistByNodes := gs.vis.energyAnalyser.GetEnergyHistoryByNodes()
+	for i := 0; i < len(energyHistByNodes); i++ {
+		gs.vis.UpdateNodesEnergy(energyHistByNodes[i], energyHist[i].Timestamp, ((i + 1) == len(energyHistByNodes)))
+	}
+
+	//Wait for the first event
+	<-contextDone
+	err = stream.Context().Err()
+
+	simplelogger.Infof("energy report stream exit: %v", err)
+	return err
+}
+
 func (gs *grpcServer) Command(ctx context.Context, req *pb.CommandRequest) (*pb.CommandResponse, error) {
 	output, err := gs.vis.simctrl.Command(req.Command)
 	return &pb.CommandResponse{
@@ -105,6 +132,12 @@ func (gs *grpcServer) Run() error {
 
 func (gs *grpcServer) SendEvent(event *pb.VisualizeEvent, trivial bool) {
 	for stream := range gs.visualizingStreams {
+		_ = stream.Send(event)
+	}
+}
+
+func (gs *grpcServer) SendEnergyEvent(event *pb.NetworkEnergyEvent) {
+	for stream := range gs.visualizingEnergyStreams {
 		_ = stream.Send(event)
 	}
 }
@@ -126,6 +159,13 @@ func (gs *grpcServer) disposeStream(stream *grpcStream) {
 	stream.close()
 }
 
+func (gs *grpcServer) disposeEnergyStream(stream *grpcEnergyStream) {
+	gs.vis.Lock()
+	delete(gs.visualizingEnergyStreams, stream)
+	gs.vis.Unlock()
+	stream.close()
+}
+
 func (gs *grpcServer) prepareStream(stream *grpcStream) error {
 	return gs.vis.prepareStream(stream)
 }
@@ -133,10 +173,11 @@ func (gs *grpcServer) prepareStream(stream *grpcStream) error {
 func newGrpcServer(vis *grpcVisualizer, address string) *grpcServer {
 	server := grpc.NewServer(grpc.ReadBufferSize(1024*8), grpc.WriteBufferSize(1024*1024*1))
 	gs := &grpcServer{
-		vis:                vis,
-		server:             server,
-		address:            address,
-		visualizingStreams: map[*grpcStream]struct{}{},
+		vis:                      vis,
+		server:                   server,
+		address:                  address,
+		visualizingStreams:       map[*grpcStream]struct{}{},
+		visualizingEnergyStreams: map[*grpcEnergyStream]struct{}{},
 	}
 	pb.RegisterVisualizeGrpcServiceServer(server, gs)
 	return gs
