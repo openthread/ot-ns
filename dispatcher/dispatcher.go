@@ -230,7 +230,6 @@ loop:
 		select {
 		case f := <-d.taskChan:
 			f()
-			// break //ineffective break statement in Golang. Leave it here for visual understanding.
 		case duration := <-d.goDurationChan:
 			// sync the speed start time with the current time
 			if len(d.nodes) == 0 {
@@ -265,7 +264,6 @@ loop:
 				_ = d.pcap.Sync()
 			}
 			close(duration.done)
-			// break //ineffective break statement in Golang. Leave it here for visual understanding.
 		case <-done:
 			break loop
 		}
