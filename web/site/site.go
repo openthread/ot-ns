@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2022, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -27,6 +27,7 @@
 package web_site
 
 import (
+	"html"
 	"html/template"
 	"net/http"
 	_ "net/http/pprof"
@@ -73,9 +74,20 @@ func Serve(listenAddr string) error {
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
 
 	http.HandleFunc("/visualize", func(writer http.ResponseWriter, request *http.Request) {
-		addr := request.URL.Query()["addr"][0]
+		addr := html.EscapeString(request.URL.Query()["addr"][0])
 		simplelogger.Debugf("visualizing addr=%+v", addr)
 		err := templates.ExecuteTemplate(writer, "visualize.html", map[string]interface{}{
+			"addr": addr,
+		})
+		if err != nil {
+			writer.WriteHeader(501)
+		}
+	})
+
+	http.HandleFunc("/energyViewer", func(writer http.ResponseWriter, request *http.Request) {
+		addr := html.EscapeString(request.URL.Query()["addr"][0])
+		simplelogger.Debugf("energy charts visualizing addr=%+v", addr)
+		err := templates.ExecuteTemplate(writer, "energyViewer.html", map[string]interface{}{
 			"addr": addr,
 		})
 		if err != nil {
