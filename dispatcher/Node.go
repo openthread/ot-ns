@@ -28,6 +28,7 @@ package dispatcher
 
 import (
 	"fmt"
+	"math"
 	"net"
 
 	"github.com/openthread/ot-ns/radiomodel"
@@ -314,4 +315,12 @@ func (node *Node) addJoinResult(js *joinerSession) {
 	if len(node.joinResults) > maxJoinResultCount {
 		node.joinResults = node.joinResults[1:]
 	}
+}
+
+// getDistanceTo gets the distance to another Node (in dimensionless units).
+func (node *Node) getDistanceTo(other *Node) (dist float64) {
+	dx := other.X - node.X
+	dy := other.Y - node.Y
+	dist = math.Sqrt(float64(dx*dx) + float64(dy*dy))
+	return
 }

@@ -659,7 +659,15 @@ func (d *Dispatcher) sendRadioFrameEventToNodes(evt *Event) {
 }
 
 func (d *Dispatcher) checkRadioReachable(evt *Event, src *Node, dst *Node) bool {
-	return d.radioModel.CheckRadioReachable(evt, src.radioNode, dst.radioNode)
+	rModel := d.radioModel.CheckRadioReachable(evt, src.radioNode, dst.radioNode)
+	if src.isLegacy || dst.isLegacy {
+		radioRange := src.radioRange
+		if dst.radioRange < radioRange {
+			radioRange = dst.radioRange
+		}
+		return rModel && src.getDistanceTo(dst) <= float64(radioRange)
+	}
+	return rModel
 }
 
 // sendEchoTxDoneEvent sends a legacy type of Tx-done Event to a node, which is the
