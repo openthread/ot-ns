@@ -6,12 +6,16 @@ import (
 	"github.com/simonlingoogle/go-simplelogger"
 )
 
-// RadioModelMutualInterference is a somewhat pessimistic radio model where one transmitter will always interfere
-// with all other transmitters in the simulation, regardless of distance. This means no 2 or more nodes
-// can transmit at the same time. It's useful to evaluate capacity-limited situations.
+// RadioModelMutualInterference is a radio model where a transmission may interfere with another transmission
+// ongoing, depending on the relative level (Rx energy in dBm) of signals. Also CCA is implemented in nodes
+// with a CCA ED threshold as set by the node individually (or a default in case the node doesn't communicate
+// the CCA ED threshold to the simulator.)
 type RadioModelMutualInterference struct {
 	activeTransmitters map[ChannelId]map[NodeId]*RadioNode
-	MinSirDb           int
+
+	// Configured minimum Signal-to-Interference (SIR) ratio in dB that is required to receive a signal
+	// in presence of at least one interfering, other signal.
+	MinSirDb int
 }
 
 func (rm *RadioModelMutualInterference) CheckRadioReachable(evt *Event, src *RadioNode, dst *RadioNode) bool {

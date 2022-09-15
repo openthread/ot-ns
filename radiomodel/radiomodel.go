@@ -26,11 +26,11 @@ const (
 
 // default radio parameters
 const (
-	receiveSensitivityDbm        = -100 // TODO for now MUST be manually kept equal to OT: SIM_RECEIVE_SENSITIVITY
-	DefaultTxPowerDbm            = 0    // Default, RadioTxEvent msg will override it. OT: SIM_TX_POWER
-	DefaultCcaEdThresholdDbm     = -91  // Default, RadioTxEvent msg will override it. OT: SIM_CCA_ENERGY_DETECT_THRESHOLD
-	radioRangeIndoorDistInMeters = 37.0 // Handtuned - for indoor model, how many meters r is RadioRange disc until Link
-	// quality drops below 1.
+	receiveSensitivityDbm        = -100  // TODO for now MUST be manually kept equal to OT: SIM_RECEIVE_SENSITIVITY
+	DefaultTxPowerDbm            = 0     // Default, RadioTxEvent msg will override it. OT: SIM_TX_POWER
+	DefaultCcaEdThresholdDbm     = -91   // Default, RadioTxEvent msg will override it. OT: SIM_CCA_ENERGY_DETECT_THRESHOLD
+	radioRangeIndoorDistInMeters = 26.70 // Handtuned - for indoor model, how many meters r is RadioRange disc until Link
+	// quality drops below 2 (10 dB margin).
 )
 
 // RSSI parameter encodings
