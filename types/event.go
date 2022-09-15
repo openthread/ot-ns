@@ -161,6 +161,7 @@ func (e *Event) Deserialize(data []byte) {
 	case EventTypeRadioTx:
 		e.TxData = deserializeRadioTxData(e.Data)
 		payloadOffset += TxEventDataHeaderLen
+		simplelogger.AssertEqual(e.TxData.Channel, e.Data[payloadOffset]) // channel is stored twice.
 	default:
 		break
 	}
