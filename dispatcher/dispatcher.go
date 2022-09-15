@@ -140,10 +140,9 @@ type Dispatcher struct {
 		DispatchByShortAddrFail uint64
 		DispatchAllInRange      uint64
 	}
-	watchingNodes    map[NodeId]struct{}
-	energyAnalyser   *energy.EnergyAnalyser
-	stopped          bool
-	IsCollisionAware bool // TODO: Remove this variable when OT simulation is updated with correct transmission delays
+	watchingNodes  map[NodeId]struct{}
+	energyAnalyser *energy.EnergyAnalyser
+	stopped        bool
 }
 
 func NewDispatcher(ctx *progctx.ProgCtx, cfg *Config, cbHandler CallbackHandler) *Dispatcher {
@@ -182,7 +181,6 @@ func NewDispatcher(ctx *progctx.ProgCtx, cfg *Config, cbHandler CallbackHandler)
 		watchingNodes:      map[NodeId]struct{}{},
 		goDurationChan:     make(chan goDuration, 10),
 		visOptions:         defaultVisualizationOptions(),
-		IsCollisionAware:   false,
 	}
 	d.speed = d.normalizeSpeed(d.speed)
 	if !d.cfg.NoPcap {
@@ -338,11 +336,7 @@ func (d *Dispatcher) handleRecvEvent(evt *event) {
 		d.Counters.AlarmEvents += 1
 		d.setSleeping(nodeid)
 		d.alarmMgr.SetTimestamp(nodeid, evtTime)
-	case eventTypeRadioReceived: // TODO: Remove this event when OT simulation is updated with correct transmission delays
-		d.Counters.RadioEvents += 1
-		d.sendQueue.Add(d.CurTime+1, nodeid, evt.Data)
 	case eventTypeRadioComm:
-		d.IsCollisionAware = true
 		d.Counters.RadioEvents += 1
 		d.sendQueue.Add(evtTime, nodeid, evt.Data)
 		d.startNewtransmission(nodeid, evt.Delay, evtTime)
@@ -481,12 +475,7 @@ func (d *Dispatcher) processNextEvent() bool {
 			if d.cfg.DumpPackets {
 				d.dumpPacket(s)
 			}
-			// TODO: remove this conditon when OT simulation is updated with correct transmission delays
-			if d.IsCollisionAware {
-				d.sendNodeMessageCollisionAware(s)
-			} else {
-				d.sendNodeMessage(s)
-			}
+			d.sendNodeMessageCollisionAware(s)
 		}
 
 		nextAlarmTime = d.alarmMgr.NextTimestamp()
@@ -596,89 +585,6 @@ func (d *Dispatcher) SendToUART(id NodeId, data []byte) {
 
 	d.alarmMgr.SetNotified(node.Id)
 	d.setAlive(node.Id)
-}
-
-// TODO: Remove this function after the new version of the OT simulation is released.
-func (d *Dispatcher) sendNodeMessage(sit *sendItem) {
-	// send the message to all nodes
-	srcnodeid := sit.NodeId
-	srcnode := d.nodes[srcnodeid]
-	if srcnode == nil {
-		if _, ok := d.deletedNodes[srcnodeid]; !ok {
-			simplelogger.Errorf("%s: node %d not found", d, srcnodeid)
-		}
-		return
-	}
-
-	// send to self as notify for tx done (should do even if the node is failed)
-	d.sendOneMessage(sit, srcnode, srcnode)
-
-	if srcnode.isFailed {
-		return
-	}
-
-	pktinfo := dissectpkt.Dissect(sit.Data)
-	pktframe := pktinfo.MacFrame
-
-	// try to dispatch the message by extaddr directly
-	dispatchedByDstAddr := false
-	dstAddrMode := pktframe.FrameControl.DstAddrMode()
-
-	if dstAddrMode == wpan.DstAddrModeExtended {
-		// the message should only be dispatched to the target node with the extaddr
-		dstnode := d.extaddrMap[pktframe.DstAddrExtended]
-		if dstnode != srcnode && dstnode != nil {
-			if d.checkRadioReachable(srcnode, dstnode) {
-				d.sendOneMessage(sit, srcnode, dstnode)
-				d.visSendFrame(srcnodeid, dstnode.Id, pktframe)
-			} else {
-				d.visSendFrame(srcnodeid, InvalidNodeId, pktframe)
-			}
-
-			d.Counters.DispatchByExtAddrSucc++
-		} else {
-			d.Counters.DispatchByExtAddrFail++
-			d.visSendFrame(srcnodeid, InvalidNodeId, pktframe)
-		}
-
-		dispatchedByDstAddr = true
-	} else if dstAddrMode == wpan.DstAddrModeShort {
-		if pktframe.DstAddrShort != threadconst.BroadcastRloc16 {
-			// unicast message should only be dispatched to target node with the rloc16
-			dstnodes := d.rloc16Map[pktframe.DstAddrShort]
-			dispatchCnt := 0
-
-			if len(dstnodes) > 0 {
-				for _, dstnode := range dstnodes {
-					if d.checkRadioReachable(srcnode, dstnode) {
-						d.sendOneMessage(sit, srcnode, dstnode)
-						d.visSendFrame(srcnodeid, dstnode.Id, pktframe)
-						dispatchCnt++
-					}
-				}
-				d.Counters.DispatchByShortAddrSucc++
-			} else {
-				d.Counters.DispatchByShortAddrFail++
-			}
-
-			if dispatchCnt == 0 {
-				d.visSendFrame(srcnodeid, InvalidNodeId, pktframe)
-			}
-
-			dispatchedByDstAddr = true
-		}
-	}
-
-	if !dispatchedByDstAddr {
-		// TODO: optimize ACK message dispatching by sending it only to the correct node(s)
-		for _, dstnode := range d.nodes {
-			if d.checkRadioReachable(srcnode, dstnode) {
-				d.sendOneMessage(sit, srcnode, dstnode)
-			}
-		}
-
-		d.visSendFrame(srcnodeid, BroadcastNodeId, pktframe)
-	}
 }
 
 func (d *Dispatcher) sendNodeMessageCollisionAware(sit *sendItem) {
@@ -824,12 +730,7 @@ func (d *Dispatcher) sendOneMessage(sit *sendItem, srcnode *Node, dstnode *Node)
 	d.setAlive(dstnodeid)
 
 	if d.isWatching(dstnodeid) {
-		// TODO: remove this if when the new OT simulation with timed transmissions is released in OT.
-		if dstnode == srcnode {
-			simplelogger.Warnf("Node %d >>> TX DONE", dstnodeid)
-		} else {
-			simplelogger.Warnf("Node %d >>> received message from node %d", dstnodeid, srcnode.Id)
-		}
+		simplelogger.Warnf("Node %d >>> received message from node %d", dstnodeid, srcnode.Id)
 	}
 }
 
