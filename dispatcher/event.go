@@ -33,12 +33,13 @@ import (
 )
 
 const (
-	eventTypeAlarmFired    = 0
-	eventTypeRadioReceived = 1
-	eventTypeUartWrite     = 2
-	eventTypeStatusPush    = 5
-	eventTypeRadioComm     = 6
-	eventTypeRadioTxDone   = 7
+	eventTypeAlarmFired      = 0
+	eventTypeRadioReceived   = 1
+	eventTypeUartWrite       = 2
+	eventTypeStatusPush      = 5
+	eventTypeRadioComm       = 6
+	eventTypeRadioTxDone     = 7
+	eventTypeChannelActivity = 8
 )
 
 type eventType = uint8
