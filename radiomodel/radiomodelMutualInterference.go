@@ -31,11 +31,6 @@ func (rm *RadioModelMutualInterference) GetTxRssi(evt *Event, srcNode *RadioNode
 
 func (rm *RadioModelMutualInterference) TxStart(node *RadioNode, q EventQueue, evt *Event) {
 	simplelogger.AssertTrue(evt.Type == EventTypeRadioTx)
-	if node.TxPower != evt.TxData.TxPower {
-		node.TxPower = evt.TxData.TxPower // get the Tx power from the OT node's event param.
-	}
-	node.CcaEdThresh = evt.TxData.CcaEdTresh // get CCA ED threshold also.
-	isAck := dissectpkt.IsAckFrame(evt.Data)
 
 	// check if a transmission is already ongoing by itself? If so signal OT_ERROR_ABORT back
 	// to the OT stack, which will retry later without marking it as 'CCA failure'.
@@ -51,22 +46,25 @@ func (rm *RadioModelMutualInterference) TxStart(node *RadioNode, q EventQueue, e
 		return
 	}
 
+	// init before new transmission
+	node.TxPower = evt.TxData.TxPower        // get the Tx power from the OT node's event param.
+	node.CcaEdThresh = evt.TxData.CcaEdTresh // get CCA ED threshold also.
 	node.IsCcaFailed = false
 	node.IsTxFailed = false
 	node.InterferedBy = make(map[NodeId]*RadioNode) // clear map
 	node.TxPhase++
 
 	// node starts Tx - first phase is to wait any mandatory 802.15.4 silence time (LIFS/SIFS)
-	// before CCA can commence.
+	// before Tx can commence.
 	var delay uint64
+	isAck := dissectpkt.IsAckFrame(evt.Data)
 	if !isAck {
 		var ifs uint64 = sifsTimeUs
 		if node.IsLastTxLong {
 			ifs = lifsTimeUs
 		}
-		if ifs > ccaTimeUs {
-			ifs -= ccaTimeUs // CCA time may be part of the IFS. TODO check vs 15.4 standards
-		}
+		ifs -= ccaTimeUs        // CCA time may be part of the IFS.
+		ifs -= turnaroundTimeUs // Tx/Rx turnaround time may be part of the IFS.
 		if evt.Timestamp >= ifs && node.TimeLastTxEnded > (evt.Timestamp-ifs) {
 			// must delay additionally until allowed to send again
 			delay = ifs - (evt.Timestamp - node.TimeLastTxEnded)
@@ -89,13 +87,13 @@ func (rm *RadioModelMutualInterference) txOngoing(node *RadioNode, q EventQueue,
 
 	node.TxPhase++
 	if node.TxPhase == 2 && isAck {
-		node.TxPhase++ // for ACKs, CCA not applied but fixed delay in phase 1.
+		node.TxPhase = 4 // for ACKs, CCA not applied
 	}
 
 	switch node.TxPhase {
 	case 2: // CCA first sample point
 		//perform CCA check at current time point 1.
-		if !isAck && rm.ccaDetectsBusy(node, evt) {
+		if rm.ccaDetectsBusy(node, evt) {
 			node.IsCcaFailed = true
 		}
 		// next event is for CCA period end
@@ -104,7 +102,7 @@ func (rm *RadioModelMutualInterference) txOngoing(node *RadioNode, q EventQueue,
 		q.AddEvent(&nextEvt)
 
 	case 3: // CCA second sample point and decision
-		if !isAck && rm.ccaDetectsBusy(node, evt) {
+		if rm.ccaDetectsBusy(node, evt) {
 			node.IsCcaFailed = true
 		}
 		if node.IsCcaFailed {
@@ -122,16 +120,22 @@ func (rm *RadioModelMutualInterference) txOngoing(node *RadioNode, q EventQueue,
 			// ... and reset back to start state.
 			node.TxPhase = 0
 		} else {
-			// Start frame transmission at time=now.
-			rm.startTransmission(node, evt)
-
-			// schedule the end-of-frame-transmission event, d us later.
+			// move to next state after turnAroundTime
 			nextEvt := evt.Copy()
-			nextEvt.Timestamp += getFrameDurationUs(evt)
+			nextEvt.Timestamp += turnaroundTimeUs
 			q.AddEvent(&nextEvt)
 		}
 
-	case 4: // End of frame transmit event
+	case 4:
+		// Start frame transmission
+		rm.startTransmission(node, evt)
+
+		// schedule the end-of-frame-transmission event, d us later.
+		nextEvt := evt.Copy()
+		nextEvt.Timestamp += getFrameDurationUs(evt)
+		q.AddEvent(&nextEvt)
+
+	case 5: // End of frame transmit event
 		// signal Tx Done event to sender.
 		nextEvt := evt.Copy()
 		nextEvt.Type = EventTypeRadioTxDone
@@ -181,6 +185,7 @@ func (rm *RadioModelMutualInterference) init() {
 
 func (rm *RadioModelMutualInterference) ccaDetectsBusy(node *RadioNode, evt *Event) bool {
 	// loop all active transmitters, see if any one transmits above my CCA ED Threshold.
+	// This is only CCA Mode 1 (ED) per 802.15.4-2015.
 	for _, v := range rm.activeTransmitters[evt.TxData.Channel] {
 		rssi := rm.GetTxRssi(nil, v, node)
 		if rssi == RssiInvalid {

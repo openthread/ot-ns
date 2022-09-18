@@ -14,12 +14,14 @@ type ChannelId = uint8
 const (
 	symbolTimeUs      uint64    = 16
 	symbolsPerOctet             = 2
-	aMaxSifsFrameSize           = 18 // as defined in IEEE 802.15.4-2015
+	aMaxSifsFrameSize           = 18 // as defined in IEEE 802.15.4-2015 8.4.1
+	aTurnAroundTime             = symbolTimeUs * 12
 	phyHeaderSize               = 6
-	ccaTimeUs                   = symbolTimeUs * 8
-	aifsTimeUs                  = symbolTimeUs * 12
-	lifsTimeUs                  = symbolTimeUs * 20
-	sifsTimeUs                  = symbolTimeUs * 12
+	ccaTimeUs                   = symbolTimeUs * 8    // == aCcaTime
+	aifsTimeUs                  = symbolTimeUs * 12   // == macSifsPeriod
+	lifsTimeUs                  = symbolTimeUs * 40   // == macLifsPeriod
+	sifsTimeUs                  = symbolTimeUs * 12   // == macSifsPeriod
+	turnaroundTimeUs            = aTurnAroundTime / 2 // This is radio-specific and <= aTurnAroundTime
 	minChannelNumber  ChannelId = 11
 	maxChannelNumber  ChannelId = 26
 )
