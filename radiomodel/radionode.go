@@ -3,6 +3,7 @@ package radiomodel
 import (
 	"math"
 
+	"github.com/openthread/ot-ns/dissectpkt"
 	. "github.com/openthread/ot-ns/types"
 )
 
@@ -26,11 +27,17 @@ type RadioNode struct {
 	// RxSensitivity contains the Rx sensitivity in dBm (not influenced by OpenThread node.)
 	RxSensitivity int8
 
+	// FrameTxInfo contains metadata about the current/last frame transmitted.
+	FrameTxInfo *dissectpkt.PktInfo
+
 	// TimeLastTxEnded is the timestamp (us) when the last Tx or Tx-attempt by this RadioNode ended.
 	TimeLastTxEnded uint64
 
 	// IsLastTxLong indicates whether the RadioNode's last Tx was a long frame (LIFS applies) or short (SIFS applies)
 	IsLastTxLong bool
+
+	// TimeNextTx is the timestamp (us) when the next Tx-attempt of the RadioNode can start (after IFS).
+	TimeNextTx uint64
 
 	// InterferedBy indicates by which other node this RadioNode was interfered during current transmission.
 	InterferedBy map[NodeId]*RadioNode

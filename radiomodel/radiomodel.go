@@ -58,9 +58,10 @@ type RadioModel interface {
 	// fall below the minimum Rx sensitivity of the dstNode.
 	GetTxRssi(evt *Event, srcNode *RadioNode, dstNode *RadioNode) int8
 
-	// ApplyInterference applies any interference to a frame in transit, prior to delivery of the
+	// OnRxEventDispatch is called when the dispatcher sends an Rx event to a particular dstNode. The method
+	// implementation may apply any interference to a frame in transit, prior to delivery of the
 	// frame at a single receiving radio dstNode.
-	ApplyInterference(evt *Event, srcNode *RadioNode, dstNode *RadioNode)
+	OnRxEventDispatch(evt *Event, srcNode *RadioNode, dstNode *RadioNode)
 
 	// HandleEvent handles all radio-model events coming out of the simulator event queue.
 	// node must be the RadioNode object equivalent to the evt.NodeId node. Newly generated events may go back into

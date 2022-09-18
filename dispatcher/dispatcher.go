@@ -737,7 +737,7 @@ func (d *Dispatcher) sendOneRadioFrameEvent(evt *Event, srcNode *Node, dstNode *
 	} else {
 		// Tx failure cases below:
 		//   3) radio model indicates failure on this specific link (e.g. interference) now
-		d.radioModel.ApplyInterference(&evt2, srcNode.radioNode, dstNode.radioNode)
+		d.radioModel.OnRxEventDispatch(&evt2, srcNode.radioNode, dstNode.radioNode)
 	}
 
 	// send the event plus time keeping - moves dstnode's time to the current send-event's time.

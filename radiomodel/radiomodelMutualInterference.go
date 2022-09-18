@@ -51,30 +51,29 @@ func (rm *RadioModelMutualInterference) TxStart(node *RadioNode, q EventQueue, e
 	node.CcaEdThresh = evt.TxData.CcaEdTresh // get CCA ED threshold also.
 	node.IsCcaFailed = false
 	node.IsTxFailed = false
+	node.IsLastTxLong = isLongDataframe(evt)
+	node.FrameTxInfo = dissectpkt.Dissect(evt.Data)
 	node.InterferedBy = make(map[NodeId]*RadioNode) // clear map
 	node.TxPhase++
 
 	// node starts Tx - first phase is to wait any mandatory 802.15.4 silence time (LIFS/SIFS)
 	// before Tx can commence.
 	var delay uint64
-	isAck := dissectpkt.IsAckFrame(evt.Data)
-	if !isAck {
-		var ifs uint64 = sifsTimeUs
-		if node.IsLastTxLong {
-			ifs = lifsTimeUs
+	if dissectpkt.IsAckFrame(node.FrameTxInfo) {
+		var timeStartCca uint64 = evt.Timestamp
+		if node.TimeNextTx > ccaTimeUs+turnaroundTimeUs { // check to avoid negative uint64
+			timeStartCca = node.TimeNextTx - ccaTimeUs - turnaroundTimeUs
 		}
-		ifs -= ccaTimeUs        // CCA time may be part of the IFS.
-		ifs -= turnaroundTimeUs // Tx/Rx turnaround time may be part of the IFS.
-		if evt.Timestamp >= ifs && node.TimeLastTxEnded > (evt.Timestamp-ifs) {
+		if evt.Timestamp < timeStartCca {
 			// must delay additionally until allowed to send again
-			delay = ifs - (evt.Timestamp - node.TimeLastTxEnded)
+			delay = timeStartCca - evt.Timestamp
 		} else {
 			delay = 0 // No delay needed, proceed straight to CCA start
 		}
 	} else {
 		delay = aifsTimeUs // ack is sent after fixed delay and no CCA.
 	}
-	// create an internal event to continue the transmission procedure later on
+	// create an internal event to continue the transmission procedure after the delay.
 	nextEvt := evt.Copy()
 	nextEvt.Type = EventTypeRadioTxOngoing
 	nextEvt.Timestamp += delay
@@ -83,7 +82,7 @@ func (rm *RadioModelMutualInterference) TxStart(node *RadioNode, q EventQueue, e
 
 func (rm *RadioModelMutualInterference) txOngoing(node *RadioNode, q EventQueue, evt *Event) {
 	simplelogger.AssertTrue(evt.Type == EventTypeRadioTxOngoing)
-	isAck := dissectpkt.IsAckFrame(evt.Data)
+	isAck := dissectpkt.IsAckFrame(node.FrameTxInfo)
 
 	node.TxPhase++
 	if node.TxPhase == 2 && isAck {
@@ -217,13 +216,19 @@ func (rm *RadioModelMutualInterference) endTransmission(node *RadioNode, evt *Ev
 	delete(rm.activeTransmitters[evt.TxData.Channel], evt.NodeId)
 
 	// set values for future transmission
-	node.TimeLastTxEnded = evt.Timestamp     // for data frames and ACKs
-	node.IsLastTxLong = isLongDataframe(evt) // for data frames and ACKs
-	node.TxPhase = 0                         // reset the phase back.
+	node.TimeLastTxEnded = evt.Timestamp
+	if isLongDataframe(evt) {
+		node.TimeNextTx = evt.Timestamp + lifsTimeUs
+	} else {
+		node.TimeNextTx = evt.Timestamp + sifsTimeUs
+	}
+	node.TxPhase = 0 // reset the phase back.
 }
 
-func (rm *RadioModelMutualInterference) ApplyInterference(evt *Event, src *RadioNode, dst *RadioNode) {
+func (rm *RadioModelMutualInterference) OnRxEventDispatch(evt *Event, src *RadioNode, dst *RadioNode) {
 	simplelogger.AssertTrue(evt.Type == EventTypeRadioRx)
+
+	// Apply interference.
 	for _, interferer := range src.InterferedBy {
 		if interferer == dst { // if dst node was at some point transmitting itself, fail the Rx
 			evt.RxData.Error = OT_ERROR_ABORT
@@ -238,4 +243,21 @@ func (rm *RadioModelMutualInterference) ApplyInterference(evt *Event, src *Radio
 			evt.RxData.Error = OT_ERROR_FCS
 		}
 	}
+
+	// In case of Ack being delivered to the node that did an Ack-request with same seq nr:
+	// adjust IFS info of the dst node. Per 802.15.4-2015, IFS is applied after Ack Rx.
+	isAck := dissectpkt.IsAckFrame(src.FrameTxInfo)
+	if isAck && dst.FrameTxInfo != nil && dst.FrameTxInfo.MacFrame.Seq == src.FrameTxInfo.MacFrame.Seq &&
+		dst.FrameTxInfo.MacFrame.FrameControl.AckRequest() {
+		if dst.IsLastTxLong {
+			if dst.TimeNextTx < evt.Timestamp+lifsTimeUs {
+				dst.TimeNextTx = evt.Timestamp + lifsTimeUs
+			}
+		} else {
+			if dst.TimeNextTx < evt.Timestamp+sifsTimeUs {
+				dst.TimeNextTx = evt.Timestamp + sifsTimeUs
+			}
+		}
+	}
+
 }

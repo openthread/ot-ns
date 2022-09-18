@@ -71,7 +71,7 @@ func (rm *RadioModelIdeal) TxStart(node *RadioNode, q EventQueue, evt *Event) {
 	q.AddEvent(&nextEvt2)
 }
 
-func (rm *RadioModelIdeal) ApplyInterference(evt *Event, src *RadioNode, dst *RadioNode) {
+func (rm *RadioModelIdeal) OnRxEventDispatch(evt *Event, src *RadioNode, dst *RadioNode) {
 	// No interference modeled.
 }
 
