@@ -59,7 +59,8 @@ func (rm *RadioModelMutualInterference) TxStart(node *RadioNode, q EventQueue, e
 	// node starts Tx - first phase is to wait any mandatory 802.15.4 silence time (LIFS/SIFS)
 	// before Tx can commence.
 	var delay uint64
-	if dissectpkt.IsAckFrame(node.FrameTxInfo) {
+	isAck := dissectpkt.IsAckFrame(node.FrameTxInfo)
+	if !isAck {
 		var timeStartCca uint64 = evt.Timestamp
 		if node.TimeNextTx > ccaTimeUs+turnaroundTimeUs { // check to avoid negative uint64
 			timeStartCca = node.TimeNextTx - ccaTimeUs - turnaroundTimeUs
