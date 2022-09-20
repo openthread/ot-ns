@@ -1089,14 +1089,14 @@ func (d *Dispatcher) isWatching(nodeid NodeId) bool {
 }
 
 func (d *Dispatcher) GetWatchingNodes() []NodeId {
-	wn := make([]NodeId, len(d.watchingNodes), len(d.watchingNodes))
+	watchingNodeIds := make([]NodeId, len(d.watchingNodes), len(d.watchingNodes))
 	j := 0
 	for k := range d.watchingNodes {
-		wn[j] = k
+		watchingNodeIds[j] = k
 		j++
 	}
-	sort.Ints(wn)
-	return wn
+	sort.Ints(watchingNodeIds)
+	return watchingNodeIds
 }
 
 func (d *Dispatcher) GetAliveCount() int {

@@ -319,6 +319,9 @@ class BasicTests(OTNSTestCase):
         ns.watch(3, 4, 5, 6, 8)
         ns.go(5)
         ns.unwatch(5, 6)
+        self.assertEqual([3, 4, 8], ns.watched())
+        ns.unwatchAll()
+        self.assertEqual([], ns.watched())
 
 if __name__ == '__main__':
     unittest.main()

@@ -647,13 +647,20 @@ func (rt *CmdRunner) executeWatch(cc *CommandContext, cmd *WatchCmd) {
 
 func (rt *CmdRunner) executeUnwatch(cc *CommandContext, cmd *UnwatchCmd) {
 	rt.postAsyncWait(func(sim *simulation.Simulation) {
-		for _, sel := range cmd.Nodes {
-			node, _ := rt.getNode(sim, sel)
-			if node == nil {
-				cc.errorf("node %v not found", sel)
-				continue
+		// if no node-number(s) given, unwatch all.
+		if len(cmd.Nodes) == 0 {
+			for _, n := range sim.Dispatcher().GetWatchingNodes() {
+				sim.Dispatcher().UnwatchNode(n)
 			}
-			sim.Dispatcher().UnwatchNode(node.Id)
+		} else {
+			for _, sel := range cmd.Nodes {
+				node, _ := rt.getNode(sim, sel)
+				if node == nil {
+					cc.errorf("node %v not found", sel)
+					continue
+				}
+				sim.Dispatcher().UnwatchNode(node.Id)
+			}
 		}
 	})
 }

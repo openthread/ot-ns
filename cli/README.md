@@ -387,6 +387,10 @@ Done
 
 Disable the watch status for one or more nodes. See [watch](#watch-node-id-node-id-) for details.
 
+### unwatch all
+
+Disable the watch status for all nodes. See [watch](#watch-node-id-node-id-) for details.
+
 ### watch \[\<node-id\>\] \[<node-id> ...\]
 
 Enable additional, detailed log messages on selected node(s) only. This can be useful for interactive debugging or 
@@ -408,6 +412,14 @@ Done
 > unwatch 1 3 5
 > watch
 6
+> watch 3 5
+Done
+> unwatch all
+Done
+> watch
+
+Done
+>
 ```
 
 ### web

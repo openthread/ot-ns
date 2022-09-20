@@ -219,6 +219,18 @@ class OTNS(object):
         cmd = f'watch {" ".join(map(str, nodeids))}'
         self._do_command(cmd)
 
+    def watched(self) -> List[int]:
+        """
+        Get the nodes currently being watched.
+
+        :return: watched node IDs
+        """
+        cmd = f'watch'
+        idsStr = self._do_command(cmd)[0]
+        if len(idsStr)==0:
+            return []
+        return list(map(int, idsStr.split(" ")))
+
     def unwatch(self, *nodeids: int) -> None:
         """
         Disable watch (unwatch) nodes from simulation by IDs.
@@ -226,6 +238,13 @@ class OTNS(object):
         :param nodeids: node IDs
         """
         cmd = f'unwatch {" ".join(map(str, nodeids))}'
+        self._do_command(cmd)
+
+    def unwatchAll(self) -> None:
+        """
+        Disable watch (unwatch) on all nodes.
+        """
+        cmd = f'unwatch all'
         self._do_command(cmd)
 
     def move(self, nodeid: int, x: int, y: int) -> None:
