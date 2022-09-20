@@ -40,12 +40,12 @@ func TestOTOutFilter(t *testing.T) {
 		"\n" +
 		"> cmd3\n" +
 		//-|C|W|N|I|D
-		"A00:00:17.817 [-]log1\n" +
+		"Any 00:00:17.817 [-]log1\n" +
 		"B01:00:17.817 [C]log2\n" +
-		"C02:43:37.817 [W] log3\n" +
-		"D33:00:17.817 [N] log4\n" +
-		"E44:33:22.123 [I]log5\n" +
-		"F[-]log1\n" +
+		"C 02:43:37.817 [W] log3\n" +
+		"D  33:00:17.817 [N] log4\n" +
+		"E text 44:33:22.123 [I]log5\n" +
+		"F text [x] no log\n" +
 		"G[C]log2\n" +
 		"H[W] log3\n" +
 		"I[N] log4\n" +
@@ -59,8 +59,9 @@ func TestOTOutFilter(t *testing.T) {
 		"Error: fail\n" +
 		"\n" +
 		"cmd3\n" +
-		"ABCDEFGHIJKL\n" +
 		"" +
+		"F text [x] no log\n" +
+		"\n" +
 		"Done\n" +
 		""
 

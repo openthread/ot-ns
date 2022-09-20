@@ -36,7 +36,7 @@ import (
 )
 
 var (
-	logPattern = regexp.MustCompile(`(\d\d:\d\d:\d\d\.\d\d\d )?\[(-|C|W|N|I|D)].*\n`)
+	logPattern = regexp.MustCompile(`\[(-|C|W|N|I|D)].+\n`)
 )
 
 type otOutFilter struct {
@@ -92,20 +92,13 @@ func (cc *otOutFilter) readFirstLine(p []byte) int {
 		if logIdx == nil {
 			rn += copy(p, firstline[:])
 		} else {
-			if logIdx[0] > 0 {
-				rn += copy(p, firstline[:logIdx[0]])
-			} else {
-				// remove the log
-				simplelogger.AssertTrue(logIdx[1] == len(firstline))
-				n1 := len(logIdx) - 2
-				n2 := len(logIdx) - 1
-				simplelogger.AssertTrue(logIdx[n1] >= 0 && logIdx[n2] > logIdx[n1])
-				logStr := strings.TrimSpace(firstline)
-				logLevelIndicatorStr := firstline[logIdx[n1]:logIdx[n2]]
-				simplelogger.AssertTrue(len(logLevelIndicatorStr) == 1)
-				cc.printLog(logLevelIndicatorStr, logStr)
-				sn += logIdx[1]
-			}
+			// filter out the log line and send to printLog()
+			simplelogger.AssertTrue(logIdx[1] == len(firstline))
+			logStr := strings.TrimSpace(firstline)
+			logLevelIndicatorStr := firstline[logIdx[2]:logIdx[3]]
+			simplelogger.AssertTrue(len(logLevelIndicatorStr) == 1)
+			cc.printLog(logLevelIndicatorStr, logStr)
+			sn += logIdx[1]
 		}
 
 		simplelogger.AssertTrue(rn+sn > 0) // should always read/skip something
