@@ -1138,7 +1138,7 @@ func (d *Dispatcher) IsWatching(nodeid NodeId) bool {
 }
 
 func (d *Dispatcher) GetWatchingNodes() []NodeId {
-	watchingNodeIds := make([]NodeId, len(d.watchingNodes), len(d.watchingNodes))
+	watchingNodeIds := make([]NodeId, len(d.watchingNodes))
 	j := 0
 	for k := range d.watchingNodes {
 		watchingNodeIds[j] = k
