@@ -614,19 +614,24 @@ func (node *Node) lineReader(reader io.Reader, uartType NodeUartType) {
 	}
 }
 
-// handles an incoming log message from the OT-Node. The policy may be changed in the future,
-// or made configurable.
+// handles an incoming log message from the OT-Node for which the loglevel (otLevel) could be detected.
+// The policy of handling may be changed in the future, or made configurable.
 func (node *Node) handlerLogMsg(otLevel string, msg string) {
 	switch otLevel {
-	case "D", "I", "N":
+	case "D":
 		// only display detailed log msgs if in Node's context or watching that Node.
 		// Otherwise, too much is displayed.
+		if node.S.cmdRunner.GetContextNodeId() == node.Id || node.S.Dispatcher().IsWatching(node.Id) {
+			simplelogger.Debugf(msg)
+		}
+	case "I", "N":
+		// only display detailed log msgs if in Node's context or watching that Node.
 		if node.S.cmdRunner.GetContextNodeId() == node.Id || node.S.Dispatcher().IsWatching(node.Id) {
 			simplelogger.Infof(msg)
 		}
 	case "W":
 		simplelogger.Warnf(msg)
-	case "E", "-":
+	case "C", "E", "-":
 		fallthrough
 	default:
 		simplelogger.Errorf(msg)
