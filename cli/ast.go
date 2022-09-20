@@ -432,8 +432,8 @@ type WatchCmd struct {
 
 //noinspection GoStructTag
 type UnwatchCmd struct {
-	Cmd   struct{}       `"unwatch"` //nolint
-	Nodes []NodeSelector `( @@ )+`   //nolint
+	Cmd   struct{}       `"unwatch"`           //nolint
+	Nodes []NodeSelector `( "all" | ( @@ )+ )` //nolint
 }
 
 //noinspection GoStructTag
