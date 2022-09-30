@@ -50,3 +50,7 @@ func Dissect(data []byte) *PktInfo {
 
 	return pktinfo
 }
+
+func IsAckFrame(pkt *PktInfo) bool {
+	return pkt.MacFrame.FrameControl.FrameType() == wpan.FrameTypeAck
+}

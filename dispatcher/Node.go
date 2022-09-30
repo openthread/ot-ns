@@ -32,6 +32,7 @@ import (
 	"math"
 	"net"
 
+	"github.com/openthread/ot-ns/radiomodel"
 	"github.com/openthread/ot-ns/threadconst"
 	. "github.com/openthread/ot-ns/types"
 	"github.com/simonlingoogle/go-simplelogger"
@@ -88,6 +89,7 @@ type Node struct {
 	failureCtrl   *FailureCtrl
 	isFailed      bool
 	radioRange    int
+	radioNode     *radiomodel.RadioNode
 	pendingPings  []*pingRequest
 	pingResults   []*PingResult
 	joinerState   OtJoinerState
@@ -95,21 +97,22 @@ type Node struct {
 	joinResults   []*JoinResult
 }
 
-func newNode(d *Dispatcher, nodeid NodeId, x, y int, radioRange int) *Node {
-	simplelogger.AssertTrue(radioRange >= 0)
+func newNode(d *Dispatcher, nodeid NodeId, cfg *NodeConfig) *Node {
+	simplelogger.AssertTrue(cfg.RadioRange >= 0)
 
 	nc := &Node{
 		D:                  d,
 		Id:                 nodeid,
 		CurTime:            d.CurTime,
 		CreateTime:         d.CurTime,
-		X:                  x,
-		Y:                  y,
+		X:           cfg.X,
+		Y:           cfg.Y,
 		ExtAddr:            InvalidExtAddr,
 		Rloc16:             threadconst.InvalidRloc16,
 		Role:               OtDeviceRoleDisabled,
 		peerAddr:           nil, // peer address will be set when the first event is received
-		radioRange:         radioRange,
+		radioRange:  cfg.RadioRange,
+		radioNode:   radiomodel.NewRadioNode(cfg),
 		joinerState:        OtJoinerStateIdle,
 		RadioChannel:       minChannel,
 		radioLockState:     false,
