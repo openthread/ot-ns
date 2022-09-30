@@ -56,6 +56,7 @@ type Command struct {
 	Pings               *PingsCmd               `| @@` //nolint
 	Plr                 *PlrCmd                 `| @@` //nolint
 	Radio               *RadioCmd               `| @@` //nolint
+	RadioModel          *RadioModelCmd          `| @@` //nolint
 	Scan                *ScanCmd                `| @@` //nolint
 	Speed               *SpeedCmd               `| @@` //nolint
 	Title               *TitleCmd               `| @@` //nolint
@@ -420,7 +421,13 @@ type PlrCmd struct {
 	Val *float64 `[ (@Int|@Float) ]` //nolint
 }
 
-// noinspection GoStructTag
+//noinspection GoStructTag
+type RadioModelCmd struct {
+	Cmd   struct{} `"radiomodel"` //nolint
+	Model string   `[ @Ident ]`   //nolint
+}
+
+//noinspection GoStructTag
 type FailTimeParams struct {
 	Dummy        struct{} `"ft"`          //nolint
 	FailDuration float64  `(@Int|@Float)` //nolint

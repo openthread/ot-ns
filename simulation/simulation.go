@@ -75,6 +75,7 @@ func NewSimulation(ctx *progctx.ProgCtx, cfg *Config, dispatcherCfg *dispatcher.
 	dispatcherCfg.DumpPackets = cfg.DumpPackets
 
 	s.d = dispatcher.NewDispatcher(s.ctx, dispatcherCfg, s)
+	s.d.SetRadioModel(radiomodel.Create(cfg.RadioModel))
 	s.vis = s.d.GetVisualizer()
 	if err := s.removeTmpDir(); err != nil {
 		simplelogger.Panicf("remove tmp directory failed: %+v", err)
@@ -191,6 +192,13 @@ func (s *Simulation) OnNodeFail(nodeid NodeId) {
 func (s *Simulation) OnNodeRecover(nodeid NodeId) {
 	node := s.nodes[nodeid]
 	simplelogger.AssertNotNil(node)
+}
+
+func (s *Simulation) OnNodeProcessFailure(node *Node, errorMsg string) {
+	simplelogger.Fatalf("Node %v process failed: %v", node.Id, errorMsg)
+	s.PostAsync(false, func() {
+		_ = s.DeleteNode(node.Id)
+	})
 }
 
 // OnUartWrite notifies the simulation that a node has received some data from UART.

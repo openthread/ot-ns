@@ -215,6 +215,9 @@ func (rt *CmdRunner) execute(cmd *Command, output io.Writer) {
 		rt.executeWeb(cc, cc.Web)
 	} else if cmd.NetInfo != nil {
 		rt.executeNetInfo(cc, cc.NetInfo)
+	} else if cmd.RadioModel != nil {
+                rt.executeRadioModel(cc, cc.RadioModel)
+	
 	} else if cmd.Energy != nil {
 		rt.executeEnergy(cc, cc.Energy)
 	} else {
@@ -622,6 +625,31 @@ func (rt *CmdRunner) executeCounters(cc *CommandContext, counters *CountersCmd) 
 func (rt *CmdRunner) executeWeb(cc *CommandContext, webcmd *WebCmd) {
 	if err := web.OpenWeb(rt.ctx); err != nil {
 		cc.error(err)
+	}
+}
+
+func (rt *CmdRunner) executeRadioModel(cc *CommandContext, cmd *RadioModelCmd) {
+	var name string
+	if len(cmd.Model) == 0 {
+		rt.postAsyncWait(func(sim *simulation.Simulation) {
+			name = sim.Dispatcher().GetRadioModel().GetName()
+		})
+		cc.outputf("%v\n", name)
+	} else {
+		name = cmd.Model
+		ok := false
+		rt.postAsyncWait(func(sim *simulation.Simulation) {
+			model := radiomodel.Create(name)
+			ok = model != nil
+			if ok {
+				sim.Dispatcher().SetRadioModel(model)
+			}
+		})
+		if ok {
+			cc.outputf("%v\n", name)
+		} else {
+			cc.outputf("Error: Radiomodel '%v' does not exist.\n", name)
+		}
 	}
 }
 
