@@ -5,23 +5,22 @@ import (
 	"github.com/simonlingoogle/go-simplelogger"
 )
 
-// RadioModelIdeal is an ideal radio model with infinite parallel transmission capacity. Frame
-// transmit time can be set constant, or to realistic 802.15.4 frame time. RSSI at the receiver
-// can be set to an ideal constant RSSI value, or variable based on an average RF propagation model.
+// RadioModelIdeal is an ideal radio model with infinite parallel transmission capacity per
+// channel. RSSI at the receiver can be set to an ideal constant RSSI value, or to a value
+// based on an average RF propagation model. There is a hard stop of reception beyond the
+// radioRange of the node i.e. ideal disc model.
 type RadioModelIdeal struct {
 	Name string
 	// UseVariableRssi when true uses distance-dependent RSSI model, else fixed RSSI.
-	UseVariableRssi      bool
-	FixedRssi            int8
-	UseRealFrameDuration bool
-	FixedFrameDuration   uint64 // only used if UseRealFramDuration == false
+	UseVariableRssi bool
+	FixedRssi       int8
 }
 
-func (rm *RadioModelIdeal) CheckRadioReachable(evt *Event, src *RadioNode, dst *RadioNode) bool {
+func (rm *RadioModelIdeal) CheckRadioReachable(src *RadioNode, dst *RadioNode) bool {
 	simplelogger.AssertTrue(src != dst)
 	dist := src.GetDistanceTo(dst)
 	if dist <= src.RadioRange {
-		rssi := rm.GetTxRssi(evt, src, dst)
+		rssi := rm.GetTxRssi(src, dst)
 		if rssi >= RssiMin && rssi <= RssiMax && rssi >= dst.RxSensitivity {
 			return true
 		}
@@ -29,8 +28,7 @@ func (rm *RadioModelIdeal) CheckRadioReachable(evt *Event, src *RadioNode, dst *
 	return false
 }
 
-func (rm *RadioModelIdeal) GetTxRssi(evt *Event, srcNode *RadioNode, dstNode *RadioNode) int8 {
-	simplelogger.AssertTrue(evt.Type == EventTypeRadioRx)
+func (rm *RadioModelIdeal) GetTxRssi(srcNode *RadioNode, dstNode *RadioNode) DbmValue {
 	rssi := rm.FixedRssi // in the most ideal case, always assume a good RSSI up until the max range.
 	if rm.UseVariableRssi {
 		rssi = computeIndoorRssi(srcNode.RadioRange, srcNode.GetDistanceTo(dstNode), srcNode.TxPower, dstNode.RxSensitivity)
@@ -38,47 +36,43 @@ func (rm *RadioModelIdeal) GetTxRssi(evt *Event, srcNode *RadioNode, dstNode *Ra
 	return rssi
 }
 
-func (rm *RadioModelIdeal) TxStart(node *RadioNode, q EventQueue, evt *Event) {
-	simplelogger.AssertTrue(evt.Type == EventTypeRadioTx)
-	node.TxPower = evt.TxData.TxPower // get last node's properties from the OT node's event params.
-	node.CcaEdThresh = evt.TxData.CcaEdTresh
-
-	frameDuration := rm.FixedFrameDuration
-	if rm.UseRealFrameDuration {
-		frameDuration = getFrameDurationUs(evt)
+func (rm *RadioModelIdeal) OnEventDispatch(evt *Event, src *RadioNode, dst *RadioNode) {
+	switch evt.Type {
+	case EventTypeRadioCommRx:
+		// compute the RSSI and store in the event
+		evt.RxData = RxEventData{
+			Channel: src.RadioChannel,
+			Error:   OT_ERROR_NONE,
+			Rssi:    rm.GetTxRssi(src, dst),
+		}
+	case EventTypeRadioTxDone:
+		// mark transmission of the node as success
+		simplelogger.AssertTrue(src.RadioState == RadioTx)
+		evt.TxDoneData = TxDoneEventData{
+			Channel: src.RadioChannel,
+			Error:   OT_ERROR_NONE,
+		}
+	case EventTypeChannelActivityDone:
+		// Ideal model always detects 'no channel activity'.
+		evt.ChanDoneData = ChanDoneEventData{
+			Channel: evt.ChanData.Channel,
+			Rssi:    RssiMinusInfinity,
+		}
+	default:
+		simplelogger.Panicf("Unexpected event type: %v", evt.Type)
 	}
-
-	// signal Tx Done event to sender.
-	nextEvt := evt.Copy()
-	nextEvt.Type = EventTypeRadioTxDone
-	nextEvt.Timestamp += frameDuration
-	nextEvt.TxDoneData = TxDoneEventData{
-		Channel: evt.TxData.Channel,
-		Error:   OT_ERROR_NONE,
-	}
-	q.AddEvent(&nextEvt)
-	node.TimeLastTxEnded = evt.Timestamp
-
-	// let other radios of reachable Nodes receive the data (after N us propagation delay)
-	nextEvt2 := evt.Copy()
-	nextEvt2.Type = EventTypeRadioRx
-	nextEvt2.Timestamp += frameDuration
-	nextEvt2.RxData = RxEventData{
-		Channel: evt.TxData.Channel,
-		Error:   OT_ERROR_NONE,
-		Rssi:    RssiInvalid, // Rssi will be computed upon individual event delivery to node.
-	}
-	q.AddEvent(&nextEvt2)
-}
-
-func (rm *RadioModelIdeal) OnRxEventDispatch(evt *Event, src *RadioNode, dst *RadioNode) {
-	// No interference modeled.
 }
 
 func (rm *RadioModelIdeal) HandleEvent(node *RadioNode, q EventQueue, evt *Event) {
 	switch evt.Type {
-	case EventTypeRadioTx:
-		rm.TxStart(node, q, evt)
+	case EventTypeRadioCommTx:
+		rm.txStart(node, evt)
+	case EventTypeRadioTxDone:
+		rm.txStop(node, evt)
+	case EventTypeChannelActivity:
+		break
+	case EventTypeChannelActivityDone:
+		break
 	default:
 		simplelogger.Errorf("Radiomodel event type not implemented: %v", evt.Type)
 	}
@@ -90,4 +84,19 @@ func (rm *RadioModelIdeal) GetName() string {
 
 func (rm *RadioModelIdeal) init() {
 	// Nothing to init.
+}
+
+func (rm *RadioModelIdeal) txStart(node *RadioNode, evt *Event) {
+	simplelogger.AssertTrue(node.RadioState == RadioTx)
+	simplelogger.AssertFalse(node.RadioLockState)
+	node.LockRadioState(true)
+
+	node.TxPower = evt.TxData.TxPower // get last node's properties from the OT node's event params.
+	node.CcaEdThresh = evt.TxData.CcaEdTresh
+}
+
+func (rm *RadioModelIdeal) txStop(node *RadioNode, evt *Event) {
+	simplelogger.AssertTrue(node.RadioState == RadioTx)
+	simplelogger.AssertTrue(node.RadioLockState)
+	node.LockRadioState(false)
 }

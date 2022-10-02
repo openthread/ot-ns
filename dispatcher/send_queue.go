@@ -75,15 +75,7 @@ func (sq sendQueue) NextEvent() *Event {
 	}
 }
 
-func (sq *sendQueue) Add(timestamp uint64, id NodeId, data []byte) {
-	heap.Push(sq, &Event{
-		Timestamp: timestamp,
-		NodeId:    id,
-		Data:      data,
-	})
-}
-
-func (sq *sendQueue) AddEvent(evt *Event) {
+func (sq *sendQueue) Add(evt *Event) {
 	heap.Push(sq, evt)
 }
 
