@@ -24,31 +24,29 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-package dispatcher
+package types
 
-import (
-	"net"
+type NodeConfig struct {
+	ID             int
+	X, Y           int
+	IsMtd          bool
+	IsRouter       bool
+	RxOffWhenIdle  bool
+	RadioRange     int
+	ExecutablePath string
+	Restore        bool
+}
 
-	. "github.com/openthread/ot-ns/types"
-)
-
-const (
-	eventTypeAlarmFired      = 0
-	eventTypeRadioReceived   = 1
-	eventTypeUartWrite       = 2
-	eventTypeStatusPush      = 5
-	eventTypeRadioComm       = 6
-	eventTypeRadioTxDone     = 7
-	eventTypeChannelActivity = 8
-)
-
-type eventType = uint8
-
-type event struct {
-	Delay   uint64
-	Type    eventType
-	NodeId  NodeId
-	DataLen uint16
-	Data    []byte
-	SrcAddr *net.UDPAddr
+func DefaultNodeConfig() *NodeConfig {
+	return &NodeConfig{
+		ID:             -1, // -1 for the next available nodeid
+		X:              0,
+		Y:              0,
+		IsRouter:       true,
+		IsMtd:          false,
+		RxOffWhenIdle:  false,
+		RadioRange:     160,
+		ExecutablePath: "",
+		Restore:        false,
+	}
 }

@@ -27,22 +27,19 @@
 package dispatcher
 
 import (
-	"encoding/binary"
 	"fmt"
-	"math"
 	"net"
 
 	"github.com/openthread/ot-ns/radiomodel"
 	"github.com/openthread/ot-ns/threadconst"
 	. "github.com/openthread/ot-ns/types"
 	"github.com/simonlingoogle/go-simplelogger"
+	"strconv"
 )
 
 const (
 	maxPingResultCount = 1000
 	maxJoinResultCount = 1000
-	minChannel         = 11
-	maxChannel         = 26
 )
 
 type pingRequest struct {
@@ -68,27 +65,18 @@ type JoinResult struct {
 }
 
 type Node struct {
-	D                  *Dispatcher
-	Id                 NodeId
-	X, Y               int
-	PartitionId        uint32
-	ExtAddr            uint64
-	Rloc16             uint16
-	CreateTime         uint64
-	CurTime            uint64
-	Role               OtDeviceRole
-	RadioState         RadioStates
-	RadioChannel       uint8
-	radioLockState     bool
-	rxBusyUntil        []uint64
-	isInvalidReception []bool
-	isWaitingAck       bool
-	waitAckSN          uint8
-
+	D             *Dispatcher
+	Id            NodeId
+	X, Y          int
+	PartitionId   uint32
+	ExtAddr       uint64
+	Rloc16        uint16
+	CreateTime    uint64
+	CurTime       uint64
+	Role          OtDeviceRole
 	peerAddr      *net.UDPAddr
 	failureCtrl   *FailureCtrl
 	isFailed      bool
-	radioRange    int
 	radioNode     *radiomodel.RadioNode
 	pendingPings  []*pingRequest
 	pingResults   []*PingResult
@@ -101,28 +89,21 @@ func newNode(d *Dispatcher, nodeid NodeId, cfg *NodeConfig) *Node {
 	simplelogger.AssertTrue(cfg.RadioRange >= 0)
 
 	nc := &Node{
-		D:                  d,
-		Id:                 nodeid,
-		CurTime:            d.CurTime,
-		CreateTime:         d.CurTime,
+		D:           d,
+		Id:          nodeid,
+		CurTime:     d.CurTime,
+		CreateTime:  d.CurTime,
 		X:           cfg.X,
 		Y:           cfg.Y,
-		ExtAddr:            InvalidExtAddr,
-		Rloc16:             threadconst.InvalidRloc16,
-		Role:               OtDeviceRoleDisabled,
-		peerAddr:           nil, // peer address will be set when the first event is received
-		radioRange:  cfg.RadioRange,
+		ExtAddr:     InvalidExtAddr,
+		Rloc16:      threadconst.InvalidRloc16,
+		Role:        OtDeviceRoleDisabled,
+		peerAddr:    nil, // peer address will be set when the first event is received
 		radioNode:   radiomodel.NewRadioNode(cfg),
-		joinerState:        OtJoinerStateIdle,
-		RadioChannel:       minChannel,
-		radioLockState:     false,
-		isInvalidReception: make([]bool, maxChannel-minChannel+1), // one for each channel (11-26)
-		rxBusyUntil:        make([]uint64, maxChannel-minChannel+1),
-		isWaitingAck:       false,
+		joinerState: OtJoinerStateIdle,
 	}
 
 	nc.failureCtrl = newFailureCtrl(nc, NonFailTime)
-
 	return nc
 }
 
@@ -130,53 +111,42 @@ func (node *Node) String() string {
 	return fmt.Sprintf("Node<%016x@%d,%d>", node.ExtAddr, node.X, node.Y)
 }
 
-func (node *Node) Send(elapsed uint64, data []byte) {
-	msg := make([]byte, len(data)+11)
-	binary.LittleEndian.PutUint64(msg[:8], elapsed)
-	msg[8] = eventTypeRadioComm
+// SendEvent sends Event evt serialized to the node, over UDP. If evt.Timestamp != InvalidTimestamp,
+// it uses the valid timestamp and modifies the evt.Delay value based on the target node's CurTime,
+// and may update other Event fields too for bookkeeping purposes.
+func (node *Node) sendEvent(evt *Event) {
+	evt.NodeId = node.Id
+	oldTime := node.CurTime
+	if evt.Timestamp == InvalidTimestamp {
+		evt.Timestamp = node.D.CurTime
+	}
+	simplelogger.AssertTrue(evt.Timestamp == node.D.CurTime)
+	if evt.Timestamp >= oldTime {
+		evt.Delay = evt.Timestamp - oldTime // compute Delay value for this target node.
+	} else {
+		evt.Delay = 0 // node can't go back in time.
+	}
 
-	binary.LittleEndian.PutUint16(msg[9:11], uint16(len(data)))
-	n := copy(msg[11:], data)
-	simplelogger.AssertTrue(n == len(data))
-
-	node.SendMessage(msg)
+	// time keeping - move node's time to the current send-event's time.
+	node.D.setAlive(node.Id)
+	node.CurTime += evt.Delay
+	simplelogger.AssertTrue(evt.Delay == 0 || node.CurTime == node.D.CurTime)
+	if evt.Timestamp > oldTime {
+		node.failureCtrl.OnTimeAdvanced(oldTime)
+	}
+	//simplelogger.Debugf("N%v sendEvent -> %v", node.Id, evt.String())
+	node.sendRawData(evt.Serialize())
 }
 
-func (node *Node) SendTxDoneSignal(elapsed uint64, seq uint8) {
-	msg := make([]byte, 12)
-	binary.LittleEndian.PutUint64(msg[:8], elapsed)
-	msg[8] = eventTypeRadioTxDone
-
-	binary.LittleEndian.PutUint16(msg[9:11], uint16(1))
-	msg[11] = seq
-
-	node.SendMessage(msg)
-}
-
-func (node *Node) SendChannelActivity(channel uint8, value int8, elapsed uint64) {
-	msg := make([]byte, 13)
-	binary.LittleEndian.PutUint64(msg[:8], elapsed)
-	msg[8] = eventTypeChannelActivity
-
-	binary.LittleEndian.PutUint16(msg[9:11], uint16(9))
-	msg[11] = channel
-	msg[12] = uint8(value)
-	node.SendMessage(msg)
-}
-
-func (node *Node) SendMessage(msg []byte) {
+// sendRawData is INTERNAL to send bytes to UDP socket of node
+func (node *Node) sendRawData(msg []byte) {
 	if node.peerAddr != nil {
-		_, _ = node.D.udpln.WriteToUDP(msg, node.peerAddr)
+		n, err := node.D.udpln.WriteToUDP(msg, node.peerAddr)
+		simplelogger.AssertTrue(len(msg) == n)
+		simplelogger.AssertNil(err, "WriteToUDP error: %v", err)
 	} else {
 		simplelogger.Errorf("%s does not have a peer address", node)
 	}
-}
-
-func (node *Node) GetDistanceTo(other *Node) (dist int) {
-	dx := other.X - node.X
-	dy := other.Y - node.Y
-	dist = int(math.Sqrt(float64(dx*dx + dy*dy)))
-	return
 }
 
 func (node *Node) IsFailed() bool {
@@ -200,9 +170,7 @@ func (node *Node) Recover() {
 }
 
 func (node *Node) DumpStat() string {
-	d := node.D
-	alarmTs := d.alarmMgr.GetTimestamp(node.Id)
-	return fmt.Sprintf("CurTime=%v, AlarmTs=%v, Failed=%-5v, RecoverTS=%v", node.CurTime, alarmTs, node.isFailed, node.failureCtrl.recoverTs)
+	return fmt.Sprintf("CurTime=%v, Failed=%-5v, RecoverTS=%v", node.CurTime, node.isFailed, node.failureCtrl.recoverTs)
 }
 
 func (node *Node) SetFailTime(failTime FailTime) {
@@ -341,67 +309,14 @@ func (node *Node) addJoinResult(js *joinerSession) {
 	}
 }
 
-func (node *Node) IsReceptionSuccess(channel uint8) bool {
-	return !node.isFailed &&
-		node.RadioState == RadioRx &&
-		node.RadioChannel == channel &&
-		node.D.CurTime >= node.rxBusyUntil[channel-minChannel] &&
-		!node.isInvalidReception[channel-minChannel]
+func (node *Node) setRadioChannelFromString(s string) {
+	u, err := strconv.ParseUint(s, 10, 8)
+	simplelogger.AssertNil(err, "setRadioChannelFromString: error parsing channel number '%s'", s)
+	newChannel := radiomodel.ChannelId(u)
+	node.radioNode.SetChannel(newChannel)
 }
 
-func (node *Node) IsCollisionEvent(src *Node) bool {
-	return node.Id != src.Id && // Needed check
-		node.RadioChannel == src.RadioChannel &&
-		node.D.CurTime < node.rxBusyUntil[src.RadioChannel-minChannel] &&
-		node.isInvalidReception[src.RadioChannel-minChannel]
-}
-
-func (node *Node) IsWaitingAck(seq uint8) bool {
-	return node.isWaitingAck && node.waitAckSN == seq
-}
-
-func (node *Node) InformAckReceived(seq uint8) {
-	if node.IsWaitingAck(seq) {
-		node.isWaitingAck = false
-		node.waitAckSN = 0
-	}
-}
-
-func (node *Node) ReceivePacket(channel uint8, until uint64) {
-	if !node.isInvalidReception[channel-minChannel] {
-		if node.rxBusyUntil[channel-minChannel] > 0 || node.RadioChannel != channel || node.isFailed {
-			node.isInvalidReception[channel-minChannel] = true
-		}
-	}
-
-	if until > node.rxBusyUntil[channel-minChannel] {
-		node.rxBusyUntil[channel-minChannel] = until
-	}
-}
-
-func (node *Node) IsChannelBusy(channel uint8) bool {
-	return !node.isFailed && node.rxBusyUntil[channel-minChannel] > 0
-}
-
-func (node *Node) SetInvalidReception() {
-	node.isInvalidReception[node.RadioChannel-minChannel] = true
-}
-
-func (node *Node) UpdateCollisionCondition() {
-	for i := 0; i < maxChannel-minChannel+1; i++ {
-		if node.rxBusyUntil[i] <= node.D.CurTime {
-			node.isInvalidReception[i] = false
-			node.rxBusyUntil[i] = 0
-		}
-	}
-}
-
-func (node *Node) SetRadioStateFromString(s string, timestamp uint64) {
-	radioEnergy := node.D.energyAnalyser.GetNode(node.Id)
-
-	simplelogger.AssertNotNil(radioEnergy)
-	simplelogger.AssertFalse(node.radioLockState, "radio state was locked")
-
+func (node *Node) setRadioStateFromString(s string) {
 	var state RadioStates
 	switch s {
 	case "off":
@@ -413,13 +328,7 @@ func (node *Node) SetRadioStateFromString(s string, timestamp uint64) {
 	case "rx":
 		state = RadioRx
 	default:
-		simplelogger.Panicf("unknown radio state: %s", s)
+		simplelogger.Panicf("setRadioStateFromString(): unknown radio state: %s", s)
 	}
-
-	node.RadioState = state
-	radioEnergy.SetRadioState(state, timestamp)
-}
-
-func (node *Node) LockRadioState(lock bool) {
-	node.radioLockState = lock
+	node.radioNode.SetRadioState(state)
 }

@@ -35,19 +35,15 @@ import (
 	"time"
 
 	"gopkg.in/yaml.v3"
-
 	"github.com/openthread/ot-ns/visualize"
-
 	"github.com/openthread/ot-ns/web"
-
 	"github.com/openthread/ot-ns/progctx"
-
 	"github.com/openthread/ot-ns/dispatcher"
-
 	"github.com/openthread/ot-ns/simulation"
 	. "github.com/openthread/ot-ns/types"
 	"github.com/pkg/errors"
 	"github.com/simonlingoogle/go-simplelogger"
+	"github.com/openthread/ot-ns/radiomodel"
 )
 
 const (
@@ -216,8 +212,8 @@ func (rt *CmdRunner) execute(cmd *Command, output io.Writer) {
 	} else if cmd.NetInfo != nil {
 		rt.executeNetInfo(cc, cc.NetInfo)
 	} else if cmd.RadioModel != nil {
-                rt.executeRadioModel(cc, cc.RadioModel)
-	
+		rt.executeRadioModel(cc, cc.RadioModel)
+
 	} else if cmd.Energy != nil {
 		rt.executeEnergy(cc, cc.Energy)
 	} else {
@@ -276,7 +272,7 @@ func (rt *CmdRunner) postAsyncWait(f func(sim *simulation.Simulation)) {
 
 func (rt *CmdRunner) executeAddNode(cc *CommandContext, cmd *AddCmd) {
 	simplelogger.Infof("Add: %#v", *cmd)
-	cfg := simulation.DefaultNodeConfig()
+	cfg := DefaultNodeConfig()
 	if cmd.X != nil {
 		cfg.X = *cmd.X
 	}

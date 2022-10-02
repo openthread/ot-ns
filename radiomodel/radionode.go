@@ -3,41 +3,23 @@ package radiomodel
 import (
 	"math"
 
-	"github.com/openthread/ot-ns/dissectpkt"
 	. "github.com/openthread/ot-ns/types"
+	"github.com/simonlingoogle/go-simplelogger"
 )
 
 // RadioNode is the status of a single radio node of the radio model, used by all radio models.
 type RadioNode struct {
-	// IsCcaFailed tracks whether the last CCA process failed (true), or not (false).
-	IsCcaFailed bool
-
-	// IsTxFailed tracks whether the current/last Tx attempt failed (true), or not (false).
-	IsTxFailed bool
-
-	// TxPhase tracks the current Tx phase. 0 = Not started. >0 is started (exact value depends on radio model)
-	TxPhase int
-
-	// TxPower contains the last Tx power used by the OpenThread node.
+	// TxPower contains the last Tx power used by the node.
 	TxPower int8
 
-	// CcaEdThresh contains the last used/set CCA ED threshold of the OpenThread node.
+	// CcaEdThresh contains the last used/set CCA ED threshold of the node.
 	CcaEdThresh int8
 
-	// RxSensitivity contains the Rx sensitivity in dBm (not influenced by OpenThread node.)
+	// RxSensitivity contains the Rx sensitivity in dBm of the node.
 	RxSensitivity int8
 
-	// FrameTxInfo contains metadata about the current/last frame transmitted.
-	FrameTxInfo *dissectpkt.PktInfo
-
-	// TimeLastTxEnded is the timestamp (us) when the last Tx or Tx-attempt by this RadioNode ended.
+	// TimeLastTxEnded is the timestamp (us) when the last Tx (attempt) by this RadioNode ended.
 	TimeLastTxEnded uint64
-
-	// IsLastTxLong indicates whether the RadioNode's last Tx was a long frame (LIFS applies) or short (SIFS applies)
-	IsLastTxLong bool
-
-	// TimeNextTx is the timestamp (us) when the next Tx-attempt of the RadioNode can start (after IFS).
-	TimeNextTx uint64
 
 	// InterferedBy indicates by which other node this RadioNode was interfered during current transmission.
 	InterferedBy map[NodeId]*RadioNode
@@ -50,19 +32,45 @@ type RadioNode struct {
 
 	// RadioRange is the max allowed radio range as configured by the simulation for this node.
 	RadioRange float64
+
+	RadioState     RadioStates
+	RadioChannel   uint8
+	RadioLockState bool
+	rssiSampleMax  int8
 }
 
 func NewRadioNode(cfg *NodeConfig) *RadioNode {
 	rn := &RadioNode{
-		TxPower:       DefaultTxPowerDbm,
-		CcaEdThresh:   DefaultCcaEdThresholdDbm,
-		RxSensitivity: receiveSensitivityDbm,
-		X:             float64(cfg.X),
-		Y:             float64(cfg.Y),
-		RadioRange:    float64(cfg.RadioRange),
-		InterferedBy:  make(map[NodeId]*RadioNode),
+		TxPower:        DefaultTxPowerDbm,
+		CcaEdThresh:    DefaultCcaEdThresholdDbm,
+		RxSensitivity:  receiveSensitivityDbm,
+		X:              float64(cfg.X),
+		Y:              float64(cfg.Y),
+		RadioRange:     float64(cfg.RadioRange),
+		InterferedBy:   make(map[NodeId]*RadioNode),
+		RadioChannel:   11,
+		RadioLockState: false,
 	}
 	return rn
+}
+
+func (rn *RadioNode) SetChannel(ch ChannelId) {
+	simplelogger.AssertTrue(ch >= MinChannelNumber && ch <= MaxChannelNumber)
+	simplelogger.AssertFalse(rn.RadioLockState, "SetChannel(): radio state was locked")
+	// FIXME: if changing channel during rx, fail it.
+	if ch != rn.RadioChannel {
+		// TODO
+	}
+	rn.RadioChannel = ch
+}
+
+func (rn *RadioNode) SetRadioState(state RadioStates) {
+	simplelogger.AssertFalse(rn.RadioLockState, "SetRadioState(): radio state was locked")
+	rn.RadioState = state
+}
+
+func (rn *RadioNode) LockRadioState(lock bool) {
+	rn.RadioLockState = lock
 }
 
 func (rn *RadioNode) SetNodePos(x int, y int) {
