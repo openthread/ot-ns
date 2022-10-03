@@ -10,10 +10,19 @@ import (
 // based on an average RF propagation model. There is a hard stop of reception beyond the
 // radioRange of the node i.e. ideal disc model.
 type RadioModelIdeal struct {
-	Name string
-	// UseVariableRssi when true uses distance-dependent RSSI model, else fixed RSSI.
-	UseVariableRssi bool
-	FixedRssi       int8
+	Name            string
+	UseVariableRssi bool // when true uses distance-dependent RSSI model, else FixedRssi.
+	FixedRssi       DbmValue
+
+	nodes map[NodeId]*RadioNode
+}
+
+func (rm *RadioModelIdeal) AddNode(nodeid NodeId, radioNode *RadioNode) {
+	rm.nodes[nodeid] = radioNode
+}
+
+func (rm *RadioModelIdeal) DeleteNode(nodeid NodeId) {
+	delete(rm.nodes, nodeid)
 }
 
 func (rm *RadioModelIdeal) CheckRadioReachable(src *RadioNode, dst *RadioNode) bool {
@@ -36,7 +45,7 @@ func (rm *RadioModelIdeal) GetTxRssi(srcNode *RadioNode, dstNode *RadioNode) Dbm
 	return rssi
 }
 
-func (rm *RadioModelIdeal) OnEventDispatch(evt *Event, src *RadioNode, dst *RadioNode) {
+func (rm *RadioModelIdeal) OnEventDispatch(src *RadioNode, dst *RadioNode, evt *Event) bool {
 	switch evt.Type {
 	case EventTypeRadioCommRx:
 		// compute the RSSI and store in the event
@@ -46,35 +55,38 @@ func (rm *RadioModelIdeal) OnEventDispatch(evt *Event, src *RadioNode, dst *Radi
 			Rssi:    rm.GetTxRssi(src, dst),
 		}
 	case EventTypeRadioTxDone:
-		// mark transmission of the node as success
+		// mark transmission of the node as success in the event.
 		simplelogger.AssertTrue(src.RadioState == RadioTx)
 		evt.TxDoneData = TxDoneEventData{
 			Channel: src.RadioChannel,
 			Error:   OT_ERROR_NONE,
 		}
-	case EventTypeChannelActivityDone:
+	case EventTypeChannelSampleDone:
 		// Ideal model always detects 'no channel activity'.
 		evt.ChanDoneData = ChanDoneEventData{
 			Channel: evt.ChanData.Channel,
 			Rssi:    RssiMinusInfinity,
 		}
 	default:
-		simplelogger.Panicf("Unexpected event type: %v", evt.Type)
+		break
 	}
+	return true
 }
 
 func (rm *RadioModelIdeal) HandleEvent(node *RadioNode, q EventQueue, evt *Event) {
 	switch evt.Type {
 	case EventTypeRadioCommTx:
-		rm.txStart(node, evt)
+		rm.txStart(node, q, evt)
 	case EventTypeRadioTxDone:
-		rm.txStop(node, evt)
-	case EventTypeChannelActivity:
+		rm.txStop(node, q, evt)
+	case EventTypeChannelSample:
+		rm.channelSample(node, q, evt)
+		node.rssiSampleMax = RssiMinusInfinity
 		break
-	case EventTypeChannelActivityDone:
+	case EventTypeChannelSampleDone:
 		break
 	default:
-		simplelogger.Errorf("Radiomodel event type not implemented: %v", evt.Type)
+		break
 	}
 }
 
@@ -83,20 +95,38 @@ func (rm *RadioModelIdeal) GetName() string {
 }
 
 func (rm *RadioModelIdeal) init() {
-	// Nothing to init.
+	rm.nodes = map[NodeId]*RadioNode{}
 }
 
-func (rm *RadioModelIdeal) txStart(node *RadioNode, evt *Event) {
-	simplelogger.AssertTrue(node.RadioState == RadioTx)
-	simplelogger.AssertFalse(node.RadioLockState)
-	node.LockRadioState(true)
+func (rm *RadioModelIdeal) txStart(srcNode *RadioNode, q EventQueue, evt *Event) {
+	simplelogger.AssertTrue(srcNode.RadioState == RadioTx)
 
-	node.TxPower = evt.TxData.TxPower // get last node's properties from the OT node's event params.
-	node.CcaEdThresh = evt.TxData.CcaEdTresh
+	srcNode.TxPower = evt.TxData.TxPower // get last node's properties from the OT node's event params.
+	srcNode.SetChannel(evt.TxData.Channel)
+	srcNode.SetRadioState(RadioTx)
+
+	// schedule new event for when tx is done, after evt.Delay us.
+	txDoneEvt := evt.Copy()
+	txDoneEvt.Type = EventTypeRadioTxDone
+	txDoneEvt.Timestamp += evt.Delay
+	q.Add(&txDoneEvt)
 }
 
-func (rm *RadioModelIdeal) txStop(node *RadioNode, evt *Event) {
+func (rm *RadioModelIdeal) txStop(node *RadioNode, q EventQueue, evt *Event) {
 	simplelogger.AssertTrue(node.RadioState == RadioTx)
-	simplelogger.AssertTrue(node.RadioLockState)
-	node.LockRadioState(false)
+
+	// Create rx event, to let nearby nodes receive the frame.
+	evt2 := evt.Copy()
+	evt2.Type = EventTypeRadioCommRx
+	q.Add(&evt2)
+}
+
+func (rm *RadioModelIdeal) channelSample(srcNode *RadioNode, q EventQueue, evt *Event) {
+	srcNode.rssiSampleMax = RssiMinusInfinity
+
+	// schedule event when channel sampling stops.
+	evt2 := evt.Copy()
+	evt2.Type = EventTypeChannelSampleDone
+	evt2.Timestamp += evt.Delay
+	q.Add(&evt2)
 }

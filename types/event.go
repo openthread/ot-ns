@@ -37,21 +37,22 @@ import (
 	"github.com/simonlingoogle/go-simplelogger"
 )
 
-type eventType = uint8
+type EventType = uint8
 
 const (
 	// Event type IDs (external, shared between OT-NS and OT node)
-	EventTypeAlarmFired          eventType = 0
-	EventTypeRadioReceived       eventType = 1
-	EventTypeUartWrite           eventType = 2
-	EventTypeRadioSpinelWrite    eventType = 3
-	EventTypePostCmd             eventType = 4
-	EventTypeStatusPush          eventType = 5
-	EventTypeRadioCommRx         eventType = 6
-	EventTypeRadioTxDone         eventType = 7
-	EventTypeChannelActivity     eventType = 8
-	EventTypeChannelActivityDone eventType = 9
-	EventTypeRadioCommTx         eventType = 10
+	EventTypeAlarmFired        EventType = 0
+	EventTypeRadioReceived     EventType = 1
+	EventTypeUartWrite         EventType = 2
+	EventTypeRadioSpinelWrite  EventType = 3
+	EventTypePostCmd           EventType = 4
+	EventTypeStatusPush        EventType = 5
+	EventTypeRadioCommRx       EventType = 6
+	EventTypeRadioTxDone       EventType = 7
+	EventTypeChannelSample     EventType = 8
+	EventTypeChannelSampleDone EventType = 9
+	EventTypeRadioCommTx       EventType = 10
+	EventTypeRadioState        EventType = 11
 )
 
 const (
@@ -62,7 +63,7 @@ const (
 const EventMsgHeaderLen = 11 // from OT platform-simulation.h struct Event { }
 type Event struct {
 	Delay uint64
-	Type  eventType
+	Type  EventType
 	//DataLen uint16
 	Data []byte
 
@@ -72,12 +73,13 @@ type Event struct {
 	Timestamp uint64
 
 	// supplementary payload data stored in Event.Data, depends on the event type.
-	TxData       TxEventData
-	RxData       RxEventData
-	TxDoneData   TxDoneEventData
-	AlarmData    AlarmEventData
-	ChanData     ChanEventData
-	ChanDoneData ChanDoneEventData
+	TxData         TxEventData
+	RxData         RxEventData
+	TxDoneData     TxDoneEventData
+	AlarmData      AlarmEventData
+	ChanData       ChanEventData
+	ChanDoneData   ChanDoneEventData
+	RadioStateData RadioStateEventData
 }
 
 // All further ...EventData formats below only used by OT nodes supporting advanced
@@ -118,6 +120,12 @@ type ChanDoneEventData struct {
 	Rssi    int8
 }
 
+const RadioStateEventDataHeaderLen = 2 //
+type RadioStateEventData struct {
+	Channel uint8
+	State   RadioStates
+}
+
 /* RadioMessagePsduOffset is the offset of Psdu data in a received OpenThread RadioMessage type.
 type RadioMessage struct {
 	Channel       uint8
@@ -129,23 +137,22 @@ const RadioMessagePsduOffset = 1
 // Serialize serializes this Event into []byte to send to OpenThread node,
 // including fields partially.
 func (e *Event) Serialize() []byte {
-	// Detect composite event types
+	// Detect composite event types for which struct data is serialized.
 	var extraFields []byte
 	switch e.Type {
 	case EventTypeRadioCommRx:
-		extraFields = serializeRadioRxData(e.RxData)
+		extraFields = serializeRadioRxData(&e.RxData)
 	case EventTypeRadioTxDone:
-		extraFields = serializeRadioTxDoneData(e.TxDoneData)
-	case EventTypeChannelActivityDone:
-		extraFields = serializeChanDoneData(e.ChanDoneData)
+		extraFields = serializeRadioTxDoneData(&e.TxDoneData)
+	case EventTypeChannelSampleDone:
+		extraFields = serializeChanDoneData(&e.ChanDoneData)
 	default:
 		break
 	}
 
 	payload := append(extraFields, e.Data...)
 	msg := make([]byte, EventMsgHeaderLen+len(payload))
-	// e.Timestamp is not sent, only e.Delay.
-	binary.LittleEndian.PutUint64(msg[:8], e.Delay)
+	binary.LittleEndian.PutUint64(msg[:8], e.Delay) // e.Timestamp is not sent, only e.Delay.
 	msg[8] = e.Type
 	binary.LittleEndian.PutUint16(msg[9:11], uint16(len(payload)))
 	n := copy(msg[EventMsgHeaderLen:], payload)
@@ -177,9 +184,12 @@ func (e *Event) Deserialize(data []byte) {
 		e.TxData = deserializeRadioTxData(e.Data)
 		payloadOffset += TxEventDataHeaderLen
 		simplelogger.AssertEqual(e.TxData.Channel, e.Data[payloadOffset]) // channel is stored twice.
-	case EventTypeChannelActivity:
+	case EventTypeChannelSample:
 		e.ChanData = deserializeChanData(e.Data)
 		payloadOffset += ChanEventDataHeaderLen
+	case EventTypeRadioState:
+		e.RadioStateData = deserializeRadioStateData(e.Data)
+		payloadOffset += RadioStateEventDataHeaderLen
 	default:
 		break
 	}
@@ -192,18 +202,14 @@ func (e *Event) Deserialize(data []byte) {
 	e.Timestamp = InvalidTimestamp
 }
 
-// DeserializeRadioTxEvent deserializes the specific extra TxEvent parameters that are provided in the
-// RadioTx event.
 func deserializeRadioTxData(data []byte) TxEventData {
-	n := len(data)
-	simplelogger.AssertTrue(n >= TxEventDataHeaderLen)
+	simplelogger.AssertTrue(len(data) >= TxEventDataHeaderLen)
 	txData := TxEventData{Channel: data[0], TxPower: int8(data[1]), CcaEdTresh: int8(data[2])}
 	return txData
 }
 
 func deserializeChanData(data []byte) ChanEventData {
-	n := len(data)
-	simplelogger.AssertTrue(n >= ChanEventDataHeaderLen)
+	simplelogger.AssertTrue(len(data) >= ChanEventDataHeaderLen)
 	chanData := ChanEventData{
 		Channel: data[0],
 	}
@@ -211,8 +217,7 @@ func deserializeChanData(data []byte) ChanEventData {
 }
 
 func deserializeChanDoneData(data []byte) ChanDoneEventData {
-	n := len(data)
-	simplelogger.AssertTrue(n >= ChanDoneEventDataHeaderLen)
+	simplelogger.AssertTrue(len(data) >= ChanDoneEventDataHeaderLen)
 	chanData := ChanDoneEventData{
 		Channel: data[0],
 		Rssi:    int8(data[1]),
@@ -220,25 +225,34 @@ func deserializeChanDoneData(data []byte) ChanDoneEventData {
 	return chanData
 }
 
-func serializeRadioRxData(rxData RxEventData) []byte {
+func deserializeRadioStateData(data []byte) RadioStateEventData {
+	simplelogger.AssertTrue(len(data) >= RadioStateEventDataHeaderLen)
+	stateData := RadioStateEventData{
+		Channel: data[0],
+		State:   RadioStates(data[1]),
+	}
+	return stateData
+}
+
+func serializeRadioRxData(rxData *RxEventData) []byte {
 	b := []byte{0, 0, 0}
 	b[0] = rxData.Channel
 	b[1] = rxData.Error
-	b[2] = uint8(rxData.Rssi)
+	b[2] = byte(rxData.Rssi)
 	return b
 }
 
-func serializeRadioTxDoneData(txDoneData TxDoneEventData) []byte {
+func serializeRadioTxDoneData(txDoneData *TxDoneEventData) []byte {
 	b := []byte{0, 0}
 	b[0] = txDoneData.Channel
 	b[1] = txDoneData.Error
 	return b
 }
 
-func serializeChanDoneData(chanData ChanDoneEventData) []byte {
+func serializeChanDoneData(chanData *ChanDoneEventData) []byte {
 	b := []byte{0, 0}
 	b[0] = chanData.Channel
-	b[1] = uint8(chanData.Rssi)
+	b[1] = byte(chanData.Rssi)
 	return b
 }
 

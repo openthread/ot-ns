@@ -9,11 +9,10 @@ import (
 
 // RadioNode is the status of a single radio node of the radio model, used by all radio models.
 type RadioNode struct {
+	Id NodeId
+
 	// TxPower contains the last Tx power used by the node.
 	TxPower int8
-
-	// CcaEdThresh contains the last used/set CCA ED threshold of the node.
-	CcaEdThresh int8
 
 	// RxSensitivity contains the Rx sensitivity in dBm of the node.
 	RxSensitivity int8
@@ -21,64 +20,64 @@ type RadioNode struct {
 	// TimeLastTxEnded is the timestamp (us) when the last Tx (attempt) by this RadioNode ended.
 	TimeLastTxEnded uint64
 
-	// InterferedBy indicates by which other node this RadioNode was interfered during current transmission.
-	InterferedBy map[NodeId]*RadioNode
+	// RadioRange is the radio range as configured by the simulation for this node.
+	RadioRange float64
 
-	// IsDeleted tracks whether this node has been deleted in the simulation.
-	IsDeleted bool
+	// RadioState is the current radio's state.
+	RadioState RadioStates
+
+	// RadioChannel is the current radio's channel (For Rx, Tx, or sampling).
+	RadioChannel uint8
 
 	// Node position expressed in dimensionless units.
 	X, Y float64
 
-	// RadioRange is the max allowed radio range as configured by the simulation for this node.
-	RadioRange float64
+	// interferedBy indicates by which other node this RadioNode was interfered during current transmission.
+	interferedBy map[NodeId]*RadioNode
 
-	RadioState     RadioStates
-	RadioChannel   uint8
-	RadioLockState bool
-	rssiSampleMax  int8
+	// receivingFrom indicates from which other node this RadioNode is correctly receiving (from the start).
+	receivingFrom NodeId
+
+	// rssiSampleMax tracks the max RSSI detected during a channel sampling operation.
+	rssiSampleMax int8
 }
 
-func NewRadioNode(cfg *NodeConfig) *RadioNode {
+func NewRadioNode(nodeid NodeId, cfg *NodeConfig) *RadioNode {
 	rn := &RadioNode{
-		TxPower:        DefaultTxPowerDbm,
-		CcaEdThresh:    DefaultCcaEdThresholdDbm,
-		RxSensitivity:  receiveSensitivityDbm,
-		X:              float64(cfg.X),
-		Y:              float64(cfg.Y),
-		RadioRange:     float64(cfg.RadioRange),
-		InterferedBy:   make(map[NodeId]*RadioNode),
-		RadioChannel:   11,
-		RadioLockState: false,
+		Id:            nodeid,
+		TxPower:       defaultTxPowerDbm,
+		RxSensitivity: receiveSensitivityDbm,
+		X:             float64(cfg.X),
+		Y:             float64(cfg.Y),
+		RadioRange:    float64(cfg.RadioRange),
+		RadioChannel:  DefaultChannelNumber,
+		interferedBy:  make(map[NodeId]*RadioNode),
+		receivingFrom: 0,
+		rssiSampleMax: RssiMinusInfinity,
 	}
 	return rn
 }
 
 func (rn *RadioNode) SetChannel(ch ChannelId) {
 	simplelogger.AssertTrue(ch >= MinChannelNumber && ch <= MaxChannelNumber)
-	simplelogger.AssertFalse(rn.RadioLockState, "SetChannel(): radio state was locked")
-	// FIXME: if changing channel during rx, fail it.
+	// if changing channel during rx, fail the rx.
 	if ch != rn.RadioChannel {
-		// TODO
+		rn.receivingFrom = 0
 	}
 	rn.RadioChannel = ch
 }
 
 func (rn *RadioNode) SetRadioState(state RadioStates) {
-	simplelogger.AssertFalse(rn.RadioLockState, "SetRadioState(): radio state was locked")
+	// if changing state during rx, fail the rx.
+	if state != rn.RadioState {
+		rn.receivingFrom = 0
+	}
 	rn.RadioState = state
 }
 
-func (rn *RadioNode) LockRadioState(lock bool) {
-	rn.RadioLockState = lock
-}
-
 func (rn *RadioNode) SetNodePos(x int, y int) {
+	// simplified model: ignore pos changes during Rx.
 	rn.X, rn.Y = float64(x), float64(y)
-}
-
-func (rn *RadioNode) Delete() {
-	rn.IsDeleted = true
 }
 
 // GetDistanceInMeters gets the distance to another RadioNode (in dimensionless units).
