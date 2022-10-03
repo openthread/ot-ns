@@ -34,7 +34,6 @@ import (
 	"github.com/openthread/ot-ns/threadconst"
 	. "github.com/openthread/ot-ns/types"
 	"github.com/simonlingoogle/go-simplelogger"
-	"strconv"
 )
 
 const (
@@ -99,7 +98,7 @@ func newNode(d *Dispatcher, nodeid NodeId, cfg *NodeConfig) *Node {
 		Rloc16:      threadconst.InvalidRloc16,
 		Role:        OtDeviceRoleDisabled,
 		peerAddr:    nil, // peer address will be set when the first event is received
-		radioNode:   radiomodel.NewRadioNode(cfg),
+		radioNode:   radiomodel.NewRadioNode(nodeid, cfg),
 		joinerState: OtJoinerStateIdle,
 	}
 
@@ -307,28 +306,4 @@ func (node *Node) addJoinResult(js *joinerSession) {
 	if len(node.joinResults) > maxJoinResultCount {
 		node.joinResults = node.joinResults[1:]
 	}
-}
-
-func (node *Node) setRadioChannelFromString(s string) {
-	u, err := strconv.ParseUint(s, 10, 8)
-	simplelogger.AssertNil(err, "setRadioChannelFromString: error parsing channel number '%s'", s)
-	newChannel := radiomodel.ChannelId(u)
-	node.radioNode.SetChannel(newChannel)
-}
-
-func (node *Node) setRadioStateFromString(s string) {
-	var state RadioStates
-	switch s {
-	case "off":
-		state = RadioDisabled
-	case "sleep":
-		state = RadioSleep
-	case "tx":
-		state = RadioTx
-	case "rx":
-		state = RadioRx
-	default:
-		simplelogger.Panicf("setRadioStateFromString(): unknown radio state: %s", s)
-	}
-	node.radioNode.SetRadioState(state)
 }

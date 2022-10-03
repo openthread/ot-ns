@@ -12,17 +12,20 @@ type DbmValue = int8
 type ChannelId = uint8
 
 const (
-	MinChannelNumber ChannelId = 0
-	MaxChannelNumber ChannelId = 26
+	MinChannelNumber     ChannelId = 0 // below 11 are sub-Ghz channels for 802.15.4-2015
+	MaxChannelNumber     ChannelId = 26
+	DefaultChannelNumber ChannelId = 11
 )
 
-// default radio parameters
+// default radio & simulation parameters
 const (
-	receiveSensitivityDbm        DbmValue = -100  // TODO for now MUST be manually kept equal to OT: SIM_RECEIVE_SENSITIVITY
-	DefaultTxPowerDbm            DbmValue = 0     // Default, RadioTxEvent msg will override it. OT: SIM_TX_POWER
-	DefaultCcaEdThresholdDbm     DbmValue = -91   // Default, RadioTxEvent msg will override it. OT: SIM_CCA_ENERGY_DETECT_THRESHOLD
-	radioRangeIndoorDistInMeters          = 26.70 // Handtuned - for indoor model, how many meters r is RadioRange disc until Link
+	receiveSensitivityDbm DbmValue = -100 // TODO for now MUST be manually kept equal to OT: SIM_RECEIVE_SENSITIVITY
+	defaultTxPowerDbm     DbmValue = 0    // Default, RadioTxEvent msg will override it. OT: SIM_TX_POWER
+
+	// Handtuned - for indoor model, how many meters r is RadioRange disc until Link
 	// quality drops below 2 (10 dB margin).
+	radioRangeIndoorDistInMeters = 26.70
+	maxRadioNodes                = 999
 )
 
 // RSSI parameter encodings
@@ -40,6 +43,13 @@ type EventQueue interface {
 
 // RadioModel provides access to any type of radio model.
 type RadioModel interface {
+
+	// AddNode registers a (new) RadioNode to the model.
+	AddNode(nodeid NodeId, radioNode *RadioNode)
+
+	// DeleteNode removes a RadioNode from the model.
+	DeleteNode(nodeid NodeId)
+
 	// CheckRadioReachable checks if the srcNode radio can reach the dstNode radio, now.
 	CheckRadioReachable(srcNode *RadioNode, dstNode *RadioNode) bool
 
@@ -49,20 +59,21 @@ type RadioModel interface {
 	// fall below the minimum Rx sensitivity of the dstNode.
 	GetTxRssi(srcNode *RadioNode, dstNode *RadioNode) DbmValue
 
-	// OnEventDispatch is called when the dispatcher sends an Event to a particular dstNode. The method
+	// OnEventDispatch is called when the Dispatcher sends an Event to a particular dstNode. The method
 	// implementation may e.g. apply interference to a frame in transit, prior to delivery of the
-	// frame at a single receiving radio dstNode.
-	OnEventDispatch(evt *Event, srcNode *RadioNode, dstNode *RadioNode)
+	// frame at a single receiving radio dstNode, or set additional info in the event.
+	// Returns true if event can be dispatched, false if not.
+	OnEventDispatch(srcNode *RadioNode, dstNode *RadioNode, evt *Event) bool
 
 	// HandleEvent handles all radio-model events coming out of the simulator event queue.
-	// node must be the RadioNode object equivalent to the evt.NodeId node. Newly generated events may go back into
-	// the EventQueue q.
+	// node is the RadioNode object equivalent to evt.NodeId. Newly generated events may be put back into
+	// the EventQueue q for scheduled processing.
 	HandleEvent(node *RadioNode, q EventQueue, evt *Event)
 
-	// GetName gets the display name of this RadioModel
+	// GetName gets the display name of this RadioModel.
 	GetName() string
 
-	// init initializes the RadioModel
+	// init initializes the RadioModel.
 	init()
 }
 

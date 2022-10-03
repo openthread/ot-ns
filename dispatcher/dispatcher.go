@@ -313,11 +313,6 @@ func (d *Dispatcher) handleRecvEvent(evt *Event) {
 	node := d.nodes[nodeid]
 	node.peerAddr = evt.SrcAddr
 
-	if d.isWatching(evt.NodeId) {
-		simplelogger.Warnf("Node %d <<< %+v, cur time %d, node time %d, delay %d", nodeid, *evt,
-			d.CurTime, int64(d.nodes[nodeid].CurTime)-int64(d.CurTime), evt.Delay)
-	}
-
 	delay := evt.Delay
 	var evtTime uint64
 	if delay >= 2147483647 {
@@ -340,16 +335,19 @@ func (d *Dispatcher) handleRecvEvent(evt *Event) {
 		d.eventQueue.Add(evt) // schedule future wake-up
 	case EventTypeRadioCommTx:
 		d.Counters.RadioEvents += 1
-		d.handleRadioTx(evt)
+		d.handleRadioTx(node, evt)
+	case EventTypeChannelSample:
+		d.Counters.RadioEvents += 1
+		d.handleChannelSample(evt)
+	case EventTypeRadioState:
+		d.Counters.RadioEvents += 1
+		d.handleRadioState(node, evt)
 	case EventTypeStatusPush:
 		d.Counters.StatusPushEvents += 1
 		d.handleStatusPush(evt.NodeId, string(evt.Data))
 	case EventTypeUartWrite:
 		d.Counters.UartWriteEvents += 1
 		d.handleUartWrite(evt.NodeId, evt.Data)
-	case EventTypeChannelActivity:
-		d.Counters.RadioEvents += 1
-		d.handleChannelActivity(evt)
 	default:
 		simplelogger.Panicf("event type not implemented: %v", evt.Type)
 	}
@@ -447,19 +445,16 @@ func (d *Dispatcher) processNextEvent() bool {
 			simplelogger.AssertTrue(evt.Timestamp == nextEventTime)
 			d.advanceTime(nextEventTime)
 
-			// execute the event - it may originate from the radioModel, or from an OT-node.
+			// execute the event - note it may originate from the radioModel, or from an OT-node.
 			switch evt.Type {
 			case EventTypeAlarmFired:
-				d.advanceNodeTime(evt.NodeId, evt.Timestamp, false)
+				d.advanceNodeTime(node, evt.Timestamp, false)
 			case EventTypeRadioCommRx:
-				d.handleRadioRxEvent(evt)
+				d.handleRadioRxEvent(node, evt)
 			case EventTypeRadioTxDone:
-				d.handleTxDoneEvent(evt)
-			case EventTypeRadioCommTx:
-				fallthrough
-			default: // radioModel may define its own internal event types, handled by the Dispatcher queue.
-				d.radioModel.HandleEvent(node.radioNode, d.eventQueue, evt)
+				d.handleTxDoneEvent(node, evt)
 			}
+			d.radioModel.HandleEvent(node.radioNode, d.eventQueue, evt)
 		} else {
 			simplelogger.Debugf("processNextEvent() skipping event for deleted/unknown node %v: %v", evt.NodeId, evt)
 		}
@@ -496,8 +491,8 @@ func (d *Dispatcher) eventsReader() {
 	}
 }
 
-func (d *Dispatcher) advanceNodeTime(id NodeId, timestamp uint64, force bool) {
-	node := d.nodes[id]
+func (d *Dispatcher) advanceNodeTime(node *Node, timestamp uint64, force bool) {
+	simplelogger.AssertNotNil(node)
 	if d.cfg.Real {
 		node.CurTime = timestamp
 		return
@@ -513,10 +508,6 @@ func (d *Dispatcher) advanceNodeTime(id NodeId, timestamp uint64, force bool) {
 		Timestamp: timestamp,
 	}
 	node.sendEvent(msg) // actively move the node's virtual-time to new time using an alarm-event msg.
-
-	if d.isWatching(id) {
-		simplelogger.Warnf("Node %d >>> advance time %v -> %v", id, oldTime, timestamp)
-	}
 }
 
 // SendToUART sends data to virtual time UART of the target node.
@@ -536,18 +527,9 @@ func (d *Dispatcher) SendToUART(id NodeId, data []byte) {
 	}
 }
 
-func (d *Dispatcher) handleRadioRxEvent(evt *Event) {
-	srcnodeid := evt.NodeId
-	srcnode := d.nodes[srcnodeid]
-	if srcnode == nil {
-		if _, ok := d.deletedNodes[srcnodeid]; !ok {
-			simplelogger.Errorf("%s: node %d not found", d, srcnodeid)
-		}
-		return
-	}
-
-	if srcnode.isFailed {
-		return
+func (d *Dispatcher) handleRadioRxEvent(srcNode *Node, evt *Event) {
+	if srcNode.isFailed {
+		return // node can't send - don't log in pcap also.
 	}
 
 	// record the sent frame in Pcap/Dump logs
@@ -559,6 +541,7 @@ func (d *Dispatcher) handleRadioRxEvent(evt *Event) {
 	}
 
 	// try to dispatch the message by extaddr directly
+	srcnodeid := srcNode.Id
 	pktinfo := dissectpkt.Dissect(evt.Data)
 	pktframe := pktinfo.MacFrame
 	dispatchedByDstAddr := false
@@ -567,9 +550,9 @@ func (d *Dispatcher) handleRadioRxEvent(evt *Event) {
 	if dstAddrMode == wpan.DstAddrModeExtended {
 		// the message should only be dispatched to the target node with the extaddr
 		dstnode := d.extaddrMap[pktframe.DstAddrExtended]
-		if dstnode != srcnode && dstnode != nil {
-			if d.checkRadioReachable(srcnode, dstnode) {
-				d.sendOneRadioFrame(evt, srcnode, dstnode)
+		if dstnode != srcNode && dstnode != nil {
+			if d.checkRadioReachable(srcNode, dstnode) {
+				d.sendOneRadioFrame(evt, srcNode, dstnode)
 				d.visSendFrame(srcnodeid, dstnode.Id, pktframe)
 			} else {
 				d.visSendFrame(srcnodeid, InvalidNodeId, pktframe)
@@ -589,8 +572,8 @@ func (d *Dispatcher) handleRadioRxEvent(evt *Event) {
 
 			if len(dstnodes) > 0 {
 				for _, dstnode := range dstnodes {
-					if d.checkRadioReachable(srcnode, dstnode) {
-						d.sendOneRadioFrame(evt, srcnode, dstnode)
+					if d.checkRadioReachable(srcNode, dstnode) {
+						d.sendOneRadioFrame(evt, srcNode, dstnode)
 						d.visSendFrame(srcnodeid, dstnode.Id, pktframe)
 						dispatchCnt++
 					}
@@ -611,8 +594,8 @@ func (d *Dispatcher) handleRadioRxEvent(evt *Event) {
 	if !dispatchedByDstAddr {
 		for _, dstnode := range d.nodes {
 			// Ack have no destination address, so every node around should receive it
-			if d.checkRadioReachable(srcnode, dstnode) {
-				d.sendOneRadioFrame(evt, srcnode, dstnode)
+			if d.checkRadioReachable(srcNode, dstnode) {
+				d.sendOneRadioFrame(evt, srcNode, dstnode)
 			}
 		}
 		d.Counters.DispatchAllInRange++
@@ -644,28 +627,22 @@ func (d *Dispatcher) sendOneRadioFrame(evt *Event, srcnode *Node, dstnode *Node)
 		}
 	}
 
-	// create new Event for individual dispatch to dstNode.
+	// create new Event copy for individual dispatch to dstNode.
 	evt2 := evt.Copy()
 
 	// Tx failure cases below:
 	//   3) radio model indicates failure on this specific link (e.g. interference) now.
 	// Below lets the radio model process every individual dispatch, to set RSSI, error, etc.
-	d.radioModel.OnEventDispatch(&evt2, srcnode.radioNode, dstnode.radioNode)
-
-	// send the event plus time keeping - moves dstnode's time to the current send-event's time.
-	dstnode.sendEvent(&evt2)
+	if d.radioModel.OnEventDispatch(srcnode.radioNode, dstnode.radioNode, &evt2) {
+		// send the event plus time keeping - moves dstnode's time to the current send-event's time.
+		dstnode.sendEvent(&evt2)
+	}
 }
 
-func (d *Dispatcher) handleTxDoneEvent(evt *Event) {
-	simplelogger.AssertTrue(evt.Type == EventTypeRadioTxDone)
-	dstnodeid := evt.NodeId
-	simplelogger.AssertTrue(dstnodeid > 0)
-	dstnode := d.nodes[dstnodeid]
-	if dstnode == nil {
-		return
+func (d *Dispatcher) handleTxDoneEvent(txNode *Node, evt *Event) {
+	if d.radioModel.OnEventDispatch(txNode.radioNode, txNode.radioNode, evt) {
+		txNode.sendEvent(evt)
 	}
-	d.radioModel.OnEventDispatch(evt, dstnode.radioNode, dstnode.radioNode)
-	dstnode.sendEvent(evt)
 }
 
 func (d *Dispatcher) setAlive(nodeid NodeId) {
@@ -704,14 +681,14 @@ func (d *Dispatcher) syncAliveNodes() {
 
 	simplelogger.Warnf("syncing %d alive nodes: %v", len(d.aliveNodes), d.aliveNodes)
 	for nodeid := range d.aliveNodes {
-		d.advanceNodeTime(nodeid, d.CurTime, true)
+		d.advanceNodeTime(d.nodes[nodeid], d.CurTime, true)
 	}
 }
 
 // syncAllNodes advances all of the node's time to current dispatcher time.
 func (d *Dispatcher) syncAllNodes() {
 	for nodeid := range d.nodes {
-		d.advanceNodeTime(nodeid, d.CurTime, false)
+		d.advanceNodeTime(d.nodes[nodeid], d.CurTime, false)
 	}
 }
 
@@ -742,19 +719,6 @@ func (d *Dispatcher) SetVisualizer(vis visualize.Visualizer) {
 
 func (d *Dispatcher) GetVisualizer() visualize.Visualizer {
 	return d.vis
-}
-
-func (d *Dispatcher) handleRadioTx(evt *Event) {
-	// schedule an event evt to start tx immediately.
-	txDoneEvt := evt.Copy()
-	evt.Type = EventTypeRadioCommTx
-	evt.Delay = 0
-	evt.Timestamp = d.CurTime
-	d.eventQueue.Add(evt)
-
-	// schedule another event txDoneEvt for when tx is done.
-	txDoneEvt.Type = EventTypeRadioTxDone
-	d.eventQueue.Add(&txDoneEvt)
 }
 
 func (d *Dispatcher) handleStatusPush(srcid NodeId, data string) {
@@ -848,9 +812,6 @@ func (d *Dispatcher) handleStatusPush(srcid NodeId, data string) {
 		} else if sp[0] == "mode" {
 			mode := ParseNodeMode(sp[1])
 			d.vis.SetNodeMode(srcid, mode)
-		} else if sp[0] == "radio_state" {
-			params := strings.Split(sp[1], ",")
-			d.changeNodeRadioState(srcid, params[0], params[1])
 		} else {
 			simplelogger.Warnf("unknown status push: %s=%s", sp[0], sp[1])
 		}
@@ -862,9 +823,10 @@ func (d *Dispatcher) AddNode(nodeid NodeId, cfg *NodeConfig) {
 	simplelogger.Infof("dispatcher add node %d", nodeid)
 	node := newNode(d, nodeid, cfg)
 	d.nodes[nodeid] = node
-	d.energyAnalyser.AddNode(nodeid, d.CurTime)
 	d.setAlive(nodeid)
+	d.energyAnalyser.AddNode(nodeid, d.CurTime)
 	d.vis.AddNode(nodeid, cfg.X, cfg.Y, cfg.RadioRange)
+	d.radioModel.AddNode(nodeid, node.radioNode)
 
 	if !d.cfg.Real {
 		// Wait until node's extended address is emitted (but not for real devices)
@@ -1118,9 +1080,8 @@ func (d *Dispatcher) DeleteNode(id NodeId) {
 	}
 	d.deletedNodes[id] = struct{}{}
 	d.energyAnalyser.DeleteNode(id)
-
 	d.vis.DeleteNode(id)
-	node.radioNode.Delete()
+	d.radioModel.DeleteNode(id)
 }
 
 func (d *Dispatcher) SetNodeFailed(id NodeId, fail bool) {
@@ -1322,28 +1283,29 @@ func (d *Dispatcher) SetRadioModel(model radiomodel.RadioModel) {
 	d.radioModel = model
 }
 
-func (d *Dispatcher) changeNodeRadioState(nodeid NodeId, state, channel string) {
-	node := d.nodes[nodeid]
+func (d *Dispatcher) handleRadioTx(srcNode *Node, evt *Event) {
+	// schedule an event evt to start tx immediately.
+	evt.Type = EventTypeRadioCommTx
+	evt.Timestamp = d.CurTime
+	d.eventQueue.Add(evt)
+}
+
+func (d *Dispatcher) handleChannelSample(evt *Event) {
+	// schedule an event to start channel sampling immediately.
+	evt.Type = EventTypeChannelSample
+	evt.Timestamp = d.CurTime
+	d.eventQueue.Add(evt)
+}
+
+func (d *Dispatcher) handleRadioState(node *Node, evt *Event) {
 	simplelogger.AssertNotNil(node)
 
-	node.setRadioStateFromString(state)
-	node.setRadioChannelFromString(channel)
+	node.radioNode.SetRadioState(evt.RadioStateData.State)
+	node.radioNode.SetChannel(evt.RadioStateData.Channel)
 
 	if d.energyAnalyser != nil {
 		radioEnergy := d.energyAnalyser.GetNode(node.Id)
 		simplelogger.AssertNotNil(radioEnergy)
 		radioEnergy.SetRadioState(node.radioNode.RadioState, d.CurTime)
 	}
-}
-
-func (d *Dispatcher) handleChannelActivity(evt *Event) {
-	// create and queue one event to start channel sampling, and one when it is done.
-	doneEvt := evt.Copy()
-	evt.Type = EventTypeChannelActivity
-	evt.Delay = 0
-	evt.Timestamp = d.CurTime
-	d.eventQueue.Add(evt) // schedule tx start
-
-	doneEvt.Type = EventTypeChannelActivityDone
-	d.eventQueue.Add(&doneEvt)
 }
