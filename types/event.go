@@ -89,11 +89,10 @@ type AlarmEventData struct {
 	MsgId uint64
 }
 
-const TxEventDataHeaderLen = 3 // from OT platform-simulation.h struct
+const TxEventDataHeaderLen = 2 // from OT platform-simulation.h struct
 type TxEventData struct {
-	Channel    uint8
-	TxPower    int8
-	CcaEdTresh int8
+	Channel uint8
+	TxPower int8
 }
 
 const RxEventDataHeaderLen = 3 // from OT platform-simulation.h struct
@@ -204,7 +203,7 @@ func (e *Event) Deserialize(data []byte) {
 
 func deserializeRadioTxData(data []byte) TxEventData {
 	simplelogger.AssertTrue(len(data) >= TxEventDataHeaderLen)
-	txData := TxEventData{Channel: data[0], TxPower: int8(data[1]), CcaEdTresh: int8(data[2])}
+	txData := TxEventData{Channel: data[0], TxPower: int8(data[1])}
 	return txData
 }
 
