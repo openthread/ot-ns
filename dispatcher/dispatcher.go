@@ -539,40 +539,40 @@ func (d *Dispatcher) handleRadioCommRxEvent(srcNode *Node, evt *Event) {
 	}
 
 	// try to dispatch the message by address directly to the right node
-	srcnodeid := srcNode.Id
+	srcNodeId := srcNode.Id
 	pktinfo := dissectpkt.Dissect(evt.Data)
-	pktframe := pktinfo.MacFrame
+	pktFrame := pktinfo.MacFrame
 	dispatchedByDstAddr := false
-	dstAddrMode := pktframe.FrameControl.DstAddrMode()
+	dstAddrMode := pktFrame.FrameControl.DstAddrMode()
 
 	if dstAddrMode == wpan.DstAddrModeExtended {
 		// the message should only be dispatched to the target node with the extaddr
-		dstnode := d.extaddrMap[pktframe.DstAddrExtended]
+		dstnode := d.extaddrMap[pktFrame.DstAddrExtended]
 		if dstnode != srcNode && dstnode != nil {
 			if d.checkRadioReachable(srcNode, dstnode) {
 				d.sendOneRadioFrame(evt, srcNode, dstnode)
-				d.visSendFrame(srcnodeid, dstnode.Id, pktframe)
+				d.visSendFrame(srcNodeId, dstnode.Id, pktFrame)
 			} else {
-				d.visSendFrame(srcnodeid, InvalidNodeId, pktframe)
+				d.visSendFrame(srcNodeId, InvalidNodeId, pktFrame)
 			}
 			d.Counters.DispatchByExtAddrSucc++
 		} else {
 			d.Counters.DispatchByExtAddrFail++
-			d.visSendFrame(srcnodeid, InvalidNodeId, pktframe)
+			d.visSendFrame(srcNodeId, InvalidNodeId, pktFrame)
 		}
 
 		dispatchedByDstAddr = true
 	} else if dstAddrMode == wpan.DstAddrModeShort {
-		if pktframe.DstAddrShort != threadconst.BroadcastRloc16 {
+		if pktFrame.DstAddrShort != threadconst.BroadcastRloc16 {
 			// unicast message should only be dispatched to target node with the rloc16
-			dstnodes := d.rloc16Map[pktframe.DstAddrShort]
+			dstnodes := d.rloc16Map[pktFrame.DstAddrShort]
 			dispatchCnt := 0
 
 			if len(dstnodes) > 0 {
 				for _, dstnode := range dstnodes {
 					if d.checkRadioReachable(srcNode, dstnode) {
 						d.sendOneRadioFrame(evt, srcNode, dstnode)
-						d.visSendFrame(srcnodeid, dstnode.Id, pktframe)
+						d.visSendFrame(srcNodeId, dstnode.Id, pktFrame)
 						dispatchCnt++
 					}
 				}
@@ -582,7 +582,7 @@ func (d *Dispatcher) handleRadioCommRxEvent(srcNode *Node, evt *Event) {
 			}
 
 			if dispatchCnt == 0 {
-				d.visSendFrame(srcnodeid, InvalidNodeId, pktframe)
+				d.visSendFrame(srcNodeId, InvalidNodeId, pktFrame)
 			}
 
 			dispatchedByDstAddr = true
@@ -592,13 +592,13 @@ func (d *Dispatcher) handleRadioCommRxEvent(srcNode *Node, evt *Event) {
 	// if not dispatched yet, dispatch to all nodes able to receive. Works e.g. for Acks that don't have
 	// a destination address.
 	if !dispatchedByDstAddr {
-		for _, dstnode := range d.nodes {
-			if d.checkRadioReachable(srcNode, dstnode) {
-				d.sendOneRadioFrame(evt, srcNode, dstnode)
+		for _, dstNode := range d.nodes {
+			if srcNode != dstNode && d.checkRadioReachable(srcNode, dstNode) {
+				d.sendOneRadioFrame(evt, srcNode, dstNode)
 			}
 		}
 		d.Counters.DispatchAllInRange++
-		d.visSendFrame(srcnodeid, BroadcastNodeId, pktframe)
+		d.visSendFrame(srcNodeId, BroadcastNodeId, pktFrame)
 	}
 }
 
