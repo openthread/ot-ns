@@ -82,7 +82,7 @@ type Event struct {
 	RadioStateData RadioStateEventData
 }
 
-// All further ...EventData formats below only used by OT nodes supporting advanced
+// All ...EventData formats below only used by OT nodes supporting advanced
 // RF simulation.
 const AlarmDataHeaderLen = 8 // from OT platform-simulation.h struct
 type AlarmEventData struct {
