@@ -305,7 +305,7 @@ func (d *Dispatcher) handleRecvEvent(evt *Event) {
 			// can not find the node, and the node is not registered (created by OTNS)
 			simplelogger.Warnf("Event (type %v) received from unknown Node %v, discarding.", evt.Type, evt.NodeId)
 		}
-		return
+		return // node was deleted already.
 	}
 	d.setAlive(nodeid)
 
@@ -313,6 +313,7 @@ func (d *Dispatcher) handleRecvEvent(evt *Event) {
 	node := d.nodes[nodeid]
 	node.peerAddr = evt.SrcAddr
 
+	// calculate event timestamp based on Delay value
 	delay := evt.Delay
 	var evtTime uint64
 	if delay >= 2147483647 {
@@ -344,7 +345,7 @@ func (d *Dispatcher) handleRecvEvent(evt *Event) {
 		d.handleRadioState(node, evt)
 	case EventTypeStatusPush:
 		d.Counters.StatusPushEvents += 1
-		d.handleStatusPush(evt.NodeId, string(evt.Data))
+		d.handleStatusPush(node, string(evt.Data))
 	case EventTypeUartWrite:
 		d.Counters.UartWriteEvents += 1
 		d.handleUartWrite(evt.NodeId, evt.Data)
@@ -353,7 +354,7 @@ func (d *Dispatcher) handleRecvEvent(evt *Event) {
 	}
 }
 
-// RecvEvents receives events from nodes until there is no more alive node.
+// RecvEvents receives events from nodes, and handles these, until there is no more alive node.
 func (d *Dispatcher) RecvEvents() int {
 	blockTimeout := time.After(time.Second * 5)
 	count := 0
@@ -381,7 +382,6 @@ loop:
 			}
 		}
 	}
-
 	return count
 }
 
@@ -402,14 +402,12 @@ func (d *Dispatcher) processNextEvent() bool {
 		}
 
 		var needSleepDuration time.Duration
-
 		if d.speed <= 0 {
 			needSleepDuration = time.Hour
 		} else {
 			needSleepDuration = time.Duration(float64(sleepUntilTime-d.speedStartTime)/d.speed) * time.Microsecond
 		}
 		sleepUntilRealTime := d.speedStartRealTime.Add(needSleepDuration)
-
 		now := time.Now()
 		sleepTime := sleepUntilRealTime.Sub(now)
 
@@ -426,7 +424,6 @@ func (d *Dispatcher) processNextEvent() bool {
 				}
 				d.advanceTime(curTime)
 			}
-
 			return true
 		}
 	}
@@ -435,26 +432,26 @@ func (d *Dispatcher) processNextEvent() bool {
 		return false
 	}
 
-	// process (if any) all queued events, that happen at exactly procUntilTime (see above)
+	// process (if any) all queued events, that happen at exactly procUntilTime
 	procUntilTime := nextEventTime
 	for nextEventTime <= procUntilTime {
-
 		evt := d.eventQueue.PopNext()
 		node := d.nodes[evt.NodeId]
 		if node != nil {
 			simplelogger.AssertTrue(evt.Timestamp == nextEventTime)
 			d.advanceTime(nextEventTime)
 
-			// execute the event - note it may originate from the radioModel, or from an OT-node.
+			// execute event - note it may originate from Dispatcher, RadioModel, or an OT-node.
 			switch evt.Type {
 			case EventTypeAlarmFired:
 				d.advanceNodeTime(node, evt.Timestamp, false)
 			case EventTypeRadioCommRx:
-				d.handleRadioRxEvent(node, evt)
+				d.handleRadioCommRxEvent(node, evt)
 			case EventTypeRadioTxDone:
-				d.handleTxDoneEvent(node, evt)
+				d.handleRadioTxDoneEvent(node, evt)
 			}
 			d.radioModel.HandleEvent(node.radioNode, d.eventQueue, evt)
+
 		} else {
 			simplelogger.Debugf("processNextEvent() skipping event for deleted/unknown node %v: %v", evt.NodeId, evt)
 		}
@@ -527,9 +524,10 @@ func (d *Dispatcher) SendToUART(id NodeId, data []byte) {
 	}
 }
 
-func (d *Dispatcher) handleRadioRxEvent(srcNode *Node, evt *Event) {
+// handleRadioCommRxEvent handles the event where >=1 nodes may receive a frame that is done transmitting.
+func (d *Dispatcher) handleRadioCommRxEvent(srcNode *Node, evt *Event) {
 	if srcNode.isFailed {
-		return // node can't send - don't log in pcap also.
+		return // source node can't send - don't send, and don't log in pcap.
 	}
 
 	// record the sent frame in Pcap/Dump logs
@@ -540,7 +538,7 @@ func (d *Dispatcher) handleRadioRxEvent(srcNode *Node, evt *Event) {
 		d.dumpPacket(evt)
 	}
 
-	// try to dispatch the message by extaddr directly
+	// try to dispatch the message by address directly to the right node
 	srcnodeid := srcNode.Id
 	pktinfo := dissectpkt.Dissect(evt.Data)
 	pktframe := pktinfo.MacFrame
@@ -591,9 +589,10 @@ func (d *Dispatcher) handleRadioRxEvent(srcNode *Node, evt *Event) {
 		}
 	}
 
+	// if not dispatched yet, dispatch to all nodes able to receive. Works e.g. for Acks that don't have
+	// a destination address.
 	if !dispatchedByDstAddr {
 		for _, dstnode := range d.nodes {
-			// Ack have no destination address, so every node around should receive it
 			if d.checkRadioReachable(srcNode, dstnode) {
 				d.sendOneRadioFrame(evt, srcNode, dstnode)
 			}
@@ -604,6 +603,7 @@ func (d *Dispatcher) handleRadioRxEvent(srcNode *Node, evt *Event) {
 }
 
 func (d *Dispatcher) checkRadioReachable(src *Node, dst *Node) bool {
+	// current implementation delegates check to the RadioModel.
 	return d.radioModel.CheckRadioReachable(src.radioNode, dst.radioNode)
 }
 
@@ -618,7 +618,7 @@ func (d *Dispatcher) sendOneRadioFrame(evt *Event, srcnode *Node, dstnode *Node)
 		return
 	}
 
-	//   2) global dispatcher's random packet loss Event (separate from radio model)
+	//   2) dispatcher's random packet loss Event (separate from radio model)
 	if d.globalPacketLossRatio > 0 {
 		datalen := len(evt.Data)
 		succRate := math.Pow(1.0-d.globalPacketLossRatio, float64(datalen)/128.0)
@@ -639,7 +639,7 @@ func (d *Dispatcher) sendOneRadioFrame(evt *Event, srcnode *Node, dstnode *Node)
 	}
 }
 
-func (d *Dispatcher) handleTxDoneEvent(txNode *Node, evt *Event) {
+func (d *Dispatcher) handleRadioTxDoneEvent(txNode *Node, evt *Event) {
 	if d.radioModel.OnEventDispatch(txNode.radioNode, txNode.radioNode, evt) {
 		txNode.sendEvent(evt)
 	}
@@ -650,7 +650,6 @@ func (d *Dispatcher) setAlive(nodeid NodeId) {
 		// real devices are always considered sleeping
 		return
 	}
-
 	d.aliveNodes[nodeid] = struct{}{}
 }
 
@@ -721,15 +720,10 @@ func (d *Dispatcher) GetVisualizer() visualize.Visualizer {
 	return d.vis
 }
 
-func (d *Dispatcher) handleStatusPush(srcid NodeId, data string) {
-	simplelogger.Debugf("status push: %d: %#v", srcid, data)
-	srcnode := d.nodes[srcid]
-	if srcnode == nil {
-		simplelogger.Warnf("node not found: %d", srcid)
-		return
-	}
-
+func (d *Dispatcher) handleStatusPush(srcnode *Node, data string) {
+	simplelogger.Debugf("status push: %d: %#v", srcnode.Id, data)
 	statuses := strings.Split(data, ";")
+	srcid := srcnode.Id
 	for _, status := range statuses {
 		sp := strings.Split(status, "=")
 		if len(sp) != 2 {
@@ -740,7 +734,7 @@ func (d *Dispatcher) handleStatusPush(srcid NodeId, data string) {
 		} else if sp[0] == "role" {
 			role, err := strconv.Atoi(sp[1])
 			simplelogger.PanicIfError(err)
-			d.setNodeRole(srcid, OtDeviceRole(role))
+			d.setNodeRole(srcnode, OtDeviceRole(role))
 		} else if sp[0] == "rloc16" {
 			rloc16, err := strconv.Atoi(sp[1])
 			simplelogger.PanicIfError(err)
@@ -829,20 +823,24 @@ func (d *Dispatcher) AddNode(nodeid NodeId, cfg *NodeConfig) {
 	d.radioModel.AddNode(nodeid, node.radioNode)
 
 	if !d.cfg.Real {
-		// Wait until node's extended address is emitted (but not for real devices)
-		// This helps OTNS to make sure that the child process is ready to receive UDP events
-		t0 := time.Now()
-		deadline := t0.Add(time.Second * 10)
-		for node.ExtAddr == InvalidExtAddr && time.Now().Before(deadline) {
-			d.RecvEvents()
-		}
+		d.detectNodeExtAddr(node)
+	}
+}
 
-		if node.ExtAddr == InvalidExtAddr {
-			simplelogger.Panicf("expect node %d's extaddr to be valid, but failed", nodeid)
-		} else {
-			takeTime := time.Since(t0)
-			simplelogger.Debugf("node %d's extaddr becomes valid in %v", nodeid, takeTime)
-		}
+// detectNodeExtAddr waits until node's extended address is emitted. Not to be used for real devices.
+// This helps OTNS to make sure that the child process is ready to receive UDP events.
+func (d *Dispatcher) detectNodeExtAddr(node *Node) {
+	t0 := time.Now()
+	deadline := t0.Add(time.Second * 10)
+	for node.ExtAddr == InvalidExtAddr && time.Now().Before(deadline) {
+		d.RecvEvents()
+	}
+
+	if node.ExtAddr == InvalidExtAddr {
+		simplelogger.Panicf("expect node %d's extaddr to be valid, but failed", node.Id)
+	} else {
+		takeTime := time.Since(t0)
+		simplelogger.Debugf("node %d's extaddr becomes valid in %v", node.Id, takeTime)
 	}
 }
 
@@ -979,9 +977,7 @@ func (d *Dispatcher) advanceTime(ts uint64) {
 
 			if d.energyAnalyser != nil && ts%energy.ComputePeriod == 0 {
 				d.energyAnalyser.StoreNetworkEnergy(ts)
-				if d.vis != nil {
-					d.vis.UpdateNodesEnergy(d.energyAnalyser.GetLatestEnergyOfNodes(), ts, true)
-				}
+				d.vis.UpdateNodesEnergy(d.energyAnalyser.GetLatestEnergyOfNodes(), ts, true)
 			}
 		}
 
@@ -1084,6 +1080,8 @@ func (d *Dispatcher) DeleteNode(id NodeId) {
 	d.radioModel.DeleteNode(id)
 }
 
+// SetNodeFailed sets the radio of the node to failed (true) or operational (false) state.
+// Setting this will disable the automatic failure control (FailureCtrl).
 func (d *Dispatcher) SetNodeFailed(id NodeId, fail bool) {
 	node := d.nodes[id]
 	simplelogger.AssertNotNil(node)
@@ -1197,15 +1195,9 @@ func (d *Dispatcher) dumpPacket(item *Event) {
 	_, _ = fmt.Fprintf(os.Stdout, "%s\n", sb.String())
 }
 
-func (d *Dispatcher) setNodeRole(id NodeId, role OtDeviceRole) {
-	node := d.nodes[id]
-	if node == nil {
-		simplelogger.Warnf("setNodeRole: node %d not found", id)
-		return
-	}
-
+func (d *Dispatcher) setNodeRole(node *Node, role OtDeviceRole) {
 	node.Role = role
-	d.vis.SetNodeRole(id, role)
+	d.vis.SetNodeRole(node.Id, role)
 }
 
 func (d *Dispatcher) handleCoapEvent(node *Node, argsStr string) {
@@ -1217,7 +1209,6 @@ func (d *Dispatcher) handleCoapEvent(node *Node, argsStr string) {
 	}
 
 	args := strings.Split(argsStr, ",")
-
 	simplelogger.AssertTrue(len(args) > 0)
 	action := args[0]
 
@@ -1284,14 +1275,15 @@ func (d *Dispatcher) SetRadioModel(model radiomodel.RadioModel) {
 }
 
 func (d *Dispatcher) handleRadioTx(srcNode *Node, evt *Event) {
-	// schedule an event evt to start tx immediately.
+	// schedule an event evt to start tx immediately. The evt.Delay still indicates the duration of
+	// the transmission.
 	evt.Type = EventTypeRadioCommTx
 	evt.Timestamp = d.CurTime
 	d.eventQueue.Add(evt)
 }
 
 func (d *Dispatcher) handleChannelSample(evt *Event) {
-	// schedule an event to start channel sampling immediately.
+	// schedule an event to start channel sampling immediately. evt.Delay holds duration of sampling.
 	evt.Type = EventTypeChannelSample
 	evt.Timestamp = d.CurTime
 	d.eventQueue.Add(evt)
