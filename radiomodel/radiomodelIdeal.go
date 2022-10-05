@@ -56,16 +56,14 @@ func (rm *RadioModelIdeal) OnEventDispatch(src *RadioNode, dst *RadioNode, evt *
 		}
 	case EventTypeRadioTxDone:
 		// mark transmission of the node as success in the event.
-		simplelogger.AssertTrue(src.RadioState == RadioTx)
 		evt.TxDoneData = TxDoneEventData{
 			Channel: src.RadioChannel,
 			Error:   OT_ERROR_NONE,
 		}
 	case EventTypeChannelSampleDone:
-		// Ideal model always detects 'no channel activity'.
 		evt.ChanDoneData = ChanDoneEventData{
 			Channel: evt.ChanData.Channel,
-			Rssi:    RssiMinusInfinity,
+			Rssi:    src.rssiSampleMax,
 		}
 	default:
 		break
@@ -81,8 +79,6 @@ func (rm *RadioModelIdeal) HandleEvent(node *RadioNode, q EventQueue, evt *Event
 		rm.txStop(node, q, evt)
 	case EventTypeChannelSample:
 		rm.channelSample(node, q, evt)
-		node.rssiSampleMax = RssiMinusInfinity
-		break
 	case EventTypeChannelSampleDone:
 		break
 	default:
@@ -122,6 +118,7 @@ func (rm *RadioModelIdeal) txStop(node *RadioNode, q EventQueue, evt *Event) {
 }
 
 func (rm *RadioModelIdeal) channelSample(srcNode *RadioNode, q EventQueue, evt *Event) {
+	simplelogger.AssertTrue(srcNode.RadioState == RadioRx)
 	srcNode.rssiSampleMax = RssiMinusInfinity
 
 	// schedule event when channel sampling stops.
