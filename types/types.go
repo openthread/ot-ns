@@ -115,6 +115,6 @@ type RadioStates byte
 const (
 	RadioDisabled RadioStates = 0
 	RadioSleep    RadioStates = 1
-	RadioTx       RadioStates = 2
-	RadioRx       RadioStates = 3
+	RadioRx       RadioStates = 2
+	RadioTx       RadioStates = 3
 )

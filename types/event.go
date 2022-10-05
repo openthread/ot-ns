@@ -119,10 +119,11 @@ type ChanDoneEventData struct {
 	Rssi    int8
 }
 
-const RadioStateEventDataHeaderLen = 2 //
+const RadioStateEventDataHeaderLen = 3 //
 type RadioStateEventData struct {
 	Channel uint8
 	State   RadioStates
+	TxPower int8
 }
 
 /* RadioMessagePsduOffset is the offset of Psdu data in a received OpenThread RadioMessage type.
@@ -229,6 +230,7 @@ func deserializeRadioStateData(data []byte) RadioStateEventData {
 	stateData := RadioStateEventData{
 		Channel: data[0],
 		State:   RadioStates(data[1]),
+		TxPower: int8(data[2]),
 	}
 	return stateData
 }

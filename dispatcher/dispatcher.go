@@ -300,7 +300,8 @@ func (d *Dispatcher) goUntilPauseTime() {
 // e.g. like visualization events or UART messages for setup of new nodes.
 func (d *Dispatcher) handleRecvEvent(evt *Event) {
 	nodeid := evt.NodeId
-	if _, ok := d.nodes[nodeid]; !ok {
+	node := d.nodes[nodeid]
+	if node == nil {
 		if !d.isDeleted(nodeid) {
 			// can not find the node, and the node is not registered (created by OTNS)
 			simplelogger.Warnf("Event (type %v) received from unknown Node %v, discarding.", evt.Type, evt.NodeId)
@@ -310,10 +311,10 @@ func (d *Dispatcher) handleRecvEvent(evt *Event) {
 	d.setAlive(nodeid)
 
 	// assign source address from event to node
-	node := d.nodes[nodeid]
 	node.peerAddr = evt.SrcAddr
 
-	// calculate event timestamp based on Delay value
+	// calculate event timestamp based on Delay value. This is the timestamp that the event's action is
+	// considered 'done' i.e. the end time of the evt.Delay period.
 	delay := evt.Delay
 	var evtTime uint64
 	if delay >= 2147483647 {
@@ -332,23 +333,32 @@ func (d *Dispatcher) handleRecvEvent(evt *Event) {
 	switch evt.Type {
 	case EventTypeAlarmFired:
 		d.Counters.AlarmEvents += 1
-		d.setSleeping(nodeid)
+		d.setSleeping(node.Id)
 		d.eventQueue.Add(evt) // schedule future wake-up
+
 	case EventTypeRadioCommTx:
 		d.Counters.RadioEvents += 1
-		d.handleRadioTx(node, evt)
+		evt.Timestamp = d.CurTime // start Tx immediately. evt.Delay indicates duration.
+		d.eventQueue.Add(evt)
+
 	case EventTypeChannelSample:
 		d.Counters.RadioEvents += 1
-		d.handleChannelSample(evt)
+		evt.Timestamp = d.CurTime // start sampling now, evt.Delay indicates duration.
+		d.eventQueue.Add(evt)
+
 	case EventTypeRadioState:
 		d.Counters.RadioEvents += 1
-		d.handleRadioState(node, evt)
+		evt.Timestamp = d.CurTime
+		d.eventQueue.Add(evt)
+
 	case EventTypeStatusPush:
 		d.Counters.StatusPushEvents += 1
 		d.handleStatusPush(node, string(evt.Data))
+
 	case EventTypeUartWrite:
 		d.Counters.UartWriteEvents += 1
-		d.handleUartWrite(evt.NodeId, evt.Data)
+		d.cbHandler.OnUartWrite(node.Id, evt.Data)
+
 	default:
 		simplelogger.Panicf("event type not implemented: %v", evt.Type)
 	}
@@ -449,6 +459,12 @@ func (d *Dispatcher) processNextEvent() bool {
 				d.handleRadioCommRxEvent(node, evt)
 			case EventTypeRadioTxDone:
 				d.handleRadioTxDoneEvent(node, evt)
+			case EventTypeChannelSampleDone:
+				d.handleChanSampleDoneEvent(node, evt)
+			case EventTypeRadioState:
+				d.handleRadioState(node, evt)
+			case EventTypeChannelSample:
+				break // handled by RadioModel
 			}
 			d.radioModel.HandleEvent(node.radioNode, d.eventQueue, evt)
 
@@ -645,6 +661,12 @@ func (d *Dispatcher) handleRadioTxDoneEvent(txNode *Node, evt *Event) {
 	}
 }
 
+func (d *Dispatcher) handleChanSampleDoneEvent(node *Node, evt *Event) {
+	if d.radioModel.OnEventDispatch(node.radioNode, node.radioNode, evt) {
+		node.sendEvent(evt)
+	}
+}
+
 func (d *Dispatcher) setAlive(nodeid NodeId) {
 	if d.cfg.Real {
 		// real devices are always considered sleeping
@@ -721,7 +743,7 @@ func (d *Dispatcher) GetVisualizer() visualize.Visualizer {
 }
 
 func (d *Dispatcher) handleStatusPush(srcnode *Node, data string) {
-	simplelogger.Debugf("status push: %d: %#v", srcnode.Id, data)
+	simplelogger.Debugf("status push: %d: %#v ts=%v", srcnode.Id, data, d.CurTime)
 	statuses := strings.Split(data, ";")
 	srcid := srcnode.Id
 	for _, status := range statuses {
@@ -1170,10 +1192,6 @@ func (d *Dispatcher) SetVisualizationOptions(opts VisualizationOptions) {
 	d.visOptions = opts
 }
 
-func (d *Dispatcher) handleUartWrite(nodeid NodeId, data []byte) {
-	d.cbHandler.OnUartWrite(nodeid, data)
-}
-
 // NotifyExit notifies the dispatcher that the node process has exited.
 func (d *Dispatcher) NotifyExit(nodeid NodeId) {
 	if !d.cfg.Real {
@@ -1274,24 +1292,11 @@ func (d *Dispatcher) SetRadioModel(model radiomodel.RadioModel) {
 	d.radioModel = model
 }
 
-func (d *Dispatcher) handleRadioTx(srcNode *Node, evt *Event) {
-	// schedule an event evt to start tx immediately. The evt.Delay still indicates the duration of
-	// the transmission.
-	evt.Type = EventTypeRadioCommTx
-	evt.Timestamp = d.CurTime
-	d.eventQueue.Add(evt)
-}
-
-func (d *Dispatcher) handleChannelSample(evt *Event) {
-	// schedule an event to start channel sampling immediately. evt.Delay holds duration of sampling.
-	evt.Type = EventTypeChannelSample
-	evt.Timestamp = d.CurTime
-	d.eventQueue.Add(evt)
-}
-
 func (d *Dispatcher) handleRadioState(node *Node, evt *Event) {
 	simplelogger.AssertNotNil(node)
-
+	if node.radioNode.RadioState != evt.RadioStateData.State {
+		simplelogger.Debugf("%v hrs RadioState=%+v ts=%v", node.Id, evt.RadioStateData.State, evt.Timestamp)
+	}
 	node.radioNode.SetRadioState(evt.RadioStateData.State)
 	node.radioNode.SetChannel(evt.RadioStateData.Channel)
 
