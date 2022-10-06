@@ -127,6 +127,7 @@ func (node *Node) sendEvent(evt *Event) {
 	}
 
 	// time keeping - move node's time to the current send-event's time.
+	node.D.alarmMgr.SetNotified(node.Id)
 	node.D.setAlive(node.Id)
 	node.CurTime += evt.Delay
 	simplelogger.AssertTrue(evt.Delay == 0 || node.CurTime == node.D.CurTime)

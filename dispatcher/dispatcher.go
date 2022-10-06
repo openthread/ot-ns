@@ -103,6 +103,7 @@ type Dispatcher struct {
 	waitGroup             sync.WaitGroup
 	CurTime               uint64
 	pauseTime             uint64
+	alarmMgr              *alarmMgr
 	eventQueue            *sendQueue
 	nodes                 map[NodeId]*Node
 	deletedNodes          map[NodeId]struct{}
@@ -163,6 +164,7 @@ func NewDispatcher(ctx *progctx.ProgCtx, cfg *Config, cbHandler CallbackHandler)
 		udpln:              ln,
 		eventChan:          make(chan *Event, 10000),
 		eventQueue:         newSendQueue(),
+		alarmMgr:           newAlarmMgr(),
 		nodes:              make(map[NodeId]*Node),
 		deletedNodes:       map[NodeId]struct{}{},
 		aliveNodes:         make(map[NodeId]struct{}),
@@ -334,31 +336,25 @@ func (d *Dispatcher) handleRecvEvent(evt *Event) {
 	case EventTypeAlarmFired:
 		d.Counters.AlarmEvents += 1
 		d.setSleeping(node.Id)
-		d.eventQueue.Add(evt) // schedule future wake-up
-
+		d.alarmMgr.SetTimestamp(nodeid, evtTime) // schedule future wake-up
 	case EventTypeRadioCommTx:
 		d.Counters.RadioEvents += 1
 		evt.Timestamp = d.CurTime // start Tx immediately. evt.Delay indicates duration.
 		d.eventQueue.Add(evt)
-
 	case EventTypeChannelSample:
 		d.Counters.RadioEvents += 1
 		evt.Timestamp = d.CurTime // start sampling now, evt.Delay indicates duration.
 		d.eventQueue.Add(evt)
-
 	case EventTypeRadioState:
 		d.Counters.RadioEvents += 1
 		evt.Timestamp = d.CurTime
 		d.eventQueue.Add(evt)
-
 	case EventTypeStatusPush:
 		d.Counters.StatusPushEvents += 1
 		d.handleStatusPush(node, string(evt.Data))
-
 	case EventTypeUartWrite:
 		d.Counters.UartWriteEvents += 1
 		d.cbHandler.OnUartWrite(node.Id, evt.Data)
-
 	default:
 		simplelogger.Panicf("event type not implemented: %v", evt.Type)
 	}
@@ -401,8 +397,11 @@ func (d *Dispatcher) processNextEvent() bool {
 	simplelogger.AssertTrue(d.CurTime <= d.pauseTime)
 
 	// fetch time of next event
-	nextEventTime := d.eventQueue.NextTimestamp()
-	simplelogger.AssertTrue(nextEventTime >= d.CurTime)
+	nextAlarmTime := d.alarmMgr.NextTimestamp()
+	nextSendTime := d.eventQueue.NextTimestamp()
+	simplelogger.AssertTrue(nextSendTime >= d.CurTime && nextAlarmTime >= d.CurTime)
+
+	nextEventTime := min(nextAlarmTime, nextSendTime)
 
 	// convert nextEventTime to real time
 	if d.speed < MaxSimulateSpeed {
@@ -445,34 +444,49 @@ func (d *Dispatcher) processNextEvent() bool {
 	// process (if any) all queued events, that happen at exactly procUntilTime
 	procUntilTime := nextEventTime
 	for nextEventTime <= procUntilTime {
-		evt := d.eventQueue.PopNext()
-		node := d.nodes[evt.NodeId]
-		if node != nil {
-			simplelogger.AssertTrue(evt.Timestamp == nextEventTime)
-			d.advanceTime(nextEventTime)
 
-			// execute event - note it may originate from Dispatcher, RadioModel, or an OT-node.
-			switch evt.Type {
-			case EventTypeAlarmFired:
-				d.advanceNodeTime(node, evt.Timestamp, false)
-			case EventTypeRadioCommRx:
-				d.handleRadioCommRxEvent(node, evt)
-			case EventTypeRadioTxDone:
-				d.handleRadioTxDoneEvent(node, evt)
-			case EventTypeChannelSampleDone:
-				d.handleChanSampleDoneEvent(node, evt)
-			case EventTypeRadioState:
-				d.handleRadioState(node, evt)
-			case EventTypeChannelSample:
-				break // handled by RadioModel
+		d.advanceTime(nextEventTime)
+
+		if nextAlarmTime <= nextSendTime {
+			// process next alarm
+			nextAlarm := d.alarmMgr.NextAlarm()
+			node := d.nodes[nextAlarm.NodeId]
+			simplelogger.AssertNotNil(nextAlarm)
+			if node != nil {
+				d.advanceNodeTime(node, nextAlarm.Timestamp, false)
 			}
-			d.radioModel.HandleEvent(node.radioNode, d.eventQueue, evt)
 
 		} else {
-			simplelogger.Debugf("processNextEvent() skipping event for deleted/unknown node %v: %v", evt.NodeId, evt)
-		}
+			// process next event from the queue
+			evt := d.eventQueue.PopNext()
+			node := d.nodes[evt.NodeId]
+			if node != nil {
+				simplelogger.AssertTrue(evt.Timestamp == nextEventTime)
+				simplelogger.AssertTrue(nextAlarmTime == d.CurTime || nextSendTime == d.CurTime)
 
-		nextEventTime = d.eventQueue.NextTimestamp()
+				// execute event - note it may originate from Dispatcher, RadioModel, or an OT-node.
+				switch evt.Type {
+				case EventTypeRadioCommRx:
+					d.handleRadioCommRxEvent(node, evt)
+				case EventTypeRadioTxDone:
+					d.handleRadioTxDoneEvent(node, evt)
+				case EventTypeChannelSampleDone:
+					d.handleChanSampleDoneEvent(node, evt)
+				case EventTypeRadioState:
+					d.handleRadioState(node, evt)
+				case EventTypeChannelSample:
+					break // handled by RadioModel
+				}
+				d.radioModel.HandleEvent(node.radioNode, d.eventQueue, evt)
+
+			} else {
+				simplelogger.Debugf("processNextEvent() skipping event for deleted/unknown node %v: %v", evt.NodeId, evt)
+			}
+
+		}
+		nextAlarmTime = d.alarmMgr.NextTimestamp()
+		nextSendTime = d.eventQueue.NextTimestamp()
+		nextEventTime = min(nextAlarmTime, nextSendTime)
 	}
 
 	return len(d.nodes) > 0
@@ -839,10 +853,11 @@ func (d *Dispatcher) AddNode(nodeid NodeId, cfg *NodeConfig) {
 	simplelogger.Infof("dispatcher add node %d", nodeid)
 	node := newNode(d, nodeid, cfg)
 	d.nodes[nodeid] = node
-	d.setAlive(nodeid)
+	d.alarmMgr.AddNode(nodeid)
 	d.energyAnalyser.AddNode(nodeid, d.CurTime)
 	d.vis.AddNode(nodeid, cfg.X, cfg.Y, cfg.RadioRange)
 	d.radioModel.AddNode(nodeid, node.radioNode)
+	d.setAlive(nodeid)
 
 	if !d.cfg.Real {
 		d.detectNodeExtAddr(node)
@@ -1096,6 +1111,7 @@ func (d *Dispatcher) DeleteNode(id NodeId) {
 		simplelogger.AssertTrue(d.extaddrMap[node.ExtAddr] == node)
 		delete(d.extaddrMap, node.ExtAddr)
 	}
+	d.alarmMgr.DeleteNode(id)
 	d.deletedNodes[id] = struct{}{}
 	d.energyAnalyser.DeleteNode(id)
 	d.vis.DeleteNode(id)
@@ -1305,4 +1321,11 @@ func (d *Dispatcher) handleRadioState(node *Node, evt *Event) {
 		simplelogger.AssertNotNil(radioEnergy)
 		radioEnergy.SetRadioState(node.radioNode.RadioState, d.CurTime)
 	}
+}
+
+func min(t1 uint64, t2 uint64) uint64 {
+	if t1 <= t2 {
+		return t1
+	}
+	return t2
 }

@@ -79,7 +79,7 @@ func (rm *RadioModelMutualInterference) OnEventDispatch(src *RadioNode, dst *Rad
 			Error:   OT_ERROR_NONE,
 		}
 	case EventTypeChannelSampleDone:
-		evt.ChanDoneData = ChanDoneEventData{
+		evt.ChanDoneData = ChanSampleDoneEventData{
 			Channel: src.RadioChannel,
 			Rssi:    src.rssiSampleMax,
 		}
@@ -129,7 +129,6 @@ func (rm *RadioModelMutualInterference) txStart(node *RadioNode, evt *Event) {
 	}
 
 	rm.activeTransmitters[evt.TxData.Channel][evt.NodeId] = node
-	node.SetRadioState(RadioTx)
 
 	// mark other nodes in Rx state, in-range, active-Rx, and on same channel, and not already
 	// receiving, as receivers that may get the frame in the end.

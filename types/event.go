@@ -77,8 +77,8 @@ type Event struct {
 	RxData         RxEventData
 	TxDoneData     TxDoneEventData
 	AlarmData      AlarmEventData
-	ChanData       ChanEventData
-	ChanDoneData   ChanDoneEventData
+	ChanData       ChanSampleEventData
+	ChanDoneData   ChanSampleDoneEventData
 	RadioStateData RadioStateEventData
 }
 
@@ -108,18 +108,18 @@ type TxDoneEventData struct {
 	Error   uint8
 }
 
-const ChanEventDataHeaderLen = 1 //
-type ChanEventData struct {
+const ChanSampleEventDataHeaderLen = 1 // from OT platform-simulation.h struct
+type ChanSampleEventData struct {
 	Channel uint8
 }
 
-const ChanDoneEventDataHeaderLen = 2 //
-type ChanDoneEventData struct {
+const ChanSampleDoneEventDataHeaderLen = 2 // from OT platform-simulation.h struct
+type ChanSampleDoneEventData struct {
 	Channel uint8
 	Rssi    int8
 }
 
-const RadioStateEventDataHeaderLen = 3 //
+const RadioStateEventDataHeaderLen = 3 // from OT platform-simulation.h struct
 type RadioStateEventData struct {
 	Channel uint8
 	State   RadioStates
@@ -141,11 +141,11 @@ func (e *Event) Serialize() []byte {
 	var extraFields []byte
 	switch e.Type {
 	case EventTypeRadioCommRx:
-		extraFields = serializeRadioRxData(&e.RxData)
+		extraFields = []byte{e.RxData.Channel, e.RxData.Error, byte(e.RxData.Rssi)}
 	case EventTypeRadioTxDone:
-		extraFields = serializeRadioTxDoneData(&e.TxDoneData)
+		extraFields = []byte{e.TxDoneData.Channel, e.TxDoneData.Error}
 	case EventTypeChannelSampleDone:
-		extraFields = serializeChanDoneData(&e.ChanDoneData)
+		extraFields = []byte{e.ChanDoneData.Channel, byte(e.ChanDoneData.Rssi)}
 	default:
 		break
 	}
@@ -165,7 +165,7 @@ func (e *Event) Serialize() []byte {
 func (e *Event) Deserialize(data []byte) {
 	n := len(data)
 	if n < EventMsgHeaderLen {
-		simplelogger.Panicf("Event.Deserialize() message length too short: %d", n)
+		simplelogger.Panicf("event message length too short: %d", n)
 	}
 	e.Delay = binary.LittleEndian.Uint64(data[:8])
 	e.Type = data[8]
@@ -177,16 +177,20 @@ func (e *Event) Deserialize(data []byte) {
 	// Detect composite event types
 	switch e.Type {
 	case EventTypeAlarmFired:
-		if len(e.Data) >= 8 {
-			e.AlarmData = AlarmEventData{MsgId: binary.LittleEndian.Uint64(e.Data[:8])}
+		if len(e.Data) >= AlarmDataHeaderLen {
+			e.AlarmData = AlarmEventData{MsgId: binary.LittleEndian.Uint64(e.Data[:AlarmDataHeaderLen])}
+			payloadOffset += AlarmDataHeaderLen
 		}
 	case EventTypeRadioCommTx:
 		e.TxData = deserializeRadioTxData(e.Data)
 		payloadOffset += TxEventDataHeaderLen
 		simplelogger.AssertEqual(e.TxData.Channel, e.Data[payloadOffset]) // channel is stored twice.
 	case EventTypeChannelSample:
-		e.ChanData = deserializeChanData(e.Data)
-		payloadOffset += ChanEventDataHeaderLen
+		e.ChanData = deserializeChanSampleData(e.Data)
+		payloadOffset += ChanSampleEventDataHeaderLen
+	case EventTypeChannelSampleDone:
+		e.ChanDoneData = deserializeChanSampleDoneData(e.Data)
+		payloadOffset += ChanSampleDoneEventDataHeaderLen
 	case EventTypeRadioState:
 		e.RadioStateData = deserializeRadioStateData(e.Data)
 		payloadOffset += RadioStateEventDataHeaderLen
@@ -204,57 +208,38 @@ func (e *Event) Deserialize(data []byte) {
 
 func deserializeRadioTxData(data []byte) TxEventData {
 	simplelogger.AssertTrue(len(data) >= TxEventDataHeaderLen)
-	txData := TxEventData{Channel: data[0], TxPower: int8(data[1])}
-	return txData
+	s := TxEventData{
+		Channel: data[0],
+		TxPower: int8(data[1]),
+	}
+	return s
 }
 
-func deserializeChanData(data []byte) ChanEventData {
-	simplelogger.AssertTrue(len(data) >= ChanEventDataHeaderLen)
-	chanData := ChanEventData{
+func deserializeChanSampleData(data []byte) ChanSampleEventData {
+	simplelogger.AssertTrue(len(data) >= ChanSampleEventDataHeaderLen)
+	s := ChanSampleEventData{
 		Channel: data[0],
 	}
-	return chanData
+	return s
 }
 
-func deserializeChanDoneData(data []byte) ChanDoneEventData {
-	simplelogger.AssertTrue(len(data) >= ChanDoneEventDataHeaderLen)
-	chanData := ChanDoneEventData{
+func deserializeChanSampleDoneData(data []byte) ChanSampleDoneEventData {
+	simplelogger.AssertTrue(len(data) >= ChanSampleDoneEventDataHeaderLen)
+	s := ChanSampleDoneEventData{
 		Channel: data[0],
 		Rssi:    int8(data[1]),
 	}
-	return chanData
+	return s
 }
 
 func deserializeRadioStateData(data []byte) RadioStateEventData {
 	simplelogger.AssertTrue(len(data) >= RadioStateEventDataHeaderLen)
-	stateData := RadioStateEventData{
+	s := RadioStateEventData{
 		Channel: data[0],
 		State:   RadioStates(data[1]),
 		TxPower: int8(data[2]),
 	}
-	return stateData
-}
-
-func serializeRadioRxData(rxData *RxEventData) []byte {
-	b := []byte{0, 0, 0}
-	b[0] = rxData.Channel
-	b[1] = rxData.Error
-	b[2] = byte(rxData.Rssi)
-	return b
-}
-
-func serializeRadioTxDoneData(txDoneData *TxDoneEventData) []byte {
-	b := []byte{0, 0}
-	b[0] = txDoneData.Channel
-	b[1] = txDoneData.Error
-	return b
-}
-
-func serializeChanDoneData(chanData *ChanDoneEventData) []byte {
-	b := []byte{0, 0}
-	b[0] = chanData.Channel
-	b[1] = byte(chanData.Rssi)
-	return b
+	return s
 }
 
 // Copy creates a (struct) copy of the Event.

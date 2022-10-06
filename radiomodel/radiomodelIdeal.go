@@ -61,7 +61,7 @@ func (rm *RadioModelIdeal) OnEventDispatch(src *RadioNode, dst *RadioNode, evt *
 			Error:   OT_ERROR_NONE,
 		}
 	case EventTypeChannelSampleDone:
-		evt.ChanDoneData = ChanDoneEventData{
+		evt.ChanDoneData = ChanSampleDoneEventData{
 			Channel: evt.ChanData.Channel,
 			Rssi:    src.rssiSampleMax,
 		}
