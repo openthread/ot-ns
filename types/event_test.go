@@ -44,50 +44,55 @@ func TestDeserializeAlarmEvent(t *testing.T) {
 func TestSerializeAlarmEvent(t *testing.T) {
 	ev := &Event{Delay: 53716, Type: EventTypeAlarmFired}
 	data := ev.Serialize()
-	assert.True(t, len(data) == 11)
+	assert.True(t, len(data) == 19)
 	assert.True(t, data[0] == 0xd4)
 	assert.True(t, data[1] == 0xd1)
 }
 
-func TestDeserializeRadioTxEvent(t *testing.T) {
-	data, _ := hex.DecodeString("04030201000000000a08000cf60c1020304050")
+func TestDeserializeRadioCommEvent(t *testing.T) {
+	data, _ := hex.DecodeString("04030201000000000611000cf6112a000000000000000c1020304050")
 	var ev Event
 	ev.Deserialize(data)
 	assert.True(t, 16909060 == ev.Delay)
-	assert.Equal(t, EventTypeRadioCommTx, ev.Type)
-	assert.True(t, 12 == ev.TxData.Channel)
-	assert.True(t, -10 == ev.TxData.TxPower)
+	assert.Equal(t, EventTypeRadioComm, ev.Type)
+	assert.True(t, 12 == ev.RadioCommData.Channel)
+	assert.True(t, -10 == ev.RadioCommData.PowerDbm)
+	assert.True(t, OT_ERROR_FCS == ev.RadioCommData.Error)
+	assert.True(t, 42 == ev.RadioCommData.Duration)
 	assert.Equal(t, []byte{12, 0x10, 0x20, 0x30, 0x40, 0x50}, ev.Data)
 }
 
-func TestSerializeRadioRxEvent(t *testing.T) {
-	dataExpected, _ := hex.DecodeString("04030201000000000608000b11b0ff10203040")
-	rxEvtData := RxEventData{
-		Channel: 11,
-		Error:   OT_ERROR_FCS,
-		Rssi:    -80,
+func TestSerializeRadioCommEvent(t *testing.T) {
+	dataExpected, _ := hex.DecodeString("040302010000000006100002b01140e20100000000000210203040")
+	rxEvtData := RadioCommEventData{
+		Channel:  2,
+		Error:    OT_ERROR_FCS,
+		PowerDbm: -80,
+		Duration: 123456,
 	}
-	framePayload := []byte{0xff, 0x10, 0x20, 0x30, 0x40}
+	framePayload := []byte{2, 0x10, 0x20, 0x30, 0x40}
 	ev := &Event{
-		Delay:  16909060,
-		Type:   EventTypeRadioCommRx,
-		RxData: rxEvtData,
-		Data:   framePayload,
+		Delay:         16909060,
+		Type:          EventTypeRadioComm,
+		RadioCommData: rxEvtData,
+		Data:          framePayload,
 	}
 	data := ev.Serialize()
 	assert.Equal(t, dataExpected, data)
 }
 
-func TestSerializeRadioTxDoneEvent(t *testing.T) {
-	dataExpected, _ := hex.DecodeString("04030201000000000702000b00")
-	evData := TxDoneEventData{
-		Channel: 11,
-		Error:   OT_ERROR_NONE,
+func TestSerializeRadioCommDoneEvent(t *testing.T) {
+	dataExpected, _ := hex.DecodeString("0403020100000000070b000baf0040e2010000000000")
+	evData := RadioCommEventData{
+		Channel:  11,
+		Error:    OT_ERROR_NONE,
+		PowerDbm: -81,
+		Duration: 123456,
 	}
 	ev := &Event{
-		Delay:      16909060,
-		Type:       EventTypeRadioTxDone,
-		TxDoneData: evData,
+		Delay:         16909060,
+		Type:          EventTypeRadioRxDone,
+		RadioCommData: evData,
 	}
 	data := ev.Serialize()
 	assert.Equal(t, dataExpected, data)
@@ -95,9 +100,9 @@ func TestSerializeRadioTxDoneEvent(t *testing.T) {
 
 func TestEventCopy(t *testing.T) {
 	ev := &Event{
-		Type:  EventTypeRadioTxDone,
+		Type:  EventTypeRadioRxDone,
 		Delay: 123,
-		TxDoneData: TxDoneEventData{
+		RadioCommData: RadioCommEventData{
 			Channel: 42,
 			Error:   OT_ERROR_CHANNEL_ACCESS_FAILURE,
 		},
@@ -106,10 +111,10 @@ func TestEventCopy(t *testing.T) {
 
 	// modify original
 	ev.Delay += 1
-	ev.TxDoneData.Channel = 11
-	ev.TxDoneData.Error = OT_ERROR_NONE
+	ev.RadioCommData.Channel = 11
+	ev.RadioCommData.Error = OT_ERROR_NONE
 
 	assert.Equal(t, uint64(123), evCopy.Delay)
-	assert.Equal(t, uint8(42), evCopy.TxDoneData.Channel)
-	assert.Equal(t, uint8(OT_ERROR_CHANNEL_ACCESS_FAILURE), evCopy.TxDoneData.Error)
+	assert.Equal(t, uint8(42), evCopy.RadioCommData.Channel)
+	assert.Equal(t, uint8(OT_ERROR_CHANNEL_ACCESS_FAILURE), evCopy.RadioCommData.Error)
 }
