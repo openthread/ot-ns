@@ -12,13 +12,10 @@ type RadioNode struct {
 	Id NodeId
 
 	// TxPower contains the last Tx power used by the node.
-	TxPower int8
+	TxPower DbmValue
 
 	// RxSensitivity contains the Rx sensitivity in dBm of the node.
 	RxSensitivity int8
-
-	// TimeLastTxEnded is the timestamp (us) when the last Tx (attempt) by this RadioNode ended.
-	TimeLastTxEnded uint64
 
 	// RadioRange is the radio range as configured by the simulation for this node.
 	RadioRange float64
@@ -39,7 +36,7 @@ type RadioNode struct {
 	receivingFrom NodeId
 
 	// rssiSampleMax tracks the max RSSI detected during a channel sampling operation.
-	rssiSampleMax int8
+	rssiSampleMax DbmValue
 }
 
 func NewRadioNode(nodeid NodeId, cfg *NodeConfig) *RadioNode {

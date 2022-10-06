@@ -26,12 +26,13 @@ func (rm *RadioModelIdeal) DeleteNode(nodeid NodeId) {
 }
 
 func (rm *RadioModelIdeal) CheckRadioReachable(src *RadioNode, dst *RadioNode) bool {
-	simplelogger.AssertTrue(src != dst)
-	dist := src.GetDistanceTo(dst)
-	if dist <= src.RadioRange {
-		rssi := rm.GetTxRssi(src, dst)
-		if rssi >= RssiMin && rssi <= RssiMax && rssi >= dst.RxSensitivity {
-			return true
+	if src != dst && dst.RadioState == RadioRx {
+		dist := src.GetDistanceTo(dst)
+		if dist <= src.RadioRange {
+			rssi := rm.GetTxRssi(src, dst)
+			if rssi >= RssiMin && rssi <= RssiMax && rssi >= dst.RxSensitivity {
+				return true
+			}
 		}
 	}
 	return false
@@ -47,42 +48,25 @@ func (rm *RadioModelIdeal) GetTxRssi(srcNode *RadioNode, dstNode *RadioNode) Dbm
 
 func (rm *RadioModelIdeal) OnEventDispatch(src *RadioNode, dst *RadioNode, evt *Event) bool {
 	switch evt.Type {
-	case EventTypeRadioCommRx:
-		// compute the RSSI and store in the event
-		evt.RxData = RxEventData{
-			Channel: src.RadioChannel,
-			Error:   OT_ERROR_NONE,
-			Rssi:    rm.GetTxRssi(src, dst),
-		}
-	case EventTypeRadioTxDone:
-		// mark transmission of the node as success in the event.
-		evt.TxDoneData = TxDoneEventData{
-			Channel: src.RadioChannel,
-			Error:   OT_ERROR_NONE,
-		}
-	case EventTypeChannelSampleDone:
-		evt.ChanDoneData = ChanSampleDoneEventData{
-			Channel: evt.ChanData.Channel,
-			Rssi:    src.rssiSampleMax,
-		}
-	default:
-		break
+	case EventTypeRadioRxDone:
+		fallthrough
+	case EventTypeRadioComm:
+		// compute the RSSI and store it in the event
+		evt.RadioCommData.PowerDbm = rm.GetTxRssi(src, dst)
+	case EventTypeRadioChannelSample:
+		evt.RadioCommData.PowerDbm = src.rssiSampleMax
 	}
 	return true
 }
 
 func (rm *RadioModelIdeal) HandleEvent(node *RadioNode, q EventQueue, evt *Event) {
 	switch evt.Type {
-	case EventTypeRadioCommTx:
+	case EventTypeRadioComm:
 		rm.txStart(node, q, evt)
 	case EventTypeRadioTxDone:
 		rm.txStop(node, q, evt)
-	case EventTypeChannelSample:
+	case EventTypeRadioChannelSample:
 		rm.channelSample(node, q, evt)
-	case EventTypeChannelSampleDone:
-		break
-	default:
-		break
 	}
 }
 
@@ -97,33 +81,46 @@ func (rm *RadioModelIdeal) init() {
 func (rm *RadioModelIdeal) txStart(srcNode *RadioNode, q EventQueue, evt *Event) {
 	simplelogger.AssertTrue(srcNode.RadioState == RadioTx)
 
-	srcNode.TxPower = evt.TxData.TxPower // get last node's properties from the OT node's event params.
-	srcNode.SetChannel(evt.TxData.Channel)
-	srcNode.SetRadioState(RadioTx)
+	srcNode.TxPower = evt.RadioCommData.PowerDbm // get last node's properties from the OT node's event params.
+	srcNode.SetChannel(evt.RadioCommData.Channel)
 
-	// schedule new event for when tx is done, after evt.Delay us.
+	// dispatch radio event RadioComm 'start of frame Rx' to listening nodes.
+	evt2 := evt.Copy()
+	evt2.Type = EventTypeRadioComm
+	evt2.MustDispatch = true
+	q.Add(&evt2)
+
+	// schedule new internal event to call txStop()
 	txDoneEvt := evt.Copy()
 	txDoneEvt.Type = EventTypeRadioTxDone
-	txDoneEvt.Timestamp += evt.Delay
+	txDoneEvt.Timestamp += evt.RadioCommData.Duration
 	q.Add(&txDoneEvt)
 }
 
 func (rm *RadioModelIdeal) txStop(node *RadioNode, q EventQueue, evt *Event) {
 	simplelogger.AssertTrue(node.RadioState == RadioTx)
 
-	// Create rx event, to let nearby nodes receive the frame.
-	evt2 := evt.Copy()
-	evt2.Type = EventTypeRadioCommRx
-	q.Add(&evt2)
+	// Dispatch TxDone event back to the source
+	txDoneEvt := evt.Copy()
+	txDoneEvt.Type = EventTypeRadioTxDone
+	txDoneEvt.MustDispatch = true
+	q.Add(&txDoneEvt)
+
+	// Create RxDone event, to signal nearby nodes the frame Rx is done.
+	rxDoneEvt := evt.Copy()
+	rxDoneEvt.Type = EventTypeRadioRxDone
+	rxDoneEvt.MustDispatch = true
+	q.Add(&rxDoneEvt)
 }
 
 func (rm *RadioModelIdeal) channelSample(srcNode *RadioNode, q EventQueue, evt *Event) {
 	simplelogger.AssertTrue(srcNode.RadioState == RadioRx)
-	srcNode.rssiSampleMax = RssiMinusInfinity
+	srcNode.rssiSampleMax = RssiMinusInfinity // Ideal model never has CCA failure.
 
-	// schedule event when channel sampling stops.
-	evt2 := evt.Copy()
-	evt2.Type = EventTypeChannelSampleDone
-	evt2.Timestamp += evt.Delay
-	q.Add(&evt2)
+	// dispatch event with result back to node, when channel sampling stops.
+	sampleDoneEvt := evt.Copy()
+	sampleDoneEvt.Type = EventTypeRadioChannelSample
+	sampleDoneEvt.Timestamp += evt.RadioCommData.Duration
+	sampleDoneEvt.MustDispatch = true
+	q.Add(&sampleDoneEvt)
 }

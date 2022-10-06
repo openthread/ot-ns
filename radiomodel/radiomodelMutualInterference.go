@@ -1,5 +1,6 @@
 package radiomodel
 
+/* bla
 import (
 	. "github.com/openthread/ot-ns/types"
 	"github.com/simonlingoogle/go-simplelogger"
@@ -44,7 +45,7 @@ func (rm *RadioModelMutualInterference) HandleEvent(node *RadioNode, q EventQueu
 		rm.updateChannelSamplingNodes(node, evt) // all channel-sampling nodes detect the new Tx
 	case EventTypeRadioTxDone:
 		rm.txStop(node, evt)
-	case EventTypeChannelSample:
+	case EventTypeRadioChannelSample:
 		// take 1st channel sample
 		node.rssiSampleMax = rm.getRssiOnChannel(node, evt.ChanData.Channel)
 	case EventTypeChannelSampleDone:
@@ -145,9 +146,6 @@ func (rm *RadioModelMutualInterference) txStop(node *RadioNode, evt *Event) {
 	_, nodeTransmits := rm.activeTransmitters[evt.TxData.Channel][evt.NodeId]
 	simplelogger.AssertTrue(nodeTransmits)
 	delete(rm.activeTransmitters[evt.TxData.Channel], evt.NodeId)
-
-	node.TimeLastTxEnded = evt.Timestamp
-	node.SetRadioState(RadioRx)
 }
 
 func (rm *RadioModelMutualInterference) applyInterference(src *RadioNode, dst *RadioNode, evt *Event) {
@@ -178,3 +176,4 @@ func (rm *RadioModelMutualInterference) updateChannelSamplingNodes(src *RadioNod
 		}
 	}
 }
+*/
