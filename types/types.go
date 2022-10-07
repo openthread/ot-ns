@@ -118,3 +118,59 @@ const (
 	RadioRx       RadioStates = 2
 	RadioTx       RadioStates = 3
 )
+
+func (s RadioStates) String() string {
+	switch s {
+	case RadioDisabled:
+		return "Off"
+	case RadioSleep:
+		return "Slp"
+	case RadioRx:
+		return "Rx_"
+	case RadioTx:
+		return "Tx_"
+	default:
+		simplelogger.Panicf("invalid RadioState: %v", s)
+		return "invalid"
+	}
+}
+
+type RadioSubStates byte
+
+const (
+	OT_RADIO_SUBSTATE_READY         RadioSubStates = 0
+	OT_RADIO_SUBSTATE_CCA           RadioSubStates = iota
+	OT_RADIO_SUBSTATE_CCA_TO_TX     RadioSubStates = iota
+	OT_RADIO_SUBSTATE_FRAME_ONGOING RadioSubStates = iota
+	OT_RADIO_SUBSTATE_TX_TO_RX      RadioSubStates = iota
+	OT_RADIO_SUBSTATE_AIFS_WAIT     RadioSubStates = iota
+	OT_RADIO_SUBSTATE_ACK_ONGOING   RadioSubStates = iota
+	OT_RADIO_SUBSTATE_IFS_WAIT      RadioSubStates = iota
+	OT_RADIO_SUBSTATE_ENERGY_SCAN   RadioSubStates = iota
+)
+
+func (s RadioSubStates) String() string {
+	switch s {
+	case OT_RADIO_SUBSTATE_READY:
+		return "Ready_"
+	case OT_RADIO_SUBSTATE_CCA:
+		return "CCA___"
+	case OT_RADIO_SUBSTATE_CCA_TO_TX:
+		return "CCA2Tx"
+	case OT_RADIO_SUBSTATE_FRAME_ONGOING:
+		return "Frame@"
+	case OT_RADIO_SUBSTATE_TX_TO_RX:
+		return "Tx2Rx_"
+	case OT_RADIO_SUBSTATE_AIFS_WAIT:
+		return "AIFS__"
+	case OT_RADIO_SUBSTATE_ACK_ONGOING:
+		return "Ack@__"
+	case OT_RADIO_SUBSTATE_IFS_WAIT:
+		return "IFS___"
+	case OT_RADIO_SUBSTATE_ENERGY_SCAN:
+		return "EnScan"
+	default:
+		simplelogger.Panicf("invalid RadioSubState: %v", s)
+		return "invalid"
+	}
+}

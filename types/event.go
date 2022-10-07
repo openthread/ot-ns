@@ -47,7 +47,7 @@ const (
 	EventTypeRadioSpinelWrite   EventType = 3
 	EventTypePostCmd            EventType = 4
 	EventTypeStatusPush         EventType = 5
-	EventTypeRadioComm          EventType = 6
+	EventTypeRadioCommStart     EventType = 6
 	EventTypeRadioTxDone        EventType = 7
 	EventTypeRadioChannelSample EventType = 8
 	EventTypeRadioState         EventType = 9
@@ -93,11 +93,12 @@ type RadioCommEventData struct {
 	Duration uint64
 }
 
-const RadioStateEventDataHeaderLen = 3 // from OT platform-simulation.h struct
+const RadioStateEventDataHeaderLen = 4 // from OT platform-simulation.h struct
 type RadioStateEventData struct {
 	Channel  uint8
 	PowerDbm int8
 	State    RadioStates
+	SubState RadioSubStates
 }
 
 /* RadioMessagePsduOffset is the offset of Psdu data in a received OpenThread RadioMessage type.
@@ -121,7 +122,9 @@ func (e *Event) Serialize() []byte {
 		fallthrough
 	case EventTypeRadioRxDone:
 		fallthrough
-	case EventTypeRadioComm:
+	case EventTypeRadioTxDone:
+		fallthrough
+	case EventTypeRadioCommStart:
 		extraFields = []byte{e.RadioCommData.Channel, byte(e.RadioCommData.PowerDbm), e.RadioCommData.Error,
 			0, 0, 0, 0, 0, 0, 0, 0}
 		binary.LittleEndian.PutUint64(extraFields[3:], e.RadioCommData.Duration)
@@ -161,10 +164,11 @@ func (e *Event) Deserialize(data []byte) {
 			payloadOffset += AlarmDataHeaderLen
 		}
 	case EventTypeRadioChannelSample:
-		fallthrough
+		e.RadioCommData = deserializeRadioCommData(e.Data)
+		payloadOffset += RadioCommEventDataHeaderLen
 	case EventTypeRadioRxDone:
 		fallthrough
-	case EventTypeRadioComm:
+	case EventTypeRadioCommStart:
 		e.RadioCommData = deserializeRadioCommData(e.Data)
 		payloadOffset += RadioCommEventDataHeaderLen
 		simplelogger.AssertEqual(e.RadioCommData.Channel, e.Data[payloadOffset]) // channel is stored twice.
@@ -200,6 +204,7 @@ func deserializeRadioStateData(data []byte) RadioStateEventData {
 		Channel:  data[0],
 		PowerDbm: int8(data[1]),
 		State:    RadioStates(data[2]),
+		SubState: RadioSubStates(data[3]),
 	}
 	return s
 }

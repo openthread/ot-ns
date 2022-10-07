@@ -322,7 +322,7 @@ func (d *Dispatcher) handleRecvEvent(evt *Event) {
 
 	// should not receive alarm event and radio event in real mode
 	if d.cfg.Real && (evt.Type == EventTypeAlarmFired || evt.Type == EventTypeRadioReceived ||
-		evt.Type == EventTypeRadioComm || evt.Type == EventTypeRadioChannelSample ||
+		evt.Type == EventTypeRadioCommStart || evt.Type == EventTypeRadioChannelSample ||
 		evt.Type == EventTypeRadioState) {
 		simplelogger.Warnf("unexpected event in real mode: %v", evt.Type)
 		return
@@ -335,7 +335,7 @@ func (d *Dispatcher) handleRecvEvent(evt *Event) {
 		d.alarmMgr.SetTimestamp(nodeid, d.CurTime+delay) // schedule future wake-up of node
 	case EventTypeRadioReceived:
 		simplelogger.Panicf("legacy EventTypeRadioReceived received")
-	case EventTypeRadioComm:
+	case EventTypeRadioCommStart:
 		fallthrough
 	case EventTypeRadioChannelSample:
 		d.Counters.RadioEvents += 1
@@ -463,10 +463,10 @@ func (d *Dispatcher) processNextEvent() bool {
 					d.radioModel.HandleEvent(node.radioNode, d.eventQueue, evt)
 				} else {
 					switch evt.Type {
+					case EventTypeRadioCommStart:
+						d.sendRadioCommRxStartEvents(node, evt)
 					case EventTypeRadioRxDone:
-						fallthrough
-					case EventTypeRadioComm:
-						d.sendRadioCommRxEvents(node, evt)
+						d.sendRadioCommRxDoneEvents(node, evt)
 					default:
 						if d.radioModel.OnEventDispatch(node.radioNode, node.radioNode, evt) {
 							node.sendEvent(evt)
@@ -550,27 +550,76 @@ func (d *Dispatcher) SendToUART(id NodeId, data []byte) {
 	}
 }
 
-// sendRadioCommRxEvents dispatches an event where >=1 nodes may receive a frame being transmitted,
-// determining who receives it, and also doing the frame logging/pcap and visualization events.
-func (d *Dispatcher) sendRadioCommRxEvents(srcNode *Node, evt *Event) {
-	simplelogger.AssertTrue(evt.Type == EventTypeRadioComm || evt.Type == EventTypeRadioRxDone)
+// sendRadioCommRxStartEvents dispatches an event to nearby nodes eligible to receiving the frame.
+// It also logs the frame in pcap/dump and visualizes the sending.
+func (d *Dispatcher) sendRadioCommRxStartEvents(srcNode *Node, evt *Event) {
+	simplelogger.AssertTrue(evt.Type == EventTypeRadioCommStart)
+	if srcNode.isFailed {
+		return // source node can't send - don't send
+	}
+
+	// record the sent frame in Pcap/Dump logs - once, at time of Tx start.
+	if !d.cfg.NoPcap {
+		d.pcapFrameChan <- pcapFrameItem{evt.Timestamp, evt.Data[RadioMessagePsduOffset:]}
+	}
+	if d.cfg.DumpPackets {
+		d.dumpPacket(evt)
+	}
+
+	// dispatch the message to all in range that are receiving.
+	neighborNodes := map[NodeId]*Node{}
+	for _, dstNode := range d.nodes {
+		if d.checkRadioReachable(srcNode, dstNode) {
+			d.sendOneRadioFrame(evt, srcNode, dstNode)
+			neighborNodes[dstNode.Id] = dstNode
+		}
+	}
+	d.Counters.DispatchAllInRange++
+
+	// visualize the transmission and (intended) reception of the frame, based on addressing.
+	pktinfo := dissectpkt.Dissect(evt.Data)
+	pktFrame := pktinfo.MacFrame
+	dstAddrMode := pktFrame.FrameControl.DstAddrMode()
+
+	if dstAddrMode == wpan.DstAddrModeExtended {
+		// unicast ExtAddr frame
+		dstNode := d.extaddrMap[pktFrame.DstAddrExtended]
+		if dstNode != nil && neighborNodes[dstNode.Id] != nil {
+			d.visSendFrame(srcNode.Id, dstNode.Id, pktFrame)
+		} else {
+			// extAddr didn't exist or was out of range
+			d.visSendFrame(srcNode.Id, InvalidNodeId, pktFrame)
+		}
+
+	} else if dstAddrMode == wpan.DstAddrModeShort && pktFrame.DstAddrShort != threadconst.BroadcastRloc16 {
+		// unicast short addr frame. May go to multiple if multiple nodes use same short addr.
+		dstNodes := d.rloc16Map[pktFrame.DstAddrShort]
+
+		if dstNodes != nil && len(dstNodes) > 0 {
+			for _, dstNode := range dstNodes {
+				if neighborNodes[dstNode.Id] != nil {
+					d.visSendFrame(srcNode.Id, dstNode.Id, pktFrame)
+				}
+			}
+		} else {
+			d.visSendFrame(srcNode.Id, InvalidNodeId, pktFrame)
+		}
+
+	} else {
+		// broadcast frame
+		d.visSendFrame(srcNode.Id, BroadcastNodeId, pktFrame)
+	}
+}
+
+// sendRadioCommRxDoneEvents dispatches an event where >=1 nodes may receive a frame that is done
+// being transmitted, determines who receives it, and also does frame logging/pcap and visualization events.
+func (d *Dispatcher) sendRadioCommRxDoneEvents(srcNode *Node, evt *Event) {
+	simplelogger.AssertTrue(evt.Type == EventTypeRadioRxDone)
 	if srcNode.isFailed {
 		return // source node can't send - don't send, and don't log in pcap.
 	}
 
-	// record the sent frame in Pcap/Dump logs - once, at time of Tx start.
-	isStartOfFrame := evt.Type == EventTypeRadioComm
-	if isStartOfFrame {
-		if !d.cfg.NoPcap {
-			d.pcapFrameChan <- pcapFrameItem{evt.Timestamp, evt.Data[RadioMessagePsduOffset:]}
-		}
-		if d.cfg.DumpPackets {
-			d.dumpPacket(evt)
-		}
-	}
-
 	// try to dispatch the message by address directly to the right node
-	srcNodeId := srcNode.Id
 	pktinfo := dissectpkt.Dissect(evt.Data)
 	pktFrame := pktinfo.MacFrame
 	dispatchedByDstAddr := false
@@ -582,48 +631,31 @@ func (d *Dispatcher) sendRadioCommRxEvents(srcNode *Node, evt *Event) {
 		if dstnode != srcNode && dstnode != nil {
 			if d.checkRadioReachable(srcNode, dstnode) {
 				d.sendOneRadioFrame(evt, srcNode, dstnode)
-				if isStartOfFrame {
-					d.visSendFrame(srcNodeId, dstnode.Id, pktFrame)
-				}
-			} else if isStartOfFrame {
-				d.visSendFrame(srcNodeId, InvalidNodeId, pktFrame)
 			}
 			d.Counters.DispatchByExtAddrSucc++
 		} else {
 			d.Counters.DispatchByExtAddrFail++
-			if isStartOfFrame {
-				d.visSendFrame(srcNodeId, InvalidNodeId, pktFrame)
-			}
 		}
-
 		dispatchedByDstAddr = true
-	} else if dstAddrMode == wpan.DstAddrModeShort {
-		if pktFrame.DstAddrShort != threadconst.BroadcastRloc16 {
-			// unicast message should only be dispatched to target node with the rloc16
-			dstnodes := d.rloc16Map[pktFrame.DstAddrShort]
-			dispatchCnt := 0
 
-			if len(dstnodes) > 0 {
-				for _, dstnode := range dstnodes {
-					if d.checkRadioReachable(srcNode, dstnode) {
-						d.sendOneRadioFrame(evt, srcNode, dstnode)
-						if isStartOfFrame {
-							d.visSendFrame(srcNodeId, dstnode.Id, pktFrame)
-						}
-						dispatchCnt++
-					}
+	} else if dstAddrMode == wpan.DstAddrModeShort &&
+		pktFrame.DstAddrShort != threadconst.BroadcastRloc16 {
+		// unicast message should only be dispatched to target node(s) with the rloc16
+		dstNodes := d.rloc16Map[pktFrame.DstAddrShort]
+		dispatchCnt := 0
+
+		if dstNodes != nil && len(dstNodes) > 0 {
+			for _, dstNode := range dstNodes {
+				if d.checkRadioReachable(srcNode, dstNode) {
+					d.sendOneRadioFrame(evt, srcNode, dstNode)
+					dispatchCnt++
 				}
-				d.Counters.DispatchByShortAddrSucc++
-			} else {
-				d.Counters.DispatchByShortAddrFail++
 			}
-
-			if dispatchCnt == 0 && isStartOfFrame {
-				d.visSendFrame(srcNodeId, InvalidNodeId, pktFrame)
-			}
-
-			dispatchedByDstAddr = true
+			d.Counters.DispatchByShortAddrSucc++
+		} else {
+			d.Counters.DispatchByShortAddrFail++
 		}
+		dispatchedByDstAddr = true
 	}
 
 	// if not dispatched yet, dispatch to all nodes able to receive. Works e.g. for Acks that don't have
@@ -635,20 +667,18 @@ func (d *Dispatcher) sendRadioCommRxEvents(srcNode *Node, evt *Event) {
 			}
 		}
 		d.Counters.DispatchAllInRange++
-		if isStartOfFrame {
-			d.visSendFrame(srcNodeId, BroadcastNodeId, pktFrame)
-		}
 	}
 }
 
 func (d *Dispatcher) checkRadioReachable(src *Node, dst *Node) bool {
+	// the RadioModel will check distance and radio-state of receivers.
 	return src != dst && src != nil && dst != nil &&
 		d.radioModel.CheckRadioReachable(src.radioNode, dst.radioNode)
 }
 
 func (d *Dispatcher) sendOneRadioFrame(evt *Event, srcnode *Node, dstnode *Node) {
 	simplelogger.AssertFalse(d.cfg.Real)
-	simplelogger.AssertTrue(EventTypeRadioComm == evt.Type || EventTypeRadioRxDone == evt.Type)
+	simplelogger.AssertTrue(EventTypeRadioCommStart == evt.Type || EventTypeRadioRxDone == evt.Type)
 	simplelogger.AssertTrue(srcnode != dstnode)
 
 	// Tx failure cases below:
@@ -1307,16 +1337,36 @@ func (d *Dispatcher) SetRadioModel(model radiomodel.RadioModel) {
 
 func (d *Dispatcher) handleRadioState(node *Node, evt *Event) {
 	simplelogger.AssertNotNil(node)
-	if node.radioNode.RadioState != evt.RadioStateData.State {
-		simplelogger.Debugf("%v hrs RadioState=%+v ts=%v", node.Id, evt.RadioStateData.State, evt.Timestamp)
+	subState := evt.RadioStateData.SubState
+	state := evt.RadioStateData.State
+	var energyState RadioStates = state
+
+	// derive the energyState from state/substate combination
+	if state == RadioTx {
+		switch subState {
+		case OT_RADIO_SUBSTATE_FRAME_ONGOING:
+			energyState = RadioTx
+		default:
+			energyState = RadioRx
+		}
+	} else if state == RadioRx {
+		switch subState {
+		case OT_RADIO_SUBSTATE_ACK_ONGOING:
+			energyState = RadioTx
+		default:
+			energyState = RadioRx
+		}
 	}
-	node.radioNode.SetRadioState(evt.RadioStateData.State)
+
+	simplelogger.Debugf("%v N=%v hrs RadioState=%+v SubState=%+v EnergyState=%+v", evt.Timestamp, node.Id, evt.RadioStateData.State, subState, energyState)
+
+	node.radioNode.SetRadioState(energyState, subState)
 	node.radioNode.SetChannel(evt.RadioStateData.Channel)
 
 	if d.energyAnalyser != nil {
 		radioEnergy := d.energyAnalyser.GetNode(node.Id)
 		simplelogger.AssertNotNil(radioEnergy)
-		radioEnergy.SetRadioState(node.radioNode.RadioState, d.CurTime)
+		radioEnergy.SetRadioState(energyState, d.CurTime)
 	}
 }
 
