@@ -54,7 +54,7 @@ func TestDeserializeRadioCommEvent(t *testing.T) {
 	var ev Event
 	ev.Deserialize(data)
 	assert.True(t, 16909060 == ev.Delay)
-	assert.Equal(t, EventTypeRadioComm, ev.Type)
+	assert.Equal(t, EventTypeRadioCommStart, ev.Type)
 	assert.True(t, 12 == ev.RadioCommData.Channel)
 	assert.True(t, -10 == ev.RadioCommData.PowerDbm)
 	assert.True(t, OT_ERROR_FCS == ev.RadioCommData.Error)
@@ -62,7 +62,7 @@ func TestDeserializeRadioCommEvent(t *testing.T) {
 	assert.Equal(t, []byte{12, 0x10, 0x20, 0x30, 0x40, 0x50}, ev.Data)
 }
 
-func TestSerializeRadioCommEvent(t *testing.T) {
+func TestSerializeRadioCommStartEvent(t *testing.T) {
 	dataExpected, _ := hex.DecodeString("040302010000000006100002b01140e20100000000000210203040")
 	rxEvtData := RadioCommEventData{
 		Channel:  2,
@@ -73,7 +73,7 @@ func TestSerializeRadioCommEvent(t *testing.T) {
 	framePayload := []byte{2, 0x10, 0x20, 0x30, 0x40}
 	ev := &Event{
 		Delay:         16909060,
-		Type:          EventTypeRadioComm,
+		Type:          EventTypeRadioCommStart,
 		RadioCommData: rxEvtData,
 		Data:          framePayload,
 	}
@@ -81,8 +81,27 @@ func TestSerializeRadioCommEvent(t *testing.T) {
 	assert.Equal(t, dataExpected, data)
 }
 
-func TestSerializeRadioCommDoneEvent(t *testing.T) {
-	dataExpected, _ := hex.DecodeString("0403020100000000070b000baf0040e2010000000000")
+func TestSerializeRadioCommTxDoneEvent(t *testing.T) {
+	dataExpected, _ := hex.DecodeString("040302010000000007100002b00040e20100000000000210203040")
+	evtData := RadioCommEventData{
+		Channel:  2,
+		Error:    OT_ERROR_NONE,
+		PowerDbm: -80,
+		Duration: 123456,
+	}
+	framePayload := []byte{2, 0x10, 0x20, 0x30, 0x40}
+	ev := &Event{
+		Delay:         16909060,
+		Type:          EventTypeRadioTxDone,
+		RadioCommData: evtData,
+		Data:          framePayload,
+	}
+	data := ev.Serialize()
+	assert.Equal(t, dataExpected, data)
+}
+
+func TestSerializeRadioRxDoneEvent(t *testing.T) {
+	dataExpected, _ := hex.DecodeString("04030201000000000a0b000baf0040e2010000000000")
 	evData := RadioCommEventData{
 		Channel:  11,
 		Error:    OT_ERROR_NONE,

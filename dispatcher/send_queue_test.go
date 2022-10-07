@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2020-2022, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -30,47 +30,64 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	. "github.com/openthread/ot-ns/types"
 )
 
 func TestSendQueue_Add(t *testing.T) {
 	q := newSendQueue()
-	q.Add(2, 2, nil)
-	q.Add(1, 1, nil)
-	q.Add(3, 3, nil)
+	q.Add(&Event{Timestamp: 2, NodeId: 2})
+	q.Add(&Event{Timestamp: 1, NodeId: 1})
+	q.Add(&Event{Timestamp: 3, NodeId: 3})
 }
 
 func TestSendQueue_Len(t *testing.T) {
 	q := newSendQueue()
 	assert.Equal(t, 0, q.Len())
-	q.Add(2, 2, nil)
+	q.Add(&Event{Timestamp: 2, NodeId: 2})
 	assert.Equal(t, 1, q.Len())
-	q.Add(1, 1, nil)
+	q.Add(&Event{Timestamp: 1, NodeId: 1})
 	assert.Equal(t, 2, q.Len())
-	q.Add(3, 3, nil)
+	q.Add(&Event{Timestamp: 3, NodeId: 3})
 	assert.Equal(t, 3, q.Len())
 }
 
 func TestSendQueue_NextTimestamp(t *testing.T) {
 	q := newSendQueue()
 	assert.Equal(t, Ever, q.NextTimestamp())
-	q.Add(2, 2, nil)
+	q.Add(&Event{Timestamp: 2, NodeId: 2, Data: []byte{0, 1, 2, 3, 4, 5}})
 	assert.Equal(t, uint64(2), q.NextTimestamp())
-	q.Add(1, 1, nil)
+	q.Add(&Event{Timestamp: 1, NodeId: 1})
 	assert.Equal(t, uint64(1), q.NextTimestamp())
-	q.Add(3, 3, nil)
+	q.Add(&Event{Timestamp: 3, NodeId: 3})
 	assert.Equal(t, uint64(1), q.NextTimestamp())
+}
+
+func TestSendQueue_NextEvent(t *testing.T) {
+	q := newSendQueue()
+	q.Add(&Event{Timestamp: 2, NodeId: 2, Data: []byte{0, 1, 2, 3, 4, 5}})
+	assert.Equal(t, uint64(2), q.NextEvent().Timestamp)
+	assert.Equal(t, NodeId(2), q.NextEvent().NodeId)
+	assert.Equal(t, []byte{0, 1, 2, 3, 4, 5}, q.NextEvent().Data)
+	q.Add(&Event{Timestamp: 1, NodeId: 1})
+	assert.Equal(t, uint64(1), q.NextEvent().Timestamp)
+	assert.Equal(t, NodeId(1), q.NextEvent().NodeId)
+	assert.Equal(t, []byte(nil), q.NextEvent().Data)
+	q.Add(&Event{Timestamp: 3, NodeId: 3, Data: []byte{4, 5, 6}})
+	assert.Equal(t, uint64(1), q.NextEvent().Timestamp)
+	assert.Equal(t, NodeId(1), q.NextEvent().NodeId)
+	assert.Equal(t, []byte(nil), q.NextEvent().Data)
 }
 
 func TestSendQueue_PopNext(t *testing.T) {
 	q := newSendQueue()
-	q.Add(2, 2, nil)
-	q.Add(1, 1, nil)
-	q.Add(3, 3, nil)
+	q.Add(&Event{Timestamp: 2, NodeId: 2})
+	q.Add(&Event{Timestamp: 1, NodeId: 1})
+	q.Add(&Event{Timestamp: 3, NodeId: 3})
 
-	it := q.PopNext()
-	assert.True(t, it.NodeId == 1 && it.Timestamp == 1)
-	it = q.PopNext()
-	assert.True(t, it.NodeId == 2 && it.Timestamp == 2)
-	it = q.PopNext()
-	assert.True(t, it.NodeId == 3 && it.Timestamp == 3)
+	ev := q.PopNext()
+	assert.True(t, ev.NodeId == 1 && ev.Timestamp == 1)
+	ev = q.PopNext()
+	assert.True(t, ev.NodeId == 2 && ev.Timestamp == 2)
+	ev = q.PopNext()
+	assert.True(t, ev.NodeId == 3 && ev.Timestamp == 3)
 }
