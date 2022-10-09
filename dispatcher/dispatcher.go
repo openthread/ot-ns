@@ -1339,26 +1339,9 @@ func (d *Dispatcher) handleRadioState(node *Node, evt *Event) {
 	simplelogger.AssertNotNil(node)
 	subState := evt.RadioStateData.SubState
 	state := evt.RadioStateData.State
-	var energyState RadioStates = state
-
-	// derive the energyState from state/substate combination
-	if state == RadioTx {
-		switch subState {
-		case OT_RADIO_SUBSTATE_FRAME_ONGOING:
-			energyState = RadioTx
-		default:
-			energyState = RadioRx
-		}
-	} else if state == RadioRx {
-		switch subState {
-		case OT_RADIO_SUBSTATE_ACK_ONGOING:
-			energyState = RadioTx
-		default:
-			energyState = RadioRx
-		}
-	}
-
-	simplelogger.Debugf("%v N=%v hrs RadioState=%+v SubState=%+v EnergyState=%+v", evt.Timestamp, node.Id, evt.RadioStateData.State, subState, energyState)
+	energyState := evt.RadioStateData.EnergyState
+	simplelogger.Debugf("%v N=%v EnergyState=%+v SubState=%+v RadioState=%+v",
+		evt.Timestamp, node.Id, energyState, subState, state)
 
 	node.radioNode.SetRadioState(energyState, subState)
 	node.radioNode.SetChannel(evt.RadioStateData.Channel)
@@ -1367,6 +1350,13 @@ func (d *Dispatcher) handleRadioState(node *Node, evt *Event) {
 		radioEnergy := d.energyAnalyser.GetNode(node.Id)
 		simplelogger.AssertNotNil(radioEnergy)
 		radioEnergy.SetRadioState(energyState, d.CurTime)
+	}
+
+	// if a next radio-state transition is indicated, make sure to schedule node wake-up for that time.
+	if evt.Delay > 0 {
+		evt2 := evt.Copy()
+		evt2.Timestamp += evt.Delay
+		d.eventQueue.Add(&evt2)
 	}
 }
 

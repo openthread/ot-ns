@@ -93,12 +93,13 @@ type RadioCommEventData struct {
 	Duration uint64
 }
 
-const RadioStateEventDataHeaderLen = 4 // from OT platform-simulation.h struct
+const RadioStateEventDataHeaderLen = 5 // from OT platform-simulation.h struct
 type RadioStateEventData struct {
-	Channel  uint8
-	PowerDbm int8
-	State    RadioStates
-	SubState RadioSubStates
+	Channel     uint8
+	PowerDbm    int8
+	EnergyState RadioStates
+	SubState    RadioSubStates
+	State       RadioStates
 }
 
 /* RadioMessagePsduOffset is the offset of Psdu data in a received OpenThread RadioMessage type.
@@ -201,10 +202,11 @@ func deserializeRadioCommData(data []byte) RadioCommEventData {
 func deserializeRadioStateData(data []byte) RadioStateEventData {
 	simplelogger.AssertTrue(len(data) >= RadioStateEventDataHeaderLen)
 	s := RadioStateEventData{
-		Channel:  data[0],
-		PowerDbm: int8(data[1]),
-		State:    RadioStates(data[2]),
-		SubState: RadioSubStates(data[3]),
+		Channel:     data[0],
+		PowerDbm:    int8(data[1]),
+		EnergyState: RadioStates(data[2]),
+		SubState:    RadioSubStates(data[3]),
+		State:       RadioStates(data[4]),
 	}
 	return s
 }
