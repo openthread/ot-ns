@@ -193,8 +193,8 @@ func (s *Simulation) OnNodeRecover(nodeid NodeId) {
 	simplelogger.AssertNotNil(node)
 }
 
-func (s *Simulation) OnNodeProcessFailure(node *Node, errorMsg string) {
-	simplelogger.Fatalf("Node %v process failed: %v", node.Id, errorMsg)
+func (s *Simulation) OnNodeProcessFailure(node *Node) {
+	simplelogger.Fatalf("Node %v process failed, deleting node.", node.Id)
 	s.PostAsync(false, func() {
 		_ = s.DeleteNode(node.Id)
 	})
