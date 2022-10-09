@@ -101,12 +101,6 @@ func (rm *RadioModelIdeal) init() {
 }
 
 func (rm *RadioModelIdeal) txStart(srcNode *RadioNode, q EventQueue, evt *Event) {
-	if srcNode.RadioState == RadioRx {
-		bla := 42 * 2
-		bla *= 2
-	}
-	simplelogger.AssertTrue(srcNode.RadioState == RadioTx)
-
 	srcNode.TxPower = evt.RadioCommData.PowerDbm // get last node's properties from the OT node's event params.
 	srcNode.SetChannel(evt.RadioCommData.Channel)
 
@@ -127,8 +121,6 @@ func (rm *RadioModelIdeal) txStart(srcNode *RadioNode, q EventQueue, evt *Event)
 }
 
 func (rm *RadioModelIdeal) txStop(node *RadioNode, q EventQueue, evt *Event) {
-	simplelogger.AssertTrue(node.RadioState == RadioTx)
-
 	// Dispatch TxDone event back to the source
 	txDoneEvt := evt.Copy()
 	txDoneEvt.Type = EventTypeRadioTxDone

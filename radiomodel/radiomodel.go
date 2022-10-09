@@ -51,7 +51,6 @@ const (
 	// Handtuned - for indoor model, how many meters r is RadioRange disc until Link
 	// quality drops below 2 (10 dB margin).
 	radioRangeIndoorDistInMeters = 26.70
-	maxRadioNodes                = 999
 )
 
 // RSSI parameter encodings

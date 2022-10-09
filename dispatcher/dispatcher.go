@@ -1354,9 +1354,10 @@ func (d *Dispatcher) handleRadioState(node *Node, evt *Event) {
 
 	// if a next radio-state transition is indicated, make sure to schedule node wake-up for that time.
 	if evt.Delay > 0 {
-		evt2 := evt.Copy()
-		evt2.Timestamp += evt.Delay
-		d.eventQueue.Add(&evt2)
+		radioWakeUpEvt := evt.Copy()
+		radioWakeUpEvt.Timestamp += evt.Delay
+		radioWakeUpEvt.MustDispatch = true
+		d.eventQueue.Add(&radioWakeUpEvt)
 	}
 }
 

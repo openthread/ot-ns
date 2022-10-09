@@ -593,11 +593,13 @@ func (node *Node) lineReader(reader io.Reader, uartType NodeUartType) {
 	scanner := bufio.NewScanner(otoutfilter.NewOTOutFilter(bufio.NewReader(reader), node.String()))
 	scanner.Split(bufio.ScanLines)
 
+	isNodeError := false
 	for scanner.Scan() {
 		line := scanner.Text()
 
 		if uartType == NodeUartTypeErrors {
-			node.S.OnNodeProcessFailure(node, line)
+			simplelogger.Errorf("Node %v StdErr: %v", node.Id, line)
+			isNodeError = true
 		} else if node.uartType == NodeUartTypeUndefined {
 			simplelogger.Debugf("%v's UART type is %v", node, uartType)
 			node.uartType = uartType
@@ -616,6 +618,11 @@ func (node *Node) lineReader(reader io.Reader, uartType NodeUartType) {
 			node.pendingLines <- line // won't block here
 			break
 		}
+	}
+
+	// when the stderr of the node closes and errors were printed, delete the node.
+	if isNodeError {
+		node.S.OnNodeProcessFailure(node)
 	}
 }
 

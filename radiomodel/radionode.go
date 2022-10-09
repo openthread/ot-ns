@@ -46,7 +46,7 @@ type RadioNode struct {
 	// RadioRange is the radio range as configured by the simulation for this node.
 	RadioRange float64
 
-	// RadioState is the current radio's state.
+	// RadioState is the current radio's state; RadioTx only when physically transmitting.
 	RadioState    RadioStates
 	RadioSubState RadioSubStates
 
