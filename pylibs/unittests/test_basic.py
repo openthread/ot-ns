@@ -329,5 +329,21 @@ class BasicTests(OTNSTestCase):
         self.go(20)
         self.assertFormPartitions(2)
 
+    def testLoglevel(self):
+        ns: OTNS = self.ns
+        ns.loglevel = "warn"
+        id = ns.add("router")
+        self.go(10)
+        self.assertEqual(ns.loglevel, "warn")
+        ns.loglevel = "debug"
+        id = ns.add("router")
+        self.go(10)
+        self.assertEqual(ns.loglevel, "debug")
+        with self.assertRaises(errors.OTNSCliError):
+            ns.loglevel = "invalid_log_level"
+        self.assertEqual(ns.loglevel, "debug")
+        ns.loglevel = "info"
+        ns.loglevel = "error"
+
 if __name__ == '__main__':
     unittest.main()

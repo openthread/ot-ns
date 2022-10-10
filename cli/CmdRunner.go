@@ -217,9 +217,10 @@ func (rt *CmdRunner) execute(cmd *Command, output io.Writer) {
 		rt.executeNetInfo(cc, cc.NetInfo)
 	} else if cmd.RadioModel != nil {
 		rt.executeRadioModel(cc, cc.RadioModel)
-
 	} else if cmd.Energy != nil {
 		rt.executeEnergy(cc, cc.Energy)
+	} else if cmd.LogLevel != nil {
+		rt.executeLogLevel(cc, cc.LogLevel)
 	} else {
 		simplelogger.Panicf("unimplemented command: %#v", cmd)
 	}
@@ -650,6 +651,14 @@ func (rt *CmdRunner) executeRadioModel(cc *CommandContext, cmd *RadioModelCmd) {
 		} else {
 			cc.outputf("Error: Radiomodel '%v' does not exist.\n", name)
 		}
+         }
+}
+
+func (rt *CmdRunner) executeLogLevel(cc *CommandContext, cmd *LogLevelCmd) {
+	if cmd.Level == "" {
+		cc.outputf("%v\n", simplelogger.GetLevel().String())
+	} else {
+		simplelogger.SetLevel(simplelogger.ParseLevel(cmd.Level))
 	}
 }
 
