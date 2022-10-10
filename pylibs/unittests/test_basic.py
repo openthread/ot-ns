@@ -311,6 +311,7 @@ class BasicTests(OTNSTestCase):
         # Node 2 ~ 10 should become Routers by sending `a/as`
         self.assertEqual(set(routers), set(range(2, 11)))
 
+<<<<<<< HEAD
     def testMultiRadioChannel(self):
         ns = self.ns
         radio_range = 100
@@ -344,6 +345,18 @@ class BasicTests(OTNSTestCase):
         self.assertEqual(ns.loglevel, "debug")
         ns.loglevel = "info"
         ns.loglevel = "error"
+
+    def testWatch(self):
+        ns: OTNS = self.ns
+        for i in range(10):
+            ns.add('router')
+            ns.go(2)
+        ns.watch(3, 4, 5, 6, 8)
+        ns.go(5)
+        ns.unwatch(5, 6)
+        self.assertEqual([3, 4, 8], ns.watched())
+        ns.unwatchAll()
+        self.assertEqual([], ns.watched())
 
 if __name__ == '__main__':
     unittest.main()

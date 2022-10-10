@@ -29,6 +29,8 @@ Python libraries use the CLI to manage simulations.
 * [scan](#scan-node-id)
 * [speed](#speed)
 * [title](#title-string)
+* [unwatch](#unwatch-node-id-node-id-)
+* [watch](#watch-node-id-node-id-)
 * [web](#web)
 
 ## OTNS command reference
@@ -414,6 +416,45 @@ Set simulation title with specified font size.
 ```bash
 > title "Example" fs 30
 Done
+```
+
+### unwatch \<node-id\> \[<node-id> ...\]
+
+Disable the watch status for one or more nodes. See [watch](#watch-node-id-node-id-) for details.
+
+### unwatch all
+
+Disable the watch status for all nodes. See [watch](#watch-node-id-node-id-) for details.
+
+### watch \[\<node-id\>\] \[<node-id> ...\]
+
+Enable additional, detailed log messages on selected node(s) only. This can be useful for interactive debugging or 
+inspection of a node's behavior. 
+
+* To see all nodes currently being watched, use "watch" without parameters. 
+* To see all of the additional log messages, set the overall log-level to "debug" 
+using the "-log debug" command line switch.
+* To see most of the additional log messages, set the overall log-level to "info"
+using the "-log info" command line switch. 
+
+```bash
+> watch 1
+Done
+> watch 3 5 6
+Done
+> watch
+1 3 5 6
+> unwatch 1 3 5
+> watch
+6
+> watch 3 5
+Done
+> unwatch all
+Done
+> watch
+
+Done
+>
 ```
 
 ### web

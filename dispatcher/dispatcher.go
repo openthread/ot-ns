@@ -33,6 +33,7 @@ import (
 	"net"
 	"time"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -310,7 +311,9 @@ func (d *Dispatcher) handleRecvEvent(evt *Event) {
 			simplelogger.Warnf("Event (type %v) received from unknown Node %v, discarding.", evt.Type, evt.NodeId)
 		}
 		return // node was deleted already: just silently ignore event.
-	}
+
+        }
+
 	d.setAlive(nodeid)          // node stays alive until Alarm event is received.
 	evt.Timestamp = d.CurTime   // timestamp incoming event
 	node.peerAddr = evt.SrcAddr // assign source address from event to node
@@ -527,6 +530,7 @@ func (d *Dispatcher) advanceNodeTime(node *Node, timestamp uint64, force bool) {
 		// node time was already newer than the requested timestamp
 		return
 	}
+
 	msg := &Event{
 		Type:      EventTypeAlarmFired,
 		Timestamp: timestamp,
@@ -1100,6 +1104,17 @@ func (d *Dispatcher) UnwatchNode(nodeid NodeId) {
 func (d *Dispatcher) IsWatching(nodeid NodeId) bool {
 	_, ok := d.watchingNodes[nodeid]
 	return ok
+}
+
+func (d *Dispatcher) GetWatchingNodes() []NodeId {
+	watchingNodeIds := make([]NodeId, len(d.watchingNodes))
+	j := 0
+	for k := range d.watchingNodes {
+		watchingNodeIds[j] = k
+		j++
+	}
+	sort.Ints(watchingNodeIds)
+	return watchingNodeIds
 }
 
 func (d *Dispatcher) GetAliveCount() int {
