@@ -138,39 +138,54 @@ func (s RadioStates) String() string {
 type RadioSubStates byte
 
 const (
-	OT_RADIO_SUBSTATE_READY         RadioSubStates = 0
-	OT_RADIO_SUBSTATE_CCA           RadioSubStates = iota
-	OT_RADIO_SUBSTATE_CCA_TO_TX     RadioSubStates = iota
-	OT_RADIO_SUBSTATE_FRAME_ONGOING RadioSubStates = iota
-	OT_RADIO_SUBSTATE_TX_TO_RX      RadioSubStates = iota
-	OT_RADIO_SUBSTATE_AIFS_WAIT     RadioSubStates = iota
-	OT_RADIO_SUBSTATE_ACK_ONGOING   RadioSubStates = iota
-	OT_RADIO_SUBSTATE_IFS_WAIT      RadioSubStates = iota
-	OT_RADIO_SUBSTATE_ENERGY_SCAN   RadioSubStates = iota
+	OT_RADIO_SUBSTATE_READY             RadioSubStates = 0
+	OT_RADIO_SUBSTATE_IFS_WAIT          RadioSubStates = iota
+	OT_RADIO_SUBSTATE_TX_CCA            RadioSubStates = iota
+	OT_RADIO_SUBSTATE_TX_CCA_TO_TX      RadioSubStates = iota
+	OT_RADIO_SUBSTATE_TX_FRAME_ONGOING  RadioSubStates = iota
+	OT_RADIO_SUBSTATE_TX_TX_TO_RX       RadioSubStates = iota
+	OT_RADIO_SUBSTATE_TX_TX_TO_AIFS     RadioSubStates = iota
+	OT_RADIO_SUBSTATE_TX_AIFS_WAIT      RadioSubStates = iota
+	OT_RADIO_SUBSTATE_TX_ACK_RX_ONGOING RadioSubStates = iota
+	OT_RADIO_SUBSTATE_RX_FRAME_ONGOING  RadioSubStates = iota
+	OT_RADIO_SUBSTATE_RX_AIFS_WAIT      RadioSubStates = iota
+	OT_RADIO_SUBSTATE_RX_ACK_TX_ONGOING RadioSubStates = iota
+	OT_RADIO_SUBSTATE_RX_TX_TO_RX       RadioSubStates = iota
+	OT_RADIO_SUBSTATE_RX_ENERGY_SCAN    RadioSubStates = iota
 )
 
 func (s RadioSubStates) String() string {
 	switch s {
 	case OT_RADIO_SUBSTATE_READY:
-		return "Ready_"
-	case OT_RADIO_SUBSTATE_CCA:
-		return "CCA___"
-	case OT_RADIO_SUBSTATE_CCA_TO_TX:
-		return "CCA2Tx"
-	case OT_RADIO_SUBSTATE_FRAME_ONGOING:
-		return "Frame@"
-	case OT_RADIO_SUBSTATE_TX_TO_RX:
-		return "Tx2Rx_"
-	case OT_RADIO_SUBSTATE_AIFS_WAIT:
-		return "AIFS__"
-	case OT_RADIO_SUBSTATE_ACK_ONGOING:
-		return "Ack@__"
+		return "Ready__"
 	case OT_RADIO_SUBSTATE_IFS_WAIT:
-		return "IFS___"
-	case OT_RADIO_SUBSTATE_ENERGY_SCAN:
-		return "EnScan"
+		return "IFS____"
+	case OT_RADIO_SUBSTATE_TX_CCA:
+		return "CCA____"
+	case OT_RADIO_SUBSTATE_TX_CCA_TO_TX:
+		return "CCA2Tx_"
+	case OT_RADIO_SUBSTATE_TX_FRAME_ONGOING:
+		return "FrameTx"
+	case OT_RADIO_SUBSTATE_TX_TX_TO_RX:
+		return "Tx2Rx__"
+	case OT_RADIO_SUBSTATE_TX_TX_TO_AIFS:
+		return "Tx2AIFS"
+	case OT_RADIO_SUBSTATE_TX_AIFS_WAIT:
+		return "TxAIFS_"
+	case OT_RADIO_SUBSTATE_TX_ACK_RX_ONGOING:
+		return "AckRx__"
+	case OT_RADIO_SUBSTATE_RX_FRAME_ONGOING:
+		return "FrameRx"
+	case OT_RADIO_SUBSTATE_RX_AIFS_WAIT:
+		return "RxAIFS_"
+	case OT_RADIO_SUBSTATE_RX_ACK_TX_ONGOING:
+		return "AckTx__"
+	case OT_RADIO_SUBSTATE_RX_TX_TO_RX:
+		return "AckT2Rx"
+	case OT_RADIO_SUBSTATE_RX_ENERGY_SCAN:
+		return "EnrScan"
 	default:
 		simplelogger.Panicf("invalid RadioSubState: %v", s)
-		return "invalid"
+		return "invalid_"
 	}
 }
