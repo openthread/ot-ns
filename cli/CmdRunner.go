@@ -627,6 +627,39 @@ func (rt *CmdRunner) executeWeb(cc *CommandContext, webcmd *WebCmd) {
 	}
 }
 
+func (rt *CmdRunner) executeRadioModel(cc *CommandContext, cmd *RadioModelCmd) {
+	var name string
+	if len(cmd.Model) == 0 {
+		rt.postAsyncWait(func(sim *simulation.Simulation) {
+			name = sim.Dispatcher().GetRadioModel().GetName()
+		})
+		cc.outputf("%v\n", name)
+	} else {
+		name = cmd.Model
+		ok := false
+		rt.postAsyncWait(func(sim *simulation.Simulation) {
+			model := radiomodel.Create(name)
+			ok = model != nil
+			if ok {
+				sim.Dispatcher().SetRadioModel(model)
+			}
+		})
+		if ok {
+			cc.outputf("%v\n", name)
+		} else {
+			cc.outputf("Error: Radiomodel '%v' does not exist.\n", name)
+		}
+	}
+}
+
+func (rt *CmdRunner) executeLogLevel(cc *CommandContext, cmd *LogLevelCmd) {
+	if cmd.Level == "" {
+		cc.outputf("%v\n", simplelogger.GetLevel().String())
+	} else {
+		simplelogger.SetLevel(simplelogger.ParseLevel(cmd.Level))
+	}
+}
+
 func (rt *CmdRunner) executeWatch(cc *CommandContext, cmd *WatchCmd) {
 	rt.postAsyncWait(func(sim *simulation.Simulation) {
 		if len(cmd.Nodes) == 0 {
