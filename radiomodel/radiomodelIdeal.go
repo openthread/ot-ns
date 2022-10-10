@@ -28,7 +28,6 @@ package radiomodel
 
 import (
 	. "github.com/openthread/ot-ns/types"
-	"github.com/simonlingoogle/go-simplelogger"
 )
 
 // RadioModelIdeal is an ideal radio model with infinite parallel transmission capacity per
@@ -136,7 +135,6 @@ func (rm *RadioModelIdeal) txStop(node *RadioNode, q EventQueue, evt *Event) {
 }
 
 func (rm *RadioModelIdeal) channelSample(srcNode *RadioNode, q EventQueue, evt *Event) {
-	simplelogger.AssertTrue(srcNode.RadioState == RadioRx || srcNode.RadioState == RadioTx)
 	srcNode.rssiSampleMax = RssiMinusInfinity // Ideal model never has CCA failure.
 
 	// dispatch event with result back to node, when channel sampling stops.
