@@ -27,6 +27,7 @@
 package otoutfilter
 
 import (
+	"fmt"
 	"io"
 	"regexp"
 	"strings"
@@ -35,13 +36,14 @@ import (
 )
 
 var (
-	logPattern = regexp.MustCompile(`\[(NONE|CRIT|WARN|NOTE|INFO|DEBG)].*\n`)
+	logPattern = regexp.MustCompile(`\[(-|C|W|N|I|D)].+\n`)
 )
 
 type otOutFilter struct {
 	linebuf        string
 	subr           io.Reader
 	logPrintPrefix string
+	logHandler     func(otLevel string, logMsg string)
 }
 
 func (cc *otOutFilter) Read(p []byte) (int, error) {
@@ -85,20 +87,18 @@ func (cc *otOutFilter) readFirstLine(p []byte) int {
 			sn += 2
 		}
 
-		logIdx := logPattern.FindStringIndex(firstline)
+		logIdx := logPattern.FindStringSubmatchIndex(firstline)
 
 		if logIdx == nil {
 			rn += copy(p, firstline[:])
 		} else {
-			if logIdx[0] > 0 {
-				rn += copy(p, firstline[:logIdx[0]])
-			} else {
-				// remove the log
-				simplelogger.AssertTrue(logIdx[1] == len(firstline))
-				logStr := strings.TrimSpace(firstline)
-				cc.printLog(logStr)
-				sn += logIdx[1]
-			}
+			// filter out the log line and send to printLog()
+			simplelogger.AssertTrue(logIdx[1] == len(firstline))
+			logStr := strings.TrimSpace(firstline)
+			logLevelIndicatorStr := firstline[logIdx[2]:logIdx[3]]
+			simplelogger.AssertTrue(len(logLevelIndicatorStr) == 1)
+			cc.printLog(logLevelIndicatorStr, logStr)
+			sn += logIdx[1]
 		}
 
 		simplelogger.AssertTrue(rn+sn > 0) // should always read/skip something
@@ -109,26 +109,15 @@ func (cc *otOutFilter) readFirstLine(p []byte) int {
 	}
 }
 
-func (cc *otOutFilter) printLog(logStr string) {
-	logPrefix := logStr[:6]
-	switch logPrefix {
-	case "[NONE]":
-		simplelogger.Errorf("%s - %s", cc.logPrintPrefix, logStr)
-	case "[CRIT]":
-		simplelogger.Errorf("%s - %s", cc.logPrintPrefix, logStr)
-	case "[WARN]":
-		simplelogger.Warnf("%s - %s", cc.logPrintPrefix, logStr)
-	case "[NOTE]":
-		simplelogger.Infof("%s - %s", cc.logPrintPrefix, logStr)
-	case "[INFO]":
-		simplelogger.Infof("%s - %s", cc.logPrintPrefix, logStr)
-	case "[DEBG]":
-		simplelogger.Debugf("%s - %s", cc.logPrintPrefix, logStr)
-	default:
-		simplelogger.Errorf("%s - %s", cc.logPrintPrefix, logStr)
+func (cc *otOutFilter) printLog(otLevelChar string, logStr string) {
+	if cc.logHandler == nil {
+		return
 	}
+	logStr = fmt.Sprintf("%s - %s", cc.logPrintPrefix, logStr)
+	cc.logHandler(otLevelChar, logStr)
 }
 
-func NewOTOutFilter(reader io.Reader, logPrintPrefix string) io.Reader {
-	return &otOutFilter{subr: reader, logPrintPrefix: logPrintPrefix}
+func NewOTOutFilter(reader io.Reader, logPrintPrefix string,
+	handlerLogMsg func(otLevel string, msg string)) io.Reader {
+	return &otOutFilter{subr: reader, logPrintPrefix: logPrintPrefix, logHandler: handlerLogMsg}
 }

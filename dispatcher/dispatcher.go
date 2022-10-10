@@ -303,6 +303,7 @@ func (d *Dispatcher) goUntilPauseTime() {
 func (d *Dispatcher) handleRecvEvent(evt *Event) {
 	nodeid := evt.NodeId
 	node := d.nodes[nodeid]
+
 	if node == nil {
 		if !d.isDeleted(nodeid) {
 			// can not find the node, and the node is not registered (created by OTNS)
@@ -552,7 +553,8 @@ func (d *Dispatcher) SendToUART(id NodeId, data []byte) {
 
 // sendRadioCommRxStartEvents dispatches an event to nearby nodes eligible to receiving the frame.
 // It also logs the frame in pcap/dump and visualizes the sending.
-func (d *Dispatcher) sendRadioCommRxStartEvents(srcNode *Node, evt *Event) {
+func (d *Dispatcher) sendRadioCommRxStartEvents(srcNode *Node,
+	evt *Event) {
 	simplelogger.AssertTrue(evt.Type == EventTypeRadioCommStart)
 	if srcNode.isFailed {
 		return // source node can't send - don't send
@@ -613,7 +615,8 @@ func (d *Dispatcher) sendRadioCommRxStartEvents(srcNode *Node, evt *Event) {
 
 // sendRadioCommRxDoneEvents dispatches an event where >=1 nodes may receive a frame that is done
 // being transmitted, determines who receives it, and also does frame logging/pcap and visualization events.
-func (d *Dispatcher) sendRadioCommRxDoneEvents(srcNode *Node, evt *Event) {
+func (d *Dispatcher) sendRadioCommRxDoneEvents(srcNode *Node,
+	evt *Event) {
 	simplelogger.AssertTrue(evt.Type == EventTypeRadioRxDone)
 	if srcNode.isFailed {
 		return // source node can't send - don't send, and don't log in pcap.
@@ -670,13 +673,15 @@ func (d *Dispatcher) sendRadioCommRxDoneEvents(srcNode *Node, evt *Event) {
 	}
 }
 
-func (d *Dispatcher) checkRadioReachable(src *Node, dst *Node) bool {
+func (d *Dispatcher) checkRadioReachable(src *Node,
+	dst *Node) bool {
 	// the RadioModel will check distance and radio-state of receivers.
 	return src != dst && src != nil && dst != nil &&
 		d.radioModel.CheckRadioReachable(src.radioNode, dst.radioNode)
 }
 
-func (d *Dispatcher) sendOneRadioFrame(evt *Event, srcnode *Node, dstnode *Node) {
+func (d *Dispatcher) sendOneRadioFrame(evt *Event,
+	srcnode *Node, dstnode *Node) {
 	simplelogger.AssertFalse(d.cfg.Real)
 	simplelogger.AssertTrue(EventTypeRadioCommStart == evt.Type || EventTypeRadioRxDone == evt.Type)
 	simplelogger.AssertTrue(srcnode != dstnode)
@@ -1092,7 +1097,7 @@ func (d *Dispatcher) UnwatchNode(nodeid NodeId) {
 	delete(d.watchingNodes, nodeid)
 }
 
-func (d *Dispatcher) isWatching(nodeid NodeId) bool {
+func (d *Dispatcher) IsWatching(nodeid NodeId) bool {
 	_, ok := d.watchingNodes[nodeid]
 	return ok
 }

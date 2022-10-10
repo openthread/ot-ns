@@ -590,7 +590,7 @@ func (node *Node) GetSingleton() bool {
 
 func (node *Node) lineReader(reader io.Reader, uartType NodeUartType) {
 	// close the line channel after line reader routine exit
-	scanner := bufio.NewScanner(otoutfilter.NewOTOutFilter(bufio.NewReader(reader), node.String()))
+	scanner := bufio.NewScanner(otoutfilter.NewOTOutFilter(bufio.NewReader(reader), node.String(), node.handlerLogMsg))
 	scanner.Split(bufio.ScanLines)
 
 	isNodeError := false
@@ -623,6 +623,30 @@ func (node *Node) lineReader(reader io.Reader, uartType NodeUartType) {
 	// when the stderr of the node closes and errors were printed, delete the node.
 	if isNodeError {
 		node.S.OnNodeProcessFailure(node)
+	}
+}
+
+// handles an incoming log message from the OT-Node for which the loglevel (otLevel) could be detected.
+// The policy of handling may be changed in the future, or made configurable.
+func (node *Node) handlerLogMsg(otLevel string, msg string) {
+	switch otLevel {
+	case "D":
+		// only display detailed log msgs if in Node's context or watching that Node.
+		// Otherwise, too much is displayed.
+		if node.S.cmdRunner.GetContextNodeId() == node.Id || node.S.Dispatcher().IsWatching(node.Id) {
+			simplelogger.Debugf(msg)
+		}
+	case "I", "N":
+		// only display detailed log msgs if in Node's context or watching that Node.
+		if node.S.cmdRunner.GetContextNodeId() == node.Id || node.S.Dispatcher().IsWatching(node.Id) {
+			simplelogger.Infof(msg)
+		}
+	case "W":
+		simplelogger.Warnf(msg)
+	case "C", "E", "-":
+		fallthrough
+	default:
+		simplelogger.Errorf(msg)
 	}
 }
 

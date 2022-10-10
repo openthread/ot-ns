@@ -136,6 +136,10 @@ func (rt *CmdRunner) GetPrompt() string {
 	}
 }
 
+func (rt *CmdRunner) GetContextNodeId() NodeId {
+	return rt.contextNodeId
+}
+
 func (rt *CmdRunner) execute(cmd *Command, output io.Writer) {
 	cc := &CommandContext{
 		Command: cmd,
