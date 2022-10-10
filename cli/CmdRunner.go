@@ -633,7 +633,6 @@ func (rt *CmdRunner) executeWeb(cc *CommandContext, webcmd *WebCmd) {
 	}
 }
 
-<<<<<<< HEAD
 func (rt *CmdRunner) executeRadioModel(cc *CommandContext, cmd *RadioModelCmd) {
 	var name string
 	if len(cmd.Model) == 0 {
@@ -656,7 +655,7 @@ func (rt *CmdRunner) executeRadioModel(cc *CommandContext, cmd *RadioModelCmd) {
 		} else {
 			cc.outputf("Error: Radiomodel '%v' does not exist.\n", name)
 		}
-         }
+	}
 }
 
 func (rt *CmdRunner) executeLogLevel(cc *CommandContext, cmd *LogLevelCmd) {
@@ -703,7 +702,6 @@ func (rt *CmdRunner) executeUnwatch(cc *CommandContext, cmd *UnwatchCmd) {
 			}
 		}
 	})
->>>>>>> origin/pr-cli-command-watch
 }
 
 func (rt *CmdRunner) executePlr(cc *CommandContext, cmd *PlrCmd) {
