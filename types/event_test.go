@@ -136,7 +136,7 @@ func TestEventCopy(t *testing.T) {
 		Delay: 123,
 		RadioCommData: RadioCommEventData{
 			Channel: 42,
-			Error:   OT_ERROR_CHANNEL_ACCESS_FAILURE,
+			Error:   OT_ERROR_FCS,
 		},
 	}
 	evCopy := ev.Copy()
@@ -148,5 +148,5 @@ func TestEventCopy(t *testing.T) {
 
 	assert.Equal(t, uint64(123), evCopy.Delay)
 	assert.Equal(t, uint8(42), evCopy.RadioCommData.Channel)
-	assert.Equal(t, uint8(OT_ERROR_CHANNEL_ACCESS_FAILURE), evCopy.RadioCommData.Error)
+	assert.Equal(t, uint8(OT_ERROR_FCS), evCopy.RadioCommData.Error)
 }
