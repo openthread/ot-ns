@@ -32,6 +32,7 @@ package types
  */
 
 const (
-	OT_ERROR_NONE = 0
-	OT_ERROR_FCS  = 17
+	OT_ERROR_NONE  = 0
+	OT_ERROR_ABORT = 11
+	OT_ERROR_FCS   = 17
 )
