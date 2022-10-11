@@ -40,9 +40,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/openthread/ot-ns/threadconst"
-
 	"github.com/openthread/ot-ns/otoutfilter"
+	"github.com/openthread/ot-ns/threadconst"
 	. "github.com/openthread/ot-ns/types"
 	"github.com/simonlingoogle/go-simplelogger"
 )

@@ -31,10 +31,10 @@ import (
 	"sort"
 	"time"
 
+	"github.com/openthread/ot-ns/dispatcher"
 	"github.com/openthread/ot-ns/energy"
 	"github.com/openthread/ot-ns/progctx"
 	"github.com/openthread/ot-ns/radiomodel"
-	"github.com/openthread/ot-ns/dispatcher"
 	. "github.com/openthread/ot-ns/types"
 	"github.com/openthread/ot-ns/visualize"
 	"github.com/pkg/errors"
