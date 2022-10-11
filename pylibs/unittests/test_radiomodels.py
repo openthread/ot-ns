@@ -68,10 +68,10 @@ class BasicTests_MutualInterference(BasicTests):
         ns.go(200)
         #self.assertFormPartitions(1) # only 1 partition for non-legacy OT nodes. Cant check yet whether legacy.
 
-        ns.radiomodel = 'Ideal_Rssi_Dur'
+        ns.radiomodel = 'Ideal_Rssi'
         ns.go(180)
         self.assertFormPartitions(3)
-        self.assertEqual('Ideal_Rssi_Dur', ns.radiomodel)
+        self.assertEqual('Ideal_Rssi', ns.radiomodel)
 
         with self.assertRaises(errors.OTNSCliError):
             ns.radiomodel = 'NotExistingName'
@@ -81,12 +81,6 @@ class BasicTests_IdealRssi(BasicTests):
     def setUp(self):
         super().setUp()
         self.ns.radiomodel = 'Ideal_Rssi'
-
-class BasicTests_IdealRssiDur(BasicTests):
-    #override
-    def setUp(self):
-        super().setUp()
-        self.ns.radiomodel = 'Ideal_Rssi_Dur'
 
 class CommissioningTests_MutualInterference(CommissioningTests):
     #override
@@ -100,12 +94,6 @@ class CommissioningTests_IdealRssi(CommissioningTests):
         super().setUp()
         self.ns.radiomodel = 'Ideal_Rssi'
 
-class CommissioningTests_IdealRssiDur(CommissioningTests):
-    #override
-    def setUp(self):
-        super().setUp()
-        self.ns.radiomodel = 'Ideal_Rssi_Dur'
-
 class PingTests_MutualInterference(PingTests):
     #override
     def setUp(self):
@@ -116,9 +104,7 @@ if __name__ == '__main__':
     loader = unittest.defaultTestLoader
     suite = loader.loadTestsFromTestCase(BasicTests_MutualInterference)
     suite.addTest(loader.loadTestsFromTestCase(BasicTests_IdealRssi))
-    suite.addTest(loader.loadTestsFromTestCase(BasicTests_IdealRssiDur))
     suite.addTest(loader.loadTestsFromTestCase(CommissioningTests_MutualInterference))
     suite.addTest(loader.loadTestsFromTestCase(CommissioningTests_IdealRssi))
-    suite.addTest(loader.loadTestsFromTestCase(CommissioningTests_IdealRssiDur))
     suite.addTest(loader.loadTestsFromTestCase(PingTests_MutualInterference))
     unittest.TextTestRunner().run(suite)

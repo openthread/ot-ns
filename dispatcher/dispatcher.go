@@ -1,4 +1,4 @@
-// Copyright (c) 2022, The OTNS Authors.
+// Copyright (c) 2020-2022, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -31,23 +31,23 @@ import (
 	"math/rand"
 	"math"
 	"net"
-	"time"
 	"os"
 	"sort"
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
-	"github.com/openthread/ot-ns/progctx"
 	"github.com/openthread/ot-ns/dissectpkt"
 	"github.com/openthread/ot-ns/dissectpkt/wpan"
 	"github.com/openthread/ot-ns/energy"
 	"github.com/openthread/ot-ns/pcap"
+	"github.com/openthread/ot-ns/progctx"
 	"github.com/openthread/ot-ns/radiomodel"
 	"github.com/openthread/ot-ns/threadconst"
+	. "github.com/openthread/ot-ns/types"
 	"github.com/openthread/ot-ns/visualize"
 	"github.com/simonlingoogle/go-simplelogger"
-	. "github.com/openthread/ot-ns/types"
 )
 
 const (
@@ -306,10 +306,14 @@ func (d *Dispatcher) handleRecvEvent(evt *Event) {
 	node := d.nodes[nodeid]
 	node.peerAddr = evt.SrcAddr
 
-	if d.isWatching(evt.NodeId) {
-		simplelogger.Infof("Node %d <<< %+v, cur time %d, node time %d, delay %d", evt.NodeId, *evt,
-			d.CurTime, int64(d.nodes[nodeid].CurTime)-int64(d.CurTime), evt.Delay)
+	if node == nil {
+		if !d.isDeleted(nodeid) {
+			// can not find the node, and the node is not registered (created by OTNS)
+			simplelogger.Warnf("Event (type %v) received from unknown Node %v, discarding.", evt.Type, evt.NodeId)
+		}
+		return // node was deleted already: just silently ignore event.
 	}
+
 	d.setAlive(nodeid)          // node stays alive until Alarm event is received.
 	evt.Timestamp = d.CurTime   // timestamp incoming event
 	node.peerAddr = evt.SrcAddr // assign source address from event to node
@@ -445,8 +449,8 @@ func (d *Dispatcher) processNextEvent() bool {
 		if nextAlarmTime <= nextSendTime {
 			// process next alarm
 			nextAlarm := d.alarmMgr.NextAlarm()
-			node := d.nodes[nextAlarm.NodeId]
 			simplelogger.AssertNotNil(nextAlarm)
+			node := d.nodes[nextAlarm.NodeId]
 			if node != nil {
 				d.advanceNodeTime(node, nextAlarm.Timestamp, false)
 			}
