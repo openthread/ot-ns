@@ -64,7 +64,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - run: |
           mkdir -p /home/runner/work/_temp/_github_home
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Stress Test
         env:
           STRESS_LEVEL: 10
