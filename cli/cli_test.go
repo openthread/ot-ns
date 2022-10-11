@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2020-2022, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -81,6 +81,13 @@ func TestParseBytes(t *testing.T) {
 
 	assert.True(t, ParseBytes([]byte("joins"), &cmd) == nil && cmd.Joins != nil)
 
+	assert.True(t, ParseBytes([]byte("log"), &cmd) == nil && cmd.LogLevel != nil)
+	assert.True(t, ParseBytes([]byte("log debug"), &cmd) == nil && cmd.LogLevel != nil)
+	assert.True(t, ParseBytes([]byte("log info"), &cmd) == nil && cmd.LogLevel != nil)
+	assert.True(t, ParseBytes([]byte("log warn"), &cmd) == nil && cmd.LogLevel != nil)
+	assert.True(t, ParseBytes([]byte("log error"), &cmd) == nil && cmd.LogLevel != nil)
+	assert.True(t, ParseBytes([]byte("log fatal"), &cmd) != nil && cmd.LogLevel != nil) // not supported.
+
 	assert.True(t, ParseBytes([]byte("move 1 200 300"), &cmd) == nil && cmd.Move != nil)
 
 	assert.True(t, ParseBytes([]byte("node 1 \"cmd\""), &cmd) == nil && cmd.Node != nil, cmd.Node.Command != nil)
@@ -107,14 +114,23 @@ func TestParseBytes(t *testing.T) {
 
 	assert.True(t, ParseBytes([]byte("plr"), &cmd) == nil && cmd.Plr != nil && cmd.Plr.Val == nil)
 	assert.True(t, ParseBytes([]byte("plr 1"), &cmd) == nil && cmd.Plr != nil && *cmd.Plr.Val == 1)
+
 	assert.True(t, ParseBytes([]byte("radio 1 on"), &cmd) == nil && cmd.Radio != nil)
 	assert.True(t, ParseBytes([]byte("radio 1 off"), &cmd) == nil && cmd.Radio != nil)
 	assert.True(t, ParseBytes([]byte("radio 1 2 3 on"), &cmd) == nil && cmd.Radio != nil)
 	assert.True(t, ParseBytes([]byte("radio 4 5 6 off"), &cmd) == nil && cmd.Radio != nil)
 	assert.True(t, ParseBytes([]byte("radio 4 5 6 ft 10 60"), &cmd) == nil && cmd.Radio != nil)
+
 	assert.True(t, ParseBytes([]byte("scan 1"), &cmd) == nil && cmd.Scan != nil)
+
 	assert.True(t, ParseBytes([]byte("speed"), &cmd) == nil && cmd.Speed != nil && cmd.Speed.Speed == nil)
 	assert.True(t, ParseBytes([]byte("speed 1"), &cmd) == nil && cmd.Speed != nil && *cmd.Speed.Speed == 1)
+
+	assert.True(t, ParseBytes([]byte("watch"), &cmd) == nil && cmd.Watch != nil)
+	assert.True(t, ParseBytes([]byte("watch 2 5 6"), &cmd) == nil && cmd.Watch != nil)
+	assert.True(t, ParseBytes([]byte("unwatch 2 5 6"), &cmd) == nil && cmd.Unwatch != nil)
+	assert.True(t, ParseBytes([]byte("unwatch all"), &cmd) == nil && cmd.Unwatch != nil)
+
 	assert.True(t, ParseBytes([]byte("web"), &cmd) == nil && cmd.Web != nil)
 }
 
