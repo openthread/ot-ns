@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2020-2022, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -26,7 +26,7 @@
 
 package main
 
-import "github.com/openthread/ot-ns/simulation"
+import "github.com/openthread/ot-ns/types"
 
 const (
 	RoleLeader = "leader"
@@ -35,5 +35,5 @@ const (
 )
 
 var (
-	DefaultRadioRange = simulation.DefaultNodeConfig().RadioRange
+	DefaultRadioRange = types.DefaultNodeConfig().RadioRange
 )
