@@ -28,8 +28,8 @@ package dispatcher
 
 import (
 	"fmt"
-	"math/rand"
 	"math"
+	"math/rand"
 	"net"
 	"os"
 	"sort"
@@ -618,9 +618,9 @@ func (d *Dispatcher) sendRadioCommRxStartEvents(srcNode *Node,
 
 // sendRadioCommRxDoneEvents dispatches an event where >=1 nodes may receive a frame that is done
 // being transmitted, determines who receives it, and also does frame logging/pcap and visualization events.
-func (d *Dispatcher) sendRadioCommRxDoneEvents(srcNode *Node,
-	evt *Event) {
+func (d *Dispatcher) sendRadioCommRxDoneEvents(srcNode *Node, evt *Event) {
 	simplelogger.AssertTrue(evt.Type == EventTypeRadioRxDone)
+
 	if srcNode.isFailed {
 		return // source node can't send - don't send, and don't log in pcap.
 	}
@@ -1351,6 +1351,13 @@ func (d *Dispatcher) GetRadioModel() radiomodel.RadioModel {
 }
 
 func (d *Dispatcher) SetRadioModel(model radiomodel.RadioModel) {
+	if d.radioModel != model && d.radioModel != nil {
+		// when setting a new model, transfer all nodes into it.
+		for id, node := range d.nodes {
+			d.radioModel.DeleteNode(id)
+			model.AddNode(id, node.radioNode)
+		}
+	}
 	d.radioModel = model
 }
 
