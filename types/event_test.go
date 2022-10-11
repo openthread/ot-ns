@@ -63,7 +63,7 @@ func TestDeserializeRadioCommEvent(t *testing.T) {
 }
 
 func TestDeserializeRadioStateEvent(t *testing.T) {
-	data, _ := hex.DecodeString("04030201000000000905000d05030602")
+	data, _ := hex.DecodeString("04030201000000000905000d05030b02")
 	var ev Event
 	ev.Deserialize(data)
 	assert.True(t, 16909060 == ev.Delay)
@@ -71,7 +71,7 @@ func TestDeserializeRadioStateEvent(t *testing.T) {
 	assert.True(t, 13 == ev.RadioStateData.Channel)
 	assert.True(t, 5 == ev.RadioStateData.PowerDbm)
 	assert.True(t, RadioTx == ev.RadioStateData.EnergyState)
-	assert.True(t, OT_RADIO_SUBSTATE_ACK_ONGOING == ev.RadioStateData.SubState)
+	assert.True(t, OT_RADIO_SUBSTATE_RX_ACK_TX_ONGOING == ev.RadioStateData.SubState)
 	assert.True(t, RadioRx == ev.RadioStateData.State)
 }
 
