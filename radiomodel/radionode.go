@@ -59,7 +59,8 @@ type RadioNode struct {
 	// interferedBy indicates by which other node this RadioNode was interfered during current transmission.
 	interferedBy map[NodeId]*RadioNode
 
-	// receivingFrom indicates from which other node this RadioNode is correctly receiving (from the start).
+	// receivingFrom indicates from which other node this RadioNode is correctly receiving (from the start),
+	// or InvalidNodeId for none.
 	receivingFrom NodeId
 
 	// rssiSampleMax tracks the max RSSI detected during a channel sampling operation.
@@ -76,7 +77,7 @@ func NewRadioNode(nodeid NodeId, cfg *NodeConfig) *RadioNode {
 		RadioRange:    float64(cfg.RadioRange),
 		RadioChannel:  DefaultChannelNumber,
 		interferedBy:  make(map[NodeId]*RadioNode),
-		receivingFrom: 0,
+		receivingFrom: InvalidNodeId,
 		rssiSampleMax: RssiMinusInfinity,
 	}
 	return rn
@@ -85,16 +86,16 @@ func NewRadioNode(nodeid NodeId, cfg *NodeConfig) *RadioNode {
 func (rn *RadioNode) SetChannel(ch ChannelId) {
 	simplelogger.AssertTrue(ch >= MinChannelNumber && ch <= MaxChannelNumber)
 	// if changing channel during rx, fail the rx.
-	if ch != rn.RadioChannel {
-		rn.receivingFrom = 0
+	if ch != rn.RadioChannel && rn.receivingFrom != InvalidNodeId {
+		rn.receivingFrom = InvalidNodeId
 	}
 	rn.RadioChannel = ch
 }
 
 func (rn *RadioNode) SetRadioState(state RadioStates, subState RadioSubStates) {
 	// if changing state during rx, fail the rx.
-	if state != rn.RadioState {
-		rn.receivingFrom = 0
+	if state != rn.RadioState && rn.receivingFrom != InvalidNodeId {
+		rn.receivingFrom = InvalidNodeId
 	}
 	rn.RadioState = state
 	rn.RadioSubState = subState
@@ -105,7 +106,7 @@ func (rn *RadioNode) SetNodePos(x int, y int) {
 	rn.X, rn.Y = float64(x), float64(y)
 }
 
-// GetDistanceInMeters gets the distance to another RadioNode (in dimensionless units).
+// GetDistanceTo gets the distance to another RadioNode (in dimensionless units).
 func (rn *RadioNode) GetDistanceTo(other *RadioNode) (dist float64) {
 	dx := other.X - rn.X
 	dy := other.Y - rn.Y
