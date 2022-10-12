@@ -93,10 +93,6 @@ func (rn *RadioNode) SetChannel(ch ChannelId) {
 }
 
 func (rn *RadioNode) SetRadioState(state RadioStates, subState RadioSubStates) {
-	// if changing state during rx, fail the rx.
-	if state != rn.RadioState && rn.receivingFrom != InvalidNodeId {
-		rn.receivingFrom = InvalidNodeId
-	}
 	rn.RadioState = state
 	rn.RadioSubState = subState
 }
