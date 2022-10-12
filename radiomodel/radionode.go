@@ -73,7 +73,6 @@ func NewRadioNode(nodeid NodeId, cfg *NodeConfig) *RadioNode {
 		RadioRange:    float64(cfg.RadioRange),
 		RadioChannel:  DefaultChannelNumber,
 		interferedBy:  make(map[NodeId]*RadioNode),
-		receivingFrom: InvalidNodeId,
 		rssiSampleMax: RssiMinusInfinity,
 	}
 	return rn
@@ -81,10 +80,6 @@ func NewRadioNode(nodeid NodeId, cfg *NodeConfig) *RadioNode {
 
 func (rn *RadioNode) SetChannel(ch ChannelId) {
 	simplelogger.AssertTrue(ch >= MinChannelNumber && ch <= MaxChannelNumber)
-	// if changing channel during rx, fail the rx.
-	if ch != rn.RadioChannel && rn.receivingFrom != InvalidNodeId {
-		rn.receivingFrom = InvalidNodeId
-	}
 	rn.RadioChannel = ch
 }
 
