@@ -59,10 +59,6 @@ type RadioNode struct {
 	// interferedBy indicates by which other node this RadioNode was interfered during current transmission.
 	interferedBy map[NodeId]*RadioNode
 
-	// receivingFrom indicates from which other node this RadioNode is correctly receiving (from the start),
-	// or InvalidNodeId for none.
-	receivingFrom NodeId
-
 	// rssiSampleMax tracks the max RSSI detected during a channel sampling operation.
 	rssiSampleMax DbmValue
 }
