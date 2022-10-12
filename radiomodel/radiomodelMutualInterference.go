@@ -26,15 +26,17 @@
 
 package radiomodel
 
-/* bla
 import (
 	. "github.com/openthread/ot-ns/types"
 	"github.com/simonlingoogle/go-simplelogger"
 )
 
 // RadioModelMutualInterference is a radio model where a transmission may interfere with another transmission
-// ongoing on the same channel, depending on the relative level (Rx energy in dBm) of signals. Also CCA and
-// energy scanning are supported.
+// ongoing on the same channel, depending on the relative level (Rx energy in dBm) of signals. Also, CCA and
+// energy scanning are supported. There is no hard stop of reception beyond the radioRange of the node; although
+// the radioRange of the node represents the distance at which a minimally workable Thread link can operate, there
+// is also radio reception possible beyond the radioRange. Also, devices with better Rx sensitivity will receive
+// radio frames at longer distances beyond the radioRange.
 type RadioModelMutualInterference struct {
 	// Configured minimum Signal-to-Interference (SIR) ratio in dB that is required to receive a signal
 	// in presence of at least one interfering, other signal.
@@ -43,19 +45,29 @@ type RadioModelMutualInterference struct {
 	nodes                 map[NodeId]*RadioNode
 	activeTransmitters    map[ChannelId]map[NodeId]*RadioNode
 	activeChannelSamplers map[ChannelId]map[NodeId]*RadioNode
+	interferedBy          map[NodeId]map[NodeId]*RadioNode
 }
 
 func (rm *RadioModelMutualInterference) AddNode(nodeid NodeId, radioNode *RadioNode) {
 	rm.nodes[nodeid] = radioNode
+	rm.interferedBy[nodeid] = map[NodeId]*RadioNode{}
 }
 
 func (rm *RadioModelMutualInterference) DeleteNode(nodeid NodeId) {
 	delete(rm.nodes, nodeid)
+	for c := MinChannelNumber; c <= MaxChannelNumber; c++ {
+		delete(rm.activeTransmitters[c], nodeid)
+		delete(rm.activeChannelSamplers[c], nodeid)
+	}
+	rm.interferedBy[nodeid] = map[NodeId]*RadioNode{} // clear map
 }
 
 func (rm *RadioModelMutualInterference) CheckRadioReachable(src *RadioNode, dst *RadioNode) bool {
-	rssi := rm.GetTxRssi(src, dst)
-	return rssi >= RssiMin && rssi <= RssiMax && rssi >= dst.RxSensitivity
+	if src != dst && dst.RadioState == RadioRx {
+		rssi := rm.GetTxRssi(src, dst)
+		return rssi >= RssiMin && rssi <= RssiMax && rssi >= dst.RxSensitivity
+	}
+	return false
 }
 
 func (rm *RadioModelMutualInterference) GetTxRssi(srcNode *RadioNode, dstNode *RadioNode) DbmValue {
@@ -64,56 +76,46 @@ func (rm *RadioModelMutualInterference) GetTxRssi(srcNode *RadioNode, dstNode *R
 	return rssi
 }
 
-func (rm *RadioModelMutualInterference) HandleEvent(node *RadioNode, q EventQueue, evt *Event) {
-	switch evt.Type {
-	case EventTypeRadioCommTx:
-		rm.txStart(node, evt)
-		rm.updateChannelSamplingNodes(node, evt) // all channel-sampling nodes detect the new Tx
-	case EventTypeRadioTxDone:
-		rm.txStop(node, evt)
-	case EventTypeRadioChannelSample:
-		// take 1st channel sample
-		node.rssiSampleMax = rm.getRssiOnChannel(node, evt.ChanData.Channel)
-	case EventTypeChannelSampleDone:
-		// take final channel sample
-		r := rm.getRssiOnChannel(node, evt.ChanData.Channel)
-		if r > node.rssiSampleMax {
-			node.rssiSampleMax = r
-		}
-	default:
-		break // Unknown events not handled.
-	}
-}
-
 func (rm *RadioModelMutualInterference) OnEventDispatch(src *RadioNode, dst *RadioNode, evt *Event) bool {
 	switch evt.Type {
-	case EventTypeRadioCommRx:
-		// check if the destination node was listening since the start. If not, don't dispatch.
-		if dst.receivingFrom != src.Id {
-			return false
-		}
+	case EventTypeRadioCommStart:
+		// compute the RSSI and store in the event.
+		evt.RadioCommData.PowerDbm = rm.GetTxRssi(src, dst)
+
+	case EventTypeRadioRxDone:
 		// compute the RSSI and store in the event
-		evt.RxData = RxEventData{
-			Channel: src.RadioChannel,
-			Error:   OT_ERROR_NONE,
-			Rssi:    rm.GetTxRssi(src, dst),
-		}
+		evt.RadioCommData.PowerDbm = rm.GetTxRssi(src, dst)
+
+		// check for interference by other signals and apply to event.
 		rm.applyInterference(src, dst, evt)
-	case EventTypeRadioTxDone:
-		// mark transmission of the node as success
-		evt.TxDoneData = TxDoneEventData{
-			Channel: src.RadioChannel,
-			Error:   OT_ERROR_NONE,
+
+	case EventTypeRadioChannelSample:
+		// take final channel sample
+		r := rm.getRssiOnChannel(src, src.RadioChannel)
+		if r > src.rssiSampleMax {
+			src.rssiSampleMax = r
 		}
-	case EventTypeChannelSampleDone:
-		evt.ChanDoneData = ChanSampleDoneEventData{
-			Channel: src.RadioChannel,
-			Rssi:    src.rssiSampleMax,
-		}
+		// store the final sampled RSSI in the event
+		evt.RadioCommData.PowerDbm = src.rssiSampleMax
+
 	default:
 		break
 	}
 	return true
+}
+
+func (rm *RadioModelMutualInterference) HandleEvent(node *RadioNode, q EventQueue, evt *Event) {
+	switch evt.Type {
+	case EventTypeRadioCommStart:
+		rm.txStart(node, q, evt)
+		rm.updateChannelSamplingNodes(node, evt) // all channel-sampling nodes detect the new Tx
+	case EventTypeRadioTxDone:
+		rm.txStop(node, q, evt)
+	case EventTypeRadioChannelSample:
+		rm.channelSample(node, q, evt)
+	default:
+		break // Unknown events not handled.
+	}
 }
 
 func (rm *RadioModelMutualInterference) GetName() string {
@@ -128,6 +130,7 @@ func (rm *RadioModelMutualInterference) init() {
 		rm.activeTransmitters[c] = map[NodeId]*RadioNode{}
 		rm.activeChannelSamplers[c] = map[NodeId]*RadioNode{}
 	}
+	rm.interferedBy = map[NodeId]map[NodeId]*RadioNode{}
 }
 
 func (rm *RadioModelMutualInterference) getRssiOnChannel(node *RadioNode, channel uint8) int8 {
@@ -145,61 +148,108 @@ func (rm *RadioModelMutualInterference) getRssiOnChannel(node *RadioNode, channe
 	return rssiMax
 }
 
-func (rm *RadioModelMutualInterference) txStart(node *RadioNode, evt *Event) {
-	_, nodeTransmits := rm.activeTransmitters[evt.TxData.Channel][evt.NodeId]
+func (rm *RadioModelMutualInterference) txStart(node *RadioNode, q EventQueue, evt *Event) {
+	// verify node doesn't already transmit on its current channel.
+	_, nodeTransmits := rm.activeTransmitters[node.RadioChannel][node.Id]
 	simplelogger.AssertFalse(nodeTransmits)
 
-	// mark what this new transmission will interfere with.
-	for id, interferingTransmitter := range rm.activeTransmitters[evt.TxData.Channel] {
-		node.interferedBy[id] = interferingTransmitter
-		interferingTransmitter.interferedBy[evt.NodeId] = node
+	node.TxPower = evt.RadioCommData.PowerDbm
+	node.SetChannel(evt.RadioCommData.Channel)
+
+	// verify node doesn't already transmit on its new channel.
+	_, nodeTransmits = rm.activeTransmitters[node.RadioChannel][node.Id]
+	simplelogger.AssertFalse(nodeTransmits)
+
+	// reset interferedBy bookkeeping, remove data from last time.
+	rm.interferedBy[node.Id] = map[NodeId]*RadioNode{} // clear map
+
+	// mark what this new transmission will interfere with and will be interfered by.
+	for id, interferingTransmitter := range rm.activeTransmitters[node.RadioChannel] {
+		simplelogger.AssertTrue(id != node.Id) // sanity check
+		rm.interferedBy[node.Id][id] = interferingTransmitter
+		rm.interferedBy[id][node.Id] = node
 	}
 
-	rm.activeTransmitters[evt.TxData.Channel][evt.NodeId] = node
+	rm.activeTransmitters[node.RadioChannel][node.Id] = node
 
-	// mark other nodes in Rx state, in-range, active-Rx, and on same channel, and not already
-	// receiving, as receivers that may get the frame in the end.
-	for _, dstNode := range rm.nodes {
-		if dstNode.RadioChannel == node.RadioChannel && rm.CheckRadioReachable(node, dstNode) &&
-			dstNode.RadioState == RadioRx && dstNode.receivingFrom == 0 {
-			dstNode.receivingFrom = node.Id
-		}
-	}
+	// dispatch radio event RadioComm 'start of frame Rx' to listening nodes.
+	rxStartEvt := evt.Copy()
+	rxStartEvt.Type = EventTypeRadioCommStart
+	rxStartEvt.RadioCommData.Error = OT_ERROR_NONE
+	rxStartEvt.MustDispatch = true
+	q.Add(&rxStartEvt)
 
+	// schedule new internal event to call txStop() at end of duration.
+	txDoneEvt := evt.Copy()
+	txDoneEvt.Type = EventTypeRadioTxDone
+	txDoneEvt.RadioCommData.Error = OT_ERROR_NONE
+	txDoneEvt.MustDispatch = false
+	txDoneEvt.Timestamp += evt.RadioCommData.Duration
+	q.Add(&txDoneEvt)
 }
 
-func (rm *RadioModelMutualInterference) txStop(node *RadioNode, evt *Event) {
-	_, nodeTransmits := rm.activeTransmitters[evt.TxData.Channel][evt.NodeId]
+func (rm *RadioModelMutualInterference) txStop(node *RadioNode, q EventQueue, evt *Event) {
+	simplelogger.AssertTrue(node.RadioChannel == evt.RadioCommData.Channel) // basic sanity check
+	_, nodeTransmits := rm.activeTransmitters[node.RadioChannel][node.Id]
 	simplelogger.AssertTrue(nodeTransmits)
-	delete(rm.activeTransmitters[evt.TxData.Channel], evt.NodeId)
+
+	// stop active transmission
+	delete(rm.activeTransmitters[node.RadioChannel], node.Id)
+
+	// Dispatch TxDone event back to the source, at time==now
+	txDoneEvt := evt.Copy()
+	txDoneEvt.Type = EventTypeRadioTxDone
+	txDoneEvt.RadioCommData.Error = OT_ERROR_NONE
+	txDoneEvt.MustDispatch = true
+	q.Add(&txDoneEvt)
+
+	// Create RxDone event, to signal nearby node(s) that the frame Rx is done, at time==now
+	rxDoneEvt := evt.Copy()
+	rxDoneEvt.Type = EventTypeRadioRxDone
+	rxDoneEvt.RadioCommData.Error = OT_ERROR_NONE
+	rxDoneEvt.MustDispatch = true
+	q.Add(&rxDoneEvt)
 }
 
 func (rm *RadioModelMutualInterference) applyInterference(src *RadioNode, dst *RadioNode, evt *Event) {
-	// Apply interference.
-	for _, interferer := range src.interferedBy {
+	// Apply interference. Loop all interferers that were active during Tx by 'src'.
+	for _, interferer := range rm.interferedBy[src.Id] {
 		if interferer == dst { // if dst node was at some point transmitting itself, fail the Rx
-			evt.RxData.Error = OT_ERROR_ABORT
+			evt.RadioCommData.Error = OT_ERROR_ABORT
 			return
 		}
+		// calculate how strong the interferer was, as seen by dst
 		rssiInterferer := int(rm.GetTxRssi(interferer, dst))
-		rssi := int(evt.RxData.Rssi)
-		sirDb := rssi - rssiInterferer
+		rssi := int(evt.RadioCommData.PowerDbm) // the wanted-signal's RSSI as seen at dst
+		sirDb := rssi - rssiInterferer          // the Signal-to-Interferer (SIR) ratio
 		if sirDb < int(rm.MinSirDb) {
-			// interfering signal gets too close to the transmission rssi, impacts the signal.
+			// interfering signal gets too close to the wanted-signal rssi: impacts the signal.
 			evt.Data = interferePsduData(evt.Data, float64(sirDb))
-			evt.RxData.Error = OT_ERROR_FCS
+			evt.RadioCommData.Error = OT_ERROR_FCS
 		}
 	}
 }
 
 // update sample value for all channel-sampling nodes that may detect the new source src.
 func (rm *RadioModelMutualInterference) updateChannelSamplingNodes(src *RadioNode, evt *Event) {
-	simplelogger.AssertTrue(evt.Type == EventTypeRadioCommTx)
-	for _, samplingNode := range rm.activeChannelSamplers[evt.TxData.Channel] {
+	simplelogger.AssertTrue(evt.Type == EventTypeRadioCommStart)
+	for _, samplingNode := range rm.activeChannelSamplers[evt.RadioCommData.Channel] {
 		r := rm.GetTxRssi(src, samplingNode)
 		if r > samplingNode.rssiSampleMax && r != RssiInvalid {
 			samplingNode.rssiSampleMax = r // TODO accurate method of energy combining.
 		}
 	}
 }
-*/
+
+func (rm *RadioModelMutualInterference) channelSample(srcNode *RadioNode, q EventQueue, evt *Event) {
+	srcNode.SetChannel(evt.RadioCommData.Channel)
+	// take 1st channel sample
+	srcNode.rssiSampleMax = rm.getRssiOnChannel(srcNode, srcNode.RadioChannel)
+
+	// dispatch event with result back to node, when channel sampling stops.
+	sampleDoneEvt := evt.Copy()
+	sampleDoneEvt.Type = EventTypeRadioChannelSample
+	sampleDoneEvt.Timestamp += evt.RadioCommData.Duration
+	sampleDoneEvt.MustDispatch = true
+	q.Add(&sampleDoneEvt)
+}
