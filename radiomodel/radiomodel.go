@@ -117,9 +117,9 @@ func Create(modelName string) RadioModel {
 			UseVariableRssi: true,
 		}
 	case "MutualInterference":
-		//model = &RadioModelMutualInterference{
-		//	MinSirDb: 1, // minimum Signal-to-Interference (SIR) (dB) required to detect signal
-		//}
+		model = &RadioModelMutualInterference{
+			MinSirDb: 1, // minimum Signal-to-Interference (SIR) (dB) required to detect signal
+		}
 	default:
 		model = nil
 	}
