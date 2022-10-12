@@ -56,9 +56,6 @@ type RadioNode struct {
 	// Node position expressed in dimensionless units.
 	X, Y float64
 
-	// interferedBy indicates by which other node this RadioNode was interfered during current transmission.
-	interferedBy map[NodeId]*RadioNode
-
 	// rssiSampleMax tracks the max RSSI detected during a channel sampling operation.
 	rssiSampleMax DbmValue
 }
@@ -72,7 +69,6 @@ func NewRadioNode(nodeid NodeId, cfg *NodeConfig) *RadioNode {
 		Y:             float64(cfg.Y),
 		RadioRange:    float64(cfg.RadioRange),
 		RadioChannel:  DefaultChannelNumber,
-		interferedBy:  make(map[NodeId]*RadioNode),
 		rssiSampleMax: RssiMinusInfinity,
 	}
 	return rn
