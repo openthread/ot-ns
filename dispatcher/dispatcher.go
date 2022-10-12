@@ -755,7 +755,7 @@ func (d *Dispatcher) syncAliveNodes() {
 	}
 }
 
-// syncAllNodes advances all of the node's time to current dispatcher time.
+// syncAllNodes advances all the node's time to current dispatcher time.
 func (d *Dispatcher) syncAllNodes() {
 	for nodeid := range d.nodes {
 		d.advanceNodeTime(d.nodes[nodeid], d.CurTime, false)
