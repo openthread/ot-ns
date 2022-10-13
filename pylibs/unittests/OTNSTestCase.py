@@ -39,6 +39,7 @@ class OTNSTestCase(unittest.TestCase):
         logging.basicConfig(level=logging.DEBUG, format='%(asctime)-15s - %(levelname)s - %(message)s')
 
     def setUp(self) -> None:
+        logging.info("Setting up for test: %s", self.id())
         self.ns = OTNS(otns_args=['-log', 'debug'])
         self.ns.speed = OTNS.MAX_SIMULATE_SPEED
 
