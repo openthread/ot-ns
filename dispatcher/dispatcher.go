@@ -90,9 +90,11 @@ type CallbackHandler interface {
 	OnUartWrite(nodeid NodeId, data []byte)
 }
 
+// represents a particular duration of simulation at a given speed, or default dispatcher speed if speed==0.
 type goDuration struct {
 	duration time.Duration
 	done     chan struct{}
+	speed    float64
 }
 
 type Dispatcher struct {
@@ -214,6 +216,17 @@ func (d *Dispatcher) Go(duration time.Duration) <-chan struct{} {
 	d.goDurationChan <- goDuration{
 		duration: duration,
 		done:     done,
+		speed:    0,
+	}
+	return done
+}
+
+func (d *Dispatcher) GoAtSpeed(duration time.Duration, speed float64) <-chan struct{} {
+	done := make(chan struct{})
+	d.goDurationChan <- goDuration{
+		duration: duration,
+		done:     done,
+		speed:    speed,
 	}
 	return done
 }
@@ -233,29 +246,37 @@ loop:
 			f()
 			break
 		case duration := <-d.goDurationChan:
-			// sync the speed start time with the current time
-			if len(d.nodes) == 0 {
-				// no nodes, sleep for a small duration to avoid high cpu
+			if len(d.nodes) == 0 || (d.speed == 0 && duration.speed == 0) {
+				// no nodes or no sim progress, sleep for a small duration to avoid high cpu
 				d.RecvEvents()
 				time.Sleep(time.Millisecond * 10)
 				close(duration.done)
 				break
 			}
 
+			// sync the speed start time with the current time
 			d.speedStartRealTime = time.Now()
 			d.speedStartTime = d.CurTime
-
 			simplelogger.AssertTrue(d.CurTime == d.pauseTime)
 			if duration.duration < 0 {
-				duration.duration = 0
+				duration.duration = 0 // sanity check: avoid conversion issues.
 			}
-			d.pauseTime += uint64(duration.duration / time.Microsecond)
-			if d.pauseTime > Ever {
-				d.pauseTime = Ever
+
+			simSpeed := d.speed
+			if duration.speed > 0 {
+				simSpeed = duration.speed
+			}
+			if simSpeed > 0 {
+				d.pauseTime += uint64(duration.duration / time.Microsecond)
+				if d.pauseTime > Ever {
+					d.pauseTime = Ever
+				}
+			} else {
+				d.pauseTime = d.CurTime
 			}
 
 			simplelogger.AssertTrue(d.CurTime <= d.pauseTime)
-			d.goUntilPauseTime()
+			d.goUntilPauseTime(simSpeed)
 
 			if d.ctx.Err() != nil {
 				close(duration.done)
@@ -269,14 +290,15 @@ loop:
 			}
 			close(duration.done)
 			break
+
 		case <-done:
 			break loop
 		}
 	}
 }
 
-func (d *Dispatcher) goUntilPauseTime() {
-	for d.CurTime < d.pauseTime {
+func (d *Dispatcher) goUntilPauseTime(simSpeed float64) {
+	for d.CurTime <= d.pauseTime {
 		d.handleTasks()
 
 		if d.ctx.Err() != nil {
@@ -290,11 +312,12 @@ func (d *Dispatcher) goUntilPauseTime() {
 		}
 		if len(d.aliveNodes) == 0 {
 			// all are asleep now - process the next Events in queue, either alarm or other type, for a single time.
-			goon := d.processNextEvent()
+			goon := d.processNextEvent(simSpeed)
 			simplelogger.AssertTrue(d.CurTime <= d.pauseTime)
 
 			if !goon && len(d.aliveNodes) == 0 {
 				d.advanceTime(d.pauseTime) // if nothing more to do before d.pauseTime.
+				break
 			}
 		}
 	}
@@ -393,7 +416,7 @@ loop:
 
 // processNextEvent processes all next events from the eventQueue for the current time instant.
 // Returns true if the simulation needs to continue, or false if not (e.g. it's time to pause).
-func (d *Dispatcher) processNextEvent() bool {
+func (d *Dispatcher) processNextEvent(simSpeed float64) bool {
 	simplelogger.AssertTrue(d.CurTime <= d.pauseTime)
 
 	// fetch time of next event
@@ -404,17 +427,17 @@ func (d *Dispatcher) processNextEvent() bool {
 	nextEventTime := min(nextAlarmTime, nextSendTime)
 
 	// convert nextEventTime to real time
-	if d.speed < MaxSimulateSpeed {
+	if simSpeed < MaxSimulateSpeed {
 		var sleepUntilTime = nextEventTime
 		if sleepUntilTime > d.pauseTime {
 			sleepUntilTime = d.pauseTime
 		}
 
 		var needSleepDuration time.Duration
-		if d.speed <= 0 {
+		if simSpeed <= 0 {
 			needSleepDuration = time.Hour
 		} else {
-			needSleepDuration = time.Duration(float64(sleepUntilTime-d.speedStartTime)/d.speed) * time.Microsecond
+			needSleepDuration = time.Duration(float64(sleepUntilTime-d.speedStartTime)/simSpeed) * time.Microsecond
 		}
 		sleepUntilRealTime := d.speedStartRealTime.Add(needSleepDuration)
 		now := time.Now()
@@ -422,18 +445,18 @@ func (d *Dispatcher) processNextEvent() bool {
 
 		if sleepTime > 0 {
 			if sleepTime > time.Millisecond*10 {
-				sleepTime = time.Millisecond * 10
+				sleepTime = time.Millisecond * 10 // max cap to keep program responsive
 			}
 			time.Sleep(sleepTime)
 
 			if d.cfg.Real {
-				curTime := d.speedStartTime + uint64(float64(time.Since(d.speedStartRealTime)/time.Microsecond)*d.speed)
+				curTime := d.speedStartTime + uint64(float64(time.Since(d.speedStartRealTime)/time.Microsecond)*simSpeed)
 				if curTime > d.pauseTime {
 					curTime = d.pauseTime
 				}
 				d.advanceTime(curTime)
 			}
-			return true
+			return simSpeed > 0
 		}
 	}
 
@@ -1049,6 +1072,7 @@ func (d *Dispatcher) advanceTime(ts uint64) {
 		if elapsedRealTime > 0 && ts/1000000 != oldTime/1000000 {
 			d.vis.AdvanceTime(ts, float64(elapsedTime)/float64(elapsedRealTime))
 
+			// FIXME use period computation not depending on rounded TimeDurations.
 			if d.energyAnalyser != nil && ts%energy.ComputePeriod == 0 {
 				d.energyAnalyser.StoreNetworkEnergy(ts)
 				d.vis.UpdateNodesEnergy(d.energyAnalyser.GetLatestEnergyOfNodes(), ts, true)

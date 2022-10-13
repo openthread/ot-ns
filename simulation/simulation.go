@@ -276,6 +276,10 @@ func (s *Simulation) Go(duration time.Duration) <-chan struct{} {
 	return s.d.Go(duration)
 }
 
+func (s *Simulation) GoAtSpeed(duration time.Duration, speed float64) <-chan struct{} {
+	return s.d.GoAtSpeed(duration, speed)
+}
+
 func (s *Simulation) removeTmpDir() error {
 	// tmp directory is used by nodes for saving *.flash files. Need to be removed when simulation started
 	return os.RemoveAll("tmp")
