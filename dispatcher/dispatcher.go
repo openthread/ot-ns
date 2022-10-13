@@ -246,9 +246,11 @@ loop:
 			d.speedStartTime = d.CurTime
 
 			simplelogger.AssertTrue(d.CurTime == d.pauseTime)
-			oldPauseTime := d.pauseTime
+			if duration.duration < 0 {
+				duration.duration = 0
+			}
 			d.pauseTime += uint64(duration.duration / time.Microsecond)
-			if d.pauseTime > Ever || d.pauseTime < oldPauseTime {
+			if d.pauseTime > Ever {
 				d.pauseTime = Ever
 			}
 
@@ -1416,6 +1418,7 @@ func (d *Dispatcher) handleRadioState(node *Node, evt *Event) {
 	}
 
 	// if a next radio-state transition is indicated, make sure to schedule node wake-up for that time.
+	// This is independent from any alarm-time set by the node.
 	if evt.Delay > 0 {
 		radioWakeUpEvt := evt.Copy()
 		radioWakeUpEvt.Timestamp += evt.Delay
