@@ -91,7 +91,7 @@ func (rm *RadioModelIdeal) HandleEvent(node *RadioNode, q EventQueue, evt *Event
 	case EventTypeRadioTxDone:
 		rm.txStop(node, q, evt)
 	case EventTypeRadioChannelSample:
-		rm.channelSample(node, q, evt)
+		rm.channelSampleStart(node, q, evt)
 	}
 }
 
@@ -138,8 +138,9 @@ func (rm *RadioModelIdeal) txStop(node *RadioNode, q EventQueue, evt *Event) {
 	q.Add(&rxDoneEvt)
 }
 
-func (rm *RadioModelIdeal) channelSample(srcNode *RadioNode, q EventQueue, evt *Event) {
-	srcNode.rssiSampleMax = RssiMinusInfinity // Ideal model never has CCA failure.
+func (rm *RadioModelIdeal) channelSampleStart(node *RadioNode, q EventQueue, evt *Event) {
+	node.rssiSampleMax = RssiMinusInfinity // Ideal model never has CCA failure.
+	node.SetChannel(evt.RadioCommData.Channel)
 
 	// dispatch event with result back to node, when channel sampling stops.
 	sampleDoneEvt := evt.Copy()
