@@ -156,14 +156,21 @@ Done
 <EOF>
 ```
 
-### go \[\<duration-seconds\> | ever\]
+### go \[\<duration-seconds\> | ever\] \[speed \<particular-speed\>\]
 
-Simulate for a specified time in seconds or indefinitely (`ever`). **Only required in `-autogo=false` mode**
-
+Simulate for a specified time in seconds or indefinitely (`ever`). It is required in `-autogo=false` mode to
+advance the simulation. In `-autogo=true` mode, it can be optionally used to advance the simulation quickly 
+by the given time. For example, in a paused simulation to quickly advance 1 ms, 10 seconds, or an hour.
+The optional `speed` argument can be given to do the simulation at that speed e.g. to see the animations 
+and log output better.
 ```bash
 > go 1
 Done
 > go 10
+Done
+> go 0.001
+Done
+> go 5 speed 0.1
 Done
 > go ever
 <NEVER FINISHES>

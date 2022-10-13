@@ -34,16 +34,16 @@ import (
 	"strings"
 	"time"
 
-	"gopkg.in/yaml.v3"
-	"github.com/openthread/ot-ns/visualize"
-	"github.com/openthread/ot-ns/web"
-	"github.com/openthread/ot-ns/progctx"
 	"github.com/openthread/ot-ns/dispatcher"
+	"github.com/openthread/ot-ns/progctx"
+	"github.com/openthread/ot-ns/radiomodel"
 	"github.com/openthread/ot-ns/simulation"
 	. "github.com/openthread/ot-ns/types"
+	"github.com/openthread/ot-ns/visualize"
+	"github.com/openthread/ot-ns/web"
 	"github.com/pkg/errors"
 	"github.com/simonlingoogle/go-simplelogger"
-	"github.com/openthread/ot-ns/radiomodel"
+	"gopkg.in/yaml.v3"
 )
 
 const (
@@ -225,22 +225,30 @@ func (rt *CmdRunner) execute(cmd *Command, output io.Writer) {
 }
 
 func (rt *CmdRunner) executeGo(cc *CommandContext, cmd *GoCmd) {
+	// determine duration and desired speed of the Go simulation period.
+	timeDurToGo := time.Duration(float64(time.Second) * cmd.Seconds)
+	speed := cc.rt.sim.GetSpeed()
 	if cmd.Speed != nil {
-		rt.postAsyncWait(func(sim *simulation.Simulation) {
-			sim.SetSpeed(*cmd.Speed)
-		})
+		speed = *cmd.Speed
 	}
-	var done <-chan struct{}
+	if speed == 0 {
+		// in case wanted/current sim speed is 0, 'go' would hang forever -> not useful.
+		// So assume max speed to quickly skip a time period.
+		speed = dispatcher.MaxSimulateSpeed
+	}
 
+	// execute the Go
+	var done <-chan struct{}
 	if cmd.Ever == nil {
 		rt.postAsyncWait(func(sim *simulation.Simulation) {
-			done = sim.Go(time.Duration(float64(time.Second) * cmd.Seconds))
+			done = sim.GoAtSpeed(timeDurToGo, speed)
 		})
+		<-done // block for the simulation period.
 
-		<-done
 	} else {
 		for {
 			rt.postAsyncWait(func(sim *simulation.Simulation) {
+				sim.SetSpeed(speed)      // permanent speed update
 				done = sim.Go(time.Hour) // run for ever
 			})
 			<-done
