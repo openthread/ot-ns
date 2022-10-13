@@ -112,7 +112,7 @@ func (rm *RadioModelMutualInterference) HandleEvent(node *RadioNode, q EventQueu
 	case EventTypeRadioTxDone:
 		rm.txStop(node, q, evt)
 	case EventTypeRadioChannelSample:
-		rm.channelSample(node, q, evt)
+		rm.channelSampleStart(node, q, evt)
 	default:
 		break // Unknown events not handled.
 	}
@@ -241,7 +241,7 @@ func (rm *RadioModelMutualInterference) updateChannelSamplingNodes(src *RadioNod
 	}
 }
 
-func (rm *RadioModelMutualInterference) channelSample(srcNode *RadioNode, q EventQueue, evt *Event) {
+func (rm *RadioModelMutualInterference) channelSampleStart(srcNode *RadioNode, q EventQueue, evt *Event) {
 	srcNode.SetChannel(evt.RadioCommData.Channel)
 	// take 1st channel sample
 	srcNode.rssiSampleMax = rm.getRssiOnChannel(srcNode, srcNode.RadioChannel)
