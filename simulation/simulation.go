@@ -39,6 +39,7 @@ import (
 	"github.com/openthread/ot-ns/visualize"
 	"github.com/pkg/errors"
 	"github.com/simonlingoogle/go-simplelogger"
+	"io/fs"
 )
 
 type Simulation struct {
@@ -77,8 +78,11 @@ func NewSimulation(ctx *progctx.ProgCtx, cfg *Config, dispatcherCfg *dispatcher.
 	s.d = dispatcher.NewDispatcher(s.ctx, dispatcherCfg, s)
 	s.d.SetRadioModel(radiomodel.Create(cfg.RadioModel))
 	s.vis = s.d.GetVisualizer()
-	if err := s.removeTmpDir(); err != nil {
-		simplelogger.Panicf("remove tmp directory failed: %+v", err)
+	if err := s.createTmpDir(); err != nil {
+		simplelogger.Panicf("creating ./tmp/ directory failed: %+v", err)
+	}
+	if err := s.cleanTmpDir(); err != nil {
+		simplelogger.Panicf("cleaning ./tmp/ directory failed: %+v", err)
 	}
 
 	//TODO add a flag to turn on/off the energy analyzer
@@ -280,9 +284,23 @@ func (s *Simulation) GoAtSpeed(duration time.Duration, speed float64) <-chan str
 	return s.d.GoAtSpeed(duration, speed)
 }
 
-func (s *Simulation) removeTmpDir() error {
-	// tmp directory is used by nodes for saving *.flash files. Need to be removed when simulation started
-	return os.RemoveAll("tmp")
+func (s *Simulation) cleanTmpDir() error {
+	// tmp directory is used by nodes for saving *.flash files. Need to be cleaned when simulation started
+	err := RemoveAllFiles("tmp/*_*.flash")
+	if err != nil {
+		return err
+	}
+	err = RemoveAllFiles("tmp/*_*.log")
+	return err
+}
+
+func (s *Simulation) createTmpDir() error {
+	// tmp directory is used by nodes for saving *.flash files. Need to be present when simulation started
+	err := os.Mkdir("tmp", 0775)
+	if errors.Is(err, fs.ErrExist) {
+		return nil // ok, already present
+	}
+	return err
 }
 
 // IsStopped returns if the simulation is already stopped.

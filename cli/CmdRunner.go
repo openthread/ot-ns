@@ -282,7 +282,7 @@ func (rt *CmdRunner) postAsyncWait(f func(sim *simulation.Simulation)) {
 }
 
 func (rt *CmdRunner) executeAddNode(cc *CommandContext, cmd *AddCmd) {
-	simplelogger.Infof("Add: %#v", *cmd)
+	simplelogger.Debugf("Add: %#v", *cmd)
 	cfg := DefaultNodeConfig()
 	if cmd.X != nil {
 		cfg.X = *cmd.X
@@ -674,13 +674,17 @@ func (rt *CmdRunner) executeWatch(cc *CommandContext, cmd *WatchCmd) {
 			watchedList := strings.Trim(fmt.Sprintf("%v", sim.Dispatcher().GetWatchingNodes()), "[]")
 			cc.outputf("%v\n", watchedList)
 		} else {
+			watchLogLevel := ""
+			if len(cmd.Level) > 0 {
+				watchLogLevel = cmd.Level
+			}
 			for _, sel := range cmd.Nodes {
 				node, _ := rt.getNode(sim, sel)
 				if node == nil {
 					cc.errorf("node %v not found", sel)
 					continue
 				}
-				sim.Dispatcher().WatchNode(node.Id)
+				sim.Dispatcher().WatchNode(node.Id, watchLogLevel)
 			}
 		}
 	})

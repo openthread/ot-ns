@@ -113,7 +113,7 @@ func (cc *otOutFilter) printLog(otLevelChar string, logStr string) {
 	if cc.logHandler == nil {
 		return
 	}
-	logStr = fmt.Sprintf("%s - %s", cc.logPrintPrefix, logStr)
+	logStr = fmt.Sprintf("%s%s", cc.logPrintPrefix, logStr)
 	cc.logHandler(otLevelChar, logStr)
 }
 

@@ -426,8 +426,9 @@ type PlrCmd struct {
 
 //noinspection GoStructTag
 type WatchCmd struct {
-	Cmd   struct{}       `"watch"`     //nolint
-	Nodes []NodeSelector `[ ( @@ )+ ]` //nolint
+	Cmd   struct{}       `"watch"`                                                                                //nolint
+	Nodes []NodeSelector `[ ( @@ )+ ]`                                                                            //nolint
+	Level string         `[@( "trace"|"debug"|"info"|"note"|"warn"|"error"|"crit"|"T"|"D"|"I"|"N"|"W"|"E"|"C" )]` //nolint
 }
 
 //noinspection GoStructTag
