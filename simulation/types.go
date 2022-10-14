@@ -28,6 +28,8 @@ package simulation
 
 import (
 	"io"
+	"os"
+	"path/filepath"
 
 	"github.com/openthread/ot-ns/types"
 )
@@ -38,4 +40,17 @@ type CmdRunner interface {
 	// GetContextNodeId gets the user's current selected node ID context for running commands, or
 	// types.InvalidNodeId if no node context selected.
 	GetContextNodeId() types.NodeId
+}
+
+func RemoveAllFiles(globPath string) error {
+	files, err := filepath.Glob(globPath)
+	if err != nil {
+		return err
+	}
+	for _, f := range files {
+		if err := os.Remove(f); err != nil {
+			return err
+		}
+	}
+	return nil
 }

@@ -65,7 +65,7 @@ func TestOTOutFilter(t *testing.T) {
 		"Done\n" +
 		""
 
-	r := NewOTOutFilter(strings.NewReader(input), "Node<1>", nil)
+	r := NewOTOutFilter(strings.NewReader(input), "Node<1> - ", nil)
 	output, err := ioutil.ReadAll(r)
 	if err != nil {
 		t.Fatal(err)

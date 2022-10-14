@@ -362,7 +362,7 @@ func (d *Dispatcher) handleRecvEvent(evt *Event) {
 		d.setSleeping(node.Id)
 		d.alarmMgr.SetTimestamp(nodeid, d.CurTime+delay) // schedule future wake-up of node
 	case EventTypeRadioReceived:
-		simplelogger.Panicf("legacy EventTypeRadioReceived received")
+		simplelogger.Panicf("legacy EventTypeRadioReceived received - wrong OT node executable version.")
 	case EventTypeRadioCommStart:
 		fallthrough
 	case EventTypeRadioChannelSample:
@@ -817,7 +817,7 @@ func (d *Dispatcher) GetVisualizer() visualize.Visualizer {
 }
 
 func (d *Dispatcher) handleStatusPush(srcnode *Node, data string) {
-	simplelogger.Debugf("status push: %d: %#v ts=%v", srcnode.Id, data, d.CurTime)
+	simplelogger.Debugf("%s %9d - status push: %#v", srcnode, d.CurTime, data)
 	statuses := strings.Split(data, ";")
 	srcid := srcnode.Id
 	for _, status := range statuses {
@@ -903,7 +903,7 @@ func (d *Dispatcher) handleStatusPush(srcnode *Node, data string) {
 			mode := ParseNodeMode(sp[1])
 			d.vis.SetNodeMode(srcid, mode)
 		} else {
-			simplelogger.Warnf("unknown status push: %s=%s", sp[0], sp[1])
+			simplelogger.Warnf("received unknown status push: %s=%s", sp[0], sp[1])
 		}
 	}
 }
@@ -1118,8 +1118,12 @@ loop:
 	}
 }
 
-func (d *Dispatcher) WatchNode(nodeid NodeId) {
+func (d *Dispatcher) WatchNode(nodeid NodeId, watchLogLevel string) {
 	d.watchingNodes[nodeid] = struct{}{}
+	node := d.nodes[nodeid]
+	if node != nil {
+		node.watchLogLevel = ParseWatchLogLevel(watchLogLevel)
+	}
 }
 
 func (d *Dispatcher) UnwatchNode(nodeid NodeId) {
@@ -1140,6 +1144,39 @@ func (d *Dispatcher) GetWatchingNodes() []NodeId {
 	}
 	sort.Ints(watchingNodeIds)
 	return watchingNodeIds
+}
+
+// WatchMessage logs a message for a particular node, to be seen by all Watchers of the node.
+func (d *Dispatcher) WatchMessage(id NodeId, logLevel WatchLogLevel, msg string) {
+	node := d.nodes[id]
+	_, isWatching := d.watchingNodes[id]
+	if node == nil || !isWatching {
+		return // ignore, not being watched.
+	}
+	if node.watchLogLevel >= logLevel {
+		watchLog(node, logLevel, fmt.Sprintf("%s %9d %s", node, d.CurTime, msg))
+	}
+}
+
+// helper function to log to right simplelogger level, overriding simplelogger's level.
+func watchLog(node *Node, logLevel WatchLogLevel, msg string) {
+	switch logLevel {
+	case WatchCritLevel:
+		simplelogger.Errorf(msg)
+	case WatchWarnLevel:
+		simplelogger.Warnf(msg)
+	case WatchInfoLevel, WatchNoteLevel:
+		simplelogger.Infof(msg)
+	case WatchDebugLevel, WatchTraceLevel:
+		// TODO may consider own logger object for dispatcher to avoid below workaround.
+		if simplelogger.GetLevel() == simplelogger.DebugLevel {
+			simplelogger.Debugf(msg)
+		} else {
+			simplelogger.Infof(msg)
+		}
+	default:
+		simplelogger.Errorf(msg)
+	}
 }
 
 func (d *Dispatcher) GetAliveCount() int {
@@ -1392,8 +1429,17 @@ func (d *Dispatcher) handleRadioState(node *Node, evt *Event) {
 	subState := evt.RadioStateData.SubState
 	state := evt.RadioStateData.State
 	energyState := evt.RadioStateData.EnergyState
-	simplelogger.Debugf("%v N=%v EnergyState=%+v SubState=%+v RadioState=%+v",
-		evt.Timestamp, node.Id, energyState, subState, state)
+
+	if node.watchLogLevel >= WatchTraceLevel && d.IsWatching(node.Id) {
+		msg := fmt.Sprintf("%s %9d EnergyState=%+v SubState=%+v RadioState=%+v",
+			node, evt.Timestamp, energyState, subState, state)
+		// TODO may consider own logger object for dispatcher to avoid below workaround.
+		if simplelogger.GetLevel() == simplelogger.DebugLevel {
+			simplelogger.Debugf(msg)
+		} else {
+			simplelogger.Infof(msg)
+		}
+	}
 
 	node.radioNode.SetRadioState(energyState, subState)
 	node.radioNode.SetChannel(evt.RadioStateData.Channel)
@@ -1412,11 +1458,4 @@ func (d *Dispatcher) handleRadioState(node *Node, evt *Event) {
 		radioWakeUpEvt.MustDispatch = true
 		d.eventQueue.Add(&radioWakeUpEvt)
 	}
-}
-
-func min(t1 uint64, t2 uint64) uint64 {
-	if t1 <= t2 {
-		return t1
-	}
-	return t2
 }

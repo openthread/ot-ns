@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2020-2022, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -36,3 +36,45 @@ const (
 	OtJoinerStateEntrust   OtJoinerState = 4
 	OtJoinerStateJoined    OtJoinerState = 5
 )
+
+// WatchLogLevel is the log-level set for an individual node when watching it. Values inherit OT logging.h values
+// and extend these with OT-NS specific items.
+type WatchLogLevel int
+
+const (
+	WatchTraceLevel   WatchLogLevel = 6
+	WatchDebugLevel   WatchLogLevel = 5
+	WatchInfoLevel    WatchLogLevel = 4
+	WatchNoteLevel    WatchLogLevel = 3
+	WatchWarnLevel    WatchLogLevel = 2
+	WatchCritLevel    WatchLogLevel = 1
+	WatchDefaultLevel               = WatchInfoLevel
+)
+
+func ParseWatchLogLevel(level string) WatchLogLevel {
+	switch level {
+	case "trace", "T":
+		return WatchTraceLevel
+	case "debug", "D":
+		return WatchDebugLevel
+	case "info", "I":
+		return WatchInfoLevel
+	case "note", "N":
+		return WatchNoteLevel
+	case "warn", "warning", "W":
+		return WatchWarnLevel
+	case "crit", "error", "C", "E", "-":
+		return WatchCritLevel
+	case "default", "def":
+		fallthrough
+	default:
+		return WatchDefaultLevel
+	}
+}
+
+func min(t1 uint64, t2 uint64) uint64 {
+	if t1 <= t2 {
+		return t1
+	}
+	return t2
+}

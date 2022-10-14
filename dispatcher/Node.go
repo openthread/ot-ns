@@ -82,24 +82,26 @@ type Node struct {
 	joinerState   OtJoinerState
 	joinerSession *joinerSession
 	joinResults   []*JoinResult
+	watchLogLevel WatchLogLevel
 }
 
 func newNode(d *Dispatcher, nodeid NodeId, cfg *NodeConfig) *Node {
 	simplelogger.AssertTrue(cfg.RadioRange >= 0)
 
 	nc := &Node{
-		D:           d,
-		Id:          nodeid,
-		CurTime:     d.CurTime,
-		CreateTime:  d.CurTime,
-		X:           cfg.X,
-		Y:           cfg.Y,
-		ExtAddr:     InvalidExtAddr,
-		Rloc16:      threadconst.InvalidRloc16,
-		Role:        OtDeviceRoleDisabled,
-		peerAddr:    nil, // peer address will be set when the first event is received
-		radioNode:   radiomodel.NewRadioNode(nodeid, cfg),
-		joinerState: OtJoinerStateIdle,
+		D:             d,
+		Id:            nodeid,
+		CurTime:       d.CurTime,
+		CreateTime:    d.CurTime,
+		X:             cfg.X,
+		Y:             cfg.Y,
+		ExtAddr:       InvalidExtAddr,
+		Rloc16:        threadconst.InvalidRloc16,
+		Role:          OtDeviceRoleDisabled,
+		peerAddr:      nil, // peer address will be set when the first event is received
+		radioNode:     radiomodel.NewRadioNode(nodeid, cfg),
+		joinerState:   OtJoinerStateIdle,
+		watchLogLevel: WatchDefaultLevel,
 	}
 
 	nc.failureCtrl = newFailureCtrl(nc, NonFailTime)
@@ -107,7 +109,12 @@ func newNode(d *Dispatcher, nodeid NodeId, cfg *NodeConfig) *Node {
 }
 
 func (node *Node) String() string {
-	return fmt.Sprintf("Node<%016x@%d,%d>", node.ExtAddr, node.X, node.Y)
+	//return fmt.Sprintf("Node<%016x@%d,%d>", node.ExtAddr, node.X, node.Y)
+	spacing := ""
+	if node.Id < 10 {
+		spacing = " "
+	}
+	return fmt.Sprintf("Node<%d>%s", node.Id, spacing)
 }
 
 // SendEvent sends Event evt serialized to the node, over UDP. If evt.Timestamp != InvalidTimestamp,

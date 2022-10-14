@@ -40,6 +40,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/openthread/ot-ns/dispatcher"
 	"github.com/openthread/ot-ns/otoutfilter"
 	"github.com/openthread/ot-ns/threadconst"
 	. "github.com/openthread/ot-ns/types"
@@ -66,14 +67,23 @@ const (
 func newNode(s *Simulation, id NodeId, cfg *NodeConfig) (*Node, error) {
 	var err error
 
+	portOffset := (s.cfg.DispatcherPort - threadconst.InitialDispatcherPort) / threadconst.WellKnownNodeId
+	logFileName := fmt.Sprintf("tmp/%d_%d.log", portOffset, id)
 	if !cfg.Restore {
-		portOffset := (s.cfg.DispatcherPort - threadconst.InitialDispatcherPort) / threadconst.WellKnownNodeId
 		flashFile := fmt.Sprintf("tmp/%d_%d.flash", portOffset, id)
 		if err := os.RemoveAll(flashFile); err != nil {
 			simplelogger.Errorf("Remove flash file %s failed: %+v", flashFile, err)
 		}
+		if err := os.RemoveAll(logFileName); err != nil {
+			simplelogger.Errorf("Remove node log file %s failed: %+v", logFileName, err)
+		}
 	}
 
+	// open log file for node's OT output
+	logFile, err := os.OpenFile(logFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0664)
+	if err != nil {
+		simplelogger.Errorf("Opening node log file %s failed: %+v", logFileName, err)
+	}
 	otCliPath := s.cfg.OtCliPath
 	if cfg.ExecutablePath != "" {
 		otCliPath = cfg.ExecutablePath
@@ -88,6 +98,7 @@ func newNode(s *Simulation, id NodeId, cfg *NodeConfig) (*Node, error) {
 		cmd:          cmd,
 		pendingLines: make(chan string, 100),
 		uartType:     NodeUartTypeUndefined,
+		logFile:      logFile,
 	}
 
 	node.virtualUartReader, node.virtualUartPipe = io.Pipe()
@@ -124,6 +135,7 @@ type Node struct {
 
 	cmd       *exec.Cmd
 	outputErr io.Reader
+	logFile   *os.File
 
 	pendingLines      chan string
 	pipeIn            io.WriteCloser
@@ -164,6 +176,9 @@ func (node *Node) Stop() {
 }
 
 func (node *Node) Exit() error {
+	if node.logFile != nil {
+		_ = node.logFile.Close()
+	}
 	node.inputCommand("exit")
 	_ = node.cmd.Process.Signal(syscall.SIGTERM)
 	_ = node.virtualUartReader.Close()
@@ -589,7 +604,7 @@ func (node *Node) GetSingleton() bool {
 
 func (node *Node) lineReader(reader io.Reader, uartType NodeUartType) {
 	// close the line channel after line reader routine exit
-	scanner := bufio.NewScanner(otoutfilter.NewOTOutFilter(bufio.NewReader(reader), node.String(), node.handlerLogMsg))
+	scanner := bufio.NewScanner(otoutfilter.NewOTOutFilter(bufio.NewReader(reader), "", node.handlerLogMsg))
 	scanner.Split(bufio.ScanLines)
 
 	isNodeError := false
@@ -597,7 +612,7 @@ func (node *Node) lineReader(reader io.Reader, uartType NodeUartType) {
 		line := scanner.Text()
 
 		if uartType == NodeUartTypeErrors {
-			simplelogger.Errorf("Node %v StdErr: %v", node.Id, line)
+			node.handlerLogMsg("C", fmt.Sprintf("%v StdErr: %v", node, line))
 			isNodeError = true
 		} else if node.uartType == NodeUartTypeUndefined {
 			simplelogger.Debugf("%v's UART type is %v", node, uartType)
@@ -625,28 +640,18 @@ func (node *Node) lineReader(reader io.Reader, uartType NodeUartType) {
 	}
 }
 
-// handles an incoming log message from the OT-Node for which the loglevel (otLevel) could be detected.
-// The policy of handling may be changed in the future, or made configurable.
+// handles an incoming log message from the OT-Node and its detected loglevel (otLevel). It is written
+// to the node's log file. Display of the log message is done by the Dispatcher.
 func (node *Node) handlerLogMsg(otLevel string, msg string) {
-	switch otLevel {
-	case "D":
-		// only display detailed log msgs if in Node's context or watching that Node.
-		// Otherwise, too much is displayed.
-		if node.S.cmdRunner.GetContextNodeId() == node.Id || node.S.Dispatcher().IsWatching(node.Id) {
-			simplelogger.Debugf(msg)
-		}
-	case "I", "N":
-		// only display detailed log msgs if in Node's context or watching that Node.
-		if node.S.cmdRunner.GetContextNodeId() == node.Id || node.S.Dispatcher().IsWatching(node.Id) {
-			simplelogger.Infof(msg)
-		}
-	case "W":
-		simplelogger.Warnf(msg)
-	case "C", "E", "-":
-		fallthrough
-	default:
-		simplelogger.Errorf(msg)
+
+	// append it to node-specific log file.
+	if node.logFile != nil {
+		node.logFile.WriteString(msg + "\n")
 	}
+
+	// create a node-specific log message that may be used by the Dispatcher's Watch function.
+	lev := dispatcher.ParseWatchLogLevel(otLevel)
+	node.S.Dispatcher().WatchMessage(node.Id, lev, msg)
 }
 
 func (node *Node) TryExpectLine(line interface{}, timeout time.Duration) (bool, []string) {
@@ -665,14 +670,14 @@ func (node *Node) TryExpectLine(line interface{}, timeout time.Duration) (bool, 
 				return false, outputLines
 			}
 
-			simplelogger.Debugf("%v - %s", node, readLine)
+			simplelogger.Debugf("%v %s", node, readLine)
 
 			outputLines = append(outputLines, readLine)
 			if node.isLineMatch(readLine, line) {
 				// found the exact line
 				return true, outputLines
 			} else {
-				// hack: output scan result here, should have better implementation
+				// FIXME hack: output scan result here, should have better implementation
 				//| J | Network Name     | Extended PAN     | PAN  | MAC Address      | Ch | dBm | LQI |
 				if strings.HasPrefix(readLine, "|") || strings.HasPrefix(readLine, "+") {
 					fmt.Printf("%s\n", readLine)
