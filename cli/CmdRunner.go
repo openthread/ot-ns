@@ -233,13 +233,14 @@ func (rt *CmdRunner) execute(cmd *Command, output io.Writer) {
 func (rt *CmdRunner) executeGo(cc *CommandContext, cmd *GoCmd) {
 	// determine duration and desired speed of the Go simulation period.
 	timeDurToGo := time.Duration(float64(time.Second) * cmd.Seconds)
-	speed := cc.rt.sim.GetSpeed()
+	speed := rt.sim.GetSpeed()
 	if cmd.Speed != nil {
 		speed = *cmd.Speed
+	} else if rt.sim.AutoGo() {
+		// when in AutoGo mode, 'go' command used to quickly jump time.
+		speed = dispatcher.MaxSimulateSpeed
 	}
-	if speed == 0 {
-		// in case wanted/current sim speed is 0, 'go' would hang forever -> not useful.
-		// So assume max speed to quickly skip a time period.
+	if speed == 0 { // when paused or silly 'speed' param, assume 'go' to quickly jump time.
 		speed = dispatcher.MaxSimulateSpeed
 	}
 
@@ -252,10 +253,10 @@ func (rt *CmdRunner) executeGo(cc *CommandContext, cmd *GoCmd) {
 		<-done // block for the simulation period.
 
 	} else {
-		for {
+		for { // run forever
 			rt.postAsyncWait(func(sim *simulation.Simulation) {
-				sim.SetSpeed(speed)      // permanent speed update
-				done = sim.Go(time.Hour) // run for ever
+				sim.SetSpeed(speed) // permanent speed update
+				done = sim.Go(time.Hour)
 			})
 			<-done
 

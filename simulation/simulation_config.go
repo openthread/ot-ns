@@ -45,6 +45,7 @@ type Config struct {
 	ReadOnly       bool
 	RawMode        bool
 	Real           bool
+	AutoGo         bool
 	DispatcherHost string
 	DispatcherPort int
 	DumpPackets    bool
@@ -62,6 +63,7 @@ func DefaultConfig() *Config {
 		RawMode:        false,
 		OtCliPath:      "./ot-cli-ftd",
 		Real:           false,
+		AutoGo:         true,
 		DispatcherHost: "localhost",
 		DispatcherPort: threadconst.InitialDispatcherPort,
 		RadioModel:     "Ideal",

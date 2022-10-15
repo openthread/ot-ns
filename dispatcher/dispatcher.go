@@ -246,7 +246,7 @@ loop:
 			f()
 			break
 		case duration := <-d.goDurationChan:
-			if len(d.nodes) == 0 || (d.speed == 0 && duration.speed == 0) {
+			if len(d.nodes) == 0 || duration.duration < 0 {
 				// no nodes or no sim progress, sleep for a small duration to avoid high cpu
 				d.RecvEvents()
 				time.Sleep(time.Millisecond * 10)
@@ -258,25 +258,22 @@ loop:
 			d.speedStartRealTime = time.Now()
 			d.speedStartTime = d.CurTime
 			simplelogger.AssertTrue(d.CurTime == d.pauseTime)
-			if duration.duration < 0 {
-				duration.duration = 0 // sanity check: avoid conversion issues.
-			}
 
-			simSpeed := d.speed
+			var postSpeed float64
 			if duration.speed > 0 {
-				simSpeed = duration.speed
+				postSpeed = d.speed
+				d.SetSpeed(duration.speed)
 			}
-			if simSpeed > 0 {
-				d.pauseTime += uint64(duration.duration / time.Microsecond)
-				if d.pauseTime > Ever {
-					d.pauseTime = Ever
-				}
-			} else {
-				d.pauseTime = d.CurTime
+			d.pauseTime += uint64(duration.duration / time.Microsecond)
+			if d.pauseTime > Ever {
+				d.pauseTime = Ever
 			}
 
 			simplelogger.AssertTrue(d.CurTime <= d.pauseTime)
-			d.goUntilPauseTime(simSpeed)
+			d.goUntilPauseTime()
+			if duration.speed > 0 {
+				d.SetSpeed(postSpeed)
+			}
 
 			if d.ctx.Err() != nil {
 				close(duration.done)
@@ -297,7 +294,7 @@ loop:
 	}
 }
 
-func (d *Dispatcher) goUntilPauseTime(simSpeed float64) {
+func (d *Dispatcher) goUntilPauseTime() {
 	for d.CurTime <= d.pauseTime {
 		d.handleTasks()
 
@@ -312,7 +309,7 @@ func (d *Dispatcher) goUntilPauseTime(simSpeed float64) {
 		}
 		if len(d.aliveNodes) == 0 {
 			// all are asleep now - process the next Events in queue, either alarm or other type, for a single time.
-			goon := d.processNextEvent(simSpeed)
+			goon := d.processNextEvent(d.speed)
 			simplelogger.AssertTrue(d.CurTime <= d.pauseTime)
 
 			if !goon && len(d.aliveNodes) == 0 {
