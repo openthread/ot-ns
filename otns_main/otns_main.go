@@ -226,7 +226,12 @@ func handleSignals(ctx *progctx.ProgCtx) {
 
 func autoGo(prog *progctx.ProgCtx, sim *simulation.Simulation) {
 	for {
-		<-sim.Go(time.Second)
+		spd := sim.GetSpeed()
+		if spd >= 1.0 {
+			<-sim.Go(time.Second)
+		} else {
+			<-sim.Go(time.Duration(float64(time.Second) * spd))
+		}
 	}
 }
 
@@ -251,6 +256,7 @@ func createSimulation(ctx *progctx.ProgCtx) *simulation.Simulation {
 	simcfg.DispatcherHost = args.DispatcherHost
 	simcfg.DispatcherPort = args.DispatcherPort
 	simcfg.DumpPackets = args.DumpPackets
+	simcfg.AutoGo = args.AutoGo
 
 	dispatcherCfg := dispatcher.DefaultConfig()
 	dispatcherCfg.NoPcap = args.NoPcap
