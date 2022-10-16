@@ -68,7 +68,7 @@ func ParseWatchLogLevel(level string) WatchLogLevel {
 		return WatchNoteLevel
 	case "warn", "warning", "W":
 		return WatchWarnLevel
-	case "crit", "error", "C", "E", "-":
+	case "crit", "critical", "error", "err", "C", "E":
 		return WatchCritLevel
 	case "default", "def":
 		fallthrough
