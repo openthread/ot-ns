@@ -34,7 +34,7 @@ import (
 )
 
 var (
-	contextLessCommandsPat = regexp.MustCompile(`(exit|node)\b`)
+	contextLessCommandsPat = regexp.MustCompile(`(exit|node|\!.+)\b`)
 )
 
 func Run(cr *CmdRunner, cliOptions *runcli.CliOptions) error {

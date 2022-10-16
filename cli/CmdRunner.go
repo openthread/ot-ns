@@ -98,6 +98,10 @@ type CmdRunner struct {
 }
 
 func (rt *CmdRunner) RunCommand(cmdline string, output io.Writer) error {
+	// if character '!' is used to invoke no-node (global) context, remove it.
+	if len(cmdline) > 1 && cmdline[0] == '!' {
+		cmdline = cmdline[1:]
+	}
 	// run the OTNS-CLI command without node contexts
 	cmd := Command{}
 
