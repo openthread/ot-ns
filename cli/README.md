@@ -13,11 +13,12 @@ Python libraries use the CLI to manage simulations.
 * [cv](#cv-option-onoff-)
 * [del](#del-node-id-node-id-)
 * [exit](#exit)
-* [go](#go-duration-seconds--ever)
+* [go](#go-duration-seconds--ever-speed-particular-speed)
 * [joins](#joins)
 * [log](#log-level)
 * [move](#move-node-id-x-y)
 * [netinfo](#netinfo-version-string-commit-string-real-yn)
+* [node](#node-node-id)
 * [node](#node-node-id-command)
 * [nodes](#nodes)
 * [partitions (pts)](#partitions-pts)
@@ -31,6 +32,7 @@ Python libraries use the CLI to manage simulations.
 * [title](#title-string)
 * [unwatch](#unwatch-node-id-node-id-)
 * [watch](#watch-node-id-node-id-)
+* [watch](#watch-node-id-node-id--debuglevel)
 * [web](#web)
 
 ## OTNS command reference
@@ -222,6 +224,39 @@ Done
 Done
 > netinfo real y
 Done
+```
+### node \<node-id\>
+
+Switch CLI context to a specific OT node. From within this new context, regular OT commands (e.g. "help") can be 
+used to directly interact with the node. The command 'exit' or 'node 0' can then be used again to exit the node 
+context and return the CLI to global context.
+
+```bash
+> node 3
+Done
+node 3> state
+router
+Done
+node 3> exit
+Done
+>
+```
+
+While in a node context, there is a shortcut to execute global-scope commands instead of node-specific OT CLI 
+commands. This is adding the exclamation mark '!' character before the command.
+
+```bash
+> node 2
+Done
+node 2> state
+leader
+Done
+node 2> !nodes
+id=1    extaddr=da7bb222abc9c806        rloc16=a400     x=149   y=1176  state=router    failed=false
+id=2    extaddr=0a5b1645b5dfdd73        rloc16=1c00     x=163   y=1175  state=leader    failed=false
+id=3    extaddr=0638ac1ab9072dea        rloc16=d800     x=170   y=1176  state=router    failed=false
+Done
+node 2>  
 ```
 
 ### node \<node-id\> "\<command\>"
@@ -438,11 +473,9 @@ Disable the watch status for all nodes. See [watch](#watch-node-id-node-id-) for
 Enable additional, detailed log messages on selected node(s) only. This can be useful for interactive debugging or 
 inspection of a node's behavior. 
 
-* To see all nodes currently being watched, use "watch" without parameters. 
-* To see all of the additional log messages, set the overall log-level to "debug" 
-using the "-log debug" command line switch.
-* To see most of the additional log messages, set the overall log-level to "info"
-using the "-log info" command line switch. 
+* To see all nodes currently being watched, use "watch" without parameters.
+* By default, watching a node will only display OT stack log messages from level Info (I) or up. To see Debug (D) 
+  messages, or only Warn (W) or Error/Critical (C) messages, use [watch with debug-level parameter](#watch-node-id-node-id-debugLevel)
 
 ```bash
 > watch 1
@@ -460,6 +493,35 @@ Done
 Done
 > watch
 
+Done
+>
+```
+
+### watch \[\<node-id\>\] \[\<node-id.> ...\] \[\<debugLevel\>\]
+This is an explanation of the advanced watch debugLevel option. See [watch](watch-node-id-node-id-) for the basic 
+explanation. Adding the \<debugLevel\> optional parameter will 
+cause OT stack log messages from indicated level, or higher (more important), to be shown. By default, only the 
+Info (I) level or up is shown. This can be useful for interactive debugging or inspection of a node's behavior 
+including the operation of its simulated radio.
+
+* Valid long-form debugLevels are "debug", "info", "note", "warn", "error", or "crit" (same as "error").
+* Valid short-form debugLevels that are named like in the OT stack log output are "D", "I", "N", "W", "C"; with 
+ additionally "T" for trace or "E" for error/critical available.
+* This command can also be used to change the debugLevel of one or more nodes being already watched, to a new  
+ debugLevel.
+
+```bash
+> watch 1 debug
+Done
+> watch 3 5 6 warn
+Done
+> watch
+1 3 5 6
+> watch 3 5 trace
+Done
+> watch 3 5 6 D
+Done
+> watch 3 5 6 I
 Done
 >
 ```
