@@ -45,7 +45,6 @@ import (
 type Simulation struct {
 	ctx            *progctx.ProgCtx
 	cfg            *Config
-	speed          float64
 	nodes          map[NodeId]*Node
 	d              *dispatcher.Dispatcher
 	vis            visualize.Visualizer
@@ -59,7 +58,6 @@ func NewSimulation(ctx *progctx.ProgCtx, cfg *Config, dispatcherCfg *dispatcher.
 	s := &Simulation{
 		ctx:         ctx,
 		cfg:         cfg,
-		speed:       cfg.Speed,
 		nodes:       map[NodeId]*Node{},
 		rawMode:     cfg.RawMode,
 		networkInfo: visualize.DefaultNetworkInfo(),
@@ -271,12 +269,11 @@ func (s *Simulation) ShowDemoLegend(x int, y int, title string) {
 }
 
 func (s *Simulation) SetSpeed(speed float64) {
-	s.speed = speed
 	s.d.SetSpeed(speed)
 }
 
 func (s *Simulation) GetSpeed() float64 {
-	return s.speed
+	return s.d.GetSpeed()
 }
 
 func (s *Simulation) CountDown(duration time.Duration, text string) {
@@ -288,9 +285,10 @@ func (s *Simulation) Go(duration time.Duration) <-chan struct{} {
 	return s.d.Go(duration)
 }
 
-// Run simulation for duration at given speed.
+// Stop any ongoing (previous) 'go' period and then run simulation for duration at given speed.
 func (s *Simulation) GoAtSpeed(duration time.Duration, speed float64) <-chan struct{} {
 	simplelogger.AssertTrue(speed > 0)
+	_ = s.d.GoCancel()
 	return s.d.GoAtSpeed(duration, speed)
 }
 

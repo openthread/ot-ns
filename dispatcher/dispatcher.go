@@ -90,11 +90,13 @@ type CallbackHandler interface {
 	OnUartWrite(nodeid NodeId, data []byte)
 }
 
-// represents a particular duration of simulation at a given speed, or default dispatcher speed if speed==0.
+// represents a particular duration of simulation at a given speed, or DefaultDispatcherSpeed. It can be
+// cancelled also by setting the cancel flag.
 type goDuration struct {
 	duration time.Duration
 	done     chan struct{}
 	speed    float64
+	cancel   bool
 }
 
 type Dispatcher struct {
@@ -105,6 +107,7 @@ type Dispatcher struct {
 	eventChan             chan *Event
 	waitGroup             sync.WaitGroup
 	CurTime               uint64
+	currentGoDuration     goDuration
 	pauseTime             uint64
 	alarmMgr              *alarmMgr
 	eventQueue            *sendQueue
@@ -179,7 +182,7 @@ func NewDispatcher(ctx *progctx.ProgCtx, cfg *Config, cbHandler CallbackHandler)
 		vis:                vis,
 		taskChan:           make(chan func(), 100),
 		watchingNodes:      map[NodeId]struct{}{},
-		goDurationChan:     make(chan goDuration, 10),
+		goDurationChan:     make(chan goDuration, 1),
 		visOptions:         defaultVisualizationOptions(),
 	}
 	d.speed = d.normalizeSpeed(d.speed)
@@ -204,6 +207,7 @@ func (d *Dispatcher) Stop() {
 	d.stopped = true
 	close(d.pcapFrameChan)
 	d.vis.Stop()
+	d.GoCancel()
 	d.waitGroup.Wait()
 }
 
@@ -212,16 +216,18 @@ func (d *Dispatcher) Nodes() map[NodeId]*Node {
 }
 
 func (d *Dispatcher) Go(duration time.Duration) <-chan struct{} {
+	simplelogger.AssertTrue(duration >= 0)
 	done := make(chan struct{})
 	d.goDurationChan <- goDuration{
 		duration: duration,
 		done:     done,
-		speed:    0,
+		speed:    DefaultDispatcherSpeed,
 	}
 	return done
 }
 
 func (d *Dispatcher) GoAtSpeed(duration time.Duration, speed float64) <-chan struct{} {
+	simplelogger.AssertTrue(speed >= 0.0 && duration >= 0)
 	done := make(chan struct{})
 	d.goDurationChan <- goDuration{
 		duration: duration,
@@ -231,11 +237,16 @@ func (d *Dispatcher) GoAtSpeed(duration time.Duration, speed float64) <-chan str
 	return done
 }
 
+// GoCancel cancels the current Go....() operation and pauses the simulation at d.CurTime.
+func (d *Dispatcher) GoCancel() <-chan struct{} {
+	d.currentGoDuration.cancel = true
+	return d.currentGoDuration.done
+}
+
 func (d *Dispatcher) Run() {
 	d.ctx.WaitAdd("dispatcher", 1)
 	defer d.ctx.WaitDone("dispatcher")
 	defer simplelogger.Debugf("dispatcher exit.")
-
 	defer d.Stop()
 
 	done := d.ctx.Done()
@@ -246,6 +257,7 @@ loop:
 			f()
 			break
 		case duration := <-d.goDurationChan:
+			d.currentGoDuration = duration
 			if len(d.nodes) == 0 || duration.duration < 0 {
 				// no nodes or no sim progress, sleep for a small duration to avoid high cpu
 				d.RecvEvents()
@@ -254,26 +266,9 @@ loop:
 				break
 			}
 
-			// sync the speed start time with the current time
-			d.speedStartRealTime = time.Now()
-			d.speedStartTime = d.CurTime
 			simplelogger.AssertTrue(d.CurTime == d.pauseTime)
 
-			var postSpeed float64
-			if duration.speed > 0 {
-				postSpeed = d.speed
-				d.SetSpeed(duration.speed)
-			}
-			d.pauseTime += uint64(duration.duration / time.Microsecond)
-			if d.pauseTime > Ever {
-				d.pauseTime = Ever
-			}
-
-			simplelogger.AssertTrue(d.CurTime <= d.pauseTime)
-			d.goUntilPauseTime()
-			if duration.speed > 0 {
-				d.SetSpeed(postSpeed)
-			}
+			d.goSimulateForDuration(duration)
 
 			if d.ctx.Err() != nil {
 				close(duration.done)
@@ -294,8 +289,27 @@ loop:
 	}
 }
 
-func (d *Dispatcher) goUntilPauseTime() {
-	for d.CurTime <= d.pauseTime {
+func (d *Dispatcher) goSimulateForDuration(duration goDuration) {
+	var postSpeed float64
+
+	// sync the speed start time with the current time
+	d.speedStartRealTime = time.Now()
+	d.speedStartTime = d.CurTime
+
+	if duration.speed != DefaultDispatcherSpeed {
+		postSpeed = d.speed
+		d.SetSpeed(duration.speed) // adapt speed for particular period.
+	}
+
+	// determine pauseTime (after duration)
+	d.pauseTime = d.CurTime + uint64(duration.duration/time.Microsecond)
+	if d.pauseTime > Ever {
+		d.pauseTime = Ever
+	}
+
+	simplelogger.AssertTrue(d.CurTime <= d.pauseTime)
+
+	for d.CurTime <= d.pauseTime && !d.currentGoDuration.cancel {
 		d.handleTasks()
 
 		if d.ctx.Err() != nil {
@@ -304,9 +318,8 @@ func (d *Dispatcher) goUntilPauseTime() {
 
 		// keep receiving events from OT nodes until all are asleep i.e. will not produce more events.
 		d.RecvEvents()
-		if !d.stopped {
-			d.syncAliveNodes() // normally there should not be any alive nodes anymore.
-		}
+		d.syncAliveNodes() // normally there should not be any alive nodes anymore.
+
 		if len(d.aliveNodes) == 0 {
 			// all are asleep now - process the next Events in queue, either alarm or other type, for a single time.
 			goon := d.processNextEvent(d.speed)
@@ -317,6 +330,13 @@ func (d *Dispatcher) goUntilPauseTime() {
 				break
 			}
 		}
+	}
+
+	if duration.speed != DefaultDispatcherSpeed { // restore original speed after period with custom speed set.
+		d.SetSpeed(postSpeed)
+	}
+	if d.pauseTime > d.CurTime { // if we e.g. cancelled period simulation early, and pauseTime not reached.
+		d.pauseTime = d.CurTime
 	}
 }
 
@@ -416,6 +436,7 @@ loop:
 // Returns true if the simulation needs to continue, or false if not (e.g. it's time to pause).
 func (d *Dispatcher) processNextEvent(simSpeed float64) bool {
 	simplelogger.AssertTrue(d.CurTime <= d.pauseTime)
+	simplelogger.AssertTrue(simSpeed >= 0)
 
 	// fetch time of next event
 	nextAlarmTime := d.alarmMgr.NextTimestamp()
@@ -454,7 +475,7 @@ func (d *Dispatcher) processNextEvent(simSpeed float64) bool {
 				}
 				d.advanceTime(curTime)
 			}
-			return simSpeed > 0
+			return true
 		}
 	}
 
@@ -804,7 +825,7 @@ func (d *Dispatcher) setSleeping(nodeid NodeId) {
 
 // syncAliveNodes advances the node's time of alive nodes only to current dispatcher time.
 func (d *Dispatcher) syncAliveNodes() {
-	if len(d.aliveNodes) == 0 {
+	if len(d.aliveNodes) == 0 || d.stopped {
 		return
 	}
 

@@ -226,12 +226,7 @@ func handleSignals(ctx *progctx.ProgCtx) {
 
 func autoGo(prog *progctx.ProgCtx, sim *simulation.Simulation) {
 	for {
-		spd := sim.GetSpeed()
-		if spd >= 1.0 {
-			<-sim.Go(time.Second)
-		} else {
-			<-sim.Go(time.Duration(float64(time.Second) * spd))
-		}
+		<-sim.Go(time.Second)
 	}
 }
 
