@@ -26,6 +26,11 @@
 
 package dispatcher
 
+const (
+	// DefaultDispatcherSpeed is used in a speed parameter, to indicate default speed.
+	DefaultDispatcherSpeed float64 = -1.0
+)
+
 type OtJoinerState int
 
 const (
