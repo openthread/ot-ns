@@ -124,10 +124,14 @@ func TestParseBytes(t *testing.T) {
 	assert.True(t, ParseBytes([]byte("scan 1"), &cmd) == nil && cmd.Scan != nil)
 
 	assert.True(t, ParseBytes([]byte("speed"), &cmd) == nil && cmd.Speed != nil && cmd.Speed.Speed == nil)
-	assert.True(t, ParseBytes([]byte("speed 1"), &cmd) == nil && cmd.Speed != nil && *cmd.Speed.Speed == 1)
+	assert.True(t, ParseBytes([]byte("speed 1.5"), &cmd) == nil && cmd.Speed != nil && *cmd.Speed.Speed == 1.5)
 
-	assert.True(t, ParseBytes([]byte("watch"), &cmd) == nil && cmd.Watch != nil)
-	assert.True(t, ParseBytes([]byte("watch 2 5 6"), &cmd) == nil && cmd.Watch != nil)
+	assert.True(t, ParseBytes([]byte("watch"), &cmd) == nil && cmd.Watch != nil && cmd.Watch.Nodes == nil)
+	assert.True(t, ParseBytes([]byte("watch 2 5 6"), &cmd) == nil && cmd.Watch != nil && cmd.Watch.Nodes != nil)
+	assert.True(t, ParseBytes([]byte("watch 1 2 5 6 debug"), &cmd) == nil && cmd.Watch != nil && cmd.Watch.Nodes != nil &&
+		len(cmd.Watch.Level) == 5)
+	assert.True(t, ParseBytes([]byte("watch 1 2 5 6 I"), &cmd) == nil && cmd.Watch != nil && cmd.Watch.Nodes != nil &&
+		len(cmd.Watch.Level) == 1)
 	assert.True(t, ParseBytes([]byte("unwatch 2 5 6"), &cmd) == nil && cmd.Unwatch != nil)
 	assert.True(t, ParseBytes([]byte("unwatch all"), &cmd) == nil && cmd.Unwatch != nil)
 
@@ -137,4 +141,6 @@ func TestParseBytes(t *testing.T) {
 func TestContextlessCommandPat(t *testing.T) {
 	assert.True(t, contextLessCommandsPat.MatchString("exit"))
 	assert.True(t, contextLessCommandsPat.MatchString("node 1"))
+	assert.True(t, contextLessCommandsPat.MatchString("!nodes"))
+	assert.True(t, contextLessCommandsPat.MatchString("!ping 23 24"))
 }
