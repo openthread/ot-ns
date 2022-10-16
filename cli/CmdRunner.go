@@ -478,6 +478,10 @@ func (rt *CmdRunner) executeNode(cc *CommandContext, cmd *NodeCmd) {
 	rt.postAsyncWait(func(sim *simulation.Simulation) {
 		node, _ := rt.getNode(sim, cmd.Node)
 		if node == nil {
+			if cmd.Node.Id == 0 && rt.contextNodeId != InvalidNodeId && rt.enterNodeContext(InvalidNodeId) {
+				// the 'node 0' command will exit node context, only when inside a node-context.
+				return
+			}
 			cc.errorf("node not found")
 			return
 		}
