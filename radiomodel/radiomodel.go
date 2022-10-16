@@ -28,9 +28,9 @@ package radiomodel
 
 import (
 	"math"
-	"math/rand"
 
 	. "github.com/openthread/ot-ns/types"
+	"github.com/simonlingoogle/go-simplelogger"
 )
 
 // IEEE 802.15.4-2015 related parameters
@@ -131,11 +131,13 @@ func Create(modelName string) RadioModel {
 
 // interferePsduData simulates the interference (garbling) of PSDU data based on a given SIR level (dB).
 func interferePsduData(data []byte, sirDb float64) []byte {
+	simplelogger.AssertTrue(len(data) >= 2)
 	intfData := data
 	if sirDb < 0 {
-		rand.Read(intfData)
+		// modify MAC frame FCS, as a substitute for interfered frame.
+		intfData[len(data)-2]++
+		intfData[len(data)-1]++
 	}
-	intfData[0] = data[0] // keep channel info correct.
 	return intfData
 }
 

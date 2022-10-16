@@ -149,9 +149,11 @@ func (rm *RadioModelMutualInterference) getRssiOnChannel(node *RadioNode, channe
 }
 
 func (rm *RadioModelMutualInterference) txStart(node *RadioNode, q EventQueue, evt *Event) {
-	// verify node doesn't already transmit on its current channel.
+	// verify node doesn't already transmit or sample on its current channel.
 	_, nodeTransmits := rm.activeTransmitters[node.RadioChannel][node.Id]
 	simplelogger.AssertFalse(nodeTransmits)
+	_, nodeSamples := rm.activeChannelSamplers[node.RadioChannel][node.Id]
+	simplelogger.AssertFalse(nodeSamples)
 
 	node.TxPower = evt.RadioCommData.PowerDbm
 	node.SetChannel(evt.RadioCommData.Channel)
@@ -243,6 +245,12 @@ func (rm *RadioModelMutualInterference) updateChannelSamplingNodes(src *RadioNod
 
 func (rm *RadioModelMutualInterference) channelSampleStart(srcNode *RadioNode, q EventQueue, evt *Event) {
 	srcNode.SetChannel(evt.RadioCommData.Channel)
+	// verify node doesn't already transmit on its current channel.
+	_, nodeTransmits := rm.activeTransmitters[srcNode.RadioChannel][srcNode.Id]
+	simplelogger.AssertFalse(nodeTransmits)
+	_, nodeSamples := rm.activeChannelSamplers[srcNode.RadioChannel][srcNode.Id]
+	simplelogger.AssertFalse(nodeSamples)
+
 	// take 1st channel sample
 	srcNode.rssiSampleMax = rm.getRssiOnChannel(srcNode, srcNode.RadioChannel)
 
