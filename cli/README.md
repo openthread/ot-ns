@@ -32,7 +32,8 @@ Python libraries use the CLI to manage simulations.
 * [title](#title-string)
 * [unwatch](#unwatch-node-id-node-id-)
 * [watch](#watch-node-id-node-id-)
-* [watch](#watch-node-id-node-id--debuglevel)
+   * [watch \<nodeid\> \<LogLevel\>](#watch-node-id-node-id--loglevel)
+   * [watch default \<LogLevel\>](#watch-default-loglevel)
 * [web](#web)
 
 ## OTNS command reference
@@ -468,14 +469,15 @@ Disable the watch status for one or more nodes. See [watch](#watch-node-id-node-
 
 Disable the watch status for all nodes. See [watch](#watch-node-id-node-id-) for details.
 
-### watch \[\<node-id\>\] \[<node-id> ...\]
+### watch \[\<node-id\>\] \[\<node-id\> ...\]
 
 Enable additional, detailed log messages on selected node(s) only. This can be useful for interactive debugging or 
 inspection of a node's behavior. 
 
 * To see all nodes currently being watched, use "watch" without parameters.
 * By default, watching a node will only display OT stack log messages from level Info (I) or up. To see Debug (D) 
-  messages, or only Warn (W) or Error/Critical (C) messages, use [watch with debug-level parameter](#watch-node-id-node-id-debugLevel)
+  messages, or only Warn (W) or Error/Critical (C) messages, use 
+  [watch \<LogLevel\>](#watch-node-id-node-id--logLevel)
 
 ```bash
 > watch 1
@@ -497,18 +499,17 @@ Done
 >
 ```
 
-### watch \[\<node-id\>\] \[\<node-id.> ...\] \[\<debugLevel\>\]
-This is an explanation of the advanced watch debugLevel option. See [watch](watch-node-id-node-id-) for the basic 
-explanation. Adding the \<debugLevel\> optional parameter will 
-cause OT stack log messages from indicated level, or higher (more important), to be shown. By default, only the 
-Info (I) level or up is shown. This can be useful for interactive debugging or inspection of a node's behavior 
+#### watch \<node-id\> \[\<node-id\> ...\] \[\<LogLevel\>\]
+This is an advanced use of the watch command with LogLevel option. Adding the `<LogLevel>` optional parameter will  
+cause OT stack log messages from indicated log level, or higher (more important), to be shown. By default, only the 
+Info (I) level or up is shown. Setting the level can be useful for interactive debugging or inspection of a node's behavior 
 including the operation of its simulated radio.
 
-* Valid long-form debugLevels are "debug", "info", "note", "warn", "error", or "crit" (same as "error").
-* Valid short-form debugLevels that are named like in the OT stack log output are "D", "I", "N", "W", "C"; with 
+* Valid long-form LogLevels are "debug", "info", "note", "warn", "error", or "crit" (same as "error").
+* Valid short-form LogLevels that are named like in the OT stack log output are "D", "I", "N", "W", "C"; with 
  additionally "T" for trace or "E" for error/critical available.
-* This command can also be used to change the debugLevel of one or more nodes being already watched, to a new  
- debugLevel.
+* This command can also be used to change the LogLevel of one or more nodes being already watched, to a new  
+ LogLevel.
 
 ```bash
 > watch 1 debug
@@ -524,6 +525,34 @@ Done
 > watch 3 5 6 I
 Done
 >
+```
+
+#### watch all \[\<LogLevel\>\]
+
+Enable the watch status for all nodes. See [watch](#watch-node-id-node-id-) for details and 
+[watch \<LogLevel\>](#watch-node-id-node-id--loglevel) for the LogLevel option.
+
+```bash
+> watch all
+Done
+> watch all debug
+Done
+> 
+```
+
+#### watch default \<LogLevel\>
+
+Set the default watch status and `LogLevel` of all newly created nodes. See above for `LogLevel` values.
+
+* Use `off` for disabling the default watch on new nodes, and setting LogLevel to the default in case a 
+ manual watch would be set for future nodes without specifying a LogLevel parameter.
+
+```bash
+> watch default debug
+Done
+> watch default off
+Done
+> 
 ```
 
 ### web

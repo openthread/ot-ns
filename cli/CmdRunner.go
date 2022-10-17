@@ -679,23 +679,52 @@ func (rt *CmdRunner) executeLogLevel(cc *CommandContext, cmd *LogLevelCmd) {
 
 func (rt *CmdRunner) executeWatch(cc *CommandContext, cmd *WatchCmd) {
 	rt.postAsyncWait(func(sim *simulation.Simulation) {
-		if len(cmd.Nodes) == 0 {
-			watchedList := strings.Trim(fmt.Sprintf("%v", sim.Dispatcher().GetWatchingNodes()), "[]")
-			cc.outputf("%v\n", watchedList)
-		} else {
-			watchLogLevel := ""
-			if len(cmd.Level) > 0 {
-				watchLogLevel = cmd.Level
-			}
-			for _, sel := range cmd.Nodes {
-				node, _ := rt.getNode(sim, sel)
-				if node == nil {
-					cc.errorf("node %v not found", sel)
-					continue
-				}
-				sim.Dispatcher().WatchNode(node.Id, watchLogLevel)
+		watchLogLevel := ""
+		if len(cmd.Level) > 0 {
+			watchLogLevel = cmd.Level
+			// if a 'low' level is given, ensure that the level messages can be seen by activating 'Info' level.
+			lev := dispatcher.ParseWatchLogLevel(watchLogLevel)
+			if lev > dispatcher.WatchInfoLevel && simplelogger.GetLevel() > simplelogger.InfoLevel {
+				simplelogger.SetLevel(simplelogger.InfoLevel)
 			}
 		}
+		nodesToWatch := cmd.Nodes
+
+		if len(cmd.Nodes) == 0 && len(cmd.All) == 0 && len(cmd.Default) == 0 && len(cmd.Level) == 0 {
+			// variant: 'watch'
+			watchedList := strings.Trim(fmt.Sprintf("%v", sim.Dispatcher().GetWatchingNodes()), "[]")
+			cc.outputf("%v\n", watchedList)
+			return
+		} else if len(cmd.Nodes) == 0 && len(cmd.All) == 0 && len(cmd.Default) > 0 && len(cmd.Level) > 0 {
+			// variant: 'watch default <level>'
+			sim.Dispatcher().GetConfig().DefaultWatchOn = cmd.Level != "off" && cmd.Level != "none"
+			sim.Dispatcher().GetConfig().DefaultWatchLevel = cmd.Level
+			return
+		} else if len(cmd.Nodes) == 0 && len(cmd.All) > 0 && len(cmd.Default) == 0 {
+			// variant: 'watch all [<level>]'
+			for _, nodeid := range sim.GetNodes() {
+				nodesToWatch = append(nodesToWatch, NodeSelector{Id: nodeid})
+			}
+		} else if len(cmd.Nodes) > 0 && len(cmd.All) == 0 && len(cmd.Default) == 0 {
+			// variant: 'watch <nodeid> [<nodeid> ...] [<level>]'
+
+		} else if len(cmd.Nodes) == 0 && len(cmd.All) == 0 && len(cmd.Default) == 0 && len(cmd.Level) > 0 {
+			// variant: 'watch <level>'
+			// Do nothing additional. Was processed above under 'watchLogLevel'.
+		} else {
+			cc.errorf("unsupported combination of command options")
+			return
+		}
+
+		for _, sel := range nodesToWatch {
+			node, _ := rt.getNode(sim, sel)
+			if node == nil {
+				cc.errorf("node %v not found", sel)
+				continue
+			}
+			sim.Dispatcher().WatchNode(node.Id, watchLogLevel)
+		}
+
 	})
 }
 

@@ -53,6 +53,7 @@ const (
 	WatchNoteLevel    WatchLogLevel = 3
 	WatchWarnLevel    WatchLogLevel = 2
 	WatchCritLevel    WatchLogLevel = 1
+	WatchOffLevel     WatchLogLevel = 0
 	WatchDefaultLevel               = WatchInfoLevel
 )
 
@@ -70,6 +71,8 @@ func ParseWatchLogLevel(level string) WatchLogLevel {
 		return WatchWarnLevel
 	case "crit", "critical", "error", "err", "C", "E":
 		return WatchCritLevel
+	case "off", "none":
+		return WatchOffLevel
 	case "default", "def":
 		fallthrough
 	default:
