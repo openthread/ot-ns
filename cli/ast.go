@@ -104,10 +104,10 @@ type DebugCmd struct {
 
 // noinspection GoStructTag
 type GoCmd struct {
-	Cmd   struct{}  `"go"`                                 //nolint
-	Time  string    `( @((Int|Float)["h"|"us"|"m"|"ms"]) ` //nolint
-	Ever  *EverFlag `| @@ )`                               //nolint
-	Speed *float64  `[ "speed" (@Int|@Float) ]`            //nolint
+	Cmd   struct{}  `"go"`                                     //nolint
+	Time  string    `( @((Int|Float)["h"|"us"|"m"|"ms"|"s"]) ` //nolint
+	Ever  *EverFlag `| @@ )`                                   //nolint
+	Speed *float64  `[ "speed" (@Int|@Float) ]`                //nolint
 }
 
 // noinspection GoStructTag
