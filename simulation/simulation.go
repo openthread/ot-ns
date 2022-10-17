@@ -107,20 +107,19 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 		return nil, errors.Errorf("node %d already exists", nodeid)
 	}
 
+	simplelogger.Infof("simulation:AddNode: %+v, rawMode=%v", cfg, s.rawMode)
+	dispNode := s.d.AddNode(nodeid, cfg)
 	node, err := newNode(s, nodeid, cfg)
 	if err != nil {
 		simplelogger.Errorf("simulation add node failed: %v", err)
 		return nil, err
 	}
-
 	s.nodes[nodeid] = node
 
-	simplelogger.Infof("simulation:CtrlAddNode: %+v, rawMode=%v", cfg, s.rawMode)
-	s.d.AddNode(nodeid, cfg)
-
+	// init of the sim/dispatcher nodes
+	s.d.InitNode(dispNode)
 	node.detectVirtualTimeUART()
 	node.setupMode()
-
 	if !s.rawMode {
 		node.SetupNetworkParameters(s)
 		node.Start()
@@ -149,6 +148,16 @@ func (s *Simulation) Run() {
 
 func (s *Simulation) Nodes() map[NodeId]*Node {
 	return s.nodes
+}
+
+func (s *Simulation) GetNodes() []NodeId {
+	keys := make([]NodeId, len(s.nodes))
+	i := 0
+	for key := range s.nodes {
+		keys[i] = key
+		i++
+	}
+	return keys
 }
 
 func (s *Simulation) NetworkKey() string {

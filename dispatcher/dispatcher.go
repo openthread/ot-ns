@@ -64,21 +64,24 @@ type pcapFrameItem struct {
 }
 
 type Config struct {
-	Speed       float64
-	Real        bool
-	Host        string
-	Port        int
-	DumpPackets bool
-	NoPcap      bool
+	Speed             float64
+	Real              bool
+	Host              string
+	Port              int
+	DumpPackets       bool
+	NoPcap            bool
+	DefaultWatchOn    bool
+	DefaultWatchLevel string
 }
 
 func DefaultConfig() *Config {
 	return &Config{
-		Speed:       1,
-		Real:        false,
-		Host:        "localhost",
-		Port:        threadconst.InitialDispatcherPort,
-		DumpPackets: false,
+		Speed:          1,
+		Real:           false,
+		Host:           "localhost",
+		Port:           threadconst.InitialDispatcherPort,
+		DumpPackets:    false,
+		DefaultWatchOn: false,
 	}
 }
 
@@ -209,6 +212,10 @@ func (d *Dispatcher) Stop() {
 	d.vis.Stop()
 	d.GoCancel()
 	d.waitGroup.Wait()
+}
+
+func (d *Dispatcher) GetConfig() *Config {
+	return &d.cfg
 }
 
 func (d *Dispatcher) Nodes() map[NodeId]*Node {
@@ -926,7 +933,7 @@ func (d *Dispatcher) handleStatusPush(srcnode *Node, data string) {
 	}
 }
 
-func (d *Dispatcher) AddNode(nodeid NodeId, cfg *NodeConfig) {
+func (d *Dispatcher) AddNode(nodeid NodeId, cfg *NodeConfig) *Node {
 	simplelogger.AssertNil(d.nodes[nodeid])
 	simplelogger.Infof("dispatcher add node %d", nodeid)
 	node := newNode(d, nodeid, cfg)
@@ -937,14 +944,18 @@ func (d *Dispatcher) AddNode(nodeid NodeId, cfg *NodeConfig) {
 	d.radioModel.AddNode(nodeid, node.radioNode)
 	d.setAlive(nodeid)
 
-	if !d.cfg.Real {
-		d.detectNodeExtAddr(node)
+	if d.cfg.DefaultWatchOn {
+		d.WatchNode(nodeid, d.cfg.DefaultWatchLevel)
 	}
+	return node
 }
 
-// detectNodeExtAddr waits until node's extended address is emitted. Not to be used for real devices.
-// This helps OTNS to make sure that the child process is ready to receive UDP events.
-func (d *Dispatcher) detectNodeExtAddr(node *Node) {
+// InitNode performs dispatcher Node initialization. For a non-real node, it waits until node's extended address
+// is emitted. This helps OTNS to make sure that the child process is ready to receive UDP events.
+func (d *Dispatcher) InitNode(node *Node) bool {
+	if d.cfg.Real {
+		return true
+	}
 	t0 := time.Now()
 	deadline := t0.Add(time.Second * 10)
 	for node.ExtAddr == InvalidExtAddr && time.Now().Before(deadline) {
@@ -953,10 +964,12 @@ func (d *Dispatcher) detectNodeExtAddr(node *Node) {
 
 	if node.ExtAddr == InvalidExtAddr {
 		simplelogger.Panicf("expect node %d's extaddr to be valid, but failed", node.Id)
+		return false
 	} else {
 		takeTime := time.Since(t0)
 		simplelogger.Debugf("node %d's extaddr becomes valid in %v", node.Id, takeTime)
 	}
+	return true
 }
 
 func (d *Dispatcher) setNodeRloc16(srcid NodeId, rloc16 uint16) {

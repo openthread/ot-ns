@@ -127,9 +127,12 @@ func TestParseBytes(t *testing.T) {
 	assert.True(t, ParseBytes([]byte("speed 1.5"), &cmd) == nil && cmd.Speed != nil && *cmd.Speed.Speed == 1.5)
 
 	assert.True(t, ParseBytes([]byte("watch"), &cmd) == nil && cmd.Watch != nil && cmd.Watch.Nodes == nil)
+	assert.True(t, ParseBytes([]byte("watch all"), &cmd) == nil && cmd.Watch != nil && cmd.Watch.Nodes == nil && cmd.Watch.All == "all")
 	assert.True(t, ParseBytes([]byte("watch 2 5 6"), &cmd) == nil && cmd.Watch != nil && cmd.Watch.Nodes != nil)
 	assert.True(t, ParseBytes([]byte("watch 1 2 5 6 debug"), &cmd) == nil && cmd.Watch != nil && cmd.Watch.Nodes != nil &&
 		len(cmd.Watch.Level) == 5)
+	assert.True(t, ParseBytes([]byte("watch default T"), &cmd) == nil && cmd.Watch != nil && cmd.Watch.Nodes == nil &&
+		len(cmd.Watch.Level) == 1)
 	assert.True(t, ParseBytes([]byte("watch 1 2 5 6 I"), &cmd) == nil && cmd.Watch != nil && cmd.Watch.Nodes != nil &&
 		len(cmd.Watch.Level) == 1)
 	assert.True(t, ParseBytes([]byte("unwatch 2 5 6"), &cmd) == nil && cmd.Unwatch != nil)
