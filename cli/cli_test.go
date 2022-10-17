@@ -29,7 +29,7 @@ package cli
 import (
 	"testing"
 	"time"
-	
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -132,6 +132,8 @@ func TestParseBytes(t *testing.T) {
 
 	assert.True(t, ParseBytes([]byte("speed"), &cmd) == nil && cmd.Speed != nil && cmd.Speed.Speed == nil)
 	assert.True(t, ParseBytes([]byte("speed 1.5"), &cmd) == nil && cmd.Speed != nil && *cmd.Speed.Speed == 1.5)
+
+	assert.True(t, ParseBytes([]byte("time"), &cmd) == nil && cmd.Time != nil)
 
 	assert.True(t, ParseBytes([]byte("watch"), &cmd) == nil && cmd.Watch != nil && cmd.Watch.Nodes == nil)
 	assert.True(t, ParseBytes([]byte("watch all"), &cmd) == nil && cmd.Watch != nil && cmd.Watch.Nodes == nil && cmd.Watch.All == "all")
