@@ -441,6 +441,22 @@ Done
 Done
 ```
 
+### time
+
+Display current simulation time in us. 
+
+```bash
+> time
+312560
+Done
+> go 100us
+Done
+> time
+312660
+Done
+> 
+```
+
 ### title "\<string\>"
 
 Set simulation title.

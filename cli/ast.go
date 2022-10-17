@@ -60,6 +60,7 @@ type Command struct {
 	RadioModel          *RadioModelCmd          `| @@` //nolint
 	Scan                *ScanCmd                `| @@` //nolint
 	Speed               *SpeedCmd               `| @@` //nolint
+	Time                *TimeCmd                `| @@` //nolint
 	Title               *TitleCmd               `| @@` //nolint
 	Unwatch             *UnwatchCmd             `| @@` //nolint
 	Watch               *WatchCmd               `| @@` //nolint
@@ -242,6 +243,11 @@ type SpeedCmd struct {
 	Cmd   struct{}      `"speed"`               //nolint
 	Max   *MaxSpeedFlag `( @@`                  //nolint
 	Speed *float64      `| [ (@Int|@Float) ] )` //nolint
+}
+
+//noinspection GoStructTag
+type TimeCmd struct {
+	Cmd struct{} `"time"` //nolint
 }
 
 //noinspection GoStructTag

@@ -229,6 +229,8 @@ func (rt *CmdRunner) execute(cmd *Command, output io.Writer) {
 		rt.executeWatch(cc, cmd.Watch)
 	} else if cmd.Unwatch != nil {
 		rt.executeUnwatch(cc, cmd.Unwatch)
+	} else if cmd.Time != nil {
+		rt.executeTime(cc, cmd.Time)
 	} else {
 		simplelogger.Panicf("unimplemented command: %#v", cmd)
 	}
@@ -874,6 +876,14 @@ func (rt *CmdRunner) executeTitle(cc *CommandContext, cmd *TitleCmd) {
 
 		sim.SetTitleInfo(titleInfo)
 	})
+}
+
+func (rt *CmdRunner) executeTime(cc *CommandContext, cmd *TimeCmd) {
+	var dispTime uint64
+	rt.postAsyncWait(func(sim *simulation.Simulation) {
+		dispTime = sim.Dispatcher().CurTime
+	})
+	cc.outputf("%d\n", dispTime)
 }
 
 func (rt *CmdRunner) executeNetInfo(cc *CommandContext, cmd *NetInfoCmd) {
