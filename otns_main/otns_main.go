@@ -68,6 +68,7 @@ type MainArgs struct {
 	AutoGo         bool
 	ReadOnly       bool
 	LogLevel       string
+	WatchLevel     string
 	OpenWeb        bool
 	RawMode        bool
 	Real           bool
@@ -94,6 +95,7 @@ func parseArgs() {
 	flag.BoolVar(&args.AutoGo, "autogo", true, "auto go")
 	flag.BoolVar(&args.ReadOnly, "readonly", false, "readonly simulation can not be manipulated")
 	flag.StringVar(&args.LogLevel, "log", "warn", "set logging level")
+	flag.StringVar(&args.WatchLevel, "watch", "off", "set default watch level for all new nodes")
 	flag.BoolVar(&args.OpenWeb, "web", true, "open web")
 	flag.BoolVar(&args.RawMode, "raw", false, "use raw mode")
 	flag.BoolVar(&args.Real, "real", false, "use real mode (for real devices)")
@@ -255,6 +257,8 @@ func createSimulation(ctx *progctx.ProgCtx) *simulation.Simulation {
 
 	dispatcherCfg := dispatcher.DefaultConfig()
 	dispatcherCfg.NoPcap = args.NoPcap
+	dispatcherCfg.DefaultWatchLevel = args.WatchLevel
+	dispatcherCfg.DefaultWatchOn = dispatcher.ParseWatchLogLevel(args.WatchLevel) != dispatcher.WatchOffLevel
 
 	sim, err := simulation.NewSimulation(ctx, simcfg, dispatcherCfg)
 	simplelogger.FatalIfError(err)
