@@ -152,6 +152,8 @@ const (
 	OT_RADIO_SUBSTATE_RX_ACK_TX_ONGOING RadioSubStates = iota
 	OT_RADIO_SUBSTATE_RX_TX_TO_RX       RadioSubStates = iota
 	OT_RADIO_SUBSTATE_RX_ENERGY_SCAN    RadioSubStates = iota
+	OT_RADIO_SUBSTATE_STARTUP           RadioSubStates = iota
+	OT_RADIO_SUBSTATE_INVALID           RadioSubStates = iota
 )
 
 func (s RadioSubStates) String() string {
@@ -184,8 +186,12 @@ func (s RadioSubStates) String() string {
 		return "AckT2Rx"
 	case OT_RADIO_SUBSTATE_RX_ENERGY_SCAN:
 		return "EnrScan"
+	case OT_RADIO_SUBSTATE_STARTUP:
+		return "Startup"
+	case OT_RADIO_SUBSTATE_INVALID:
+		return "Invalid"
 	default:
 		simplelogger.Panicf("invalid RadioSubState: %v", s)
-		return "invalid_"
+		return ""
 	}
 }
