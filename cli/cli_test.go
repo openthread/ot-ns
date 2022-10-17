@@ -28,7 +28,8 @@ package cli
 
 import (
 	"testing"
-
+	"time"
+	
 	"github.com/stretchr/testify/assert"
 )
 
@@ -71,6 +72,12 @@ func TestParseBytes(t *testing.T) {
 	assert.Nil(t, ParseBytes([]byte("go 1"), &cmd))
 	assert.NotNil(t, cmd.Go)
 	assert.Nil(t, ParseBytes([]byte("go 1.1"), &cmd))
+	assert.NotNil(t, cmd.Go)
+	assert.Nil(t, ParseBytes([]byte("go 64us"), &cmd))
+	assert.NotNil(t, cmd.Go)
+	parsedDuration, _ := time.ParseDuration("64us")
+	assert.Equal(t, 64*time.Microsecond, parsedDuration)
+	assert.Nil(t, ParseBytes([]byte("go 5h"), &cmd))
 	assert.NotNil(t, cmd.Go)
 	assert.Nil(t, ParseBytes([]byte("go ever"), &cmd))
 	assert.NotNil(t, cmd.Go)

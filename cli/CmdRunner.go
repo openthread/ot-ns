@@ -230,7 +230,14 @@ func (rt *CmdRunner) execute(cmd *Command, output io.Writer) {
 
 func (rt *CmdRunner) executeGo(cc *CommandContext, cmd *GoCmd) {
 	// determine duration and desired speed of the Go simulation period.
-	timeDurToGo := time.Duration(float64(time.Second) * cmd.Seconds)
+	timeDurToGo, err := time.ParseDuration(cmd.Time)
+	if cmd.Ever == nil && err != nil {
+		timeDurToGo, err = time.ParseDuration(cmd.Time + "s") // try parsing as seconds
+		if err != nil {
+			cc.errorf("could not parse time duration: %s", cmd.Time)
+			return
+		}
+	}
 	speed := rt.sim.GetSpeed()
 	if cmd.Speed != nil {
 		speed = *cmd.Speed

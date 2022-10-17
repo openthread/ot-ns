@@ -13,7 +13,7 @@ Python libraries use the CLI to manage simulations.
 * [cv](#cv-option-onoff-)
 * [del](#del-node-id-node-id-)
 * [exit](#exit)
-* [go](#go-duration-seconds--ever-speed-particular-speed)
+* [go](#go-duration-speed-particular-speed)
 * [joins](#joins)
 * [log](#log-level)
 * [move](#move-node-id-x-y)
@@ -159,21 +159,28 @@ Done
 <EOF>
 ```
 
-### go \[\<duration-seconds\> | ever\] \[speed \<particular-speed\>\]
+### go \<duration\> \[speed \<particular-speed\>\]
 
-Simulate for a specified time in seconds or indefinitely (`ever`). It is required in `-autogo=false` mode to
+Simulate for a specified time in seconds or indefinitely (duration=`ever`). It is required in `-autogo=false` mode to
 advance the simulation. In `-autogo=true` mode, it can be optionally used to advance the simulation quickly 
-by the given time. For example, in a paused simulation to quickly advance 1 ms, 10 seconds, or an hour.
+by the given time. For example, in a paused simulation to quickly advance 64 us, 1 ms, 10 seconds, or an hour.
 The optional `speed` argument can be given to do the simulation at that speed e.g. to see the animations 
-and log output better.
+and log output better. 
+The `duration` argument can optionally end with a time unit suffix: 
+`us`, `ms`, `s`, `m`, or `h`.
+
 ```bash
 > go 1
 Done
 > go 10
 Done
-> go 0.001
+> go 0.003
 Done
 > go 5 speed 0.1
+Done
+> go 64us
+Done
+> go 20m
 Done
 > go ever
 <NEVER FINISHES>
