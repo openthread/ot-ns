@@ -563,15 +563,19 @@ Done
 > 
 ```
 
-#### watch default \<LogLevel\>
+#### watch default \[\<LogLevel\>\]
 
 Set the default watch status and `LogLevel` of all newly created nodes. See above for `LogLevel` values.
 
-* Use `off` for disabling the default watch on new nodes, and setting LogLevel to the default in case a 
- manual watch would be set for future nodes without specifying a LogLevel parameter.
+* Use `off` for disabling the default watch on new nodes. This also sets the watch LogLevel to `default` in case a 
+ manual watch is set later on without specifying a LogLevel parameter.
+* Omit the `LogLevel` argument to see current default.
 
 ```bash
 > watch default debug
+Done
+> watch default
+debug
 Done
 > watch default off
 Done

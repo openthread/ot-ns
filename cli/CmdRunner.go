@@ -697,7 +697,8 @@ func (rt *CmdRunner) executeWatch(cc *CommandContext, cmd *WatchCmd) {
 		watchLogLevel := ""
 		if len(cmd.Level) > 0 {
 			watchLogLevel = cmd.Level
-			// if a 'low' level is given, ensure that the level messages can be seen by activating 'Info' level.
+			// if a 'low' level is given, ensure that the level's messages can be seen by activating 'Info' level.
+			// TODO have separate log objects
 			lev := dispatcher.ParseWatchLogLevel(watchLogLevel)
 			if lev > dispatcher.WatchInfoLevel && simplelogger.GetLevel() > simplelogger.InfoLevel {
 				simplelogger.SetLevel(simplelogger.InfoLevel)
@@ -714,6 +715,14 @@ func (rt *CmdRunner) executeWatch(cc *CommandContext, cmd *WatchCmd) {
 			// variant: 'watch default <level>'
 			sim.Dispatcher().GetConfig().DefaultWatchOn = cmd.Level != "off" && cmd.Level != "none"
 			sim.Dispatcher().GetConfig().DefaultWatchLevel = cmd.Level
+			return
+		} else if len(cmd.Nodes) == 0 && len(cmd.All) == 0 && len(cmd.Default) > 0 && len(cmd.Level) == 0 {
+			// variant: 'watch default'
+			watchLevelDefault := "off"
+			if sim.Dispatcher().GetConfig().DefaultWatchOn {
+				watchLevelDefault = sim.Dispatcher().GetConfig().DefaultWatchLevel
+			}
+			cc.outputf("%s\n", watchLevelDefault)
 			return
 		} else if len(cmd.Nodes) == 0 && len(cmd.All) > 0 && len(cmd.Default) == 0 {
 			// variant: 'watch all [<level>]'
