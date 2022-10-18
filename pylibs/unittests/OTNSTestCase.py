@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2020, The OTNS Authors.
+# Copyright (c) 2020-2022, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -40,7 +40,7 @@ class OTNSTestCase(unittest.TestCase):
 
     def setUp(self) -> None:
         logging.info("Setting up for test: %s", self.id())
-        self.ns = OTNS(otns_args=['-log', 'debug'])
+        self.ns = OTNS(otns_args=['-log', 'debug']) # may add '-watch', 'trace' to see detailed OT node traces.
         self.ns.speed = OTNS.MAX_SIMULATE_SPEED
 
     def tearDown(self) -> None:
