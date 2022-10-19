@@ -211,8 +211,8 @@ func (s *Simulation) OnNodeRecover(nodeid NodeId) {
 }
 
 func (s *Simulation) OnNodeProcessFailure(node *Node) {
-	simplelogger.Errorf("Node %v process failed, deleting node.", node.Id)
 	s.PostAsync(false, func() {
+		simplelogger.Errorf("Node %v process failed, deleting node.", node.Id)
 		_ = s.DeleteNode(node.Id)
 	})
 }

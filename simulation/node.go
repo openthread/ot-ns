@@ -61,7 +61,6 @@ const (
 	NodeUartTypeUndefined   NodeUartType = iota
 	NodeUartTypeRealTime    NodeUartType = iota
 	NodeUartTypeVirtualTime NodeUartType = iota
-	NodeUartTypeErrors      NodeUartType = iota
 )
 
 func newNode(s *Simulation, id NodeId, cfg *NodeConfig) (*Node, error) {
@@ -84,6 +83,8 @@ func newNode(s *Simulation, id NodeId, cfg *NodeConfig) (*Node, error) {
 	if err != nil {
 		simplelogger.Errorf("Opening node log file %s failed: %+v", logFileName, err)
 	}
+
+	// determine path of the OT CLI app and start OT node process.
 	otCliPath := s.cfg.OtCliPath
 	if cfg.ExecutablePath != "" {
 		otCliPath = cfg.ExecutablePath
@@ -123,7 +124,7 @@ func newNode(s *Simulation, id NodeId, cfg *NodeConfig) (*Node, error) {
 
 	go node.lineReader(node.pipeOut, NodeUartTypeRealTime)
 	go node.lineReader(node.virtualUartReader, NodeUartTypeVirtualTime)
-	go node.lineReader(node.pipeErr, NodeUartTypeErrors)
+	go node.lineReaderStdErr(node.pipeErr)
 
 	return node, nil
 }
@@ -613,18 +614,20 @@ func (node *Node) ConfigActiveDataset(channel int, networkkey string, panid uint
 }
 
 func (node *Node) lineReader(reader io.Reader, uartType NodeUartType) {
-	// close the line channel after line reader routine exit
+	// close the line channel after line reader routine exit.
+	// Below filter takes out any OT node log-message lines and sends these to the handler.
 	scanner := bufio.NewScanner(otoutfilter.NewOTOutFilter(bufio.NewReader(reader), "", node.handlerLogMsg))
 	scanner.Split(bufio.ScanLines)
 
-	isNodeError := false
 	for scanner.Scan() {
 		line := scanner.Text()
 
-		if uartType == NodeUartTypeErrors {
-			node.handlerLogMsg("C", fmt.Sprintf("%v StdErr: %v", node, line))
-			isNodeError = true
-		} else if node.uartType == NodeUartTypeUndefined {
+		// append line to node-specific log file.
+		if node.logFile != nil {
+			node.logFile.WriteString(line + "\n")
+		}
+
+		if node.uartType == NodeUartTypeUndefined {
 			simplelogger.Debugf("%v's UART type is %v", node, uartType)
 			node.uartType = uartType
 		}
@@ -643,8 +646,27 @@ func (node *Node) lineReader(reader io.Reader, uartType NodeUartType) {
 			break
 		}
 	}
+}
 
-	// when the stderr of the node closes and errors were printed, delete the node.
+func (node *Node) lineReaderStdErr(reader io.Reader) {
+	scanner := bufio.NewScanner(bufio.NewReader(reader)) // no filter applied.
+	scanner.Split(bufio.ScanLines)
+
+	isNodeError := false
+	for scanner.Scan() {
+		isNodeError = true
+		line := scanner.Text()
+
+		// append it to node-specific log file.
+		if node.logFile != nil {
+			node.logFile.WriteString(line + "\n")
+		}
+
+		// send it to watch output.
+		node.S.Dispatcher().WatchMessage(node.Id, dispatcher.WatchCritLevel, fmt.Sprintf("%v StdErr: %v", node, line))
+	}
+
+	// when the stderr of the node closes and any errors were printed, flag the node's failure.
 	if isNodeError {
 		node.S.OnNodeProcessFailure(node)
 	}
@@ -653,8 +675,7 @@ func (node *Node) lineReader(reader io.Reader, uartType NodeUartType) {
 // handles an incoming log message from the OT-Node and its detected loglevel (otLevel). It is written
 // to the node's log file. Display of the log message is done by the Dispatcher.
 func (node *Node) handlerLogMsg(otLevel string, msg string) {
-
-	// append it to node-specific log file.
+	// append msg to node-specific log file.
 	if node.logFile != nil {
 		node.logFile.WriteString(msg + "\n")
 	}
@@ -680,21 +701,23 @@ func (node *Node) TryExpectLine(line interface{}, timeout time.Duration) (bool, 
 				return false, outputLines
 			}
 
-			simplelogger.Debugf("%v %s", node, readLine)
+			if !strings.HasPrefix(readLine, "|") && !strings.HasPrefix(readLine, "+") {
+				simplelogger.Debugf("%v %s", node, readLine)
+			}
 
 			outputLines = append(outputLines, readLine)
 			if node.isLineMatch(readLine, line) {
 				// found the exact line
 				return true, outputLines
 			} else {
-				// FIXME hack: output scan result here, should have better implementation
+				// TODO hack: output scan result here, should have better implementation
 				//| J | Network Name     | Extended PAN     | PAN  | MAC Address      | Ch | dBm | LQI |
 				if strings.HasPrefix(readLine, "|") || strings.HasPrefix(readLine, "+") {
 					fmt.Printf("%s\n", readLine)
 				}
 			}
 		default:
-			node.S.Dispatcher().RecvEvents()
+			node.S.Dispatcher().RecvEvents() // keep virtual-UART events coming.
 		}
 	}
 }
