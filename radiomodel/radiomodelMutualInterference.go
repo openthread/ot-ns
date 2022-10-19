@@ -91,12 +91,16 @@ func (rm *RadioModelMutualInterference) OnEventDispatch(src *RadioNode, dst *Rad
 
 	case EventTypeRadioChannelSample:
 		// take final channel sample
-		r := rm.getRssiOnChannel(src, src.RadioChannel)
-		if r > src.rssiSampleMax {
-			src.rssiSampleMax = r
+		if evt.RadioCommData.Error == OT_ERROR_NONE {
+			r := rm.getRssiOnChannel(src, evt.RadioCommData.Channel)
+			if r > src.rssiSampleMax {
+				src.rssiSampleMax = r
+			}
+			// store the final sampled RSSI in the event
+			evt.RadioCommData.PowerDbm = src.rssiSampleMax
+		} else {
+			evt.RadioCommData.PowerDbm = RssiInvalid
 		}
-		// store the final sampled RSSI in the event
-		evt.RadioCommData.PowerDbm = src.rssiSampleMax
 
 	default:
 		break
@@ -149,30 +153,35 @@ func (rm *RadioModelMutualInterference) getRssiOnChannel(node *RadioNode, channe
 }
 
 func (rm *RadioModelMutualInterference) txStart(node *RadioNode, q EventQueue, evt *Event) {
-	// verify node doesn't already transmit or sample on its current channel.
-	_, nodeTransmits := rm.activeTransmitters[node.RadioChannel][node.Id]
-	simplelogger.AssertFalse(nodeTransmits)
-	_, nodeSamples := rm.activeChannelSamplers[node.RadioChannel][node.Id]
-	simplelogger.AssertFalse(nodeSamples)
+	// verify node doesn't already transmit or sample on this channel.
+	ch := evt.RadioCommData.Channel // move to the (new) channel for this Tx
+	_, nodeTransmits := rm.activeTransmitters[ch][node.Id]
+	_, nodeSamples := rm.activeChannelSamplers[ch][node.Id]
+	if nodeTransmits || nodeSamples {
+		// schedule new event dispatch to indicate tx is done with error.
+		txDoneEvt := evt.Copy()
+		txDoneEvt.Type = EventTypeRadioTxDone
+		txDoneEvt.RadioCommData.Error = OT_ERROR_ABORT
+		txDoneEvt.MustDispatch = true
+		txDoneEvt.Timestamp += 1
+		q.Add(&txDoneEvt)
+		return
+	}
 
 	node.TxPower = evt.RadioCommData.PowerDbm
-	node.SetChannel(evt.RadioCommData.Channel)
-
-	// verify node doesn't already transmit on its new channel.
-	_, nodeTransmits = rm.activeTransmitters[node.RadioChannel][node.Id]
-	simplelogger.AssertFalse(nodeTransmits)
+	node.SetChannel(ch)
 
 	// reset interferedBy bookkeeping, remove data from last time.
 	rm.interferedBy[node.Id] = map[NodeId]*RadioNode{} // clear map
 
 	// mark what this new transmission will interfere with and will be interfered by.
-	for id, interferingTransmitter := range rm.activeTransmitters[node.RadioChannel] {
+	for id, interferingTransmitter := range rm.activeTransmitters[ch] {
 		simplelogger.AssertTrue(id != node.Id) // sanity check
 		rm.interferedBy[node.Id][id] = interferingTransmitter
 		rm.interferedBy[id][node.Id] = node
 	}
 
-	rm.activeTransmitters[node.RadioChannel][node.Id] = node
+	rm.activeTransmitters[ch][node.Id] = node
 
 	// dispatch radio event RadioComm 'start of frame Rx' to listening nodes.
 	rxStartEvt := evt.Copy()
@@ -191,12 +200,12 @@ func (rm *RadioModelMutualInterference) txStart(node *RadioNode, q EventQueue, e
 }
 
 func (rm *RadioModelMutualInterference) txStop(node *RadioNode, q EventQueue, evt *Event) {
-	simplelogger.AssertTrue(node.RadioChannel == evt.RadioCommData.Channel) // basic sanity check
-	_, nodeTransmits := rm.activeTransmitters[node.RadioChannel][node.Id]
+	ch := evt.RadioCommData.Channel
+	_, nodeTransmits := rm.activeTransmitters[ch][node.Id]
 	simplelogger.AssertTrue(nodeTransmits)
 
 	// stop active transmission
-	delete(rm.activeTransmitters[node.RadioChannel], node.Id)
+	delete(rm.activeTransmitters[ch], node.Id)
 
 	// Dispatch TxDone event back to the source, at time==now
 	txDoneEvt := evt.Copy()
@@ -244,16 +253,17 @@ func (rm *RadioModelMutualInterference) updateChannelSamplingNodes(src *RadioNod
 }
 
 func (rm *RadioModelMutualInterference) channelSampleStart(srcNode *RadioNode, q EventQueue, evt *Event) {
-	srcNode.SetChannel(evt.RadioCommData.Channel)
-	// verify node doesn't already transmit on its current channel.
-	_, nodeTransmits := rm.activeTransmitters[srcNode.RadioChannel][srcNode.Id]
-	simplelogger.AssertFalse(nodeTransmits)
-	_, nodeSamples := rm.activeChannelSamplers[srcNode.RadioChannel][srcNode.Id]
-	simplelogger.AssertFalse(nodeSamples)
-
-	// take 1st channel sample
-	srcNode.rssiSampleMax = rm.getRssiOnChannel(srcNode, srcNode.RadioChannel)
-
+	ch := evt.RadioCommData.Channel
+	// verify node doesn't already transmit or sample on its channel.
+	_, nodeTransmits := rm.activeTransmitters[ch][srcNode.Id]
+	_, nodeSamples := rm.activeChannelSamplers[ch][srcNode.Id]
+	if nodeTransmits || nodeSamples {
+		evt.RadioCommData.Error = OT_ERROR_ABORT
+	} else {
+		// take 1st channel sample
+		srcNode.SetChannel(ch)
+		srcNode.rssiSampleMax = rm.getRssiOnChannel(srcNode, ch)
+	}
 	// dispatch event with result back to node, when channel sampling stops.
 	sampleDoneEvt := evt.Copy()
 	sampleDoneEvt.Type = EventTypeRadioChannelSample
