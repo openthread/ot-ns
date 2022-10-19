@@ -60,12 +60,13 @@ class PingTests(OTNSTestCase):
 
         for i in range(10):
             ns.add("router", i*80, 0)
-        ns.go(600)
+        ns.go(300)
 
-        for i in range(100):
+        for i in range(80):
             ns.ping(1, 10, datasize=pingDataSize)
+            ns.go(0.100)
             ns.ping(10, 1, datasize=pingDataSize)
-            ns.go(11)
+            ns.go(10.900)
 
         pings = ns.pings()
         self.assertTrue(pings)
