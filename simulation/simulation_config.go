@@ -69,6 +69,6 @@ func DefaultConfig() *Config {
 		AutoGo:         true,
 		DispatcherHost: "localhost",
 		DispatcherPort: threadconst.InitialDispatcherPort,
-		RadioModel:     "Ideal",
+		RadioModel:     "Ideal_Rssi",
 	}
 }
