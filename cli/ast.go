@@ -431,6 +431,16 @@ type PlrCmd struct {
 }
 
 //noinspection GoStructTag
+type RadioModelCmd struct {
+	Cmd   struct{} `"radiomodel"`    //nolint
+	Model string   `[(@Ident|@Int)]` //nolint
+}
+
+type LogLevelCmd struct {
+	Cmd   struct{} `"log"`                                //nolint
+	Level string   `[@( "debug"|"info"|"warn"|"error" )]` //nolint
+}
+
 type WatchCmd struct {
 	Cmd     struct{}       `"watch"`                                                                                             //nolint
 	Default string         `[ @("default"|"def") ]`                                                                              //nolint

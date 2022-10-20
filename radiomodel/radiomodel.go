@@ -106,17 +106,17 @@ type RadioModel interface {
 func Create(modelName string) RadioModel {
 	var model RadioModel
 	switch modelName {
-	case "Ideal":
+	case "Ideal", "I", "1":
 		model = &RadioModelIdeal{
-			Name:      modelName,
+			Name:      "Ideal",
 			FixedRssi: -60,
 		}
-	case "Ideal_Rssi":
+	case "Ideal_Rssi", "IR", "2", "default":
 		model = &RadioModelIdeal{
-			Name:            modelName,
+			Name:            "Ideal_Rssi",
 			UseVariableRssi: true,
 		}
-	case "MutualInterference":
+	case "MutualInterference", "MI", "M", "3":
 		model = &RadioModelMutualInterference{
 			MinSirDb: 1, // minimum Signal-to-Interference (SIR) (dB) required to detect signal
 		}
