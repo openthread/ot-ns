@@ -151,9 +151,11 @@ Done
 
 ### exit
 
-Exit OTNS.
+Exit OTNS, if in main context (no node selected). If in a node context, exits the node context.
 
 ```bash
+node 3> exit
+Done
 > exit
 Done
 <EOF>
