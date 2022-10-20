@@ -82,7 +82,7 @@ class StressTest(BaseStressTest):
     def run(self):
         ns = self.ns
         ns.coaps_enable()
-        ns.packet_loss_ratio = 0.5
+        ns.packet_loss_ratio = 0.3
 
         assert ROUTER_COUNT >= 1
         BR = ns.add("router", x=200, y=200, radio_range=RADIO_RANGE)

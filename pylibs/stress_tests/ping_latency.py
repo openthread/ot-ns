@@ -152,7 +152,7 @@ class StressTest(BaseStressTest):
             row = ['%dB' % datasize]
             for n, s in latencys:
                 row.append('%dms' % (s / n) if n > 0 else 'NODATA')
-                self.result.fail_if(s / n > 300, "average ping latency > 300ms")
+                self.result.fail_if(s / n > 600, "average ping latency > 600ms")
 
             self.result.append_row(*row)
 
