@@ -247,7 +247,7 @@ Done
 node 3> state
 router
 Done
-node 3> exit
+node 3> node 0
 Done
 >
 ```
