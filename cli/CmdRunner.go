@@ -669,17 +669,18 @@ func (rt *CmdRunner) executeRadioModel(cc *CommandContext, cmd *RadioModelCmd) {
 	} else {
 		name = cmd.Model
 		ok := false
+		var model radiomodel.RadioModel = nil
 		rt.postAsyncWait(func(sim *simulation.Simulation) {
-			model := radiomodel.Create(name)
+			model = radiomodel.Create(name)
 			ok = model != nil
 			if ok {
 				sim.Dispatcher().SetRadioModel(model)
 			}
 		})
 		if ok {
-			cc.outputf("%v\n", name)
+			cc.outputf("%v\n", model.GetName())
 		} else {
-			cc.outputf("Error: Radiomodel '%v' does not exist.\n", name)
+			cc.outputf("Error: Radiomodel '%v' is not defined.\n", name)
 		}
 	}
 }

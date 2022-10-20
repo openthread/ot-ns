@@ -376,8 +376,20 @@ Done
 ### radiomodel \[\<modelName\>\]
 
 Get the name of the currently used radiomodel (RF propagation model and radio chip characteristics for all nodes)
-or set the current model to another model by providing the name. For a list of current models see 
-[radiomodel.Create()](../radiomodel/radiomodel.go)
+or set the current model to another model by providing the name or an alias of the model. Current models supported:
+
+* `Ideal` (alias `I` or `1`) - has perfect radio reception within disc radius with constant good RSSI. CCA always finds the channel clear. 
+  There can be infinite parallel transmissions over the RF channel. If the OT node would request a transmission while one 
+ is already ongoing, it would be granted.
+* `Ideal_Rssi` (alias `IR` or `2`) - has perfect radio reception within disc radius with decreasing RSSI over distance. CCA is like
+  in the Ideal model.
+* `MutualInterference` (alias `M` or `MI` or `3`) - has good to reasonable radio reception within disc radius with decreasing 
+ RSSI over distance. Outside the disc radius, there is still RF reception but of poor quality (Link Quality 0 or 1). CCA 
+ will consider nearby transmitting nodes, and will fail if energy is detected above CCA Threshold (which is configurable 
+ on the OT node on a per-node basis using the `ccathreshold` CLI command.)  Concurrent transmissions will interfere and 
+ if the interferer signal is sufficiently strong, it will fail the radio frame transmission with FCS error. Only one 
+ transmission can occur at a time by a given node; if an additional transmission is requested by OT then the radio will 
+ report the ABORT failure. Also CCA failure is reported if transmit is requested while the radio is receiving a frame.
 
 ```bash
 > radiomodel
@@ -385,9 +397,17 @@ Ideal
 Done
 > radiomodel MutualInterference
 MutualInterference
+Done
 > radiomodel
 MutualInterference
 Done
+> radiomodel 1
+Ideal
+Done
+> radiomodel IR
+Ideal_Rssi
+Done
+>
 ```
 
 ### scan \<node-id\>
