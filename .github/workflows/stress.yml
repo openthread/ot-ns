@@ -27,6 +27,9 @@
 name: Stress
 
 on:
+  push:
+    branches-ignore:
+      - 'dependabot/**'
   pull_request:
     branches:
       - 'main'
