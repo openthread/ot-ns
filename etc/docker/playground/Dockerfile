@@ -36,7 +36,7 @@ RUN strip /openthread/output/simulation/bin/ot-cli-ftd
 FROM golang:1.17-buster
 
 RUN apt-get update
-RUN apt-get install -y python3 python3-pip unzip
+RUN apt-get install -y python3 python3-pip unzip snapd
 
 COPY . /otns
 WORKDIR /otns

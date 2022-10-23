@@ -55,4 +55,5 @@ jobs:
       - uses: actions/checkout@v2
       - name: Check pretty
         run: |
-          ./script/check-pretty
+          docker build -t otns-env -f etc/docker/environment/Dockerfile .
+          docker run -t -v$PWD:/otns otns-env -c "./script/check-pretty"
