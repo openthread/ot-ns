@@ -26,7 +26,7 @@
 
 FROM golang:1.17-buster
 
-RUN apt-get update && apt-get install -y python3 python3-pip sudo unzip nodejs npm git && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y python3 python3-pip sudo unzip nodejs npm git snapd && rm -rf /var/lib/apt/lists/*
 
 COPY . /otns
 WORKDIR /otns

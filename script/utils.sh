@@ -107,7 +107,8 @@ function install_pretty_tools()
         curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b "$(go env GOPATH)"/bin v1.47.2
     fi
 
-    install_package shfmt --brew shfmt
+    snap install shfmt
+    install_package shfmt --brew shfmt || true
     install_package shellcheck --apt shellcheck --brew shellcheck
 }
 
