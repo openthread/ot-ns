@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2022, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -32,12 +32,26 @@ type grpcStream struct {
 	pb.VisualizeGrpcService_VisualizeServer
 }
 
+type grpcEnergyStream struct {
+	pb.VisualizeGrpcService_EnergyReportServer
+}
+
 func (gst *grpcStream) close() {
+}
+
+func (gst *grpcEnergyStream) close() {
 }
 
 func newGrpcStream(stream pb.VisualizeGrpcService_VisualizeServer) *grpcStream {
 	gst := &grpcStream{
 		VisualizeGrpcService_VisualizeServer: stream,
+	}
+	return gst
+}
+
+func newGrpcEnergyStream(stream pb.VisualizeGrpcService_EnergyReportServer) *grpcEnergyStream {
+	gst := &grpcEnergyStream{
+		VisualizeGrpcService_EnergyReportServer: stream,
 	}
 	return gst
 }

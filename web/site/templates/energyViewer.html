@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>OTNS - Energy viewer</title>
+</head>
+<body>
+    <canvas id="energyCons" width="100%" height="30px"></canvas>
+    <label for="nodesForEnergy">Choose an option for energy consumption visualization:</label>
+    <select name="node for energy consumption" id="nodesForEnergy"></select>
+    <hr/>
+    <canvas id="energyByNode" width="100%" height="30%"></canvas>
+    <hr/>
+    <canvas id="powerCons" width="100%" height="30%"></canvas>
+    <label for="nodesForPower">Choose a node id for power consumption visualization:</label>
+    <select name="node for power consumption" id="nodesForPower"></select>
+    
+    <script language="javascript">
+        let server = "http://{{index . "addr"}}";
+    </script>
+    <script src="/static/js/energyViewer.js"></script>
+</body>
+</html>
