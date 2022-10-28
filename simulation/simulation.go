@@ -31,9 +31,9 @@ import (
 	"sort"
 	"time"
 
-	"github.com/openthread/ot-ns/progctx"
-
 	"github.com/openthread/ot-ns/dispatcher"
+	"github.com/openthread/ot-ns/progctx"
+	"github.com/openthread/ot-ns/radiomodel"
 	. "github.com/openthread/ot-ns/types"
 	"github.com/openthread/ot-ns/visualize"
 	"github.com/pkg/errors"
@@ -61,19 +61,19 @@ func NewSimulation(ctx *progctx.ProgCtx, cfg *Config, dispatcherCfg *dispatcher.
 	}
 	s.networkInfo.Real = cfg.Real
 
-	// start the event_dispatcher for virtual time
+	// start the event_dispatcher for virtual time, and create radiomodel, and visualizer
 	if dispatcherCfg == nil {
 		dispatcherCfg = dispatcher.DefaultConfig()
 	}
-
 	dispatcherCfg.Speed = cfg.Speed
 	dispatcherCfg.Real = cfg.Real
 	dispatcherCfg.Host = cfg.DispatcherHost
 	dispatcherCfg.Port = cfg.DispatcherPort
 	dispatcherCfg.DumpPackets = cfg.DumpPackets
-
 	s.d = dispatcher.NewDispatcher(s.ctx, dispatcherCfg, s)
+	s.d.SetRadioModel(radiomodel.Create(cfg.RadioModel))
 	s.vis = s.d.GetVisualizer()
+
 	if err := s.removeTmpDir(); err != nil {
 		simplelogger.Panicf("remove tmp directory failed: %+v", err)
 	}
@@ -95,21 +95,27 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 		return nil, errors.Errorf("node %d already exists", nodeid)
 	}
 
+	// Add dispatcher's node before starting the OT node process. This is needed because the OT
+	// node immediately starts emitting UDP events which the dispatcher needs to catch.
+	s.d.AddNode(nodeid, cfg)
 	node, err := newNode(s, nodeid, cfg)
 	if err != nil {
 		simplelogger.Errorf("simulation add node failed: %v", err)
 		return nil, err
 	}
-
 	s.nodes[nodeid] = node
-
 	simplelogger.Infof("simulation:CtrlAddNode: %+v, rawMode=%v", cfg, s.rawMode)
-	s.d.AddNode(nodeid, cfg.X, cfg.Y, cfg.RadioRange)
 
+	// After creating dispatcher / simulation node objects, perform address/UART detection and setup.
+	if !s.cfg.Real {
+		err = s.d.DetectNodeExtAddress(nodeid, cfg)
+		if err != nil {
+			simplelogger.Errorf("%v", err)
+			return nil, err
+		}
+	}
 	node.detectVirtualTimeUART()
-
 	node.setupMode()
-
 	if !s.rawMode {
 		node.SetupNetworkParameters(s)
 		node.Start()
@@ -184,6 +190,13 @@ func (s *Simulation) OnNodeFail(nodeid NodeId) {
 func (s *Simulation) OnNodeRecover(nodeid NodeId) {
 	node := s.nodes[nodeid]
 	simplelogger.AssertNotNil(node)
+}
+
+func (s *Simulation) OnNodeProcessFailure(node *Node, errorMsg string) {
+	simplelogger.Fatalf("Node %v process failed: %v", node.Id, errorMsg)
+	s.PostAsync(false, func() {
+		_ = s.DeleteNode(node.Id)
+	})
 }
 
 // OnUartWrite notifies the simulation that a node has received some data from UART.

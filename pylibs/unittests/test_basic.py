@@ -151,7 +151,7 @@ class BasicTests(OTNSTestCase):
         radio_range = 100
         ns.add("router", 0, 0, radio_range=radio_range)
         ns.add("router", 0, radio_range - 1, radio_range=radio_range)
-        self.go(10)
+        self.go(15)
         self.assertFormPartitions(1)
 
     def testRadioNotInRange(self):
@@ -311,6 +311,23 @@ class BasicTests(OTNSTestCase):
         # Node 2 ~ 10 should become Routers by sending `a/as`
         self.assertEqual(set(routers), set(range(2, 11)))
 
+    def testMultiRadioChannel(self):
+        ns = self.ns
+        radio_range = 100
+        ns.add("router", 0, 0, radio_range=radio_range)
+        ns.add("router", 0, 50, radio_range=radio_range)
+        ns.add("router", 50, 0, radio_range=radio_range)
+        ns.add("router", 50, 50, radio_range=radio_range)
+        self.go(20)
+        self.assertFormPartitions(1)
+
+        for n in [1,2]:
+            ns.node_cmd(n, "ifconfig down")
+            ns.node_cmd(n, "channel 20")
+            ns.node_cmd(n, "ifconfig up")
+            ns.node_cmd(n, "thread start")
+        self.go(20)
+        self.assertFormPartitions(2)
 
 if __name__ == '__main__':
     unittest.main()

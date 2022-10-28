@@ -116,7 +116,7 @@ class GRPCClient(object):
         return exception_queue, expect_thread
 
 
-class BasicTests(OTNSTestCase):
+class RealTests(OTNSTestCase):
     def setUp(self) -> None:
         self.ns = OTNS(otns_args=[
                 "-raw", "-real",

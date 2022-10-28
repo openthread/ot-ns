@@ -43,10 +43,13 @@ type PktInfo struct {
 
 func Dissect(data []byte) *PktInfo {
 	macFrame := wpan.Dissect(data)
-
 	pktinfo := &PktInfo{
 		MacFrame: macFrame,
 	}
 
 	return pktinfo
+}
+
+func IsAckFrame(pkt *PktInfo) bool {
+	return pkt.MacFrame.FrameControl.FrameType() == wpan.FrameTypeAck
 }

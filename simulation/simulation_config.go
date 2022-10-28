@@ -48,6 +48,7 @@ type Config struct {
 	DispatcherHost string
 	DispatcherPort int
 	DumpPackets    bool
+	RadioModel     string
 }
 
 func DefaultConfig() *Config {
@@ -63,5 +64,6 @@ func DefaultConfig() *Config {
 		Real:           false,
 		DispatcherHost: "localhost",
 		DispatcherPort: threadconst.InitialDispatcherPort,
+		RadioModel:     "Ideal",
 	}
 }

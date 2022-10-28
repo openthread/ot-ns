@@ -34,7 +34,7 @@ from otns.cli import OTNS
 tracemalloc.start()
 
 
-class BasicTests(OTNSTestCase):
+class CommissioningTests(OTNSTestCase):
 
     def setUp(self) -> None:
         self.ns = OTNS(otns_args=['-raw', '-log', 'debug'])

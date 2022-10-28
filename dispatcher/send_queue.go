@@ -32,14 +32,8 @@ import (
 	. "github.com/openthread/ot-ns/types"
 )
 
-type sendItem struct {
-	Timestamp uint64
-	NodeId    NodeId
-	Data      []byte
-}
-
 type sendQueue struct {
-	q []*sendItem
+	q []*Event
 }
 
 func (sq sendQueue) Len() int {
@@ -55,7 +49,7 @@ func (sq sendQueue) Swap(i, j int) {
 }
 
 func (sq *sendQueue) Push(x interface{}) {
-	sq.q = append(sq.q, x.(*sendItem))
+	sq.q = append(sq.q, x.(*Event))
 }
 
 func (sq *sendQueue) Pop() (elem interface{}) {
@@ -73,21 +67,33 @@ func (sq sendQueue) NextTimestamp() uint64 {
 	}
 }
 
+func (sq sendQueue) NextEvent() *Event {
+	if len(sq.q) > 0 {
+		return sq.q[0]
+	} else {
+		return nil
+	}
+}
+
 func (sq *sendQueue) Add(timestamp uint64, id NodeId, data []byte) {
-	heap.Push(sq, &sendItem{
+	heap.Push(sq, &Event{
 		Timestamp: timestamp,
 		NodeId:    id,
 		Data:      data,
 	})
 }
 
-func (sq *sendQueue) PopNext() *sendItem {
-	return heap.Pop(sq).(*sendItem)
+func (sq *sendQueue) AddEvent(evt *Event) {
+	heap.Push(sq, evt)
+}
+
+func (sq *sendQueue) PopNext() *Event {
+	return heap.Pop(sq).(*Event)
 }
 
 func newSendQueue() *sendQueue {
 	sq := &sendQueue{
-		q: []*sendItem{},
+		q: []*Event{},
 	}
 	heap.Init(sq)
 	return sq

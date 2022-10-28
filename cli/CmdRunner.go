@@ -36,16 +36,13 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/openthread/ot-ns/visualize"
-
-	"github.com/openthread/ot-ns/web"
-
-	"github.com/openthread/ot-ns/progctx"
-
 	"github.com/openthread/ot-ns/dispatcher"
-
+	"github.com/openthread/ot-ns/progctx"
+	"github.com/openthread/ot-ns/radiomodel"
 	"github.com/openthread/ot-ns/simulation"
 	. "github.com/openthread/ot-ns/types"
+	"github.com/openthread/ot-ns/visualize"
+	"github.com/openthread/ot-ns/web"
 	"github.com/pkg/errors"
 	"github.com/simonlingoogle/go-simplelogger"
 )
@@ -215,6 +212,8 @@ func (rt *CmdRunner) execute(cmd *Command, output io.Writer) {
 		rt.executeWeb(cc, cc.Web)
 	} else if cmd.NetInfo != nil {
 		rt.executeNetInfo(cc, cc.NetInfo)
+	} else if cmd.RadioModel != nil {
+		rt.executeRadioModel(cc, cc.RadioModel)
 	} else {
 		simplelogger.Panicf("unimplemented command: %#v", cmd)
 	}
@@ -271,7 +270,7 @@ func (rt *CmdRunner) postAsyncWait(f func(sim *simulation.Simulation)) {
 
 func (rt *CmdRunner) executeAddNode(cc *CommandContext, cmd *AddCmd) {
 	simplelogger.Infof("Add: %#v", *cmd)
-	cfg := simulation.DefaultNodeConfig()
+	cfg := DefaultNodeConfig()
 	if cmd.X != nil {
 		cfg.X = *cmd.X
 	}
@@ -535,6 +534,9 @@ func (rt *CmdRunner) executeLsNodes(cc *CommandContext, cmd *NodesCmd) {
 	rt.postAsyncWait(func(sim *simulation.Simulation) {
 		for nodeid := range sim.Nodes() {
 			dnode := sim.Dispatcher().GetNode(nodeid)
+			if dnode == nil {
+				continue
+			}
 			var line strings.Builder
 			line.WriteString(fmt.Sprintf("id=%d\textaddr=%016x\trloc16=%04x\tx=%d\ty=%d\tstate=%s\tfailed=%v", nodeid, dnode.ExtAddr, dnode.Rloc16,
 				dnode.X, dnode.Y, dnode.Role, dnode.IsFailed()))
@@ -620,6 +622,31 @@ func (rt *CmdRunner) executeCounters(cc *CommandContext, counters *CountersCmd) 
 func (rt *CmdRunner) executeWeb(cc *CommandContext, webcmd *WebCmd) {
 	if err := web.OpenWeb(rt.ctx); err != nil {
 		cc.error(err)
+	}
+}
+
+func (rt *CmdRunner) executeRadioModel(cc *CommandContext, cmd *RadioModelCmd) {
+	var name string
+	if len(cmd.Model) == 0 {
+		rt.postAsyncWait(func(sim *simulation.Simulation) {
+			name = sim.Dispatcher().GetRadioModel().GetName()
+		})
+		cc.outputf("%v\n", name)
+	} else {
+		name = cmd.Model
+		ok := false
+		rt.postAsyncWait(func(sim *simulation.Simulation) {
+			model := radiomodel.Create(name)
+			ok = model != nil
+			if ok {
+				sim.Dispatcher().SetRadioModel(model)
+			}
+		})
+		if ok {
+			cc.outputf("%v\n", name)
+		} else {
+			cc.outputf("Error: Radiomodel '%v' does not exist.\n", name)
+		}
 	}
 }
 

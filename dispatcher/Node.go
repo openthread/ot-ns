@@ -27,11 +27,11 @@
 package dispatcher
 
 import (
-	"encoding/binary"
 	"fmt"
 	"math"
 	"net"
 
+	"github.com/openthread/ot-ns/radiomodel"
 	"github.com/openthread/ot-ns/threadconst"
 	. "github.com/openthread/ot-ns/types"
 	"github.com/simonlingoogle/go-simplelogger"
@@ -79,28 +79,31 @@ type Node struct {
 	failureCtrl   *FailureCtrl
 	isFailed      bool
 	radioRange    int
+	radioNode     *radiomodel.RadioNode
 	pendingPings  []*pingRequest
 	pingResults   []*PingResult
 	joinerState   OtJoinerState
 	joinerSession *joinerSession
 	joinResults   []*JoinResult
+	isLegacy      bool // set to true for legacy OT node not supporting EventTypeRadioTx
 }
 
-func newNode(d *Dispatcher, nodeid NodeId, x, y int, radioRange int) *Node {
-	simplelogger.AssertTrue(radioRange >= 0)
+func newNode(d *Dispatcher, nodeid NodeId, cfg *NodeConfig) *Node {
+	simplelogger.AssertTrue(cfg.RadioRange >= 0)
 
 	nc := &Node{
 		D:           d,
 		Id:          nodeid,
 		CurTime:     d.CurTime,
 		CreateTime:  d.CurTime,
-		X:           x,
-		Y:           y,
+		X:           cfg.X,
+		Y:           cfg.Y,
 		ExtAddr:     InvalidExtAddr,
 		Rloc16:      threadconst.InvalidRloc16,
 		Role:        OtDeviceRoleDisabled,
-		peerAddr:    nil, // peer address will be set when the first event is received
-		radioRange:  radioRange,
+		peerAddr:    nil, // peer address will be set when the first Event is received
+		radioRange:  cfg.RadioRange,
+		radioNode:   radiomodel.NewRadioNode(cfg),
 		joinerState: OtJoinerStateIdle,
 	}
 
@@ -113,30 +116,43 @@ func (node *Node) String() string {
 	return fmt.Sprintf("Node<%016x@%d,%d>", node.ExtAddr, node.X, node.Y)
 }
 
-func (node *Node) Send(elapsed uint64, data []byte) {
-	msg := make([]byte, len(data)+11)
-	binary.LittleEndian.PutUint64(msg[:8], elapsed)
-	msg[8] = eventTypeRadioReceived
-	binary.LittleEndian.PutUint16(msg[9:11], uint16(len(data)))
-	n := copy(msg[11:], data)
-	simplelogger.AssertTrue(n == len(data))
+// SendEvent sends Event evt serialized to the node, over UDP. If evt.Timestamp != InvalidTimestamp,
+// it uses the valid timestamp and modifies the evt.Delay value based on the target node's CurTime,
+// and may update other Event fields too for bookkeeping purposes.
+func (node *Node) sendEvent(evt *Event) {
+	evt.NodeId = node.Id
+	oldTime := node.CurTime
+	if evt.Timestamp == InvalidTimestamp {
+		evt.Timestamp = node.D.CurTime
+	}
+	simplelogger.AssertTrue(evt.Timestamp == node.D.CurTime)
+	if evt.Timestamp >= oldTime {
+		evt.Delay = evt.Timestamp - oldTime // compute Delay value for this target node.
+	} else {
+		evt.Delay = 0 // node can't go back in time.
+	}
 
-	node.SendMessage(msg)
+	// time keeping - move node's time to the current send-event's time.
+	node.D.setAlive(node.Id)
+	node.D.alarmMgr.SetNotified(node.Id)
+	node.CurTime += evt.Delay
+	simplelogger.AssertTrue(evt.Delay == 0 || node.CurTime == node.D.CurTime)
+	if evt.Timestamp > oldTime {
+		node.failureCtrl.OnTimeAdvanced(oldTime)
+	}
+	//simplelogger.Debugf("N%v sendEvent -> %v", node.Id, evt.String())
+	node.sendRawData(evt.Serialize())
 }
 
-func (node *Node) SendMessage(msg []byte) {
+// sendRawData is INTERNAL to send bytes to UDP socket of node
+func (node *Node) sendRawData(msg []byte) {
 	if node.peerAddr != nil {
-		_, _ = node.D.udpln.WriteToUDP(msg, node.peerAddr)
+		n, err := node.D.udpln.WriteToUDP(msg, node.peerAddr)
+		simplelogger.AssertTrue(len(msg) == n)
+		simplelogger.AssertNil(err, "WriteToUDP error: %v", err)
 	} else {
 		simplelogger.Errorf("%s does not have a peer address", node)
 	}
-}
-
-func (node *Node) GetDistanceTo(other *Node) (dist int) {
-	dx := other.X - node.X
-	dy := other.Y - node.Y
-	dist = int(math.Sqrt(float64(dx*dx + dy*dy)))
-	return
 }
 
 func (node *Node) IsFailed() bool {
@@ -299,4 +315,12 @@ func (node *Node) addJoinResult(js *joinerSession) {
 	if len(node.joinResults) > maxJoinResultCount {
 		node.joinResults = node.joinResults[1:]
 	}
+}
+
+// getDistanceTo gets the distance to another Node (in dimensionless units).
+func (node *Node) getDistanceTo(other *Node) (dist float64) {
+	dx := other.X - node.X
+	dy := other.Y - node.Y
+	dist = math.Sqrt(float64(dx*dx) + float64(dy*dy))
+	return
 }
