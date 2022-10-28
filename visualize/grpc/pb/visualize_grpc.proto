@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2022, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -198,6 +198,14 @@ message SetNetworkInfoEvent {
     bool real = 1;
     string version = 2;
     string commit = 3;
+}
+
+message NodeEnergy {
+    int32 node_id = 1;
+    double disabled = 2;
+    double sleep = 3;
+    double tx = 4;
+    double rx = 5;
 }
 
 message CommandRequest {
