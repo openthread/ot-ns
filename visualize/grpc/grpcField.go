@@ -64,9 +64,11 @@ func (f *grpcField) setNodePartitionId(id NodeId, parid uint32) {
 	f.nodes[id].partitionId = parid
 }
 
-func (f *grpcField) advanceTime(ts uint64, speed float64) {
+func (f *grpcField) advanceTime(ts uint64, speed float64) bool {
+	hasChanged := f.curTime != ts || f.curSpeed != speed
 	f.curTime = ts
 	f.curSpeed = speed
+	return hasChanged
 }
 
 func (f *grpcField) onNodeFail(nodeid NodeId) {

@@ -183,11 +183,12 @@ func (gv *grpcVisualizer) AdvanceTime(ts uint64, speed float64) {
 	gv.Lock()
 	defer gv.Unlock()
 
-	gv.f.advanceTime(ts, speed)
-	gv.AddVisualizationEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_AdvanceTime{AdvanceTime: &pb.AdvanceTimeEvent{
-		Ts:    ts,
-		Speed: speed,
-	}}}, true)
+	if gv.f.advanceTime(ts, speed) {
+		gv.AddVisualizationEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_AdvanceTime{AdvanceTime: &pb.AdvanceTimeEvent{
+			Ts:    ts,
+			Speed: speed,
+		}}}, true)
+	}
 }
 
 func (gv *grpcVisualizer) OnNodeFail(nodeid NodeId) {
