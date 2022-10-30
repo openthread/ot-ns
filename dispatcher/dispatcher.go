@@ -72,6 +72,8 @@ type Config struct {
 	NoPcap            bool
 	DefaultWatchOn    bool
 	DefaultWatchLevel string
+	VizUpdateTime     time.Duration
+	//Rutger was here :)
 }
 
 func DefaultConfig() *Config {
@@ -82,6 +84,7 @@ func DefaultConfig() *Config {
 		Port:           threadconst.InitialDispatcherPort,
 		DumpPackets:    false,
 		DefaultWatchOn: false,
+		VizUpdateTime:  125 * time.Millisecond,
 	}
 }
 
@@ -123,6 +126,8 @@ type Dispatcher struct {
 	taskChan              chan func()
 	speed                 float64
 	speedStartRealTime    time.Time
+	lastVizTime           time.Time
+	lastEnergyVizTime     uint64
 	speedStartTime        uint64
 	extaddrMap            map[uint64]*Node
 	rloc16Map             rloc16Map
@@ -182,6 +187,7 @@ func NewDispatcher(ctx *progctx.ProgCtx, cfg *Config, cbHandler CallbackHandler)
 		pcapFrameChan:      make(chan pcapFrameItem, 100000),
 		speed:              cfg.Speed,
 		speedStartRealTime: time.Now(),
+		lastVizTime:        time.Unix(0, 0),
 		vis:                vis,
 		taskChan:           make(chan func(), 100),
 		watchingNodes:      map[NodeId]struct{}{},
@@ -481,6 +487,14 @@ func (d *Dispatcher) processNextEvent(simSpeed float64) bool {
 					curTime = d.pauseTime
 				}
 				d.advanceTime(curTime)
+			} else if time.Since(d.lastVizTime) >= d.cfg.VizUpdateTime {
+				curTime := d.speedStartTime + uint64(float64(time.Since(d.speedStartRealTime)/time.Microsecond)*simSpeed)
+				if curTime > d.pauseTime {
+					curTime = d.pauseTime
+				}
+				if curTime < nextEventTime {
+					d.advanceTime(curTime)
+				}
 			}
 			return true
 		}
@@ -1132,24 +1146,28 @@ func (d *Dispatcher) advanceTime(ts uint64) {
 	simplelogger.AssertTrue(d.CurTime <= ts, "%v > %v", d.CurTime, ts)
 	simplelogger.AssertTrue(d.CurTime <= d.eventQueue.NextTimestamp())
 	if d.CurTime < ts {
-		oldTime := d.CurTime
 		d.CurTime = ts
 		simplelogger.AssertTrue(d.CurTime <= d.eventQueue.NextTimestamp())
-		elapsedTime := int64(d.CurTime - d.speedStartTime)
-		elapsedRealTime := time.Since(d.speedStartRealTime) / time.Microsecond
-		if elapsedRealTime > 0 && ts/1000000 != oldTime/1000000 {
-			d.vis.AdvanceTime(ts, float64(elapsedTime)/float64(elapsedRealTime))
-
-			// FIXME use period computation not depending on rounded TimeDurations.
-			if d.energyAnalyser != nil && ts%energy.ComputePeriod == 0 {
-				d.energyAnalyser.StoreNetworkEnergy(ts)
-				d.vis.UpdateNodesEnergy(d.energyAnalyser.GetLatestEnergyOfNodes(), ts, true)
-			}
-		}
-
 		if d.cfg.Real {
 			d.syncAllNodes()
 		}
+	}
+
+	if time.Since(d.lastVizTime) >= d.cfg.VizUpdateTime {
+		elapsedTime := int64(d.CurTime - d.speedStartTime)
+		elapsedRealTime := time.Since(d.speedStartRealTime) / time.Microsecond
+		if elapsedRealTime > 0 {
+			d.vis.AdvanceTime(ts, float64(elapsedTime)/float64(elapsedRealTime))
+		} else {
+			d.vis.AdvanceTime(ts, MaxSimulateSpeed)
+		}
+		d.lastVizTime = time.Now()
+	}
+
+	if d.energyAnalyser != nil && (ts >= d.lastEnergyVizTime+energy.ComputePeriod || d.lastEnergyVizTime == 0) {
+		d.energyAnalyser.StoreNetworkEnergy(ts)
+		d.vis.UpdateNodesEnergy(d.energyAnalyser.GetLatestEnergyOfNodes(), ts, true)
+		d.lastEnergyVizTime = ts
 	}
 }
 

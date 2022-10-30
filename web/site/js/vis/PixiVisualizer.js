@@ -86,9 +86,9 @@ export default class PixiVisualizer extends VObject {
         this.addChild(this._unicastMessagesStage);
 
         this.statusMsg = new PIXI.Text("", {
-            fontFamily: "Verdana",
+            fontFamily: "Consolas, monaco, monospace",
             fontSize: 13,
-            fontWeight: "bolder"
+            fontWeight: "bold"
         });
         this.statusMsg.position.set(0, -this.statusMsg.height);
         this.addChild(this.statusMsg);
@@ -229,12 +229,13 @@ export default class PixiVisualizer extends VObject {
     }
 
     updateStatusMsg() {
-        this.statusMsg.text = "OTNS-Web | FPS=" + Math.round(ticker.FPS) + " | "
+        this.statusMsg.text = "OTNS-Web | FPS=" + Math.round(ticker.FPS).toString().padStart(3, " ") + " | "
             + this.getNodeCountByRole(OtDeviceRole.OT_DEVICE_ROLE_LEADER) + " leaders "
             + this.getNodeCountByRole(OtDeviceRole.OT_DEVICE_ROLE_ROUTER) + " routers "
             + this.getNodeCountByRole(OtDeviceRole.OT_DEVICE_ROLE_CHILD) + " EDs "
             + this.getNodeCountByRole(OtDeviceRole.OT_DEVICE_ROLE_DETACHED) + " detached"
-            + " | SPEED=" + Math.round(this.curSpeed * 10) / 10 + " | TIME=" + this.formatTime();
+            + " | SPEED=" + this.formatSpeed()
+            + " | TIME=" + this.formatTime();
     }
 
     getNodeCountByRole(role) {
@@ -366,13 +367,12 @@ export default class PixiVisualizer extends VObject {
 
     visSetSpeed(speed) {
         let oldSpeed = this.speed;
-        if (Math.round(oldSpeed * 100) === Math.round(speed * 100)) {
-            return
+        if (Math.round(oldSpeed * 100) !== Math.round(speed * 100)) {
+            this.speed = speed;
+            this.actionBar.setSpeed(speed);
+            this.log(`Speed set to ${speed}`);
         }
-
-        this.speed = speed;
-        this.actionBar.setSpeed(speed);
-        this.log(`Speed set to ${Math.round(speed * 100) / 100}`)
+        this.updateStatusMsg();
     }
 
     isPaused() {
@@ -673,6 +673,8 @@ export default class PixiVisualizer extends VObject {
     }
 
     formatTime() {
+        let us = this.curTime % 1000;
+        let ms = Math.floor((this.curTime % 1000000) / 1000);
         let secs = Math.floor(this.curTime / 1000000);
         let d = Math.floor(secs / 86400);
         secs = secs % 86400;
@@ -680,7 +682,28 @@ export default class PixiVisualizer extends VObject {
         secs = secs % 3600;
         let m = Math.floor(secs / 60);
         secs = secs % 60;
-        return d + "d" + h + "h" + m + "m" + secs + "s"
+
+        let str = "";
+        if (d > 0) {
+            str += d + "d";
+        }
+        str += h + "h" +
+            m.toString().padStart(2, "0") + "m" +
+            secs.toString().padStart(2, "0") + "s" +
+            "  " + ms.toString().padStart(3," ") + "ms" +
+            " " + us.toString().padStart(3," ") + "us";
+        return str;
+    }
+
+    formatSpeed() {
+        let s = this.curSpeed;
+        if (s >= 0.9995) {
+            return this.curSpeed.toFixed(1).toString().padStart(7, " ") + "     ";
+        }else if (s >= 0.0009995) {
+            return "    " + this.curSpeed.toFixed(3).toString() + "   ";
+        }else {
+            return "    " + this.curSpeed.toFixed(6).toString();
+        }
     }
 
     createUnicastMessage(src, dst, mvInfo) {
