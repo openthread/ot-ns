@@ -121,9 +121,13 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 	node.detectVirtualTimeUART()
 	node.setupMode()
 	if !s.rawMode {
-		node.SetupNetworkParameters(s)
-		node.Start()
+		initScript := cfg.InitScript
+		if len(initScript) == 0 {
+			initScript = s.cfg.InitScript // use default, if indicated so in cfg.
+		}
+		node.SetupNetworkParameters(initScript)
 	}
+	node.Start()
 
 	return node, nil
 }
@@ -158,18 +162,6 @@ func (s *Simulation) GetNodes() []NodeId {
 		i++
 	}
 	return keys
-}
-
-func (s *Simulation) NetworkKey() string {
-	return s.cfg.NetworkKey
-}
-
-func (s *Simulation) Panid() uint16 {
-	return s.cfg.Panid
-}
-
-func (s *Simulation) Channel() int {
-	return s.cfg.Channel
 }
 
 func (s *Simulation) AutoGo() bool {

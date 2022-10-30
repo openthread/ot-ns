@@ -35,6 +35,7 @@ type NodeConfig struct {
 	RadioRange     int
 	ExecutablePath string
 	Restore        bool
+	InitScript     []string
 }
 
 func DefaultNodeConfig() *NodeConfig {
@@ -46,7 +47,8 @@ func DefaultNodeConfig() *NodeConfig {
 		IsMtd:          false,
 		RxOffWhenIdle:  false,
 		RadioRange:     160,
-		ExecutablePath: "",
+		ExecutablePath: "", // empty string means 'use simulation default'
 		Restore:        false,
+		InitScript:     []string{}, // empty means 'use simulation default'
 	}
 }
