@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2020-2022, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -65,6 +65,7 @@ import (
 type MainArgs struct {
 	Speed          string
 	OtCliPath      string
+	InitScriptName string
 	AutoGo         bool
 	ReadOnly       bool
 	LogLevel       string
@@ -92,17 +93,18 @@ func parseArgs() {
 
 	flag.StringVar(&args.Speed, "speed", "1", "set simulating speed")
 	flag.StringVar(&args.OtCliPath, "ot-cli", defaultOtCli, "specify the OT CLI executable")
+	flag.StringVar(&args.InitScriptName, "ot-script", "", "specify the OT node init script filename, to use for init of new nodes")
 	flag.BoolVar(&args.AutoGo, "autogo", true, "auto go")
 	flag.BoolVar(&args.ReadOnly, "readonly", false, "readonly simulation can not be manipulated")
 	flag.StringVar(&args.LogLevel, "log", "warn", "set logging level")
 	flag.StringVar(&args.WatchLevel, "watch", "off", "set default watch level for all new nodes")
-	flag.BoolVar(&args.OpenWeb, "web", true, "open web")
-	flag.BoolVar(&args.RawMode, "raw", false, "use raw mode")
+	flag.BoolVar(&args.OpenWeb, "web", true, "open web visualization")
+	flag.BoolVar(&args.RawMode, "raw", false, "use raw mode (skips OT node init by script)")
 	flag.BoolVar(&args.Real, "real", false, "use real mode (for real devices)")
 	flag.StringVar(&args.ListenAddr, "listen", fmt.Sprintf("localhost:%d", threadconst.InitialDispatcherPort), "specify listen address")
 	flag.BoolVar(&args.DumpPackets, "dump-packets", false, "dump packets")
-	flag.BoolVar(&args.NoPcap, "no-pcap", false, "do not generate Pcap")
-	flag.BoolVar(&args.NoReplay, "no-replay", false, "do not generate Replay")
+	flag.BoolVar(&args.NoPcap, "no-pcap", false, "do not generate PCAP file")
+	flag.BoolVar(&args.NoReplay, "no-replay", false, "do not generate Replay file")
 
 	flag.Parse()
 }
@@ -254,6 +256,12 @@ func createSimulation(ctx *progctx.ProgCtx) *simulation.Simulation {
 	simcfg.DispatcherPort = args.DispatcherPort
 	simcfg.DumpPackets = args.DumpPackets
 	simcfg.AutoGo = args.AutoGo
+	if len(args.InitScriptName) > 0 {
+		simcfg.InitScript, err = simulation.ReadNodeScript(args.InitScriptName)
+		if err != nil {
+			return nil
+		}
+	}
 
 	dispatcherCfg := dispatcher.DefaultConfig()
 	dispatcherCfg.NoPcap = args.NoPcap

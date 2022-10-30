@@ -53,7 +53,12 @@ cd build/simulation/examples/apps/cli
 otns
 ```
 
-If started successfully, OTNS opens a web browser for network visualization and management. 
+If started successfully, OTNS opens a web browser for network visualization and management.
+To see what command-line parameters are supported, use `-h`:
+
+```bash
+otns -h
+```
 
 ## Use OTNS-Web
 
