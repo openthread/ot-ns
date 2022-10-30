@@ -26,7 +26,10 @@
 
 package simulation
 
-import "github.com/openthread/ot-ns/threadconst"
+import (
+	"fmt"
+	"github.com/openthread/ot-ns/threadconst"
+)
 
 const (
 	DefaultNetworkName = "OTSIM"
@@ -35,11 +38,18 @@ const (
 	DefaultChannel     = 11
 )
 
+// The init script is an array of commands, sent to a new node.
+var DefaultNodeInitScript = []string{
+	"networkname " + DefaultNetworkName,
+	"networkkey " + DefaultNetworkKey,
+	fmt.Sprintf("panid 0x%x", DefaultPanid),
+	fmt.Sprintf("channel %d", DefaultChannel),
+	"ifconfig up",
+	"thread start",
+}
+
 type Config struct {
-	NetworkName    string
-	NetworkKey     string
-	Panid          uint16
-	Channel        int
+	InitScript     []string
 	OtCliPath      string
 	Speed          float64
 	ReadOnly       bool
@@ -54,10 +64,7 @@ type Config struct {
 
 func DefaultConfig() *Config {
 	return &Config{
-		NetworkName:    DefaultNetworkName,
-		NetworkKey:     DefaultNetworkKey,
-		Panid:          DefaultPanid,
-		Channel:        DefaultChannel,
+		InitScript:     DefaultNodeInitScript,
 		Speed:          1,
 		ReadOnly:       false,
 		RawMode:        false,

@@ -151,16 +151,13 @@ func (node *Node) String() string {
 	return fmt.Sprintf("Node<%d>", node.Id)
 }
 
-func (node *Node) SetupNetworkParameters(sim *Simulation) {
-	node.SetNetworkKey(node.S.NetworkKey())
-	node.SetPanid(node.S.Panid())
-	node.SetChannel(node.S.Channel())
+func (node *Node) SetupNetworkParameters(cfg []string) {
+	for _, cmd := range cfg {
+		node.Command(cmd, DefaultCommandTimeout)
+	}
 }
 
 func (node *Node) Start() {
-	node.IfconfigUp()
-	node.ThreadStart()
-
 	simplelogger.Infof("%v - started, panid=0x%04x, channel=%d, eui64=%#v, extaddr=%#v, state=%s, networkkey=%#v, mode=%v", node,
 		node.GetPanid(), node.GetChannel(), node.GetEui64(), node.GetExtAddr(), node.GetState(),
 		node.GetNetworkKey(), node.GetMode())
@@ -244,7 +241,7 @@ func (node *Node) CommandExpectString(cmd string, timeout time.Duration) string 
 }
 
 func (node *Node) CommandExpectInt(cmd string, timeout time.Duration) int {
-	s := node.CommandExpectString(cmd, DefaultCommandTimeout)
+	s := node.CommandExpectString(cmd, timeout)
 	var iv int64
 	var err error
 
@@ -261,7 +258,7 @@ func (node *Node) CommandExpectInt(cmd string, timeout time.Duration) int {
 }
 
 func (node *Node) CommandExpectHex(cmd string, timeout time.Duration) int {
-	s := node.CommandExpectString(cmd, DefaultCommandTimeout)
+	s := node.CommandExpectString(cmd, timeout)
 	var iv int64
 	var err error
 
@@ -583,6 +580,7 @@ func (node *Node) GetState() string {
 func (node *Node) ThreadStart() {
 	node.Command("thread start", DefaultCommandTimeout)
 }
+
 func (node *Node) ThreadStop() {
 	node.Command("thread stop", DefaultCommandTimeout)
 }
@@ -613,9 +611,7 @@ func (node *Node) lineReader(reader io.Reader, uartType NodeUartType) {
 		line := scanner.Text()
 
 		// append line to node-specific log file.
-		if node.logFile != nil {
-			node.logFile.WriteString(line + "\n")
-		}
+		node.writeToLogFile(line)
 
 		if node.uartType == NodeUartTypeUndefined {
 			simplelogger.Debugf("%v's UART type is %v", node, uartType)
@@ -648,9 +644,7 @@ func (node *Node) lineReaderStdErr(reader io.Reader) {
 		line := scanner.Text()
 
 		// append it to node-specific log file.
-		if node.logFile != nil {
-			node.logFile.WriteString(line + "\n")
-		}
+		node.writeToLogFile(line)
 
 		// send it to watch output.
 		node.S.Dispatcher().WatchMessage(node.Id, dispatcher.WatchCritLevel, fmt.Sprintf("%v StdErr: %v", node, line))
@@ -666,9 +660,7 @@ func (node *Node) lineReaderStdErr(reader io.Reader) {
 // to the node's log file. Display of the log message is done by the Dispatcher.
 func (node *Node) handlerLogMsg(otLevel string, msg string) {
 	// append msg to node-specific log file.
-	if node.logFile != nil {
-		node.logFile.WriteString(msg + "\n")
-	}
+	node.writeToLogFile(msg)
 
 	// create a node-specific log message that may be used by the Dispatcher's Watch function.
 	lev := dispatcher.ParseWatchLogLevel(otLevel)
@@ -802,4 +794,15 @@ func (node *Node) detectVirtualTimeUART() {
 	node.expectLine("", DefaultCommandTimeout)
 	// UART type should have been correctly set when the new line is received from node
 	simplelogger.AssertTrue(node.uartType != NodeUartTypeUndefined)
+}
+
+func (node *Node) writeToLogFile(line string) {
+	if node.logFile != nil {
+		_, err := node.logFile.WriteString(line + "\n")
+		if err != nil {
+			simplelogger.Error("Couldn't write to log file of %v, closing it.", node)
+			_ = node.logFile.Close()
+			node.logFile = nil
+		}
+	}
 }
