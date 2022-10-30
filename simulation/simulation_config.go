@@ -49,6 +49,7 @@ var DefaultNodeInitScript = []string{
 	"networkkey " + DefaultNetworkKey,
 	fmt.Sprintf("panid 0x%x", DefaultPanid),
 	fmt.Sprintf("channel %d", DefaultChannel),
+	"routerselectionjitter 1",
 	"ifconfig up",
 	"thread start",
 }

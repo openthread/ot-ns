@@ -789,8 +789,6 @@ func (node *Node) setupMode() {
 
 	if !node.cfg.IsRouter {
 		node.RouterEligibleDisable()
-	} else {
-		node.SetRouterSelectionJitter(1)
 	}
 }
 
