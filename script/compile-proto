@@ -33,7 +33,7 @@
 compile_proto()
 {
     cd "$OTNSDIR"/visualize/grpc/pb || return 1
-    protoc -I=. visualize_grpc.proto --go_out=plugins=grpc:.
+    protoc -I=. visualize_grpc.proto --go_opt=paths=source_relative --go_out=plugins=grpc:.
     mkdir -p ../../../web/site/js/proto/
     protoc -I=. visualize_grpc.proto \
         --js_out=import_style=commonjs:../../../web/site/js/proto/ \
