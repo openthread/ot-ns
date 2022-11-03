@@ -665,10 +665,10 @@ func (d *Dispatcher) sendRadioCommRxStartEvents(srcNode *Node, evt *Event) {
 		// unicast ExtAddr frame
 		dstNode := d.extaddrMap[pktFrame.DstAddrExtended]
 		if dstNode != nil && neighborNodes[dstNode.Id] != nil {
-			d.visSendFrame(srcNode.Id, dstNode.Id, pktFrame)
+			d.visSendFrame(srcNode.Id, dstNode.Id, pktFrame, evt.RadioCommData)
 		} else {
 			// extAddr didn't exist or was out of range
-			d.visSendFrame(srcNode.Id, InvalidNodeId, pktFrame)
+			d.visSendFrame(srcNode.Id, InvalidNodeId, pktFrame, evt.RadioCommData)
 		}
 
 	} else if dstAddrMode == wpan.DstAddrModeShort && pktFrame.DstAddrShort != threadconst.BroadcastRloc16 {
@@ -678,16 +678,16 @@ func (d *Dispatcher) sendRadioCommRxStartEvents(srcNode *Node, evt *Event) {
 		if dstNodes != nil && len(dstNodes) > 0 {
 			for _, dstNode := range dstNodes {
 				if neighborNodes[dstNode.Id] != nil {
-					d.visSendFrame(srcNode.Id, dstNode.Id, pktFrame)
+					d.visSendFrame(srcNode.Id, dstNode.Id, pktFrame, evt.RadioCommData)
 				}
 			}
 		} else {
-			d.visSendFrame(srcNode.Id, InvalidNodeId, pktFrame)
+			d.visSendFrame(srcNode.Id, InvalidNodeId, pktFrame, evt.RadioCommData)
 		}
 
 	} else {
 		// broadcast frame
-		d.visSendFrame(srcNode.Id, BroadcastNodeId, pktFrame)
+		d.visSendFrame(srcNode.Id, BroadcastNodeId, pktFrame, evt.RadioCommData)
 	}
 }
 
@@ -1112,13 +1112,14 @@ func (d *Dispatcher) visStatusPushTransmit(srcnode *Node, s string) {
 	}
 }
 
-func (d *Dispatcher) visSendFrame(srcid NodeId, dstid NodeId, pktframe *wpan.MacFrame) {
+func (d *Dispatcher) visSendFrame(srcid NodeId, dstid NodeId, pktframe *wpan.MacFrame, commData RadioCommEventData) {
 	d.visSend(srcid, dstid, &visualize.MsgVisualizeInfo{
 		Channel:         pktframe.Channel,
 		FrameControl:    pktframe.FrameControl,
 		Seq:             pktframe.Seq,
 		DstAddrShort:    pktframe.DstAddrShort,
 		DstAddrExtended: pktframe.DstAddrExtended,
+		SendDurationUs:  uint32(commData.Duration),
 	})
 }
 

@@ -74,6 +74,7 @@ type MsgVisualizeInfo struct {
 	Seq             uint8
 	DstAddrShort    uint16
 	DstAddrExtended uint64
+	SendDurationUs  uint32
 }
 
 func (info *MsgVisualizeInfo) Label() string {

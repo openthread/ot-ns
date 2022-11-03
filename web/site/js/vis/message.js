@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2020-2022, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,8 +25,8 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 import * as PIXI from "pixi.js-legacy";
-import VObject from "./VObject";
-import {Visualizer} from "./PixiVisualizer";
+import LVObject from "./LVObject";
+//import {Visualizer} from "./PixiVisualizer";
 import {Resources} from "./resources";
 import {COLOR_ACK_MESSAGE} from "./consts";
 
@@ -35,12 +35,13 @@ const UNICAST_MESSAGE_SCALE = 64;
 
 let nextMessageId = 1;
 
-export class BroadcastMessage extends VObject {
+export class BroadcastMessage extends LVObject {
     constructor(src, mvInfo) {
         super();
         this.id = nextMessageId;
         nextMessageId += 1;
         this.mvInfo = mvInfo;
+        this.src = src;
 
         let beginRadius = 32;
         let sprite = new PIXI.Sprite(Resources().WhiteDashed8Circle128.texture);
@@ -51,7 +52,7 @@ export class BroadcastMessage extends VObject {
         this._targetRadius = src.radioRange;
         sprite.alpha = 0.1;
         this._root = this.sprite = sprite;
-        this._leftFlyTime = 0.7
+        this.configureLifetime(mvInfo);
     }
 
     getColor() {
@@ -63,21 +64,22 @@ export class BroadcastMessage extends VObject {
     }
 
     update(dt) {
-        if (this._leftFlyTime <= 0) {
-            Visualizer().deleteMessage(this);
+        super.update(dt);
+        let lft = this.getRealLifetimeRemaining();
+        if (lft <= 0) {
+            this.vis.deleteMessage(this);
             return
         }
 
-        dt = Math.min(dt, this._leftFlyTime);
-        this._leftFlyTime -= dt;
         let beginRadius = 32;
-        let playRatio = 1.0 - this._leftFlyTime / 0.7;
+        let playRatio = this.getLifetimeProgress();
         let radius = beginRadius + (this._targetRadius - beginRadius) * Math.pow(playRatio, 0.5);
-        this.sprite.scale.set(radius * 2 / BROADCAST_MESSAGE_SCALE, radius * 2 / BROADCAST_MESSAGE_SCALE)
+        this.sprite.scale.set(radius * 2 / BROADCAST_MESSAGE_SCALE, radius * 2 / BROADCAST_MESSAGE_SCALE);
+        this.position = this.src.position;
     }
 }
 
-export class UnicastMessage extends VObject {
+export class UnicastMessage extends LVObject {
 
     constructor(src, dst, mvInfo) {
         super();
@@ -85,10 +87,12 @@ export class UnicastMessage extends VObject {
         this.id = nextMessageId;
         nextMessageId += 1;
         if (dst) {
-            this.dstPos = dst.position
+            this.dst = dst;
         } else {
-            this.dstPos = new PIXI.Point(src.position.x, src.position.y + 200)
+            this.dstPos = new PIXI.Point(0, 200);
+            this.dst = null;
         }
+        this.src = src;
         this.mvInfo = mvInfo;
 
         let size = 10;
@@ -96,9 +100,9 @@ export class UnicastMessage extends VObject {
         sprite.tint = this.getColor();
         sprite.scale.set(size / UNICAST_MESSAGE_SCALE, size / UNICAST_MESSAGE_SCALE);
         sprite.anchor.set(0.5, 0.5);
-        sprite.position = src.position;
+        sprite.position = this.src.position;
         this._root = this.sprite = sprite;
-        this._leftFlyTime = 0.7
+        this.configureLifetime(mvInfo);
     }
 
     isBroadcast() {
@@ -111,33 +115,36 @@ export class UnicastMessage extends VObject {
 
     update(dt) {
         super.update(dt);
-
-        if (this._leftFlyTime <= 0) {
-            Visualizer().deleteMessage(this);
+        let lft = this.getRealLifetimeRemaining();
+        if (lft <= 0) {
+            this.vis.deleteMessage(this);
             return
         }
 
-        let leftTime = this._leftFlyTime;
-        dt = Math.min(dt, leftTime);
-        let mx, my;
-        let dx = this.dstPos.x - this.position.x;
-        let dy = this.dstPos.y - this.position.y;
-        let r = dt / leftTime;
-        mx = dx * r;
-        my = dy * r;
-        this.position.set(this.position.x + mx, this.position.y + my);
-        this._leftFlyTime -= dt
+        let dstx, dsty;
+        if (this.dst != null){  // track the (possibly moving) destination
+            dstx = this.dst.x;
+            dsty = this.dst.y;
+        }else{
+            dstx = this.src.x + this.dstPos.x;  // or use a relative dstpos.
+            dsty = this.src.y + this.dstPos.y;
+        }
+        let dx = dstx - this.src.x;
+        let dy = dsty - this.src.y;
+        let r = this.getLifetimeProgress();
+        this.position.set(this.src.x + r * dx, this.src.y + r * dy);
     }
 }
 
-export class AckMessage extends VObject {
+export class AckMessage extends LVObject {
 
     constructor(src, mvInfo) {
         super();
 
         this.id = nextMessageId;
         nextMessageId += 1;
-        this.dstPos = new PIXI.Point(src.position.x, src.position.y + 50);
+        this.dstPos = new PIXI.Point(0, 50);
+        this.src = src;
         this.mvInfo = mvInfo;
 
         let size = 10;
@@ -147,7 +154,7 @@ export class AckMessage extends VObject {
         sprite.anchor.set(0.5, 0.5);
         sprite.position = src.position;
         this._root = this.sprite = sprite;
-        this._leftFlyTime = 0.7
+        this.configureLifetime(mvInfo);
     }
 
     isBroadcast() {
@@ -160,21 +167,14 @@ export class AckMessage extends VObject {
 
     update(dt) {
         super.update(dt);
-
-        if (this._leftFlyTime <= 0) {
-            Visualizer().deleteMessage(this);
+        let lft = this.getRealLifetimeRemaining();
+        if (lft <= 0) {
+            this.vis.deleteMessage(this);
             return
         }
 
-        let leftTime = this._leftFlyTime;
-        dt = Math.min(dt, leftTime);
-        let mx, my;
-        let dx = this.dstPos.x - this.position.x;
-        let dy = this.dstPos.y - this.position.y;
-        let r = dt / leftTime;
-        mx = dx * r;
-        my = dy * r;
-        this.position.set(this.position.x + mx, this.position.y + my);
-        this._leftFlyTime -= dt
+        let r = this.getLifetimeProgress();
+        this.position.set(this.src.x + r * this.dstPos.x, this.src.y + r * this.dstPos.y);
+
     }
 }

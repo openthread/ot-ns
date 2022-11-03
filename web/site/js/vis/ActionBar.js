@@ -116,8 +116,11 @@ export default class ActionBar extends VObject {
     }
 
     setSpeed(speed) {
+        let oldspeed = this.speed;
         this.speed = speed;
-        this.refresh()
+        if (Math.round(this.speed / oldspeed * 100) != 1.0) {
+            this.refresh()
+        }
     }
 
     actionTogglePauseResume() {
