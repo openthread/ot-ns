@@ -366,12 +366,9 @@ export default class PixiVisualizer extends VObject {
     }
 
     visSetSpeed(speed) {
-        let oldSpeed = this.speed;
-        if (Math.round(oldSpeed * 100) !== Math.round(speed * 100)) {
-            this.speed = speed;
-            this.actionBar.setSpeed(speed);
-            this.log(`Speed set to ${speed}`);
-        }
+        this.speed = speed;
+        this.actionBar.setSpeed(speed);
+        this.log(`Speed set to ${speed}`);
         this.updateStatusMsg();
     }
 
@@ -664,9 +661,9 @@ export default class PixiVisualizer extends VObject {
     }
 
     randomColor() {
-        var letters = '0123456789ABCDEF';
-        var color = '#';
-        for (var i = 0; i < 6; i++) {
+        const letters = '0123456789ABCDEF';
+        let color = '#';
+        for (let i = 0; i < 6; i++) {
             color += letters[Math.floor(Math.random() * 16)];
         }
         return color;
