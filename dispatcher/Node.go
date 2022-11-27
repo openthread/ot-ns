@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2022, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -40,6 +40,8 @@ import (
 const (
 	maxPingResultCount = 1000
 	maxJoinResultCount = 1000
+	minChannel         = 11
+	maxChannel         = 26
 )
 
 type pingRequest struct {
@@ -65,15 +67,22 @@ type JoinResult struct {
 }
 
 type Node struct {
-	D           *Dispatcher
-	Id          NodeId
-	X, Y        int
-	PartitionId uint32
-	ExtAddr     uint64
-	Rloc16      uint16
-	CreateTime  uint64
-	CurTime     uint64
-	Role        OtDeviceRole
+	D                  *Dispatcher
+	Id                 NodeId
+	X, Y               int
+	PartitionId        uint32
+	ExtAddr            uint64
+	Rloc16             uint16
+	CreateTime         uint64
+	CurTime            uint64
+	Role               OtDeviceRole
+	RadioState         RadioStates
+	RadioChannel       uint8
+	radioLockState     bool
+	rxBusyUntil        []uint64
+	isInvalidReception []bool
+	isWaitingAck       bool
+	waitAckSN          uint8
 
 	peerAddr      *net.UDPAddr
 	failureCtrl   *FailureCtrl
@@ -90,18 +99,23 @@ func newNode(d *Dispatcher, nodeid NodeId, x, y int, radioRange int) *Node {
 	simplelogger.AssertTrue(radioRange >= 0)
 
 	nc := &Node{
-		D:           d,
-		Id:          nodeid,
-		CurTime:     d.CurTime,
-		CreateTime:  d.CurTime,
-		X:           x,
-		Y:           y,
-		ExtAddr:     InvalidExtAddr,
-		Rloc16:      threadconst.InvalidRloc16,
-		Role:        OtDeviceRoleDisabled,
-		peerAddr:    nil, // peer address will be set when the first event is received
-		radioRange:  radioRange,
-		joinerState: OtJoinerStateIdle,
+		D:                  d,
+		Id:                 nodeid,
+		CurTime:            d.CurTime,
+		CreateTime:         d.CurTime,
+		X:                  x,
+		Y:                  y,
+		ExtAddr:            InvalidExtAddr,
+		Rloc16:             threadconst.InvalidRloc16,
+		Role:               OtDeviceRoleDisabled,
+		peerAddr:           nil, // peer address will be set when the first event is received
+		radioRange:         radioRange,
+		joinerState:        OtJoinerStateIdle,
+		RadioChannel:       minChannel,
+		radioLockState:     false,
+		isInvalidReception: make([]bool, maxChannel-minChannel+1), // one for each channel (11-26)
+		rxBusyUntil:        make([]uint64, maxChannel-minChannel+1),
+		isWaitingAck:       false,
 	}
 
 	nc.failureCtrl = newFailureCtrl(nc, NonFailTime)
@@ -116,11 +130,34 @@ func (node *Node) String() string {
 func (node *Node) Send(elapsed uint64, data []byte) {
 	msg := make([]byte, len(data)+11)
 	binary.LittleEndian.PutUint64(msg[:8], elapsed)
-	msg[8] = eventTypeRadioReceived
+	msg[8] = eventTypeRadioComm
+
 	binary.LittleEndian.PutUint16(msg[9:11], uint16(len(data)))
 	n := copy(msg[11:], data)
 	simplelogger.AssertTrue(n == len(data))
 
+	node.SendMessage(msg)
+}
+
+func (node *Node) SendTxDoneSignal(elapsed uint64, seq uint8) {
+	msg := make([]byte, 12)
+	binary.LittleEndian.PutUint64(msg[:8], elapsed)
+	msg[8] = eventTypeRadioTxDone
+
+	binary.LittleEndian.PutUint16(msg[9:11], uint16(1))
+	msg[11] = seq
+
+	node.SendMessage(msg)
+}
+
+func (node *Node) SendChannelActivity(channel uint8, value int8, elapsed uint64) {
+	msg := make([]byte, 13)
+	binary.LittleEndian.PutUint64(msg[:8], elapsed)
+	msg[8] = eventTypeChannelActivity
+
+	binary.LittleEndian.PutUint16(msg[9:11], uint16(9))
+	msg[11] = channel
+	msg[12] = uint8(value)
 	node.SendMessage(msg)
 }
 
@@ -299,4 +336,87 @@ func (node *Node) addJoinResult(js *joinerSession) {
 	if len(node.joinResults) > maxJoinResultCount {
 		node.joinResults = node.joinResults[1:]
 	}
+}
+
+func (node *Node) IsReceptionSuccess(channel uint8) bool {
+	return !node.isFailed &&
+		node.RadioState == RadioRx &&
+		node.RadioChannel == channel &&
+		node.D.CurTime >= node.rxBusyUntil[channel-minChannel] &&
+		!node.isInvalidReception[channel-minChannel]
+}
+
+func (node *Node) IsCollisionEvent(src *Node) bool {
+	return node.Id != src.Id && // Needed check
+		node.RadioChannel == src.RadioChannel &&
+		node.D.CurTime < node.rxBusyUntil[src.RadioChannel-minChannel] &&
+		node.isInvalidReception[src.RadioChannel-minChannel]
+}
+
+func (node *Node) IsWaitingAck(seq uint8) bool {
+	return node.isWaitingAck && node.waitAckSN == seq
+}
+
+func (node *Node) InformAckReceived(seq uint8) {
+	if node.IsWaitingAck(seq) {
+		node.isWaitingAck = false
+		node.waitAckSN = 0
+	}
+}
+
+func (node *Node) ReceivePacket(channel uint8, until uint64) {
+	if !node.isInvalidReception[channel-minChannel] {
+		if node.rxBusyUntil[channel-minChannel] > 0 || node.RadioChannel != channel || node.isFailed {
+			node.isInvalidReception[channel-minChannel] = true
+		}
+	}
+
+	if until > node.rxBusyUntil[channel-minChannel] {
+		node.rxBusyUntil[channel-minChannel] = until
+	}
+}
+
+func (node *Node) IsChannelBusy(channel uint8) bool {
+	return !node.isFailed && node.rxBusyUntil[channel-minChannel] > 0
+}
+
+func (node *Node) SetInvalidReception() {
+	node.isInvalidReception[node.RadioChannel-minChannel] = true
+}
+
+func (node *Node) UpdateCollisionCondition() {
+	for i := 0; i < maxChannel-minChannel+1; i++ {
+		if node.rxBusyUntil[i] <= node.D.CurTime {
+			node.isInvalidReception[i] = false
+			node.rxBusyUntil[i] = 0
+		}
+	}
+}
+
+func (node *Node) SetRadioStateFromString(s string, timestamp uint64) {
+	radioEnergy := node.D.energyAnalyser.GetNode(node.Id)
+
+	simplelogger.AssertNotNil(radioEnergy)
+	simplelogger.AssertFalse(node.radioLockState, "radio state was locked")
+
+	var state RadioStates
+	switch s {
+	case "off":
+		state = RadioDisabled
+	case "sleep":
+		state = RadioSleep
+	case "tx":
+		state = RadioTx
+	case "rx":
+		state = RadioRx
+	default:
+		simplelogger.Panicf("unknown radio state: %s", s)
+	}
+
+	node.RadioState = state
+	radioEnergy.SetRadioState(state, timestamp)
+}
+
+func (node *Node) LockRadioState(lock bool) {
+	node.radioLockState = lock
 }

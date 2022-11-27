@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2022, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -29,7 +29,9 @@ package visualize
 import (
 	"time"
 
+	"github.com/openthread/ot-ns/energy"
 	. "github.com/openthread/ot-ns/types"
+	"github.com/openthread/ot-ns/visualize/grpc/pb"
 )
 
 type nopVisualizer struct{}
@@ -120,6 +122,14 @@ func (nv nopVisualizer) OnNodeRecover(NodeId) {
 }
 
 func (nv nopVisualizer) SetTitle(titleInfo TitleInfo) {
+
+}
+
+func (nv nopVisualizer) UpdateNodesEnergy(node []*pb.NodeEnergy, timestamp uint64, updateView bool) {
+
+}
+
+func (nv nopVisualizer) SetEnergyAnalyser(ea *energy.EnergyAnalyser) {
 
 }
 

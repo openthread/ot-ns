@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2022, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -72,6 +72,12 @@ waitloop:
 	}
 
 	return nil
+}
+
+func (gs *grpcService) EnergyReport(req *pb.VisualizeRequest, stream pb.VisualizeGrpcService_EnergyReportServer) error {
+	//TODO: implement energy report for replay, if it fits.
+	var err error
+	return err
 }
 
 func (gs *grpcService) Command(context.Context, *pb.CommandRequest) (*pb.CommandResponse, error) {
