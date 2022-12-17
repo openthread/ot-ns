@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2022, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -215,6 +215,8 @@ func (rt *CmdRunner) execute(cmd *Command, output io.Writer) {
 		rt.executeWeb(cc, cc.Web)
 	} else if cmd.NetInfo != nil {
 		rt.executeNetInfo(cc, cc.NetInfo)
+	} else if cmd.Energy != nil {
+		rt.executeEnergy(cc, cc.Energy)
 	} else {
 		simplelogger.Panicf("unimplemented command: %#v", cmd)
 	}
@@ -766,6 +768,17 @@ func (rt *CmdRunner) executeCoaps(cc *CommandContext, cmd *CoapsCmd) {
 		})
 
 		cc.outputItemsAsYaml(coapMessages)
+	}
+}
+
+func (rt *CmdRunner) executeEnergy(cc *CommandContext, energy *EnergyCmd) {
+	if energy.Save != nil {
+		rt.postAsyncWait(func(sim *simulation.Simulation) {
+			sim.GetEnergyAnalyser().SaveEnergyDataToFile(energy.Name, sim.Dispatcher().CurTime)
+		})
+	} else {
+		cc.outputf("energy <command>\n")
+		cc.outputf("\tsave [output name]\n")
 	}
 }
 

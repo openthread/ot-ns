@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2022, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -24,30 +24,52 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-package dispatcher
+package energy
 
 import (
-	"net"
-
 	. "github.com/openthread/ot-ns/types"
+	"github.com/simonlingoogle/go-simplelogger"
 )
 
-const (
-	eventTypeAlarmFired    = 0
-	eventTypeRadioReceived = 1
-	eventTypeUartWrite     = 2
-	eventTypeStatusPush    = 5
-	eventTypeRadioComm     = 6
-	eventTypeRadioTxDone   = 7
-)
+type NodeEnergy struct {
+	nodeId int
+	radio  RadioStatus
+}
 
-type eventType = uint8
+func (node *NodeEnergy) ComputeRadioState(timestamp uint64) {
+	delta := timestamp - node.radio.Timestamp
+	switch node.radio.State {
+	case RadioDisabled:
+		node.radio.SpentDisabled += delta
+	case RadioSleep:
+		node.radio.SpentSleep += delta
+	case RadioTx:
+		node.radio.SpentTx += delta
+	case RadioRx:
+		node.radio.SpentRx += delta
+	default:
+		simplelogger.Panicf("unknown radio state: %v", node.radio.State)
+	}
+	node.radio.Timestamp = timestamp
+}
 
-type event struct {
-	Delay   uint64
-	Type    eventType
-	NodeId  NodeId
-	DataLen uint16
-	Data    []byte
-	SrcAddr *net.UDPAddr
+func (node *NodeEnergy) SetRadioState(state RadioStates, timestamp uint64) {
+	//Mandatory: compute energy consumed by the radio first.
+	node.ComputeRadioState(timestamp)
+	node.radio.State = state
+}
+
+func newNode(nodeID int, timestamp uint64) *NodeEnergy {
+	node := &NodeEnergy{
+		nodeId: nodeID,
+		radio: RadioStatus{
+			State:         RadioDisabled,
+			SpentDisabled: 0.0,
+			SpentSleep:    0.0,
+			SpentRx:       0.0,
+			SpentTx:       0.0,
+			Timestamp:     timestamp,
+		},
+	}
+	return node
 }
