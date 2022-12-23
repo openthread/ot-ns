@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2020-2022, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -31,6 +31,7 @@ type NodeConfig struct {
 	X, Y           int
 	IsMtd          bool
 	IsRouter       bool
+	IsBorderRouter bool
 	RxOffWhenIdle  bool
 	RadioRange     int
 	ExecutablePath string
@@ -45,6 +46,7 @@ func DefaultNodeConfig() *NodeConfig {
 		Y:              0,
 		IsRouter:       true,
 		IsMtd:          false,
+		IsBorderRouter: false,
 		RxOffWhenIdle:  false,
 		RadioRange:     160,
 		ExecutablePath: "", // empty string means 'use simulation default'

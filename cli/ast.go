@@ -294,7 +294,7 @@ type MaxSpeedFlag struct {
 
 // noinspection GoStructTag
 type NodeType struct {
-	Val string `@("router"|"fed"|"med"|"sed")` //nolint
+	Val string `@("router"|"fed"|"med"|"sed"|"br")` //nolint
 }
 
 // noinspection GoStructTag

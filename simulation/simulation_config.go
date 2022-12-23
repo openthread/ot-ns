@@ -57,6 +57,7 @@ var DefaultNodeInitScript = []string{
 type Config struct {
 	InitScript     []string
 	OtCliPath      string
+	OtBrPath       string
 	Speed          float64
 	ReadOnly       bool
 	RawMode        bool
@@ -75,6 +76,7 @@ func DefaultConfig() *Config {
 		ReadOnly:       false,
 		RawMode:        false,
 		OtCliPath:      "./ot-cli-ftd",
+		OtBrPath:       "./otbr-sim.sh",
 		Real:           false,
 		AutoGo:         true,
 		DispatcherHost: "localhost",

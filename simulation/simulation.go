@@ -108,7 +108,6 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 	}
 
 	simplelogger.Infof("simulation:AddNode: %+v, rawMode=%v", cfg, s.rawMode)
-	dispNode := s.d.AddNode(nodeid, cfg)
 	node, err := newNode(s, nodeid, cfg)
 	if err != nil {
 		simplelogger.Errorf("simulation add node failed: %v", err)
@@ -117,6 +116,7 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 	s.nodes[nodeid] = node
 
 	// init of the sim/dispatcher nodes
+	dispNode := s.d.AddNode(nodeid, cfg)
 	s.d.InitNode(dispNode)
 	node.detectVirtualTimeUART()
 	node.setupMode()
