@@ -1,4 +1,3 @@
-[submodule "openthread"]
-	path = openthread
-	url = https://github.com/EskoDijk/openthread
-	branch = main
+[submodule "ot-rfsim"]
+	path = ot-rfsim
+	url = https://github.com/EskoDijk/ot-rfsim

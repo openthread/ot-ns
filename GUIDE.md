@@ -2,7 +2,7 @@
 
 ## Install Go
 
-OTNS requires [Go 1.17+](https://golang.org/dl/) to build:
+OTNS requires [Go 1.17 or higher](https://golang.org/dl/) to build:
 
  - Install Go from https://golang.org/dl/
  - Add `$(go env GOPATH)/bin` (normally `$HOME/go/bin`) to `$PATH`.
@@ -10,7 +10,7 @@ OTNS requires [Go 1.17+](https://golang.org/dl/) to build:
 ## Get OTNS code
 
 ```bash
-git clone --recurse-submodules https://github.com/openthread/ot-ns.git ./otns
+git clone --recurse-submodules https://github.com/EskoDijk/ot-ns.git ./otns
 cd otns
 ```
 
@@ -28,28 +28,24 @@ cd otns
 
 ## Build OpenThread for OTNS
 
-OTNS uses POSIX simulation to simulate Thread nodes.
+This fork of OTNS uses POSIX simulation to simulate Thread nodes, with a specific platform `ot-rfsim`.
+The simulator starts the node executable `ot-cli-ftd` which is used to simulate all node types.
 
-To build OpenThread for OTNS using 'cmake' (preferred, 'make' is not recommended): below shows an example build 
-for OT-NS without generating full OT log messages (OT_FULL_LOGS=OFF). To see extra debug info of the node during
-the simulation, use OT_FULL_LOGS=ON.
+To build the executable with platform `ot-rfsim` for OTNS using 'cmake', see the example build below. 
+It shows a build with default settings.  
 
 ```bash
-$ git clone https://github.com/openthread/openthread openthread
-$ cd openthread
+$ cd ot-rfsim
 $ ./script/bootstrap
-$ ./bootstrap
-$ ./script/cmake-build simulation -DOT_PLATFORM=simulation -DOT_OTNS=ON
- -DOT_SIMULATION_VIRTUAL_TIME=ON -DOT_SIMULATION_VIRTUAL_TIME_UART=ON -DOT_SIMULATION_MAX_NETWORK_SIZE=999 \
- -DOT_COMMISSIONER=ON -DOT_JOINER=ON -DOT_BORDER_ROUTER=ON -DOT_SERVICE=ON -DOT_COAP=ON -DOT_FULL_LOGS=OFF
+$ ./script/build
 ```
 
 ## Run OTNS
 
-After building OpenThread, run OTNS:
+After building OpenThread, run OTNS from the directory where the `ot-cli-ftd` binary was generated:
 
 ```bash
-cd build/simulation/examples/apps/cli
+cd build/bin
 otns
 ```
 
