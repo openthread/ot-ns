@@ -7,7 +7,20 @@
 # OpenThread Network Simulator
 
 OpenThread Network Simulator (OTNS) simulates Thread networks using OpenThread POSIX instances
-and provides visualization and management of those simulated networks. 
+and provides visualization and management of those simulated networks.
+
+Note: this is a fork of the [OpenThread OTNS project](https://github.com/openthread/ot-ns) by 
+[IoTconsultancy.nl](https://www.iotconsultancy.nl/) with some additional features:
+
+* Support for more accurate RF simulation of the OpenThread node. Requires the OpenThread platform 
+  `ot-rfsim` to be selected, which specifically supports RF simulation. This project is included as 
+  a Git submodule.
+* Selectable radio (RF propagation) models.
+* Control of logging display from OT-node, using `log` and `watch` CLI commands. Logging to file per 
+  OT-node.
+* Animations with duration scaled to the actual time duration of a packet in flight (at low simulation 
+  speed only).
+* Various UI look & feel improvements.
 
 More information about Thread can be found at [threadgroup.org](http://threadgroup.org/). 
 Thread is a registered trademark of the Thread Group, Inc.
