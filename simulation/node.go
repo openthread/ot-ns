@@ -88,6 +88,8 @@ func newNode(s *Simulation, id NodeId, cfg *NodeConfig) (*Node, error) {
 	otCliPath := s.cfg.OtCliPath
 	if cfg.ExecutablePath != "" {
 		otCliPath = cfg.ExecutablePath
+	} else if cfg.IsBorderRouter {
+		otCliPath = s.cfg.OtBrPath
 	}
 	simplelogger.Debugf("node exe path: %s", otCliPath)
 	cmd := exec.CommandContext(context.Background(), otCliPath, strconv.Itoa(id))

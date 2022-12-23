@@ -327,6 +327,11 @@ func (rt *CmdRunner) executeAddNode(cc *CommandContext, cmd *AddCmd) {
 		cfg.IsRouter = false
 		cfg.IsMtd = true
 		cfg.RxOffWhenIdle = true
+	} else if cmd.Type.Val == "br" {
+		cfg.IsRouter = true
+		cfg.IsMtd = false
+		cfg.IsBorderRouter = true
+		cfg.RxOffWhenIdle = false
 	} else {
 		panic("wrong node type")
 	}
