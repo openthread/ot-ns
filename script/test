@@ -70,7 +70,7 @@ get_openthread()
 {
     if [[ -z $OT_DIR ]]; then
         OT_DIR=$PWD/ot-rfsim
-        git submodule update --init --depth 2
+        git submodule update --init --recursive --depth 1
     fi
 
     OTBIN_DIR=$OT_DIR/build/bin
@@ -99,7 +99,7 @@ build_openthread()
         ./script/build "${options[@]}"
     )
 
-    OT_CLI_FTD_PATH="$OT_BINDIR/ot-cli-ftd"
+    OT_CLI_FTD_PATH="$OTBIN_DIR/ot-cli-ftd"
     echo "Please launch OTNS with command: otns -ot-cli $OT_CLI_FTD_PATH"
 }
 
