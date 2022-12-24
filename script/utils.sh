@@ -104,7 +104,14 @@ install_package()
 function install_pretty_tools()
 {
     if ! installed golangci-lint; then
-        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b "$(go env GOPATH)"/bin v1.47.2
+        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b "$(go env GOPATH)"/bin v1.50.1
+    fi
+
+    # If shfmt is not installed, we need brew to install it.
+    if ! installed shfmt; then
+        if ! installed brew; then
+            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+        fi
     fi
 
     install_package shfmt --brew shfmt
