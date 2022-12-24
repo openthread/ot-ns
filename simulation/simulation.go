@@ -31,6 +31,8 @@ import (
 	"sort"
 	"time"
 
+	"io/fs"
+
 	"github.com/openthread/ot-ns/dispatcher"
 	"github.com/openthread/ot-ns/energy"
 	"github.com/openthread/ot-ns/progctx"
@@ -39,7 +41,6 @@ import (
 	"github.com/openthread/ot-ns/visualize"
 	"github.com/pkg/errors"
 	"github.com/simonlingoogle/go-simplelogger"
-	"io/fs"
 )
 
 type Simulation struct {

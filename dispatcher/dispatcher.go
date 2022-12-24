@@ -507,7 +507,6 @@ func (d *Dispatcher) processNextEvent(simSpeed float64) bool {
 	// process (if any) all queued events, that happen at exactly procUntilTime
 	procUntilTime := nextEventTime
 	for nextEventTime <= procUntilTime {
-
 		d.advanceTime(nextEventTime)
 
 		if nextAlarmTime <= nextSendTime {
@@ -518,7 +517,6 @@ func (d *Dispatcher) processNextEvent(simSpeed float64) bool {
 			if node != nil {
 				d.advanceNodeTime(node, nextAlarm.Timestamp, false)
 			}
-
 		} else {
 			// process next event from the queue
 			evt := d.eventQueue.PopNext()
@@ -541,12 +539,10 @@ func (d *Dispatcher) processNextEvent(simSpeed float64) bool {
 						}
 					}
 				}
-
 			} else {
 				// node may have been deleted in the meantime.
 				simplelogger.Debugf("processNextEvent() skipping event for deleted/unknown node %v: %v", evt.NodeId, evt)
 			}
-
 		}
 		nextAlarmTime = d.alarmMgr.NextTimestamp()
 		nextSendTime = d.eventQueue.NextTimestamp()
@@ -670,12 +666,11 @@ func (d *Dispatcher) sendRadioCommRxStartEvents(srcNode *Node, evt *Event) {
 			// extAddr didn't exist or was out of range
 			d.visSendFrame(srcNode.Id, InvalidNodeId, pktFrame, evt.RadioCommData)
 		}
-
 	} else if dstAddrMode == wpan.DstAddrModeShort && pktFrame.DstAddrShort != threadconst.BroadcastRloc16 {
 		// unicast short addr frame. May go to multiple if multiple nodes use same short addr.
 		dstNodes := d.rloc16Map[pktFrame.DstAddrShort]
 
-		if dstNodes != nil && len(dstNodes) > 0 {
+		if len(dstNodes) > 0 {
 			for _, dstNode := range dstNodes {
 				if neighborNodes[dstNode.Id] != nil {
 					d.visSendFrame(srcNode.Id, dstNode.Id, pktFrame, evt.RadioCommData)
@@ -684,7 +679,6 @@ func (d *Dispatcher) sendRadioCommRxStartEvents(srcNode *Node, evt *Event) {
 		} else {
 			d.visSendFrame(srcNode.Id, InvalidNodeId, pktFrame, evt.RadioCommData)
 		}
-
 	} else {
 		// broadcast frame
 		d.visSendFrame(srcNode.Id, BroadcastNodeId, pktFrame, evt.RadioCommData)
@@ -718,14 +712,13 @@ func (d *Dispatcher) sendRadioCommRxDoneEvents(srcNode *Node, evt *Event) {
 			d.Counters.DispatchByExtAddrFail++
 		}
 		dispatchedByDstAddr = true
-
 	} else if dstAddrMode == wpan.DstAddrModeShort &&
 		pktFrame.DstAddrShort != threadconst.BroadcastRloc16 {
 		// unicast message should only be dispatched to target node(s) with the rloc16
 		dstNodes := d.rloc16Map[pktFrame.DstAddrShort]
 		dispatchCnt := 0
 
-		if dstNodes != nil && len(dstNodes) > 0 {
+		if len(dstNodes) > 0 {
 			for _, dstNode := range dstNodes {
 				if d.checkRadioReachable(srcNode, dstNode) {
 					d.sendOneRadioFrame(evt, srcNode, dstNode)
@@ -825,12 +818,14 @@ func (d *Dispatcher) setAlive(nodeid NodeId) {
 	d.aliveNodes[nodeid] = struct{}{}
 }
 
+/*
 func (d *Dispatcher) isAlive(nodeid NodeId) bool {
 	if _, ok := d.aliveNodes[nodeid]; ok {
 		return true
 	}
 	return false
 }
+*/
 
 func (d *Dispatcher) isDeleted(nodeid NodeId) bool {
 	if _, ok := d.deletedNodes[nodeid]; ok {

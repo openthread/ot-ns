@@ -47,7 +47,9 @@ import (
 )
 
 const (
-	Prompt = "> "
+	Prompt         = "> "
+	WatchLevelOff  = "off"
+	WatchLevelNone = "none"
 )
 
 type CommandContext struct {
@@ -258,7 +260,6 @@ func (rt *CmdRunner) executeGo(cc *CommandContext, cmd *GoCmd) {
 			done = sim.GoAtSpeed(timeDurToGo, speed)
 		})
 		<-done // block for the simulation period.
-
 	} else {
 		for { // run forever
 			rt.postAsyncWait(func(sim *simulation.Simulation) {
@@ -713,12 +714,12 @@ func (rt *CmdRunner) executeWatch(cc *CommandContext, cmd *WatchCmd) {
 			return
 		} else if len(cmd.Nodes) == 0 && len(cmd.All) == 0 && len(cmd.Default) > 0 && len(cmd.Level) > 0 {
 			// variant: 'watch default <level>'
-			sim.Dispatcher().GetConfig().DefaultWatchOn = cmd.Level != "off" && cmd.Level != "none"
+			sim.Dispatcher().GetConfig().DefaultWatchOn = cmd.Level != WatchLevelOff && cmd.Level != WatchLevelNone
 			sim.Dispatcher().GetConfig().DefaultWatchLevel = cmd.Level
 			return
 		} else if len(cmd.Nodes) == 0 && len(cmd.All) == 0 && len(cmd.Default) > 0 && len(cmd.Level) == 0 {
 			// variant: 'watch default'
-			watchLevelDefault := "off"
+			watchLevelDefault := WatchLevelOff
 			if sim.Dispatcher().GetConfig().DefaultWatchOn {
 				watchLevelDefault = sim.Dispatcher().GetConfig().DefaultWatchLevel
 			}
@@ -731,10 +732,10 @@ func (rt *CmdRunner) executeWatch(cc *CommandContext, cmd *WatchCmd) {
 			}
 		} else if len(cmd.Nodes) > 0 && len(cmd.All) == 0 && len(cmd.Default) == 0 {
 			// variant: 'watch <nodeid> [<nodeid> ...] [<level>]'
-
+			// Do nothing here. Will iterate over nodes below.
 		} else if len(cmd.Nodes) == 0 && len(cmd.All) == 0 && len(cmd.Default) == 0 && len(cmd.Level) > 0 {
 			// variant: 'watch <level>'
-			// Do nothing additional. Was processed above under 'watchLogLevel'.
+			// Do nothing here. <level> was processed above as 'watchLogLevel'.
 		} else {
 			cc.errorf("unsupported combination of command options")
 			return
@@ -748,7 +749,6 @@ func (rt *CmdRunner) executeWatch(cc *CommandContext, cmd *WatchCmd) {
 			}
 			sim.Dispatcher().WatchNode(node.Id, watchLogLevel)
 		}
-
 	})
 }
 

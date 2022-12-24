@@ -102,11 +102,13 @@ type RadioStateEventData struct {
 	State       RadioStates
 }
 
-/* RadioMessagePsduOffset is the offset of Psdu data in a received OpenThread RadioMessage type.
-type RadioMessage struct {
-	Channel       uint8
-	Psdu          byte[]
-}
+/*
+RadioMessagePsduOffset is the offset of Psdu data in a received OpenThread RadioMessage type.
+
+	type RadioMessage struct {
+		Channel       uint8
+		Psdu          byte[]
+	}
 */
 const RadioMessagePsduOffset = 1
 

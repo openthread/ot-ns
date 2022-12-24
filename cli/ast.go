@@ -245,12 +245,12 @@ type SpeedCmd struct {
 	Speed *float64      `| [ (@Int|@Float) ] )` //nolint
 }
 
-//noinspection GoStructTag
+// noinspection GoStructTag
 type TimeCmd struct {
 	Cmd struct{} `"time"` //nolint
 }
 
-//noinspection GoStructTag
+// noinspection GoStructTag
 type TitleCmd struct {
 	Cmd      struct{} `"title"`              //nolint
 	Title    string   `@String`              //nolint
@@ -338,19 +338,19 @@ type WebCmd struct {
 	Cmd struct{} `"web"` //nolint
 }
 
-//noinspection GoStructTag
+// noinspection GoStructTag
 type EnergyCmd struct {
 	Cmd  struct{}  `"energy"` //nolint
 	Save *SaveFlag `( @@ )?`  //nolint
 	Name string    `@String?` //nolint
 }
 
-//noinspection GoStructTag
+// noinspection GoStructTag
 type SaveFlag struct {
 	Dummy struct{} `"save"` //nolint
 }
 
-//noinspection GoStructTag
+// noinspection GoStructTag
 type RadioCmd struct {
 	Cmd      struct{}        `"radio"` //nolint
 	Nodes    []NodeSelector  `( @@ )+` //nolint
@@ -430,7 +430,7 @@ type PlrCmd struct {
 	Val *float64 `[ (@Int|@Float) ]` //nolint
 }
 
-//noinspection GoStructTag
+// noinspection GoStructTag
 type RadioModelCmd struct {
 	Cmd   struct{} `"radiomodel"`    //nolint
 	Model string   `[(@Ident|@Int)]` //nolint
@@ -449,13 +449,13 @@ type WatchCmd struct {
 	Level   string         `[@( "trace"|"debug"|"info"|"note"|"warn"|"error"|"crit"|"off"|"none"|"T"|"D"|"I"|"N"|"W"|"E"|"C" )]` //nolint
 }
 
-//noinspection GoStructTag
+// noinspection GoStructTag
 type UnwatchCmd struct {
 	Cmd   struct{}       `"unwatch"`           //nolint
 	Nodes []NodeSelector `( "all" | ( @@ )+ )` //nolint
 }
 
-//noinspection GoStructTag
+// noinspection GoStructTag
 type FailTimeParams struct {
 	Dummy        struct{} `"ft"`          //nolint
 	FailDuration float64  `(@Int|@Float)` //nolint

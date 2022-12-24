@@ -28,6 +28,7 @@ package simulation
 
 import (
 	"fmt"
+
 	"github.com/openthread/ot-ns/threadconst"
 )
 
