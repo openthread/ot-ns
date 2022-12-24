@@ -86,8 +86,8 @@ build_openthread()
         #OT_DIR=$PWD/ot-rfsim
         cd "$OT_DIR"
 
-        local options=(
-        )
+        # TODO: MacOS CI build fails for empty options. So we give one option here.
+        local options=("-DOT_OTNS=ON")
 
         local COVERAGE=${COVERAGE:-0}
         if [[ $COVERAGE == 1 ]]; then
