@@ -82,10 +82,17 @@ install_package()
                 shift 2
                 ;;
             --brew)
-
                 if installed brew; then
                     brew install "$2"
                     return 0
+                fi
+
+                shift 2
+                ;;
+            --snap)
+                if installed snap; then
+                     sudo snap install "$2"
+                     return 0
                 fi
 
                 shift 2
@@ -107,14 +114,7 @@ function install_pretty_tools()
         curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b "$(go env GOPATH)"/bin v1.50.1
     fi
 
-    # If shfmt is not installed, we need brew to install it.
-    if ! installed shfmt; then
-        if ! installed brew; then
-            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-        fi
-    fi
-
-    go install mvdan.cc/sh/v3/cmd/shfmt@latest
+    install_package shfmt --brew shfmt --snap shfmt
     install_package shellcheck --apt shellcheck --brew shellcheck
 }
 
