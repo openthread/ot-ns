@@ -91,8 +91,8 @@ install_package()
                 ;;
             --snap)
                 if installed snap; then
-                     sudo snap install "$2"
-                     return 0
+                    sudo snap install "$2"
+                    return 0
                 fi
 
                 shift 2
