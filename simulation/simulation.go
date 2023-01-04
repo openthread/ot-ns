@@ -127,8 +127,8 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 			initScript = s.cfg.InitScript // use default, if indicated so in cfg.
 		}
 		node.SetupNetworkParameters(initScript)
+		node.Start()
 	}
-	node.Start()
 
 	return node, nil
 }
