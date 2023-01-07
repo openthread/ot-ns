@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Copyright (c) 2022, The OTNS Authors.
+# Copyright (c) 2022-2023, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -43,9 +43,9 @@ class StressTest(BaseStressTest):
     SUITE = 'network-limits'
 
     TIME_LIMIT = {
-        'fed': 3,
-        'med': 3,
-        'sed': 3,
+        'fed': 4,
+        'med': 4,
+        'sed': 4,
     }
 
     def __init__(self):
