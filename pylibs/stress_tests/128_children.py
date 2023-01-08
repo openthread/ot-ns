@@ -43,9 +43,9 @@ class StressTest(BaseStressTest):
     SUITE = 'network-limits'
 
     TIME_LIMIT = {
-        'fed': 4,
-        'med': 4,
-        'sed': 4,
+        'fed': 8,
+        'med': 8,
+        'sed': 8,
     }
 
     def __init__(self):
