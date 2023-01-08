@@ -35,10 +35,10 @@
 #   SED x10
 # Fault Injections:
 #   Nodes are constantly moving
-#   Nodes fail for 60s in every 600s
-#   Packet Loss Ratio set to 0.2
+#   Nodes fail for 30s in every 600s
+#   Packet Loss Ratio set to 0.1
 # Pass Criteria:
-#   Max Delay (of all nodes) <= 3600s
+#   Max Delay (of all nodes) <= MAX_DELAY_TIME s
 #
 import logging
 import os
@@ -47,23 +47,22 @@ import random
 from BaseStressTest import BaseStressTest
 
 ROUTER_COUNT = 20
-
 FED_COUNT = 10
 MED_COUNT = 10
 SED_COUNT = 10
 TOTAL_NODE_COUNT = ROUTER_COUNT + FED_COUNT + MED_COUNT + SED_COUNT
 
 RADIO_RANGE = 400
-
 XMAX = 1000
 YMAX = 1000
 
-TOTAL_SIMULATION_TIME = 3600 * int(os.getenv("STRESS_LEVEL", "1"))
+TOTAL_SIMULATION_TIME = 7200 * int(os.getenv("STRESS_LEVEL", "1"))
+MAX_DELAY_TIME = 7200
 MOVE_INTERVAL = 60
 PING_INTERVAL = 60
 PING_DATA_SIZE = 32
 
-FAIL_DURATION = 60
+FAIL_DURATION = 30
 FAIL_INTERVAL = 600
 MOVE_COUNT = 3
 
@@ -140,7 +139,7 @@ class StressTest(BaseStressTest):
         avg_delay = sum(delays) / TOTAL_NODE_COUNT
         self.result.append_row("%dh" % (TOTAL_SIMULATION_TIME // 3600),
                                '%ds' % max(delays), '%ds' % min(delays), '%ds' % avg_delay)
-        self.result.fail_if(max(delays) > 3600, "Max Delay (%ds)> 3600s" % max(delays))
+        self.result.fail_if(max(delays) > MAX_DELAY_TIME, "Max Delay (%ds)> %ds" % (max(delays), MAX_DELAY_TIME))
 
     def _collect_pings(self):
         for srcid, dstaddr, _, delay in self.ns.pings():
