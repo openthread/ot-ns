@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2022, The OTNS Authors.
+// Copyright (c) 2020-2023, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -45,6 +45,7 @@ import (
 
 type Simulation struct {
 	ctx            *progctx.ProgCtx
+	err            error
 	cfg            *Config
 	nodes          map[NodeId]*Node
 	d              *dispatcher.Dispatcher
@@ -151,6 +152,11 @@ func (s *Simulation) Run() {
 	s.d.Run()
 }
 
+// Returns the last error that occurred in the simulation run, or nil if none.
+func (s *Simulation) Error() error {
+	return s.err
+}
+
 func (s *Simulation) Nodes() map[NodeId]*Node {
 	return s.nodes
 }
@@ -204,8 +210,10 @@ func (s *Simulation) OnNodeRecover(nodeid NodeId) {
 }
 
 func (s *Simulation) OnNodeProcessFailure(node *Node) {
+	s.err = node.err
+	simplelogger.Errorf("Node %v process failed: %s", node.Id, node.err)
 	s.PostAsync(false, func() {
-		simplelogger.Errorf("Node %v process failed, deleting node.", node.Id)
+		simplelogger.Errorf("Deleting node %v due to process failure.", node.Id)
 		_ = s.DeleteNode(node.Id)
 	})
 }

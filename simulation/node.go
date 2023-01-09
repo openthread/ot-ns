@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2022, The OTNS Authors.
+// Copyright (c) 2020-2023, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -31,7 +31,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"regexp"
@@ -44,6 +43,7 @@ import (
 	"github.com/openthread/ot-ns/otoutfilter"
 	"github.com/openthread/ot-ns/threadconst"
 	. "github.com/openthread/ot-ns/types"
+	"github.com/pkg/errors"
 	"github.com/simonlingoogle/go-simplelogger"
 )
 
@@ -63,6 +63,24 @@ const (
 	NodeUartTypeVirtualTime NodeUartType = iota
 )
 
+type Node struct {
+	S   *Simulation
+	Id  int
+	cfg *NodeConfig
+
+	cmd     *exec.Cmd
+	logFile *os.File
+	err     error
+
+	pendingLines      chan string
+	pipeIn            io.WriteCloser
+	pipeOut           io.Reader
+	pipeErr           io.ReadCloser
+	virtualUartReader *io.PipeReader
+	virtualUartPipe   *io.PipeWriter
+	uartType          NodeUartType
+}
+
 func newNode(s *Simulation, id NodeId, cfg *NodeConfig) (*Node, error) {
 	var err error
 
@@ -70,11 +88,13 @@ func newNode(s *Simulation, id NodeId, cfg *NodeConfig) (*Node, error) {
 	logFileName := fmt.Sprintf("tmp/%d_%d.log", portOffset, id)
 	if !cfg.Restore {
 		flashFile := fmt.Sprintf("tmp/%d_%d.flash", portOffset, id)
-		if err := os.RemoveAll(flashFile); err != nil {
+		if err = os.RemoveAll(flashFile); err != nil {
 			simplelogger.Errorf("Remove flash file %s failed: %+v", flashFile, err)
+			return nil, err
 		}
-		if err := os.RemoveAll(logFileName); err != nil {
+		if err = os.RemoveAll(logFileName); err != nil {
 			simplelogger.Errorf("Remove node log file %s failed: %+v", logFileName, err)
+			return nil, err
 		}
 	}
 
@@ -82,6 +102,7 @@ func newNode(s *Simulation, id NodeId, cfg *NodeConfig) (*Node, error) {
 	logFile, err := os.OpenFile(logFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0664)
 	if err != nil {
 		simplelogger.Errorf("Opening node log file %s failed: %+v", logFileName, err)
+		return nil, err
 	}
 
 	// determine path of the OT CLI app and start OT node process.
@@ -102,6 +123,7 @@ func newNode(s *Simulation, id NodeId, cfg *NodeConfig) (*Node, error) {
 		pendingLines: make(chan string, 100),
 		uartType:     NodeUartTypeUndefined,
 		logFile:      logFile,
+		err:          nil,
 	}
 
 	node.virtualUartReader, node.virtualUartPipe = io.Pipe()
@@ -114,13 +136,11 @@ func newNode(s *Simulation, id NodeId, cfg *NodeConfig) (*Node, error) {
 		return nil, err
 	}
 
-	node.pipeErr, err = cmd.StderrPipe()
-	if err != nil {
+	if node.pipeErr, err = cmd.StderrPipe(); err != nil {
 		return nil, err
 	}
 
-	err = cmd.Start()
-	if err != nil {
+	if err = cmd.Start(); err != nil {
 		return nil, err
 	}
 
@@ -129,24 +149,6 @@ func newNode(s *Simulation, id NodeId, cfg *NodeConfig) (*Node, error) {
 	go node.lineReaderStdErr(node.pipeErr)
 
 	return node, nil
-}
-
-type Node struct {
-	S   *Simulation
-	Id  int
-	cfg *NodeConfig
-
-	cmd       *exec.Cmd
-	outputErr io.Reader
-	logFile   *os.File
-
-	pendingLines      chan string
-	pipeIn            io.WriteCloser
-	pipeOut           io.Reader
-	pipeErr           io.ReadCloser
-	virtualUartReader *io.PipeReader
-	virtualUartPipe   *io.PipeWriter
-	uartType          NodeUartType
 }
 
 func (node *Node) String() string {
@@ -640,10 +642,13 @@ func (node *Node) lineReaderStdErr(reader io.Reader) {
 	scanner := bufio.NewScanner(bufio.NewReader(reader)) // no filter applied.
 	scanner.Split(bufio.ScanLines)
 
-	isNodeError := false
 	for scanner.Scan() {
-		isNodeError = true
 		line := scanner.Text()
+
+		// mark the error in the node
+		if node.err == nil {
+			node.err = errors.New(line)
+		}
 
 		// append it to node-specific log file.
 		node.writeToLogFile(line)
@@ -652,8 +657,8 @@ func (node *Node) lineReaderStdErr(reader io.Reader) {
 		node.S.Dispatcher().WatchMessage(node.Id, dispatcher.WatchCritLevel, fmt.Sprintf("%v StdErr: %v", node, line))
 	}
 
-	// when the stderr of the node closes and any errors were printed, flag the node's failure.
-	if isNodeError {
+	// when the stderr of the node closes and any error was raised, inform simulation of node's failure.
+	if node.err != nil {
 		node.S.OnNodeProcessFailure(node)
 	}
 }
@@ -679,11 +684,7 @@ func (node *Node) TryExpectLine(line interface{}, timeout time.Duration) (bool, 
 		case <-deadline:
 			return false, outputLines
 		case readLine, ok := <-node.pendingLines:
-			if !ok {
-				errmsg, _ := ioutil.ReadAll(node.outputErr)
-				simplelogger.Panicf("%s EOF: %s", node, string(errmsg))
-				return false, outputLines
-			}
+			simplelogger.AssertTrue(ok, "%s EOF: node.pendingLines channel was closed", node)
 
 			if !strings.HasPrefix(readLine, "|") && !strings.HasPrefix(readLine, "+") {
 				simplelogger.Debugf("%v %s", node, readLine)
