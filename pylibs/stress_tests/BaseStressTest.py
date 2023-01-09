@@ -68,7 +68,7 @@ class StressTestMetaclass(type):
 class BaseStressTest(object, metaclass=StressTestMetaclass):
     def __init__(self, name, headers, raw=False):
         self.name = name
-        self._otns_args = []
+        self._otns_args = [] # use ['-log', 'debug'] for more debug messages
         if raw:
             self._otns_args.append('-raw')
         self.ns = OTNS(otns_args=self._otns_args)

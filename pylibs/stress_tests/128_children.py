@@ -70,7 +70,7 @@ class StressTest(BaseStressTest):
             child_y = int(PARENT_Y + d * math.sin(angle))
             child = self.ns.add(child_type, child_x, child_y, radio_range=RADIO_RANGE)
             all_children.append(child)
-            self.ns.go(random.uniform(0, 1))
+            self.ns.go(random.uniform(0.1, 1))
 
         for i in range(StressTest.TIME_LIMIT[child_type]):
             self.ns.go(60)
