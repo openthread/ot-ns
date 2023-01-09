@@ -357,5 +357,11 @@ class BasicTests(OTNSTestCase):
         ns.unwatchAll()
         self.assertEqual([], ns.watched())
 
+    def testHelp(self):
+        ns: OTNS = self.ns
+        ns._do_command("help")
+        ns._do_command("help plr")
+        ns._do_command("help radiomodel")
+
 if __name__ == '__main__':
     unittest.main()

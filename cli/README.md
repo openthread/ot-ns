@@ -12,8 +12,10 @@ Python libraries use the CLI to manage simulations.
 * [counters](#counters)
 * [cv](#cv-option-onoff-)
 * [del](#del-node-id-node-id-)
+* [energy](#energy-save--filename-)
 * [exit](#exit)
 * [go](#go-duration-speed-particular-speed)
+* [help](#help)
 * [joins](#joins)
 * [log](#log-level)
 * [move](#move-node-id-x-y)
@@ -149,6 +151,9 @@ Done
 Done
 ``` 
 
+### energy \[save\] "\<filename\>"
+To be documented - saves energy use information of nodes to file.
+
 ### exit
 
 Exit OTNS, if in main context (no node selected). If in a node context, exits the node context.
@@ -187,6 +192,12 @@ Done
 > go ever
 <NEVER FINISHES>
 ```
+
+### help 
+Show help text for all supported CLI commands.
+
+### help \<command\>
+Show help text for a specific CLI command.
 
 ### joins
 
