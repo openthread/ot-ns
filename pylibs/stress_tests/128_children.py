@@ -60,7 +60,9 @@ class StressTest(BaseStressTest):
     def test(self, child_type: str):
         self.reset()
         self.ns.add("router", PARENT_X, PARENT_Y, radio_range=RADIO_RANGE)
+        self.ns.go(5)
 
+        time_limit = StressTest.TIME_LIMIT[child_type]
         all_children = []
 
         for i in range(CHILDREN_N):
@@ -70,9 +72,9 @@ class StressTest(BaseStressTest):
             child_y = int(PARENT_Y + d * math.sin(angle))
             child = self.ns.add(child_type, child_x, child_y, radio_range=RADIO_RANGE)
             all_children.append(child)
-            self.ns.go(random.uniform(0.1, 1))
+            self.ns.go(random.uniform(0.01, 1))
 
-        for i in range(StressTest.TIME_LIMIT[child_type]):
+        for i in range(time_limit):
             self.ns.go(60)
             for child in all_children:
                 if self.ns.get_state(child) != 'child':
@@ -82,7 +84,7 @@ class StressTest(BaseStressTest):
                 logging.info("All %s children has attached successfully within %d minutes.", child_type, i + 1)
                 return
         else:
-            raise Exception("Not all %s children attached within time limit" % child_type)
+            raise Exception("Not all %s children attached within time limit of %d minutes." % (child_type, time_limit))
 
 
 if __name__ == '__main__':
