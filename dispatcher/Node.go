@@ -149,8 +149,8 @@ func (node *Node) sendEvent(evt *Event) {
 func (node *Node) sendRawData(msg []byte) {
 	if node.peerAddr != nil {
 		n, err := node.D.udpln.WriteToUDP(msg, node.peerAddr)
-		simplelogger.AssertTrue(len(msg) == n)
 		simplelogger.AssertNil(err, "WriteToUDP error: %v", err)
+		simplelogger.AssertTrue(len(msg) == n)
 	} else {
 		simplelogger.Errorf("%s does not have a peer address", node)
 	}
