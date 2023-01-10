@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2020-2023, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -83,8 +83,15 @@ func (ot *OtnsTest) Join() {
 	<-ot.otnsDone
 }
 
-func (ot *OtnsTest) AddNode(role string) NodeId {
-	cmd := fmt.Sprintf("add %s", role)
+func (ot *OtnsTest) AddNode(role string, x int, y int) NodeId {
+	cmd := fmt.Sprintf("add %s x %d y %d", role, x, y)
+	ot.sendCommand(cmd)
+	return ot.expectCommandResultInt()
+}
+
+// AddNode with radio-range (rr)
+func (ot *OtnsTest) AddNodeRr(role string, x int, y int, rr int) NodeId {
+	cmd := fmt.Sprintf("add %s x %d y %d rr %d", role, x, y, rr)
 	ot.sendCommand(cmd)
 	return ot.expectCommandResultInt()
 }
@@ -334,7 +341,7 @@ func NewOtnsTest(t *testing.T) *OtnsTest {
 		pendingVisualizeEvents: make(chan *visualize_grpc_pb.VisualizeEvent, 1000),
 	}
 
-	os.Args = append(os.Args, "-log", "debug", "-web=false", "-autogo=false")
+	os.Args = append(os.Args, "-log", "info", "-web=true", "-autogo=false", "-watch", "info")
 
 	_ = os.Remove(stdinPipeFile)
 	_ = os.Remove(stdoutPipeFile)

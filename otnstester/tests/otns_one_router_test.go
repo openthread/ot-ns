@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2023, The OTNS Authors.
+// Copyright (c) 2023, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -33,13 +33,13 @@ import (
 	"github.com/openthread/ot-ns/otnstester"
 )
 
-func TestAdd(t *testing.T) {
+func TestAddOneRouter(t *testing.T) {
 	ot := otnstester.NewOtnsTest(t)
 	defer ot.Shutdown()
-	testAddNode(ot)
+	testAddOneRouter(ot)
 }
 
-func testAddNode(test *otnstester.OtnsTest) {
+func testAddOneRouter(test *otnstester.OtnsTest) {
 	test.Reset()
 
 	nodeid := test.AddNode("router", 100, 100)
@@ -47,39 +47,4 @@ func testAddNode(test *otnstester.OtnsTest) {
 	test.Go(time.Second * 10)
 	test.ExpectTrue(test.GetNodeState(nodeid) == RoleLeader)
 	test.ExpectVisualizeAddNode(nodeid, 100, 100, DefaultRadioRange)
-
-	router2 := test.AddNode("router", 120, 120)
-	test.ExpectTrue(router2 == 2)
-	test.Go(time.Second * 10)
-	test.ExpectTrue(test.GetNodeState(router2) == RoleRouter)
-	test.ExpectVisualizeAddNode(router2, 120, 120, DefaultRadioRange)
-
-	test.Command("add fed x 50 y 60")
-	fed := 3
-	test.Go(time.Second * 10)
-	test.ExpectTrue(test.GetNodeState(fed) == RoleChild)
-	test.ExpectVisualizeAddNode(fed, 50, 60, DefaultRadioRange)
-
-	fedInfo := test.ListNodes()[fed]
-	test.ExpectTrue(fedInfo.X == 50)
-	test.ExpectTrue(fedInfo.Y == 60)
-
-	test.Command("add med x 10 y 20 rr 121")
-	med := 4
-	test.Go(time.Second * 10)
-	test.ExpectTrue(test.GetNodeState(med) == RoleChild)
-	test.ExpectVisualizeAddNode(med, 10, 20, 121)
-
-	medInfo := test.ListNodes()[med]
-	test.ExpectTrue(medInfo.X == 10)
-	test.ExpectTrue(medInfo.Y == 20)
-
-	test.Command("add sed x 30 y 40")
-	sed := 5
-	test.Go(time.Second * 10)
-	test.ExpectTrue(test.GetNodeState(sed) == RoleChild)
-	test.ExpectVisualizeAddNode(sed, 30, 40, DefaultRadioRange)
-	sedInfo := test.ListNodes()[sed]
-	test.ExpectTrue(sedInfo.X == 30)
-	test.ExpectTrue(sedInfo.Y == 40)
 }
