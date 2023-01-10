@@ -34,9 +34,9 @@ import (
 )
 
 func TestAddOneRouter(t *testing.T) {
-	ot := otnstester.NewOtnsTest(t)
-	defer ot.Shutdown()
+	ot := otnstester.Instance(t)
 	testAddOneRouter(ot)
+	ot.Reset()
 }
 
 func testAddOneRouter(test *otnstester.OtnsTest) {
