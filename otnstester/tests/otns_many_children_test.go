@@ -57,7 +57,7 @@ func testAddManySEDs(test *otnstester.OtnsTest) {
 	for n := 1; n <= N; n++ {
 		fra := float64(n) / float64(N)
 		r = rand.Float64()*80.0 + 100.0
-		nodeid = test.AddNodeRr("med", int(float64(x)+r*math.Sin(2.0*math.Pi*fra)),
+		test.AddNodeRr("med", int(float64(x)+r*math.Sin(2.0*math.Pi*fra)),
 			int(float64(y)+r*math.Cos(2.0*math.Pi*fra)), 200)
 		test.Go(time.Millisecond * 2200)
 	}
