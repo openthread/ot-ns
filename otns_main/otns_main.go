@@ -214,7 +214,7 @@ func handleSignals(ctx *progctx.ProgCtx) {
 	ctx.WaitAdd("handleSignals", 1)
 	go func() {
 		defer ctx.WaitDone("handleSignals")
-		defer simplelogger.Debugf("handleSignals exit.")
+		defer simplelogger.Debugf("waiting for handleSignals exit.")
 
 		for {
 			select {
