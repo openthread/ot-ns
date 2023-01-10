@@ -213,10 +213,12 @@ func (d *Dispatcher) Stop() {
 	if d.stopped {
 		return
 	}
+	simplelogger.Debugf("stopping dispatcher ...")
 	d.stopped = true
-	close(d.pcapFrameChan)
-	d.vis.Stop()
 	d.GoCancel()
+	d.vis.Stop()
+	_ = d.udpln.Close() // close UDP socket to stop d.eventsReader
+	close(d.pcapFrameChan)
 	d.waitGroup.Wait()
 }
 
@@ -259,7 +261,7 @@ func (d *Dispatcher) GoCancel() <-chan struct{} {
 func (d *Dispatcher) Run() {
 	d.ctx.WaitAdd("dispatcher", 1)
 	defer d.ctx.WaitDone("dispatcher")
-	defer simplelogger.Debugf("dispatcher exit.")
+	defer simplelogger.Debugf("waiting for dispatcher exit.")
 	defer d.Stop()
 
 	done := d.ctx.Done()
@@ -280,15 +282,9 @@ loop:
 			}
 
 			simplelogger.AssertTrue(d.CurTime == d.pauseTime)
-
 			d.goSimulateForDuration(duration)
-
-			if d.ctx.Err() != nil {
-				close(duration.done)
-				break loop
-			}
-
 			simplelogger.AssertTrue(d.CurTime == d.pauseTime)
+
 			d.syncAllNodes()
 			if d.pcap != nil {
 				_ = d.pcap.Sync()
@@ -552,19 +548,22 @@ func (d *Dispatcher) processNextEvent(simSpeed float64) bool {
 }
 
 func (d *Dispatcher) eventsReader() {
+	var err error
 	udpln := d.udpln
 	readbuf := make([]byte, 4096)
+	d.waitGroup.Add(1)
+	defer d.waitGroup.Done()
 
+	// loop and read Events from udpln socket until dispatcher exit or error
 	for {
-		// loop and read events from UDP socket until all nodes are asleep
-		n, srcaddr, err := udpln.ReadFromUDP(readbuf)
+		var n int
+		var srcaddr *net.UDPAddr
+		n, srcaddr, err = udpln.ReadFromUDP(readbuf)
 		if err != nil {
 			if nerr, ok := err.(net.Error); ok && nerr.Timeout() {
 				time.Sleep(time.Millisecond * 100)
 				continue
 			}
-
-			simplelogger.Fatalf("UDP events reader quit.")
 			break
 		}
 
@@ -575,6 +574,12 @@ func (d *Dispatcher) eventsReader() {
 
 		d.eventChan <- evt
 	}
+
+	if !d.stopped {
+		simplelogger.Fatalf("UDP events reader quit unexpectedly: %v", err)
+	}
+
+	_ = udpln.Close()
 }
 
 func (d *Dispatcher) advanceNodeTime(node *Node, timestamp uint64, force bool) {
@@ -815,6 +820,9 @@ func (d *Dispatcher) syncAliveNodes() {
 
 // syncAllNodes advances all the node's time to current dispatcher time.
 func (d *Dispatcher) syncAllNodes() {
+	if d.stopped {
+		return
+	}
 	for nodeid := range d.nodes {
 		d.advanceNodeTime(d.nodes[nodeid], d.CurTime, false)
 	}
@@ -830,6 +838,7 @@ func (d *Dispatcher) pcapFrameWriter() {
 			simplelogger.Errorf("failed to close pcap: %v", err)
 		}
 	}()
+
 	for item := range d.pcapFrameChan {
 		err := d.pcap.AppendFrame(item.Ustime, item.Data)
 		if err != nil {
