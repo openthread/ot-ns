@@ -33,13 +33,13 @@ import (
 	"github.com/openthread/ot-ns/otnstester"
 )
 
-func TestAdd(t *testing.T) {
-	ot := otnstester.NewOtnsTest(t)
-	defer ot.Shutdown()
-	testAddNode(ot)
+func TestAddNodes(t *testing.T) {
+	ot := otnstester.Instance(t)
+	testAddNodes(ot)
+	ot.Reset()
 }
 
-func testAddNode(test *otnstester.OtnsTest) {
+func testAddNodes(test *otnstester.OtnsTest) {
 	test.Reset()
 
 	nodeid := test.AddNode("router", 100, 100)

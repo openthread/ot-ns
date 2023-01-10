@@ -55,8 +55,9 @@ import (
 )
 
 var (
-	stdinPipeFile  = "stdin.namedpipe"
-	stdoutPipeFile = "stdout.namedpipe"
+	stdinPipeFile               = "stdin.namedpipe"
+	stdoutPipeFile              = "stdout.namedpipe"
+	otnsTestSingleton *OtnsTest = nil
 )
 
 type OtnsTest struct {
@@ -117,10 +118,6 @@ func (ot *OtnsTest) stdoutReadRoutine() {
 		simplelogger.Infof("read stdout: %#v", scanner.Text())
 		ot.pendingOutput <- scanner.Text()
 	}
-}
-
-func (ot *OtnsTest) shutdown() {
-
 }
 
 func (ot *OtnsTest) expectDone() {
@@ -243,6 +240,9 @@ func (ot *OtnsTest) ListNodes() map[NodeId]*NodeInfo {
 }
 
 func (ot *OtnsTest) ExpectNoError(err error) {
+	if err != nil {
+		ot.Shutdown()
+	}
 	assert.Nil(ot, err, "unexpected error")
 	if err != nil {
 		ot.FailNow()
@@ -250,6 +250,9 @@ func (ot *OtnsTest) ExpectNoError(err error) {
 }
 
 func (ot *OtnsTest) ExpectTrue(value bool, msgAndArgs ...interface{}) {
+	if !value {
+		ot.Shutdown()
+	}
 	assert.True(ot, value, msgAndArgs...)
 
 	if !value {
@@ -333,6 +336,13 @@ func (ot *OtnsTest) ExpectVisualizeAddNode(nodeid NodeId, x int, y int, radioRan
 	})
 }
 
+func Instance(t *testing.T) *OtnsTest {
+	if otnsTestSingleton == nil {
+		otnsTestSingleton = NewOtnsTest(t)
+	}
+	return otnsTestSingleton
+}
+
 func NewOtnsTest(t *testing.T) *OtnsTest {
 	ot := &OtnsTest{
 		T:                      t,
@@ -341,7 +351,7 @@ func NewOtnsTest(t *testing.T) *OtnsTest {
 		pendingVisualizeEvents: make(chan *visualize_grpc_pb.VisualizeEvent, 1000),
 	}
 
-	os.Args = append(os.Args, "-log", "info", "-web=true", "-autogo=false", "-watch", "info")
+	os.Args = append(os.Args, "-log", "info", "-web=false", "-autogo=false", "-watch", "info")
 
 	_ = os.Remove(stdinPipeFile)
 	_ = os.Remove(stdoutPipeFile)
@@ -364,7 +374,6 @@ func NewOtnsTest(t *testing.T) *OtnsTest {
 	go func() {
 		defer func() {
 			simplelogger.Infof("OTNS exited.")
-			ot.shutdown()
 			close(ot.otnsDone)
 		}()
 
