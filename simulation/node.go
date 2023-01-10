@@ -178,15 +178,15 @@ func (node *Node) Stop() {
 }
 
 func (node *Node) Exit() error {
-	if node.logFile != nil {
-		_ = node.logFile.Close()
-	}
-	node.inputCommand("exit")
 	_ = node.cmd.Process.Signal(syscall.SIGTERM)
 	_ = node.virtualUartReader.Close()
 
 	err := node.cmd.Wait()
 	node.S.Dispatcher().NotifyExit(node.Id)
+
+	if node.logFile != nil {
+		_ = node.logFile.Close()
+	}
 
 	return err
 }

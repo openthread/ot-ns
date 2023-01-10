@@ -180,14 +180,11 @@ func (s *Simulation) Stop() {
 		return
 	}
 
-	simplelogger.Infof("stopping simulation ...")
+	simplelogger.Infof("stopping simulation and exiting nodes ...")
 	for _, node := range s.nodes {
 		_ = node.Exit()
 	}
-
 	s.nodes = nil
-
-	s.d.Stop()
 }
 
 func (s *Simulation) SetVisualizer(vis visualize.Visualizer) {
