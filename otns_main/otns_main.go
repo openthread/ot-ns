@@ -183,11 +183,12 @@ func Main(ctx *progctx.ProgCtx, visualizerCreator func(ctx *progctx.ProgCtx, arg
 
 	go func() {
 		siteAddr := fmt.Sprintf("%s:%d", args.DispatcherHost, args.DispatcherPort-3)
-		err := webSite.Serve(siteAddr)
+		err := webSite.Serve(siteAddr) // blocks until webSite.StopServe() called
 		if err != nil {
 			simplelogger.Errorf("site quited: %+v, OTNS-Web won't be available!", err)
 		}
 	}()
+	defer webSite.StopServe()
 
 	if args.AutoGo {
 		go autoGo(ctx, sim)
@@ -231,6 +232,9 @@ func handleSignals(ctx *progctx.ProgCtx) {
 func autoGo(prog *progctx.ProgCtx, sim *simulation.Simulation) {
 	for {
 		<-sim.Go(time.Second)
+		if prog.Err() != nil { // exit when context cancelled.
+			return
+		}
 	}
 }
 
