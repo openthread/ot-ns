@@ -139,9 +139,7 @@ func parseListenAddr() {
 
 func Main(ctx *progctx.ProgCtx, visualizerCreator func(ctx *progctx.ProgCtx, args *MainArgs) visualize.Visualizer, cliOptions *runcli.CliOptions) {
 	parseArgs()
-
 	simplelogger.SetLevel(simplelogger.ParseLevel(args.LogLevel))
-
 	parseListenAddr()
 
 	rand.Seed(time.Now().UnixNano())
@@ -172,15 +170,6 @@ func Main(ctx *progctx.ProgCtx, visualizerCreator func(ctx *progctx.ProgCtx, arg
 		vis = visualizeGrpc.NewGrpcVisualizer(visGrpcServerAddr, replayFn)
 	}
 
-	sim := createSimulation(ctx)
-	rt := cli.NewCmdRunner(ctx, sim)
-	sim.SetVisualizer(vis)
-	go sim.Run()
-	go func() {
-		err := cli.Run(rt, cliOptions)
-		ctx.Cancel(errors.Wrapf(err, "console exit"))
-	}()
-
 	go func() {
 		siteAddr := fmt.Sprintf("%s:%d", args.DispatcherHost, args.DispatcherPort-3)
 		err := webSite.Serve(siteAddr) // blocks until webSite.StopServe() called
@@ -190,15 +179,23 @@ func Main(ctx *progctx.ProgCtx, visualizerCreator func(ctx *progctx.ProgCtx, arg
 	}()
 	defer webSite.StopServe()
 
-	if args.AutoGo {
-		go autoGo(ctx, sim)
-	}
+	sim := createSimulation(ctx)
+	rt := cli.NewCmdRunner(ctx, sim)
+	sim.SetVisualizer(vis)
+	go sim.Run()
+	go func() {
+		err := cli.Run(rt, cliOptions)
+		ctx.Cancel(errors.Wrapf(err, "console exit"))
+	}()
 
 	web.ConfigWeb(args.DispatcherHost, args.DispatcherPort-2, args.DispatcherPort-1, args.DispatcherPort-3)
-
 	simplelogger.Debugf("open web: %v", args.OpenWeb)
 	if args.OpenWeb {
 		_ = web.OpenWeb(ctx)
+	}
+
+	if args.AutoGo {
+		go autoGo(ctx, sim)
 	}
 
 	vis.Run() // visualize must run in the main thread
