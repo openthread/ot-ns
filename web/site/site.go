@@ -33,11 +33,14 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/simonlingoogle/go-simplelogger"
 )
 
 var httpServer *http.Server = nil
+var canServe bool = true
+var httpServerMutex sync.Mutex
 
 func Serve(listenAddr string) error {
 	assetDir := os.Getenv("HOME")
@@ -97,13 +100,23 @@ func Serve(listenAddr string) error {
 		}
 	})
 
-	server := &http.Server{Addr: listenAddr, Handler: nil}
+	httpServerMutex.Lock()
+	if !canServe {
+		httpServer = nil
+		httpServerMutex.Unlock()
+		return http.ErrServerClosed
+	}
+	httpServer = &http.Server{Addr: listenAddr, Handler: nil}
+	httpServerMutex.Unlock()
 	simplelogger.Infof("OTNS web serving on %s ...", listenAddr)
-	return server.ListenAndServe()
+	return httpServer.ListenAndServe()
 }
 
 func StopServe() {
+	httpServerMutex.Lock()
 	if httpServer != nil {
 		_ = httpServer.Close()
 	}
+	canServe = false // prevent serving again in same execution.
+	httpServerMutex.Unlock()
 }

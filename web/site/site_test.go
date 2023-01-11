@@ -43,6 +43,8 @@ func TestServe(t *testing.T) {
 		resp, err := http.Get("http://localhost:8997/static/")
 		if err != nil || resp.StatusCode != 200 || resp.ContentLength <= 0 {
 			time.Sleep(time.Millisecond * 100)
+		} else {
+			break // once server works, quickly proceed to tests below.
 		}
 	}
 
