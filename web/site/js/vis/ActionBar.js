@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2022, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -104,6 +104,9 @@ export default class ActionBar extends VObject {
         });
         this._logOnOffButton = this.addButton("Show Log", "any", "", (e) => {
             this.actionToggleLogWindow()
+        });
+        this._energyChartOnOffButton = this.addButton("Open Charts", "any", "", (e) => {
+            this.actionOpenEnergyWindow()
         });
     }
 
@@ -229,6 +232,10 @@ export default class ActionBar extends VObject {
             this._logOnOffButton.text = "Show Log"
         }
         this.vis.actionBar.refresh()
+    }
+    
+    actionOpenEnergyWindow() {
+        window.open(document.location.href.replace("/visualize","/energyViewer"), '_blank');
     }
 
     addButton(label, context, requiredAbility, callback, onRefresh) {

@@ -24,6 +24,11 @@ class VisualizeGrpcServiceStub(object):
                 request_serializer=visualize__grpc__pb2.CommandRequest.SerializeToString,
                 response_deserializer=visualize__grpc__pb2.CommandResponse.FromString,
                 )
+        self.EnergyReport = channel.unary_stream(
+                '/visualize_grpc_pb.VisualizeGrpcService/EnergyReport',
+                request_serializer=visualize__grpc__pb2.VisualizeRequest.SerializeToString,
+                response_deserializer=visualize__grpc__pb2.NetworkEnergyEvent.FromString,
+                )
 
 
 class VisualizeGrpcServiceServicer(object):
@@ -42,6 +47,12 @@ class VisualizeGrpcServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def EnergyReport(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_VisualizeGrpcServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -54,6 +65,11 @@ def add_VisualizeGrpcServiceServicer_to_server(servicer, server):
                     servicer.Command,
                     request_deserializer=visualize__grpc__pb2.CommandRequest.FromString,
                     response_serializer=visualize__grpc__pb2.CommandResponse.SerializeToString,
+            ),
+            'EnergyReport': grpc.unary_stream_rpc_method_handler(
+                    servicer.EnergyReport,
+                    request_deserializer=visualize__grpc__pb2.VisualizeRequest.FromString,
+                    response_serializer=visualize__grpc__pb2.NetworkEnergyEvent.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -96,5 +112,22 @@ class VisualizeGrpcService(object):
         return grpc.experimental.unary_unary(request, target, '/visualize_grpc_pb.VisualizeGrpcService/Command',
             visualize__grpc__pb2.CommandRequest.SerializeToString,
             visualize__grpc__pb2.CommandResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def EnergyReport(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_stream(request, target, '/visualize_grpc_pb.VisualizeGrpcService/EnergyReport',
+            visualize__grpc__pb2.VisualizeRequest.SerializeToString,
+            visualize__grpc__pb2.NetworkEnergyEvent.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

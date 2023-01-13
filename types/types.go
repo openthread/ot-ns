@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2022, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -109,3 +109,12 @@ func (r OtDeviceRole) String() string {
 		return "invalid"
 	}
 }
+
+type RadioStates byte
+
+const (
+	RadioDisabled RadioStates = 0
+	RadioSleep    RadioStates = 1
+	RadioTx       RadioStates = 2
+	RadioRx       RadioStates = 3
+)
