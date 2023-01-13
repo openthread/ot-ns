@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2022, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -39,6 +39,7 @@ import (
 
 	"github.com/openthread/ot-ns/dissectpkt"
 	"github.com/openthread/ot-ns/dissectpkt/wpan"
+	"github.com/openthread/ot-ns/energy"
 	"github.com/openthread/ot-ns/pcap"
 	"github.com/openthread/ot-ns/threadconst"
 	"github.com/openthread/ot-ns/visualize"
@@ -138,8 +139,9 @@ type Dispatcher struct {
 		DispatchByShortAddrFail uint64
 		DispatchAllInRange      uint64
 	}
-	watchingNodes map[NodeId]struct{}
-	stopped       bool
+	watchingNodes  map[NodeId]struct{}
+	energyAnalyser *energy.EnergyAnalyser
+	stopped        bool
 }
 
 func NewDispatcher(ctx *progctx.ProgCtx, cfg *Config, cbHandler CallbackHandler) *Dispatcher {
@@ -718,6 +720,7 @@ func (d *Dispatcher) newNode(nodeid NodeId, x, y int, radioRange int) (node *Nod
 	node = newNode(d, nodeid, x, y, radioRange)
 	d.nodes[nodeid] = node
 	d.alarmMgr.AddNode(nodeid)
+	d.energyAnalyser.AddNode(nodeid, d.CurTime)
 	d.setAlive(nodeid)
 
 	d.vis.AddNode(nodeid, x, y, radioRange)
@@ -875,7 +878,8 @@ func (d *Dispatcher) handleStatusPush(srcid NodeId, data string) {
 			mode := ParseNodeMode(sp[1])
 			d.vis.SetNodeMode(srcid, mode)
 		} else if sp[0] == "radio_state" {
-			// TODO: calculate energy consumption based on radio state changes of each node
+			params := strings.Split(sp[1], ",")
+			d.changeNodeRadioState(srcid, params[0], params[1])
 		} else {
 			simplelogger.Warnf("unknown status push: %s=%s", sp[0], sp[1])
 		}
@@ -1033,6 +1037,10 @@ func (d *Dispatcher) advanceTime(ts uint64) {
 		elapsedRealTime := time.Since(d.speedStartRealTime) / time.Microsecond
 		if elapsedRealTime > 0 && ts/1000000 != oldTime/1000000 {
 			d.vis.AdvanceTime(ts, float64(elapsedTime)/float64(elapsedRealTime))
+
+			if d.energyAnalyser != nil && ts%energy.ComputePeriod == 0 {
+				d.energyAnalyser.StoreNetworkEnergy(ts)
+			}
 		}
 
 		if d.cfg.Real {
@@ -1129,6 +1137,7 @@ func (d *Dispatcher) DeleteNode(id NodeId) {
 	}
 	d.alarmMgr.DeleteNode(id)
 	d.deletedNodes[id] = struct{}{}
+	d.energyAnalyser.DeleteNode(id)
 
 	d.vis.DeleteNode(id)
 }
@@ -1318,4 +1327,22 @@ func (d *Dispatcher) CollectCoapMessages() []*CoapMessage {
 	} else {
 		return nil
 	}
+}
+
+func (d *Dispatcher) SetEnergyAnalyser(e *energy.EnergyAnalyser) {
+	d.energyAnalyser = e
+}
+
+func (d *Dispatcher) changeNodeRadioState(nodeid NodeId, state, channel string) {
+	node := d.nodes[nodeid]
+
+	if d.energyAnalyser != nil {
+		node.SetRadioStateFromString(state, d.CurTime)
+	}
+
+	u, err := strconv.ParseUint(channel, 10, 8)
+	simplelogger.AssertNil(err, "changeNodeRadioState: invalid channel %s", channel)
+	simplelogger.AssertTrue(u >= minChannel && u <= maxChannel)
+
+	node.RadioChannel = uint8(u)
 }

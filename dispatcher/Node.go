@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2022, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -40,6 +40,8 @@ import (
 const (
 	maxPingResultCount = 1000
 	maxJoinResultCount = 1000
+	minChannel         = 11
+	maxChannel         = 26
 )
 
 type pingRequest struct {
@@ -65,15 +67,17 @@ type JoinResult struct {
 }
 
 type Node struct {
-	D           *Dispatcher
-	Id          NodeId
-	X, Y        int
-	PartitionId uint32
-	ExtAddr     uint64
-	Rloc16      uint16
-	CreateTime  uint64
-	CurTime     uint64
-	Role        OtDeviceRole
+	D            *Dispatcher
+	Id           NodeId
+	X, Y         int
+	PartitionId  uint32
+	ExtAddr      uint64
+	Rloc16       uint16
+	CreateTime   uint64
+	CurTime      uint64
+	Role         OtDeviceRole
+	RadioState   RadioStates
+	RadioChannel uint8
 
 	peerAddr      *net.UDPAddr
 	failureCtrl   *FailureCtrl
@@ -90,18 +94,19 @@ func newNode(d *Dispatcher, nodeid NodeId, x, y int, radioRange int) *Node {
 	simplelogger.AssertTrue(radioRange >= 0)
 
 	nc := &Node{
-		D:           d,
-		Id:          nodeid,
-		CurTime:     d.CurTime,
-		CreateTime:  d.CurTime,
-		X:           x,
-		Y:           y,
-		ExtAddr:     InvalidExtAddr,
-		Rloc16:      threadconst.InvalidRloc16,
-		Role:        OtDeviceRoleDisabled,
-		peerAddr:    nil, // peer address will be set when the first event is received
-		radioRange:  radioRange,
-		joinerState: OtJoinerStateIdle,
+		D:            d,
+		Id:           nodeid,
+		CurTime:      d.CurTime,
+		CreateTime:   d.CurTime,
+		X:            x,
+		Y:            y,
+		ExtAddr:      InvalidExtAddr,
+		Rloc16:       threadconst.InvalidRloc16,
+		Role:         OtDeviceRoleDisabled,
+		peerAddr:     nil, // peer address will be set when the first event is received
+		radioRange:   radioRange,
+		joinerState:  OtJoinerStateIdle,
+		RadioChannel: minChannel,
 	}
 
 	nc.failureCtrl = newFailureCtrl(nc, NonFailTime)
@@ -299,4 +304,27 @@ func (node *Node) addJoinResult(js *joinerSession) {
 	if len(node.joinResults) > maxJoinResultCount {
 		node.joinResults = node.joinResults[1:]
 	}
+}
+
+func (node *Node) SetRadioStateFromString(s string, timestamp uint64) {
+	radioEnergy := node.D.energyAnalyser.GetNode(node.Id)
+
+	simplelogger.AssertNotNil(radioEnergy)
+
+	var state RadioStates
+	switch s {
+	case "off":
+		state = RadioDisabled
+	case "sleep":
+		state = RadioSleep
+	case "tx":
+		state = RadioTx
+	case "rx":
+		state = RadioRx
+	default:
+		simplelogger.Panicf("unknown radio state: %s", s)
+	}
+
+	node.RadioState = state
+	radioEnergy.SetRadioState(state, timestamp)
 }
