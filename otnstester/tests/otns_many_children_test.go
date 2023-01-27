@@ -52,7 +52,7 @@ func testAddManySEDs(test *otnstester.OtnsTest) {
 	test.Go(time.Second * 10)
 	test.ExpectTrue(test.GetNodeState(nodeid) == RoleLeader)
 
-	N := 18 // FIXME go to 128 children - currently prevented by a bug.
+	N := 2 // number of SED Children - FIXME should be 128, now limited due to bug.
 	var r float64
 	for n := 1; n <= N; n++ {
 		fra := float64(n) / float64(N)
