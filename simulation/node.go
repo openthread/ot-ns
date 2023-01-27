@@ -671,7 +671,9 @@ func (node *Node) handlerLogMsg(otLevel string, msg string) {
 
 	// create a node-specific log message that may be used by the Dispatcher's Watch function.
 	lev := dispatcher.ParseWatchLogLevel(otLevel)
-	node.S.Dispatcher().WatchMessage(node.Id, lev, msg)
+	node.S.PostAsync(false, func() {
+		node.S.Dispatcher().WatchMessage(node.Id, lev, msg)
+	})
 }
 
 func (node *Node) TryExpectLine(line interface{}, timeout time.Duration) (bool, []string) {
