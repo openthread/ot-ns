@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2022, The OTNS Authors.
+// Copyright (c) 2020-2023, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -27,6 +27,7 @@
 package dispatcher
 
 import (
+	"encoding/binary"
 	"fmt"
 	"math"
 	"math/rand"
@@ -404,6 +405,10 @@ func (d *Dispatcher) handleRecvEvent(evt *Event) {
 	case EventTypeUartWrite:
 		d.Counters.UartWriteEvents += 1
 		d.cbHandler.OnUartWrite(node.Id, evt.Data)
+	case EventTypeExtAddr:
+		var extaddr uint64 = binary.BigEndian.Uint64(evt.Data[0:8])
+		node.onStatusPushExtAddr(extaddr)
+
 	default:
 		simplelogger.Panicf("received event type not implemented: %v", evt.Type)
 	}
