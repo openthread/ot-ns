@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2022, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -24,31 +24,40 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-package dispatcher
+package energy
 
 import (
-	"net"
-
 	. "github.com/openthread/ot-ns/types"
 )
 
+/*
+ * Default consumption values by state of STM32WB55rg at 3.3V.
+ * Consumption in kilowatts, time in microseconds, resulting energy in mJ.
+ */
 const (
-	eventTypeAlarmFired      = 0
-	eventTypeRadioReceived   = 1
-	eventTypeUartWrite       = 2
-	eventTypeStatusPush      = 5
-	eventTypeRadioComm       = 6
-	eventTypeRadioTxDone     = 7
-	eventTypeChannelActivity = 8
+	RadioDisabledConsumption float64 = 0.00000011 //kilowatts, to be confirmed
+	RadioTxConsumption       float64 = 0.00001716 //kilowatts @ i = 5.2 mA
+	RadioRxConsumption       float64 = 0.00001485 //kilowatts @ i = 4.5 mA
+	RadioSleepConsumption    float64 = 0.00001485 //kilowatts @ i = 4.5 mA
 )
 
-type eventType = uint8
+const (
+	ComputePeriod uint64 = 30000000 // in seconds
+)
 
-type event struct {
-	Delay   uint64
-	Type    eventType
-	NodeId  NodeId
-	DataLen uint16
-	Data    []byte
-	SrcAddr *net.UDPAddr
+type RadioStatus struct {
+	State         RadioStates
+	SpentDisabled uint64
+	SpentSleep    uint64
+	SpentTx       uint64
+	SpentRx       uint64
+	Timestamp     uint64
+}
+
+type NetworkConsumption struct {
+	Timestamp          uint64
+	EnergyConsDisabled float64
+	EnergyConsSleep    float64
+	EnergyConsTx       float64
+	EnergyConsRx       float64
 }
