@@ -38,13 +38,17 @@ class OTNSTestCase(unittest.TestCase):
         tracemalloc.start()
         logging.basicConfig(level=logging.DEBUG, format='%(asctime)-15s - %(levelname)s - %(message)s')
 
+    def name(self) -> str:
+        return self.id().replace('__main__.','')
+
     def setUp(self) -> None:
-        logging.info("Setting up for test: %s", self.id())
+        logging.info("Setting up for test: %s", self.name())
         self.ns = OTNS(otns_args=['-log', 'debug']) # may add '-watch', 'trace' to see detailed OT node traces.
         self.ns.speed = OTNS.MAX_SIMULATE_SPEED
 
     def tearDown(self) -> None:
         self.ns.close()
+        self.ns.save_pcap("tmp/unittest_pcap", self.name() + ".pcap" )
 
     def assertFormPartitions(self, count: int):
         pars = self.ns.partitions()
