@@ -109,7 +109,7 @@ class BasicTests(OTNSTestCase):
 
             self.assertEqual(nodeid, ns.add(type, restore=True))
 
-            self.go(1)
+            self.go(1.5)
             self.assertFormPartitions(1)
             self.assertEqual(rloc16, ns.get_rloc16(nodeid))
 
