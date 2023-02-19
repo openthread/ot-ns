@@ -89,10 +89,10 @@ func (info *MsgVisualizeInfo) Label() string {
 }
 
 func (info *MsgVisualizeInfo) FormatDstAddr() interface{} {
-	dstaddrmode := info.FrameControl.DstAddrMode()
-	if dstaddrmode == wpan.DstAddrModeShort {
+	dstaddrmode := info.FrameControl.DestAddrMode()
+	if dstaddrmode == wpan.AddrModeShort {
 		return fmt.Sprintf("%04x", info.DstAddrShort)
-	} else if dstaddrmode == wpan.DstAddrModeExtended {
+	} else if dstaddrmode == wpan.AddrModeExtended {
 		return fmt.Sprintf("%016x", info.DstAddrExtended)
 	} else {
 		return "@"

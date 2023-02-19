@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2020-2023, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -40,11 +40,12 @@ const (
 	FrameTypeCommand FrameType = 3
 )
 
+// Values for both Src and Dst addressing modes, Table 7-3, 802.15.4-2015.
 const (
-	DstAddrModeNone     = 0
-	DstAddrModeReserved = 1
-	DstAddrModeShort    = 2
-	DstAddrModeExtended = 3
+	AddrModeNone     = 0
+	AddrModeReserved = 1
+	AddrModeShort    = 2
+	AddrModeExtended = 3
 )
 
 type FrameControl uint16
@@ -73,11 +74,15 @@ func (fc FrameControl) PanidCompression() bool {
 	return (fc & 0x0040) != 0
 }
 
+func (fc FrameControl) SequenceNumberSuppression() bool {
+	return (fc & 0x0100) != 0
+}
+
 func (fc FrameControl) IEPresent() bool {
 	return (fc & 0x0200) != 0
 }
 
-func (fc FrameControl) DstAddrMode() uint16 {
+func (fc FrameControl) DestAddrMode() uint16 {
 	return uint16((fc & 0x0c00) >> 10)
 }
 
@@ -93,13 +98,57 @@ func (fc *FrameControl) Dissect(bytes []byte) {
 	*fc = FrameControl(binary.LittleEndian.Uint16(bytes))
 }
 
+func (fc *FrameControl) HasDestPanIdField() bool {
+	if fc.FrameVersion() <= 1 {
+		return true
+	}
+	dam := fc.DestAddrMode()
+	sam := fc.SourceAddrMode()
+	if dam != AddrModeNone && sam != AddrModeNone {
+		return true
+	}
+	pc := fc.PanidCompression()
+	if dam == AddrModeExtended && sam == AddrModeExtended {
+		return !pc
+	}
+	if sam == AddrModeNone && dam != AddrModeNone && !pc {
+		return true
+	}
+	if sam == AddrModeNone && dam == AddrModeNone && pc {
+		return true
+	}
+	return false
+}
+
+func (fc *FrameControl) HasSourcePanIdField() bool {
+	dam := fc.DestAddrMode()
+	sam := fc.SourceAddrMode()
+	pc := fc.PanidCompression()
+	if fc.FrameVersion() <= 1 {
+		if sam != AddrModeNone && !pc {
+			return true
+		}
+		return false
+	}
+	if dam == AddrModeExtended && sam == AddrModeExtended && !pc {
+		return false
+	}
+	if sam == AddrModeNone {
+		return false
+	}
+	return !pc
+}
+
 type MacFrame struct {
 	Channel         uint8
 	FrameControl    FrameControl
 	Seq             uint8
 	DstPanId        uint16
+	SrcPanId        uint16
 	DstAddrShort    uint16
+	SrcAddrShort    uint16
 	DstAddrExtended uint64
+	SrcAddrExtended uint64
 }
 
 func (f *MacFrame) String() string {
@@ -108,10 +157,10 @@ func (f *MacFrame) String() string {
 	}
 
 	var dstAddrS string
-	dstAddrMode := f.FrameControl.DstAddrMode()
-	if dstAddrMode == DstAddrModeShort {
+	dstAddrMode := f.FrameControl.DestAddrMode()
+	if dstAddrMode == AddrModeShort {
 		dstAddrS = fmt.Sprintf("%04x", f.DstAddrShort)
-	} else if dstAddrMode == DstAddrModeExtended {
+	} else if dstAddrMode == AddrModeExtended {
 		dstAddrS = fmt.Sprintf("%016x", f.DstAddrExtended)
 	} else {
 		dstAddrS = "-"
@@ -122,20 +171,47 @@ func (f *MacFrame) String() string {
 
 func Dissect(data []byte) *MacFrame {
 	frame := &MacFrame{}
-	frame.Channel = data[0]
+	frame.Channel = data[0] // not part of 802.15.4, but part of our custom frame format.
 	frame.FrameControl.Dissect(data[1:3])
-	frame.Seq = data[3]
-	if frame.FrameControl.FrameType() == FrameTypeAck {
-		return frame
+	if frame.FrameControl.FrameType() > FrameTypeCommand {
+		return frame // for unsupported frame types.
 	}
 
-	frame.DstPanId = binary.LittleEndian.Uint16(data[4:6])
-	dstAddrMode := frame.FrameControl.DstAddrMode()
+	n := 3
+	if !frame.FrameControl.SequenceNumberSuppression() {
+		frame.Seq = data[n]
+		n += 1
+	}
+	if frame.FrameControl.HasDestPanIdField() {
+		frame.DstPanId = binary.LittleEndian.Uint16(data[n : n+2])
+		n += 2
+	}
 
-	if dstAddrMode == DstAddrModeShort { // SHORT
-		frame.DstAddrShort = binary.LittleEndian.Uint16(data[6:8])
-	} else if dstAddrMode == DstAddrModeExtended { // EXTEND
-		frame.DstAddrExtended = binary.LittleEndian.Uint64(data[6:14])
+	switch frame.FrameControl.DestAddrMode() {
+	case AddrModeExtended:
+		frame.DstAddrExtended = binary.LittleEndian.Uint64(data[n : n+8])
+		n += 8
+	case AddrModeShort:
+		frame.DstAddrShort = binary.LittleEndian.Uint16(data[n : n+2])
+		n += 2
+	default:
+		break
+	}
+
+	if frame.FrameControl.HasSourcePanIdField() {
+		frame.SrcPanId = binary.LittleEndian.Uint16(data[n : n+2])
+		n += 2
+	}
+
+	switch frame.FrameControl.SourceAddrMode() {
+	case AddrModeExtended:
+		frame.SrcAddrExtended = binary.LittleEndian.Uint64(data[n : n+8])
+		n += 8
+	case AddrModeShort:
+		frame.SrcAddrShort = binary.LittleEndian.Uint16(data[n : n+2])
+		n += 2
+	default:
+		break
 	}
 
 	return frame
