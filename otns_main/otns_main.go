@@ -65,6 +65,7 @@ import (
 type MainArgs struct {
 	Speed          string
 	OtCliPath      string
+	OtCliMtdPath   string
 	InitScriptName string
 	AutoGo         bool
 	ReadOnly       bool
@@ -87,23 +88,28 @@ var (
 
 func parseArgs() {
 	defaultOtCli := os.Getenv("OTNS_OT_CLI")
+	defaultOtCliMtd := os.Getenv("OTNS_OT_CLI_MTD")
 	if defaultOtCli == "" {
 		defaultOtCli = "./ot-cli-ftd"
 	}
+	if defaultOtCliMtd == "" {
+		defaultOtCliMtd = "./ot-cli-ftd"
+	}
 
 	flag.StringVar(&args.Speed, "speed", "1", "set simulating speed")
-	flag.StringVar(&args.OtCliPath, "ot-cli", defaultOtCli, "specify the OT CLI executable")
-	flag.StringVar(&args.InitScriptName, "ot-script", "", "specify the OT node init script filename, to use for init of new nodes")
-	flag.BoolVar(&args.AutoGo, "autogo", true, "auto go")
+	flag.StringVar(&args.OtCliPath, "ot-cli", defaultOtCli, "specify the OT CLI executable, for FTD and also for MTD if not configured otherwise.")
+	flag.StringVar(&args.OtCliMtdPath, "ot-cli-mtd", defaultOtCliMtd, "specify the OT CLI MTD executable, separately from FTD executable.")
+	flag.StringVar(&args.InitScriptName, "ot-script", "", "specify the OT node init script filename, to use for init of new nodes. By default an internal script is used.")
+	flag.BoolVar(&args.AutoGo, "autogo", true, "auto go (runs the simulation at given speed, without issuing 'go' commands.)")
 	flag.BoolVar(&args.ReadOnly, "readonly", false, "readonly simulation can not be manipulated")
-	flag.StringVar(&args.LogLevel, "log", "warn", "set logging level")
-	flag.StringVar(&args.WatchLevel, "watch", "off", "set default watch level for all new nodes")
+	flag.StringVar(&args.LogLevel, "log", "warn", "set logging level: debug, info, warn, error.")
+	flag.StringVar(&args.WatchLevel, "watch", "off", "set default watch level for all new nodes: off, trace, debug, info, note, warn, error.")
 	flag.BoolVar(&args.OpenWeb, "web", true, "open web visualization")
 	flag.BoolVar(&args.RawMode, "raw", false, "use raw mode (skips OT node init by script)")
 	flag.BoolVar(&args.Real, "real", false, "use real mode (for real devices)")
 	flag.StringVar(&args.ListenAddr, "listen", fmt.Sprintf("localhost:%d", threadconst.InitialDispatcherPort), "specify listen address")
 	flag.BoolVar(&args.DumpPackets, "dump-packets", false, "dump packets")
-	flag.BoolVar(&args.NoPcap, "no-pcap", false, "do not generate PCAP file")
+	flag.BoolVar(&args.NoPcap, "no-pcap", false, "do not generate PCAP file (named \"current.pcap\")")
 	flag.BoolVar(&args.NoReplay, "no-replay", false, "do not generate Replay file")
 
 	flag.Parse()
@@ -240,7 +246,8 @@ func createSimulation(ctx *progctx.ProgCtx) *simulation.Simulation {
 	var err error
 
 	simcfg := simulation.DefaultConfig()
-	simcfg.OtCliPath = args.OtCliPath
+	simcfg.OtCliFtdPath = args.OtCliPath
+	simcfg.OtCliMtdPath = args.OtCliMtdPath
 
 	args.Speed = strings.ToLower(args.Speed)
 	if args.Speed == "max" {

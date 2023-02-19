@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2022, The OTNS Authors.
+// Copyright (c) 2020-2023, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -52,7 +52,8 @@ var DefaultNodeInitScript = []string{
 
 type Config struct {
 	InitScript     []string
-	OtCliPath      string
+	OtCliFtdPath   string
+	OtCliMtdPath   string
 	OtBrPath       string
 	Speed          float64
 	ReadOnly       bool
@@ -71,7 +72,8 @@ func DefaultConfig() *Config {
 		Speed:          1,
 		ReadOnly:       false,
 		RawMode:        false,
-		OtCliPath:      "./ot-cli-ftd",
+		OtCliFtdPath:   "./ot-cli-ftd",
+		OtCliMtdPath:   "./ot-cli-ftd", // by default re-uses the FTD executable for MTD.
 		OtBrPath:       "./otbr-sim.sh",
 		Real:           false,
 		AutoGo:         true,

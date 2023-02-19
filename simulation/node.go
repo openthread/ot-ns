@@ -106,11 +106,13 @@ func newNode(s *Simulation, id NodeId, cfg *NodeConfig) (*Node, error) {
 	}
 
 	// determine path of the OT CLI app and start OT node process.
-	otCliPath := s.cfg.OtCliPath
+	otCliPath := s.cfg.OtCliFtdPath
 	if cfg.ExecutablePath != "" {
 		otCliPath = cfg.ExecutablePath
 	} else if cfg.IsBorderRouter {
 		otCliPath = s.cfg.OtBrPath
+	} else if cfg.IsMtd {
+		otCliPath = s.cfg.OtCliMtdPath
 	}
 	simplelogger.Debugf("node exe path: %s", otCliPath)
 	cmd := exec.CommandContext(context.Background(), otCliPath, strconv.Itoa(id))
@@ -654,7 +656,9 @@ func (node *Node) lineReaderStdErr(reader io.Reader) {
 		node.writeToLogFile(line)
 
 		// send it to watch output.
-		node.S.Dispatcher().WatchMessage(node.Id, dispatcher.WatchCritLevel, fmt.Sprintf("%v StdErr: %v", node, line))
+		node.S.PostAsync(false, func() {
+			node.S.Dispatcher().WatchMessage(node.Id, dispatcher.WatchCritLevel, fmt.Sprintf("%v StdErr: %v", node, line))
+		})
 	}
 
 	// when the stderr of the node closes and any error was raised, inform simulation of node's failure.
@@ -780,7 +784,7 @@ func (node *Node) setupMode() {
 
 	node.SetMode(mode)
 
-	if !node.cfg.IsRouter {
+	if !node.cfg.IsRouter && !node.cfg.IsMtd {
 		node.RouterEligibleDisable()
 	}
 }

@@ -653,9 +653,9 @@ func (d *Dispatcher) sendRadioCommRxStartEvents(srcNode *Node, evt *Event) {
 	// visualize the transmission and (intended) reception of the frame, based on addressing.
 	pktinfo := dissectpkt.Dissect(evt.Data)
 	pktFrame := pktinfo.MacFrame
-	dstAddrMode := pktFrame.FrameControl.DstAddrMode()
+	dstAddrMode := pktFrame.FrameControl.DestAddrMode()
 
-	if dstAddrMode == wpan.DstAddrModeExtended {
+	if dstAddrMode == wpan.AddrModeExtended {
 		// unicast ExtAddr frame
 		dstNode := d.extaddrMap[pktFrame.DstAddrExtended]
 		if dstNode != nil && neighborNodes[dstNode.Id] != nil {
@@ -664,7 +664,7 @@ func (d *Dispatcher) sendRadioCommRxStartEvents(srcNode *Node, evt *Event) {
 			// extAddr didn't exist or was out of range
 			d.visSendFrame(srcNode.Id, InvalidNodeId, pktFrame, evt.RadioCommData)
 		}
-	} else if dstAddrMode == wpan.DstAddrModeShort && pktFrame.DstAddrShort != threadconst.BroadcastRloc16 {
+	} else if dstAddrMode == wpan.AddrModeShort && pktFrame.DstAddrShort != threadconst.BroadcastRloc16 {
 		// unicast short addr frame. May go to multiple if multiple nodes use same short addr.
 		dstNodes := d.rloc16Map[pktFrame.DstAddrShort]
 
@@ -696,9 +696,9 @@ func (d *Dispatcher) sendRadioCommRxDoneEvents(srcNode *Node, evt *Event) {
 	pktinfo := dissectpkt.Dissect(evt.Data)
 	pktFrame := pktinfo.MacFrame
 	dispatchedByDstAddr := false
-	dstAddrMode := pktFrame.FrameControl.DstAddrMode()
+	dstAddrMode := pktFrame.FrameControl.DestAddrMode()
 
-	if dstAddrMode == wpan.DstAddrModeExtended {
+	if dstAddrMode == wpan.AddrModeExtended {
 		// the message should only be dispatched to the target node with the extaddr
 		dstnode := d.extaddrMap[pktFrame.DstAddrExtended]
 		if dstnode != srcNode && dstnode != nil {
@@ -710,7 +710,7 @@ func (d *Dispatcher) sendRadioCommRxDoneEvents(srcNode *Node, evt *Event) {
 			d.Counters.DispatchByExtAddrFail++
 		}
 		dispatchedByDstAddr = true
-	} else if dstAddrMode == wpan.DstAddrModeShort &&
+	} else if dstAddrMode == wpan.AddrModeShort &&
 		pktFrame.DstAddrShort != threadconst.BroadcastRloc16 {
 		// unicast message should only be dispatched to target node(s) with the rloc16
 		dstNodes := d.rloc16Map[pktFrame.DstAddrShort]
@@ -1037,7 +1037,7 @@ func (d *Dispatcher) visStatusPushTransmit(srcnode *Node, s string) {
 	seq, err := strconv.Atoi(parts[2])
 	simplelogger.PanicIfError(err)
 
-	dstAddrMode := fcf.DstAddrMode()
+	dstAddrMode := fcf.DestAddrMode()
 
 	visInfo := &visualize.MsgVisualizeInfo{
 		Channel:      uint8(channel),
@@ -1045,7 +1045,7 @@ func (d *Dispatcher) visStatusPushTransmit(srcnode *Node, s string) {
 		Seq:          uint8(seq),
 	}
 
-	if dstAddrMode == wpan.DstAddrModeExtended {
+	if dstAddrMode == wpan.AddrModeExtended {
 		dstExtend, err := strconv.ParseUint(parts[3], 16, 64)
 		simplelogger.PanicIfError(err)
 
@@ -1057,7 +1057,7 @@ func (d *Dispatcher) visStatusPushTransmit(srcnode *Node, s string) {
 		} else {
 			d.visSend(srcnode.Id, InvalidNodeId, visInfo)
 		}
-	} else if dstAddrMode == wpan.DstAddrModeShort {
+	} else if dstAddrMode == wpan.AddrModeShort {
 		dstShortVal, err := strconv.ParseUint(parts[3], 16, 16)
 		simplelogger.PanicIfError(err)
 
