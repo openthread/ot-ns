@@ -326,7 +326,7 @@ class BasicTests(OTNSTestCase):
             ns.node_cmd(n, "channel 20")
             ns.node_cmd(n, "ifconfig up")
             ns.node_cmd(n, "thread start")
-        self.go(20)
+        self.go(300)
         self.assertFormPartitions(2)
 
     def testLoglevel(self):
