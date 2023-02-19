@@ -96,6 +96,16 @@ class OTNS(object):
 
         self._do_command(cmd)
 
+    def save_pcap(self, fpath, fname):
+        """
+        Save the PCAP file of last simulation to the file 'fname'. Call this after close().
+
+        :param fpath: the path where the new .pcap file will reside. Intermediate directories are created if needed.
+        :param fname: the file name of the .pcap file to save to.
+        """
+        os.makedirs(fpath, exist_ok = True)
+        shutil.copy2("current.pcap", os.path.join(fpath,fname))
+
     @property
     def speed(self) -> float:
         """
