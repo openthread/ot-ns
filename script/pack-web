@@ -43,7 +43,6 @@ main()
         cat _bindata.go >>_merge_bindata.go
         mv _merge_bindata.go bindata.go
         rm -f _bindata.go
-        golangci-lint run "${GOLINT_ARGS[@]}" --fix bindata.go
     )
 }
 
