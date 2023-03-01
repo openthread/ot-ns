@@ -33,18 +33,17 @@
 main()
 {
     readonly sitedir="$OTNSDIR"/web/site
-    cd "$sitedir" || return 1
-    npm install
-    npx webpack ./js/visualize.js -o ./static/js/visualize.js
+    (
+        cd "$sitedir"
+        npm install
+        npx webpack ./js/visualize.js -o ./static/js/visualize.js
 
-    go-bindata -pkg web_site -o _bindata.go templates/... static/...
-    head -26 bindata.go >_merge_bindata.go
-    cat _bindata.go >>_merge_bindata.go
-    mv _merge_bindata.go bindata.go
-    rm -f _bindata.go
-    golangci-lint run "${GOLINT_ARGS[@]}" --fix bindata.go
-
-    cd - || return 1
+        go-bindata -pkg web_site -o _bindata.go templates/... static/...
+        head -26 bindata.go >_merge_bindata.go
+        cat _bindata.go >>_merge_bindata.go
+        mv _merge_bindata.go bindata.go
+        rm -f _bindata.go
+    )
 }
 
 ./script/compile-proto

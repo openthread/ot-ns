@@ -1,0 +1,3 @@
+run:
+  skip-files:
+    - "web/site/bindata.go"
