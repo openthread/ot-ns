@@ -28,7 +28,7 @@
 # shellcheck source=script/common.sh
 . "$(dirname "$0")"/common.sh
 
-OT_DIR=${OT_DIR:-}
+OT_DIR=${OT_DIR:-""}
 OTBIN_DIR=
 
 installed()
