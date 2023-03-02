@@ -51,7 +51,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        go: [1.17, 1.18]
+        go: [1.17, 1.20]
         python-version: [3.7]
         os: [ubuntu-20.04]
     steps:
