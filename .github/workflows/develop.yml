@@ -55,7 +55,7 @@ jobs:
         python-version: [3.7]
         os: [ubuntu-20.04]
     steps:
-      - uses: actions/setup-go@v1
+      - uses: actions/setup-go@v3
         with:
           go-version: ${{ matrix.go }}
       - uses: actions/setup-python@v4

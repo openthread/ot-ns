@@ -55,7 +55,7 @@ jobs:
     env:
       HOMEBREW_NO_AUTO_UPDATE: 1
     steps:
-      - uses: actions/setup-go@v1
+      - uses: actions/setup-go@v3
         with:
           go-version: ${{ matrix.go-version }}
       - name: Set up Python

@@ -52,7 +52,7 @@ jobs:
         go: [ "1.17", "1.20" ]
         os: [ ubuntu-20.04, macos-11 ]
     steps:
-      - uses: actions/setup-go@v1
+      - uses: actions/setup-go@v3
         with:
           go-version: ${{ matrix.go }}
       - uses: actions/checkout@v3
