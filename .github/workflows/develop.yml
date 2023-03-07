@@ -36,7 +36,7 @@ on:
 
 jobs:
   cancel-previous-runs:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: rokroskar/workflow-run-cleanup-action@master
         env:
@@ -53,7 +53,7 @@ jobs:
       matrix:
         go: ["1.17", "1.20"]
         python-version: ["3.9"]
-        os: [ubuntu-20.04]
+        os: [ubuntu-22.04]
     steps:
       - uses: actions/setup-go@v3
         with:
