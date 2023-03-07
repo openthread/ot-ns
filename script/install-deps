@@ -54,7 +54,7 @@ install_grpcwebproxy()
 
 install_python_libs()
 {
-    python3 -m pip install --user setuptools wheel
+    python3 -m pip install --user setuptools==67.5.1 wheel
 }
 
 main()
