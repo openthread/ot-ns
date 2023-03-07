@@ -36,7 +36,7 @@ on:
 
 jobs:
   cancel-previous-runs:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: rokroskar/workflow-run-cleanup-action@master
         env:
@@ -52,8 +52,8 @@ jobs:
       fail-fast: false
       matrix:
         go: ["1.17", "1.20"]
-        python-version: [3.7]
-        os: [ubuntu-20.04]
+        python-version: ["3.9"]
+        os: [ubuntu-22.04]
     steps:
       - uses: actions/setup-go@v3
         with:
@@ -66,4 +66,8 @@ jobs:
         run: |
           docker build -t otns-env -f etc/docker/environment/Dockerfile .
           docker run -t -v$PWD:/otns otns-env -c "./script/pack-web"
-          git diff --quiet
+          if ! git diff --quiet; then
+            echo "script/pack-web was not properly executed:"
+            git diff
+            exit 1
+          fi
