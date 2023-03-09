@@ -29,7 +29,7 @@ updates:
   - package-ecosystem: "gitsubmodule"
     directory: "/"
     schedule:
-      interval: "daily"
+      interval: "monthly"
     allow:
       - dependency-name: "openthread"
     commit-message:
@@ -37,4 +37,4 @@ updates:
     rebase-strategy: "disabled"
     open-pull-requests-limit: 1
     assignees:
-      - "simonlingoogle"
+      - "jwhui"
