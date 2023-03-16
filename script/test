@@ -115,6 +115,7 @@ py_unittests()
     python3 "$OTNSDIR"/pylibs/unittests/test_commissioning.py
     python3 "$OTNSDIR"/pylibs/unittests/test_real.py
     python3 "$OTNSDIR"/pylibs/unittests/test_radiomodels.py
+    python3 "$OTNSDIR"/pylibs/unittests/test_csl.py
     cd -
 }
 
