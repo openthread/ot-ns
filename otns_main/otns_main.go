@@ -93,7 +93,7 @@ func parseArgs() {
 		defaultOtCli = "./ot-cli-ftd"
 	}
 	if defaultOtCliMtd == "" {
-		defaultOtCliMtd = "./ot-cli-ftd"
+		defaultOtCliMtd = defaultOtCli // use same binary for FTD/MTD by default.
 	}
 
 	flag.StringVar(&args.Speed, "speed", "1", "set simulating speed")
