@@ -206,10 +206,8 @@ func Dissect(data []byte) *MacFrame {
 	switch frame.FrameControl.SourceAddrMode() {
 	case AddrModeExtended:
 		frame.SrcAddrExtended = binary.LittleEndian.Uint64(data[n : n+8])
-		n += 8
 	case AddrModeShort:
 		frame.SrcAddrShort = binary.LittleEndian.Uint16(data[n : n+2])
-		n += 2
 	default:
 		break
 	}
