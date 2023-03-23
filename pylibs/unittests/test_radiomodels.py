@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2022, The OTNS Authors.
+# Copyright (c) 2022,-2023 The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -33,6 +33,7 @@ from OTNSTestCase import OTNSTestCase
 from test_basic import BasicTests
 from test_commissioning import CommissioningTests
 from test_ping import PingTests
+from test_csl import CslTests
 from otns.cli import errors, OTNS
 
 class BasicTests_MutualInterference(BasicTests):
@@ -100,6 +101,12 @@ class PingTests_MutualInterference(PingTests):
         super().setUp()
         self.ns.radiomodel = 'MutualInterference'
 
+class CslTests_MutualInterference(CslTests):
+    #override
+    def setUp(self):
+        super().setUp()
+        self.ns.radiomodel = 'MutualInterference'
+
 if __name__ == '__main__':
     loader = unittest.defaultTestLoader
     suite = loader.loadTestsFromTestCase(BasicTests_MutualInterference)
@@ -107,4 +114,5 @@ if __name__ == '__main__':
     suite.addTest(loader.loadTestsFromTestCase(CommissioningTests_MutualInterference))
     suite.addTest(loader.loadTestsFromTestCase(CommissioningTests_IdealRssi))
     suite.addTest(loader.loadTestsFromTestCase(PingTests_MutualInterference))
+    suite.addTest(loader.loadTestsFromTestCase(CslTests_MutualInterference))
     unittest.TextTestRunner().run(suite)
