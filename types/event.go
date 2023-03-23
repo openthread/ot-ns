@@ -30,7 +30,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math"
-	"net"
 	"strings"
 	"unicode"
 
@@ -53,6 +52,7 @@ const (
 	EventTypeRadioState         EventType = 9
 	EventTypeRadioRxDone        EventType = 10
 	EventTypeExtAddr            EventType = 11
+	EventTypeNodeInfo           EventType = 12
 )
 
 const (
@@ -69,7 +69,6 @@ type Event struct {
 
 	// metadata kept locally for this Event.
 	NodeId       NodeId
-	SrcAddr      *net.UDPAddr
 	Timestamp    uint64
 	MustDispatch bool
 
@@ -77,16 +76,17 @@ type Event struct {
 	AlarmData      AlarmEventData
 	RadioCommData  RadioCommEventData
 	RadioStateData RadioStateEventData
+	NodeInfoData   NodeInfoEventData
 }
 
 // All ...EventData formats below only used by OT nodes supporting advanced
 // RF simulation.
-const AlarmDataHeaderLen = 8 // from OT platform-simulation.h struct
+const AlarmDataHeaderLen = 8 // from OT-RFSIM platform, otSimSendSleepEvent()
 type AlarmEventData struct {
 	MsgId uint64
 }
 
-const RadioCommEventDataHeaderLen = 11 // from OT platform-simulation.h struct
+const RadioCommEventDataHeaderLen = 11 // from OT-RFSIM platform, event-sim.h struct
 type RadioCommEventData struct {
 	Channel  uint8
 	PowerDbm int8
@@ -94,7 +94,7 @@ type RadioCommEventData struct {
 	Duration uint64
 }
 
-const RadioStateEventDataHeaderLen = 5 // from OT platform-simulation.h struct
+const RadioStateEventDataHeaderLen = 5 // from OT-RFSIM platform, event-sim.h struct
 type RadioStateEventData struct {
 	Channel     uint8
 	PowerDbm    int8
@@ -103,13 +103,20 @@ type RadioStateEventData struct {
 	State       RadioStates
 }
 
-/*
-RadioMessagePsduOffset is the offset of Psdu data in a received OpenThread RadioMessage type.
+const NodeInfoEventDataHeaderLen = 4 // from OT-RFSIM platform, otSimSendNodeInfoEvent()
+type NodeInfoEventData struct {
+	NodeId NodeId
+}
 
-	type RadioMessage struct {
-		Channel       uint8
-		Psdu          byte[]
-	}
+/*
+RadioMessagePsduOffset is the offset of mPsdu data in a received OpenThread RadioMessage,
+from OT-RFSIM platform, radio.h.
+
+	struct RadioMessage
+	{
+		uint8_t mChannel;
+		uint8_t mPsdu[OT_RADIO_FRAME_MAX_SIZE];
+	} OT_TOOL_PACKED_END;
 */
 const RadioMessagePsduOffset = 1
 
@@ -179,6 +186,9 @@ func (e *Event) Deserialize(data []byte) {
 	case EventTypeRadioState:
 		e.RadioStateData = deserializeRadioStateData(e.Data)
 		payloadOffset += RadioStateEventDataHeaderLen
+	case EventTypeNodeInfo:
+		e.NodeInfoData = deserializeNodeInfoData(e.Data)
+		payloadOffset += NodeInfoEventDataHeaderLen
 	default:
 		break
 	}
@@ -210,6 +220,14 @@ func deserializeRadioStateData(data []byte) RadioStateEventData {
 		EnergyState: RadioStates(data[2]),
 		SubState:    RadioSubStates(data[3]),
 		State:       RadioStates(data[4]),
+	}
+	return s
+}
+
+func deserializeNodeInfoData(data []byte) NodeInfoEventData {
+	simplelogger.AssertTrue(len(data) >= NodeInfoEventDataHeaderLen)
+	s := NodeInfoEventData{
+		NodeId: NodeId(uint32(data[0])),
 	}
 	return s
 }

@@ -69,6 +69,7 @@ type Config struct {
 	DispatcherPort int
 	DumpPackets    bool
 	RadioModel     string
+	Id             int
 }
 
 func DefaultConfig() *Config {
@@ -85,5 +86,6 @@ func DefaultConfig() *Config {
 		DispatcherHost: "localhost",
 		DispatcherPort: threadconst.InitialDispatcherPort,
 		RadioModel:     "Ideal_Rssi",
+		Id:             0,
 	}
 }

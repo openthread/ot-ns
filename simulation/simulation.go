@@ -27,11 +27,11 @@
 package simulation
 
 import (
+	"fmt"
+	"io/fs"
 	"os"
 	"sort"
 	"time"
-
-	"io/fs"
 
 	"github.com/openthread/ot-ns/dispatcher"
 	"github.com/openthread/ot-ns/energy"
@@ -73,8 +73,6 @@ func NewSimulation(ctx *progctx.ProgCtx, cfg *Config, dispatcherCfg *dispatcher.
 
 	dispatcherCfg.Speed = cfg.Speed
 	dispatcherCfg.Real = cfg.Real
-	dispatcherCfg.Host = cfg.DispatcherHost
-	dispatcherCfg.Port = cfg.DispatcherPort
 	dispatcherCfg.DumpPackets = cfg.DumpPackets
 
 	s.d = dispatcher.NewDispatcher(s.ctx, dispatcherCfg, s)
@@ -83,8 +81,8 @@ func NewSimulation(ctx *progctx.ProgCtx, cfg *Config, dispatcherCfg *dispatcher.
 	if err := s.createTmpDir(); err != nil {
 		simplelogger.Panicf("creating ./tmp/ directory failed: %+v", err)
 	}
-	if err := s.cleanTmpDir(); err != nil {
-		simplelogger.Panicf("cleaning ./tmp/ directory failed: %+v", err)
+	if err := s.cleanTmpDir(cfg.Id); err != nil {
+		simplelogger.Panicf("cleaning ./tmp/ directory files '%d_*.*' failed: %+v", cfg.Id, err)
 	}
 
 	//TODO add a flag to turn on/off the energy analyzer
@@ -109,18 +107,23 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 		return nil, errors.Errorf("node %d already exists", nodeid)
 	}
 
+	// creation of the sim/dispatcher nodes
 	simplelogger.Infof("simulation:AddNode: %+v, rawMode=%v", cfg, s.rawMode)
+	s.d.AddNode(nodeid, cfg) // ensure dispatcher-node is present before OT process starts.
 	node, err := newNode(s, nodeid, cfg)
 	if err != nil {
 		simplelogger.Errorf("simulation add node failed: %v", err)
+		s.d.DeleteNode(nodeid)
 		return nil, err
 	}
 	s.nodes[nodeid] = node
 
 	// init of the sim/dispatcher nodes
-	dispNode := s.d.AddNode(nodeid, cfg)
-	s.d.InitNode(dispNode)
-	node.detectVirtualTimeUART()
+	node.uartType = NodeUartTypeVirtualTime
+	s.d.RecvEvents() // allow new node to connect, and to receive its startup events.
+	if s.d.IsAlive(nodeid) {
+		simplelogger.Fatalf("simulation AddNode: new node %d did not respond", nodeid)
+	}
 	node.setupMode()
 	if !s.rawMode {
 		initScript := cfg.InitScript
@@ -299,13 +302,13 @@ func (s *Simulation) GoAtSpeed(duration time.Duration, speed float64) <-chan str
 	return s.d.GoAtSpeed(duration, speed)
 }
 
-func (s *Simulation) cleanTmpDir() error {
+func (s *Simulation) cleanTmpDir(simulationId int) error {
 	// tmp directory is used by nodes for saving *.flash files. Need to be cleaned when simulation started
-	err := RemoveAllFiles("tmp/*_*.flash")
+	err := RemoveAllFiles(fmt.Sprintf("tmp/%d_*.flash", simulationId))
 	if err != nil {
 		return err
 	}
-	err = RemoveAllFiles("tmp/*_*.log")
+	err = RemoveAllFiles(fmt.Sprintf("tmp/%d_*.log", simulationId))
 	return err
 }
 

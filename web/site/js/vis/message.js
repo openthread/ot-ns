@@ -26,7 +26,6 @@
 
 import * as PIXI from "pixi.js-legacy";
 import LVObject from "./LVObject";
-//import {Visualizer} from "./PixiVisualizer";
 import {Resources} from "./resources";
 import {COLOR_ACK_MESSAGE} from "./consts";
 

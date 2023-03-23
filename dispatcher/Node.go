@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2022, The OTNS Authors.
+// Copyright (c) 2020-2023, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -73,7 +73,7 @@ type Node struct {
 	CreateTime    uint64
 	CurTime       uint64
 	Role          OtDeviceRole
-	peerAddr      *net.UDPAddr
+	conn          net.Conn
 	failureCtrl   *FailureCtrl
 	isFailed      bool
 	radioNode     *radiomodel.RadioNode
@@ -98,7 +98,7 @@ func newNode(d *Dispatcher, nodeid NodeId, cfg *NodeConfig) *Node {
 		ExtAddr:       InvalidExtAddr,
 		Rloc16:        threadconst.InvalidRloc16,
 		Role:          OtDeviceRoleDisabled,
-		peerAddr:      nil, // peer address will be set when the first event is received
+		conn:          nil, // connection will be set when first event is received from node.
 		radioNode:     radiomodel.NewRadioNode(nodeid, cfg),
 		joinerState:   OtJoinerStateIdle,
 		watchLogLevel: WatchDefaultLevel,
@@ -117,7 +117,7 @@ func (node *Node) String() string {
 	return fmt.Sprintf("Node<%d>%s", node.Id, spacing)
 }
 
-// SendEvent sends Event evt serialized to the node, over UDP. If evt.Timestamp != InvalidTimestamp,
+// SendEvent sends Event evt serialized to the node, over socket. If evt.Timestamp != InvalidTimestamp,
 // it uses the valid timestamp and modifies the evt.Delay value based on the target node's CurTime,
 // and may update other Event fields too for bookkeeping purposes.
 func (node *Node) sendEvent(evt *Event) {
@@ -145,15 +145,12 @@ func (node *Node) sendEvent(evt *Event) {
 	node.sendRawData(evt.Serialize())
 }
 
-// sendRawData is INTERNAL to send bytes to UDP socket of node
+// sendRawData is INTERNAL to send bytes to socket of node
 func (node *Node) sendRawData(msg []byte) {
-	if node.peerAddr != nil {
-		n, err := node.D.udpln.WriteToUDP(msg, node.peerAddr)
-		simplelogger.AssertNil(err, "WriteToUDP error: %v", err)
-		simplelogger.AssertTrue(len(msg) == n)
-	} else {
-		simplelogger.Errorf("%s does not have a peer address", node)
-	}
+	simplelogger.AssertNotNil(node.conn)
+	n, err := node.conn.Write(msg)
+	simplelogger.AssertNil(err, "socket write error: %v", err)
+	simplelogger.AssertTrue(len(msg) == n)
 }
 
 func (node *Node) IsFailed() bool {

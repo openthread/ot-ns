@@ -413,27 +413,28 @@ export default class PixiVisualizer extends VObject {
         this.titleText.style.fontSize = fontSize;
 
         if (oldTitleText !== title) {
-            this.log(`Title set to "${title}", position (${x},${y}), font size ${fontSize}`)
+            this.log(`Title set to "${title}", position (${x},${y}), font size ${fontSize}`);
         }
     }
 
     visSend(srcId, dstId, mvInfo) {
         if (document.visibilityState !== "visible") {
-            return
+            return;
         }
 
         let src = this.nodes[srcId];
+        if (src == null) return;
 
         let frameType = mvInfo.getFrameControl() & FRAME_CONTROL_MASK_FRAME_TYPE;
         if (frameType === FRAME_TYPE_ACK) {
             // ACK
-            this.createAckMessage(src, mvInfo)
+            this.createAckMessage(src, mvInfo);
         } else if (dstId == -1) {
             // broadcast
-            this.createBroadcastMessage(src, mvInfo)
+            this.createBroadcastMessage(src, mvInfo);
         } else {
             let dst = this.nodes[dstId];
-            this.createUnicastMessage(src, dst, mvInfo)
+            this.createUnicastMessage(src, dst, mvInfo);
         }
     }
 
