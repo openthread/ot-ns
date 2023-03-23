@@ -41,7 +41,6 @@ import (
 
 	"github.com/openthread/ot-ns/dispatcher"
 	"github.com/openthread/ot-ns/otoutfilter"
-	"github.com/openthread/ot-ns/threadconst"
 	. "github.com/openthread/ot-ns/types"
 	"github.com/pkg/errors"
 	"github.com/simonlingoogle/go-simplelogger"
@@ -83,11 +82,9 @@ type Node struct {
 
 func newNode(s *Simulation, id NodeId, cfg *NodeConfig) (*Node, error) {
 	var err error
-
-	portOffset := (s.cfg.DispatcherPort - threadconst.InitialDispatcherPort) / threadconst.WellKnownNodeId
-	logFileName := fmt.Sprintf("tmp/%d_%d.log", portOffset, id)
+	logFileName := fmt.Sprintf("tmp/%d_%d.log", s.cfg.Id, id)
 	if !cfg.Restore {
-		flashFile := fmt.Sprintf("tmp/%d_%d.flash", portOffset, id)
+		flashFile := fmt.Sprintf("tmp/%d_%d.flash", s.cfg.Id, id)
 		if err = os.RemoveAll(flashFile); err != nil {
 			simplelogger.Errorf("Remove flash file %s failed: %+v", flashFile, err)
 			return nil, err
@@ -115,7 +112,7 @@ func newNode(s *Simulation, id NodeId, cfg *NodeConfig) (*Node, error) {
 		otCliPath = s.cfg.OtCliMtdPath
 	}
 	simplelogger.Debugf("node exe path: %s", otCliPath)
-	cmd := exec.CommandContext(context.Background(), otCliPath, strconv.Itoa(id))
+	cmd := exec.CommandContext(context.Background(), otCliPath, strconv.Itoa(id), s.d.GetUnixSocketName())
 
 	node := &Node{
 		S:            s,
@@ -791,16 +788,6 @@ func (node *Node) setupMode() {
 
 func (node *Node) onUartWrite(data []byte) {
 	_, _ = node.virtualUartPipe.Write(data)
-}
-
-func (node *Node) detectVirtualTimeUART() {
-	// Input newline to both Virtual Time UART and stdin and check where node outputs newline
-	node.S.Dispatcher().SendToUART(node.Id, []byte("\n"))
-	_, _ = node.pipeIn.Write([]byte("\n"))
-
-	node.expectLine("", DefaultCommandTimeout)
-	// UART type should have been correctly set when the new line is received from node
-	simplelogger.AssertTrue(node.uartType != NodeUartTypeUndefined)
 }
 
 func (node *Node) writeToLogFile(line string) {

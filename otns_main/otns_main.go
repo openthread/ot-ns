@@ -107,7 +107,7 @@ func parseArgs() {
 	flag.BoolVar(&args.OpenWeb, "web", true, "open web visualization")
 	flag.BoolVar(&args.RawMode, "raw", false, "use raw mode (skips OT node init by script)")
 	flag.BoolVar(&args.Real, "real", false, "use real mode (for real devices)")
-	flag.StringVar(&args.ListenAddr, "listen", fmt.Sprintf("localhost:%d", threadconst.InitialDispatcherPort), "specify listen address")
+	flag.StringVar(&args.ListenAddr, "listen", fmt.Sprintf("localhost:%d", threadconst.InitialDispatcherPort), "specify UDP listen address and port")
 	flag.BoolVar(&args.DumpPackets, "dump-packets", false, "dump packets")
 	flag.BoolVar(&args.NoPcap, "no-pcap", false, "do not generate PCAP file (named \"current.pcap\")")
 	flag.BoolVar(&args.NoReplay, "no-replay", false, "do not generate Replay file")
@@ -119,7 +119,7 @@ func parseListenAddr() {
 	var err error
 
 	notifyInvalidListenAddr := func() {
-		simplelogger.Fatalf("invalid listen address: %s (port must be larger than or equal to 9000 and must be a multiple of 1000).", args.ListenAddr)
+		simplelogger.Fatalf("invalid listen address: %s (port must be larger than or equal to 9000 and must be a multiple of 10.", args.ListenAddr)
 	}
 
 	subs := strings.Split(args.ListenAddr, ":")
@@ -132,11 +132,11 @@ func parseListenAddr() {
 		notifyInvalidListenAddr()
 	}
 
-	if args.DispatcherPort < threadconst.InitialDispatcherPort || args.DispatcherPort%threadconst.WellKnownNodeId != 0 {
+	if args.DispatcherPort < threadconst.InitialDispatcherPort || args.DispatcherPort%10 != 0 {
 		notifyInvalidListenAddr()
 	}
 
-	portOffset := (args.DispatcherPort - threadconst.InitialDispatcherPort) / threadconst.WellKnownNodeId
+	portOffset := (args.DispatcherPort - threadconst.InitialDispatcherPort) / 10
 	simplelogger.Infof("Using env PORT_OFFSET=%d", portOffset)
 	if err = os.Setenv("PORT_OFFSET", strconv.Itoa(portOffset)); err != nil {
 		simplelogger.Panic(err)
@@ -264,6 +264,7 @@ func createSimulation(ctx *progctx.ProgCtx) *simulation.Simulation {
 	simcfg.DispatcherPort = args.DispatcherPort
 	simcfg.DumpPackets = args.DumpPackets
 	simcfg.AutoGo = args.AutoGo
+	simcfg.Id = (args.DispatcherPort - threadconst.InitialDispatcherPort) / 10
 	if len(args.InitScriptName) > 0 {
 		simcfg.InitScript, err = simulation.ReadNodeScript(args.InitScriptName)
 		if err != nil {
@@ -272,6 +273,7 @@ func createSimulation(ctx *progctx.ProgCtx) *simulation.Simulation {
 	}
 
 	dispatcherCfg := dispatcher.DefaultConfig()
+	dispatcherCfg.SimulationId = simcfg.Id
 	dispatcherCfg.NoPcap = args.NoPcap
 	dispatcherCfg.DefaultWatchLevel = args.WatchLevel
 	dispatcherCfg.DefaultWatchOn = dispatcher.ParseWatchLogLevel(args.WatchLevel) != dispatcher.WatchOffLevel

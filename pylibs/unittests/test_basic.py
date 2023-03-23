@@ -363,5 +363,15 @@ class BasicTests(OTNSTestCase):
         ns._do_command("help plr")
         ns._do_command("help radiomodel")
 
+    def testAddNodeWrongExecutable(self):
+        ns: OTNS = self.ns
+        ns.add('router')
+        ns.go(5)
+        self.assertEqual(1, len(ns.nodes()))
+        with self.assertRaises(errors.OTNSCliError):
+            ns.add('router', executable = 'ot-cli-nonexistent')
+        ns.go(5)
+        self.assertEqual(1, len(ns.nodes()))
+
 if __name__ == '__main__':
     unittest.main()

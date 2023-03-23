@@ -28,7 +28,9 @@ package dispatcher
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
+	"io"
 	"math"
 	"math/rand"
 	"net"
@@ -67,25 +69,22 @@ type pcapFrameItem struct {
 type Config struct {
 	Speed             float64
 	Real              bool
-	Host              string
-	Port              int
 	DumpPackets       bool
 	NoPcap            bool
 	DefaultWatchOn    bool
 	DefaultWatchLevel string
 	VizUpdateTime     time.Duration
-	//Rutger was here :)
+	SimulationId      int
 }
 
 func DefaultConfig() *Config {
 	return &Config{
 		Speed:          1,
 		Real:           false,
-		Host:           "localhost",
-		Port:           threadconst.InitialDispatcherPort,
 		DumpPackets:    false,
 		DefaultWatchOn: false,
 		VizUpdateTime:  125 * time.Millisecond,
+		SimulationId:   0,
 	}
 }
 
@@ -110,7 +109,8 @@ type Dispatcher struct {
 	ctx                   *progctx.ProgCtx
 	cfg                   Config
 	cbHandler             CallbackHandler
-	udpln                 *net.UDPConn
+	udpln                 net.Listener
+	socketName            string
 	eventChan             chan *Event
 	waitGroup             sync.WaitGroup
 	CurTime               uint64
@@ -159,17 +159,8 @@ type Dispatcher struct {
 
 func NewDispatcher(ctx *progctx.ProgCtx, cfg *Config, cbHandler CallbackHandler) *Dispatcher {
 	simplelogger.AssertTrue(!cfg.Real || cfg.Speed == 1)
-
-	udpAddr, err := net.ResolveUDPAddr("udp4", fmt.Sprintf("%s:%d", cfg.Host, cfg.Port))
-	simplelogger.FatalIfError(err, err)
-	ln, err := net.ListenUDP("udp", udpAddr)
-	simplelogger.FatalIfError(err, err)
-	_ = ln.SetWriteBuffer(25 * 1024 * 1024)
-	_ = ln.SetReadBuffer(25 * 1024 * 1024)
-	simplelogger.Infof("dispatcher listening on %s ...", udpAddr)
-
-	simplelogger.AssertNil(err)
-
+	var err error
+	ln, unixSocketFile := NewUnixSocket(cfg.SimulationId)
 	vis := visualize.NewNopVisualizer()
 
 	d := &Dispatcher{
@@ -177,6 +168,7 @@ func NewDispatcher(ctx *progctx.ProgCtx, cfg *Config, cbHandler CallbackHandler)
 		cfg:                *cfg,
 		cbHandler:          cbHandler,
 		udpln:              ln,
+		socketName:         unixSocketFile,
 		eventChan:          make(chan *Event, 10000),
 		eventQueue:         newSendQueue(),
 		alarmMgr:           newAlarmMgr(),
@@ -210,6 +202,17 @@ func NewDispatcher(ctx *progctx.ProgCtx, cfg *Config, cbHandler CallbackHandler)
 	return d
 }
 
+func NewUnixSocket(socketId int) (net.Listener, string) {
+	err := os.MkdirAll("/tmp/otns", 0777)
+	simplelogger.FatalIfError(err, err)
+	unixSocketFile := fmt.Sprintf("/tmp/otns/socket_dispatcher_%d", socketId) // remove old one
+	err = os.RemoveAll(unixSocketFile)
+	simplelogger.FatalIfError(err, err)
+	ln, err := net.Listen("unixpacket", unixSocketFile)
+	simplelogger.FatalIfError(err, err)
+	return ln, unixSocketFile
+}
+
 func (d *Dispatcher) Stop() {
 	if d.stopped {
 		return
@@ -218,13 +221,18 @@ func (d *Dispatcher) Stop() {
 	d.stopped = true
 	d.GoCancel()
 	d.vis.Stop()
-	_ = d.udpln.Close() // close UDP socket to stop d.eventsReader
+	_ = d.udpln.Close() // close socket to stop d.eventsReader
 	close(d.pcapFrameChan)
 	d.waitGroup.Wait()
+	_ = os.Remove(d.socketName)
 }
 
 func (d *Dispatcher) GetConfig() *Config {
 	return &d.cfg
+}
+
+func (d *Dispatcher) GetUnixSocketName() string {
+	return d.socketName
 }
 
 func (d *Dispatcher) Nodes() map[NodeId]*Node {
@@ -365,9 +373,8 @@ func (d *Dispatcher) handleRecvEvent(evt *Event) {
 		return // node was deleted already: just silently ignore event.
 	}
 
-	d.setAlive(nodeid)          // node stays alive until Alarm event is received.
-	evt.Timestamp = d.CurTime   // timestamp incoming event
-	node.peerAddr = evt.SrcAddr // assign source address from event to node
+	d.setAlive(nodeid)        // node stays alive until Alarm event is received.
+	evt.Timestamp = d.CurTime // timestamp incoming event
 
 	// TODO document this use (for alarm messages)
 	delay := evt.Delay
@@ -406,9 +413,10 @@ func (d *Dispatcher) handleRecvEvent(evt *Event) {
 		d.Counters.UartWriteEvents += 1
 		d.cbHandler.OnUartWrite(node.Id, evt.Data)
 	case EventTypeExtAddr:
-		var extaddr uint64 = binary.BigEndian.Uint64(evt.Data[0:8])
+		var extaddr = binary.BigEndian.Uint64(evt.Data[0:8])
 		node.onStatusPushExtAddr(extaddr)
-
+	case EventTypeNodeInfo:
+		break
 	default:
 		simplelogger.Panicf("received event type not implemented: %v", evt.Type)
 	}
@@ -553,38 +561,56 @@ func (d *Dispatcher) processNextEvent(simSpeed float64) bool {
 }
 
 func (d *Dispatcher) eventsReader() {
-	var err error
-	udpln := d.udpln
-	readbuf := make([]byte, 4096)
 	d.waitGroup.Add(1)
 	defer d.waitGroup.Done()
+	defer os.RemoveAll(d.socketName) // delete socket file when done.
+	defer d.udpln.Close()
 
-	// loop and read Events from udpln socket until dispatcher exit or error
+	simplelogger.Debugf("dispatcher listening on socket %s ...", d.socketName)
 	for {
-		var n int
-		var srcaddr *net.UDPAddr
-		n, srcaddr, err = udpln.ReadFromUDP(readbuf)
-		if err != nil {
-			if nerr, ok := err.(net.Error); ok && nerr.Timeout() {
-				time.Sleep(time.Millisecond * 100)
-				continue
-			}
+		// Wait for OT nodes to connect.
+		conn, err := d.udpln.Accept()
+		if d.stopped {
 			break
 		}
+		if err != nil {
+			simplelogger.Fatalf("Connection Accept() failed: %v", err)
+		}
 
-		evt := &Event{}
-		evt.Deserialize(readbuf[0:n])
-		evt.NodeId = srcaddr.Port - d.cfg.Port
-		evt.SrcAddr = srcaddr
-
-		d.eventChan <- evt
+		// Handle the new connection in a separate goroutine.
+		readTimeout := time.Millisecond * 500
+		go func(conn net.Conn) {
+			defer conn.Close()
+			buf := make([]byte, 4096)
+			myNodeId := 0
+			var myNode *Node = nil
+			for {
+				_ = conn.SetReadDeadline(time.Now().Add(readTimeout))
+				n, err := conn.Read(buf)
+				if d.stopped || err == io.EOF {
+					break
+				}
+				if errors.Is(err, os.ErrDeadlineExceeded) {
+					continue
+				}
+				if err != nil {
+					simplelogger.Fatalf("Socket read error: %+v", err)
+				}
+				evt := &Event{}
+				evt.Deserialize(buf[0:n])
+				// First event received should be NodeInfo type. From this, we learn nodeId.
+				if myNodeId == 0 && evt.Type == EventTypeNodeInfo {
+					myNodeId = evt.NodeInfoData.NodeId
+					simplelogger.AssertTrue(myNodeId > 0)
+					myNode = d.GetNode(myNodeId)
+					simplelogger.AssertNotNil(myNode)
+					myNode.conn = conn // also identify the client connection, once.
+				}
+				evt.NodeId = myNodeId
+				d.eventChan <- evt
+			}
+		}(conn)
 	}
-
-	if !d.stopped {
-		simplelogger.Fatalf("UDP events reader quit unexpectedly: %v", err)
-	}
-
-	_ = udpln.Close()
 }
 
 func (d *Dispatcher) advanceNodeTime(node *Node, timestamp uint64, force bool) {
@@ -790,14 +816,12 @@ func (d *Dispatcher) setAlive(nodeid NodeId) {
 	d.aliveNodes[nodeid] = struct{}{}
 }
 
-/*
-func (d *Dispatcher) isAlive(nodeid NodeId) bool {
+func (d *Dispatcher) IsAlive(nodeid NodeId) bool {
 	if _, ok := d.aliveNodes[nodeid]; ok {
 		return true
 	}
 	return false
 }
-*/
 
 func (d *Dispatcher) isDeleted(nodeid NodeId) bool {
 	if _, ok := d.deletedNodes[nodeid]; ok {
@@ -957,7 +981,7 @@ func (d *Dispatcher) handleStatusPush(srcnode *Node, data string) {
 
 func (d *Dispatcher) AddNode(nodeid NodeId, cfg *NodeConfig) *Node {
 	simplelogger.AssertNil(d.nodes[nodeid])
-	simplelogger.Infof("dispatcher add node %d", nodeid)
+	simplelogger.Debugf("dispatcher add node %d", nodeid)
 	node := newNode(d, nodeid, cfg)
 	d.nodes[nodeid] = node
 	d.alarmMgr.AddNode(nodeid)
@@ -970,28 +994,6 @@ func (d *Dispatcher) AddNode(nodeid NodeId, cfg *NodeConfig) *Node {
 		d.WatchNode(nodeid, d.cfg.DefaultWatchLevel)
 	}
 	return node
-}
-
-// InitNode performs dispatcher Node initialization. For a non-real node, it waits until node's extended address
-// is emitted. This helps OTNS to make sure that the child process is ready to receive UDP events.
-func (d *Dispatcher) InitNode(node *Node) bool {
-	if d.cfg.Real {
-		return true
-	}
-	t0 := time.Now()
-	deadline := t0.Add(time.Second * 10)
-	for node.ExtAddr == InvalidExtAddr && time.Now().Before(deadline) {
-		d.RecvEvents()
-	}
-
-	if node.ExtAddr == InvalidExtAddr {
-		simplelogger.Panicf("expect node %d's extaddr to be valid, but failed", node.Id)
-		return false
-	} else {
-		takeTime := time.Since(t0)
-		simplelogger.Debugf("node %d's extaddr becomes valid in %v", node.Id, takeTime)
-	}
-	return true
 }
 
 func (d *Dispatcher) setNodeRloc16(srcid NodeId, rloc16 uint16) {

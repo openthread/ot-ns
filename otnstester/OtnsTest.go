@@ -42,16 +42,15 @@ import (
 	visualize_grpc_pb "github.com/openthread/ot-ns/visualize/grpc/pb"
 	"google.golang.org/grpc"
 
-	"github.com/openthread/ot-ns/dispatcher"
-	"github.com/stretchr/testify/assert"
-
 	"github.com/chzyer/readline"
 	"github.com/openthread/ot-ns/cli/runcli"
+	"github.com/openthread/ot-ns/dispatcher"
 	"github.com/openthread/ot-ns/otns_main"
 	"github.com/openthread/ot-ns/progctx"
 	. "github.com/openthread/ot-ns/types"
 	"github.com/openthread/ot-ns/visualize"
 	"github.com/simonlingoogle/go-simplelogger"
+	"github.com/stretchr/testify/assert"
 )
 
 var (
