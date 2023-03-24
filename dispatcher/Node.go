@@ -74,6 +74,7 @@ type Node struct {
 	CurTime       uint64
 	Role          OtDeviceRole
 	conn          net.Conn
+	err           error
 	failureCtrl   *FailureCtrl
 	isFailed      bool
 	radioNode     *radiomodel.RadioNode
@@ -99,6 +100,7 @@ func newNode(d *Dispatcher, nodeid NodeId, cfg *NodeConfig) *Node {
 		Rloc16:        threadconst.InvalidRloc16,
 		Role:          OtDeviceRoleDisabled,
 		conn:          nil, // connection will be set when first event is received from node.
+		err:           nil, // keep track of connection errors.
 		radioNode:     radiomodel.NewRadioNode(nodeid, cfg),
 		joinerState:   OtJoinerStateIdle,
 		watchLogLevel: WatchDefaultLevel,
@@ -109,7 +111,6 @@ func newNode(d *Dispatcher, nodeid NodeId, cfg *NodeConfig) *Node {
 }
 
 func (node *Node) String() string {
-	//return fmt.Sprintf("Node<%016x@%d,%d>", node.ExtAddr, node.X, node.Y)
 	spacing := ""
 	if node.Id < 10 {
 		spacing = " "
@@ -149,8 +150,12 @@ func (node *Node) sendEvent(evt *Event) {
 func (node *Node) sendRawData(msg []byte) {
 	simplelogger.AssertNotNil(node.conn)
 	n, err := node.conn.Write(msg)
-	simplelogger.AssertNil(err, "socket write error: %v", err)
-	simplelogger.AssertTrue(len(msg) == n)
+	if err != nil {
+		node.err = err
+	}
+	if len(msg) != n {
+		node.err = fmt.Errorf("failed to write complete Event to socket %v+", node.conn)
+	}
 }
 
 func (node *Node) IsFailed() bool {
@@ -184,6 +189,7 @@ func (node *Node) SetFailTime(failTime FailTime) {
 func (node *Node) onPingRequest(timestamp uint64, dstaddr string, datasize int) {
 	if datasize < 4 {
 		// if datasize < 4, timestamp is 0, these ping requests are ignored
+		simplelogger.Debugf("onPingRequest(): ignoring ping request with datasize=%d < 4", datasize)
 		return
 	}
 
@@ -197,6 +203,7 @@ func (node *Node) onPingRequest(timestamp uint64, dstaddr string, datasize int) 
 func (node *Node) onPingReply(timestamp uint64, dstaddr string, datasize int, hoplimit int) {
 	if datasize < 4 {
 		// if datasize < 4, timestamp is 0, these ping replies are ignored
+		simplelogger.Debugf("onPingReply(): ignoring ping reply with datasize=%d < 4", datasize)
 		return
 	}
 	const maxPingDelayUs uint64 = 10 * 1000000

@@ -419,13 +419,16 @@ func (rt *CmdRunner) executePing(cc *CommandContext, cmd *PingCmd) {
 			dstaddr = cmd.DstAddr.Addr
 		}
 
-		datasize := 4
+		datasize := 4 // Note: must be at least 4 otherwise OTNS will ignore ping req/resp for stats.
 		count := 1
-		interval := 1
+		interval := 10
 		hopLimit := 64
 
 		if cmd.DataSize != nil {
 			datasize = cmd.DataSize.Val
+			if datasize < 4 {
+				simplelogger.Warnf("Ping with datasize < 4 is ignored by OT-NS statistics code.")
+			}
 		}
 
 		if cmd.Count != nil {

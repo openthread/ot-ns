@@ -574,7 +574,7 @@ func (d *Dispatcher) eventsReader() {
 			break
 		}
 		if err != nil {
-			simplelogger.Fatalf("Connection Accept() failed: %v", err)
+			simplelogger.Fatalf("connection Accept() failed: %v", err)
 		}
 
 		// Handle the new connection in a separate goroutine.
@@ -646,7 +646,7 @@ func (d *Dispatcher) SendToUART(id NodeId, data []byte) {
 	if dstnode != nil {
 		dstnode.sendEvent(evt)
 	} else {
-		simplelogger.Debugf("SendToUART() failed to send to deleted/unknown node: %v", id)
+		simplelogger.Debugf("SendToUART() cannot send to deleted/unknown node: %v", id)
 	}
 }
 
@@ -835,9 +835,26 @@ func (d *Dispatcher) setSleeping(nodeid NodeId) {
 	delete(d.aliveNodes, nodeid)
 }
 
+func (d *Dispatcher) deleteDisconnectedNodes() {
+	nodesToDelete := make([]NodeId, 0)
+	for nodeid := range d.nodes {
+		if d.nodes[nodeid].err != nil {
+			nodesToDelete = append(nodesToDelete, nodeid)
+		}
+	}
+	for nodeid := range nodesToDelete {
+		simplelogger.Warnf("Deleting dispatcher node %d due to failed socket: %v+", nodeid, d.nodes[nodeid].err)
+		d.DeleteNode(nodeid)
+	}
+}
+
 // syncAliveNodes advances the node's time of alive nodes only to current dispatcher time.
 func (d *Dispatcher) syncAliveNodes() {
 	if len(d.aliveNodes) == 0 || d.stopped {
+		return
+	}
+	d.deleteDisconnectedNodes()
+	if len(d.aliveNodes) == 0 {
 		return
 	}
 
@@ -887,8 +904,16 @@ func (d *Dispatcher) GetVisualizer() visualize.Visualizer {
 	return d.vis
 }
 
+func (d *Dispatcher) logDebugForNode(id NodeId, str string) {
+	spacing := ""
+	if id < 10 {
+		spacing = " "
+	}
+	simplelogger.Debugf("Node<%d>%s %9d - %s", id, spacing, d.CurTime, str)
+}
+
 func (d *Dispatcher) handleStatusPush(srcnode *Node, data string) {
-	simplelogger.Debugf("%s %9d - status push: %#v", srcnode, d.CurTime, data)
+	d.logDebugForNode(srcnode.Id, fmt.Sprintf("status push: %#v", data))
 	statuses := strings.Split(data, ";")
 	srcid := srcnode.Id
 	for _, status := range statuses {
@@ -981,7 +1006,7 @@ func (d *Dispatcher) handleStatusPush(srcnode *Node, data string) {
 
 func (d *Dispatcher) AddNode(nodeid NodeId, cfg *NodeConfig) *Node {
 	simplelogger.AssertNil(d.nodes[nodeid])
-	simplelogger.Debugf("dispatcher add node %d", nodeid)
+	simplelogger.Debugf("dispatcher AddNode id=%d", nodeid)
 	node := newNode(d, nodeid, cfg)
 	d.nodes[nodeid] = node
 	d.alarmMgr.AddNode(nodeid)
@@ -1000,7 +1025,7 @@ func (d *Dispatcher) setNodeRloc16(srcid NodeId, rloc16 uint16) {
 	node := d.nodes[srcid]
 	simplelogger.AssertNotNil(node)
 
-	simplelogger.Debugf("set node rloc: %x -> %x", node.Rloc16, rloc16)
+	d.logDebugForNode(srcid, fmt.Sprintf("set node rloc: %x -> %x", node.Rloc16, rloc16))
 	oldRloc16 := node.Rloc16
 	if oldRloc16 != threadconst.InvalidRloc16 {
 		// remove node from old rloc map
