@@ -213,7 +213,7 @@ func (s *Simulation) OnNodeProcessFailure(node *Node) {
 	s.err = node.err
 	simplelogger.Errorf("Node %v process failed: %s", node.Id, node.err)
 	s.PostAsync(false, func() {
-		simplelogger.Errorf("Deleting node %v due to process failure.", node.Id)
+		simplelogger.Infof("Deleting node %v due to process failure.", node.Id)
 		_ = s.DeleteNode(node.Id)
 	})
 }
