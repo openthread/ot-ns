@@ -208,7 +208,7 @@ func NewUnixSocket(socketId int) (net.Listener, string) {
 	unixSocketFile := fmt.Sprintf("/tmp/otns/socket_dispatcher_%d", socketId) // remove old one
 	err = os.RemoveAll(unixSocketFile)
 	simplelogger.FatalIfError(err, err)
-	ln, err := net.Listen("unixpacket", unixSocketFile)
+	ln, err := net.Listen("unix", unixSocketFile)
 	simplelogger.FatalIfError(err, err)
 	return ln, unixSocketFile
 }
@@ -596,18 +596,22 @@ func (d *Dispatcher) eventsReader() {
 				if err != nil {
 					simplelogger.Fatalf("Socket read error: %+v", err)
 				}
-				evt := &Event{}
-				evt.Deserialize(buf[0:n])
-				// First event received should be NodeInfo type. From this, we learn nodeId.
-				if myNodeId == 0 && evt.Type == EventTypeNodeInfo {
-					myNodeId = evt.NodeInfoData.NodeId
-					simplelogger.AssertTrue(myNodeId > 0)
-					myNode = d.GetNode(myNodeId)
-					simplelogger.AssertNotNil(myNode)
-					myNode.conn = conn // also identify the client connection, once.
+				bufIdx := 0
+				for bufIdx < n {
+					evt := &Event{}
+					nextEventOffset := evt.Deserialize(buf[bufIdx:n])
+					bufIdx += nextEventOffset
+					// First event received should be NodeInfo type. From this, we learn nodeId.
+					if myNodeId == 0 && evt.Type == EventTypeNodeInfo {
+						myNodeId = evt.NodeInfoData.NodeId
+						simplelogger.AssertTrue(myNodeId > 0)
+						myNode = d.GetNode(myNodeId)
+						simplelogger.AssertNotNil(myNode)
+						myNode.conn = conn // also identify the client connection, once.
+					}
+					evt.NodeId = myNodeId
+					d.eventChan <- evt
 				}
-				evt.NodeId = myNodeId
-				d.eventChan <- evt
 			}
 		}(conn)
 	}
