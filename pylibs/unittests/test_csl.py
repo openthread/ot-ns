@@ -34,6 +34,37 @@ from otns.cli import errors, OTNS
 
 
 class CslTests(OTNSTestCase):
+
+    def verifyPings(self, pings, n, maxDelay=1000, maxFails=0):
+        self.assertEqual(n, len(pings))
+        nFails = 0
+        for srcid, dst, datasize, delay in pings:
+            if delay == OTNS.MAX_PING_DELAY:
+                nFails += 1
+            else:
+                self.assertTrue(delay <= maxDelay)
+        self.assertTrue(nFails <= maxFails)
+
+    def testSsedConnectsToParent(self):
+        ns = self.ns
+
+        # add SSED
+        nodeid = ns.add("sed", 220, 100)
+        ns.node_cmd(nodeid,"csl period 1800")
+        ns.go(10)
+
+        # Parent comes in, SSED connects
+        ns.add("router", 100, 100)
+        ns.go(10)
+        self.assertFormPartitions(1)
+
+        # SSED can ping parent
+        ns.ping(1,2)
+        ns.go(1)
+        ns.ping(1,2)
+        ns.go(1)
+        self.verifyPings(ns.pings(), 2, maxDelay=2000, maxFails=1)
+
     def testOneParentMultiCslChildren(self):
         ns = self.ns
 
@@ -45,41 +76,74 @@ class CslTests(OTNSTestCase):
             ns.node_cmd(nodeid,"csl period " + str(aCslPeriods[n]))
             ns.go(1)
         ns.go(10)
+        self.assertFormPartitions(1)
 
         # do some pings
-        ns.ping(1,2)
-        ns.go(1)
-        ns.ping(2,1)
-        ns.go(1)
-        ns.ping(1,3)
-        ns.go(2)
-        ns.ping(3,1)
-        ns.go(2)
-        ns.ping(1,4)
-        ns.go(1)
-        ns.ping(4,1)
-        ns.go(1)
-        ns.ping(1,5)
-        ns.go(1)
-        ns.ping(5,1)
-        ns.go(1)
-        ns.ping(5,2)
-        ns.go(2)
-        ns.ping(2,5)
-        ns.go(2)
+        for n in range(0,5):
+            ns.ping(1,2+n)
+            ns.go(2)
+            ns.ping(2+n,1)
+            ns.go(2)
 
         # long wait and some pings
         ns.go(300)
-        ns.ping(3,4)
-        ns.go(50)
-        ns.ping(4,5)
-        ns.go(10)
+        for n in range(0,5):
+            ns.ping(1,2+n)
+            ns.go(20)
+            ns.ping(2+n,1)
+            ns.go(20)
 
         # test ping results
-        pings = ns.pings()
-        self.assertTrue(pings)
-        for srcid, dst, datasize, delay in pings:
-            assert delay < 3000
+        self.verifyPings(ns.pings(), 20, maxDelay=3000, maxFails=1)
+
+    def testCslReenable(self):
+        ns = self.ns
+
+        # setup a Parent Router with SSED Child
+        ns.add("router", 100, 100)
+        ns.go(10)
+        nodeid = ns.add("sed", 200, 100)
+        ns.node_cmd(nodeid,"csl period 1800")
+        ns.go(10)
+        self.assertFormPartitions(1)
+
+        # SSED pings parent
+        for n in range(0,15):
+            ns.ping(2,1,datasize=n+10)
+            ns.go(5)
+        self.verifyPings(ns.pings(), 15, maxDelay=3000, maxFails=1)
+
+        # parent pings SSED
+        for n in range(0,15):
+            ns.ping(1,2,datasize=n+10)
+            ns.go(5)
+        self.verifyPings(ns.pings(), 15, maxDelay=3000, maxFails=1)
+
+        # disable CSL
+        ns.node_cmd(nodeid,"csl period 0")
+        ns.go(1)
+
+        # SSED pings parent
+        for n in range(0,15):
+            ns.ping(2,1,datasize=n+10)
+            ns.go(5)
+        self.verifyPings(ns.pings(), 15, maxDelay=3000, maxFails=1)
+
+        # re-enable CSL
+        ns.node_cmd(nodeid,"csl period 7800")
+        ns.go(1)
+
+        # SSED pings parent
+        for n in range(0,15):
+            ns.ping(2,1,datasize=n+10)
+            ns.go(5)
+        self.verifyPings(ns.pings(), 15, maxDelay=3000, maxFails=1)
+
+        # parent pings SSED
+        for n in range(0,15):
+            ns.ping(1,2,datasize=n+10)
+            ns.go(5)
+        self.verifyPings(ns.pings(), 15, maxDelay=3000, maxFails=1)
 
 if __name__ == '__main__':
     unittest.main()
