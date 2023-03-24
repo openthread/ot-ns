@@ -45,6 +45,7 @@ class OTNS(object):
 
     MAX_SIMULATE_SPEED = 1000000  # Max simulating speed
     PAUSE_SIMULATE_SPEED = 0
+    MAX_PING_DELAY = 10000 # Max delay assigned to a failed ping
 
     def __init__(self, otns_path: Optional[str] = None, otns_args: Optional[List[str]] = None):
         self._otns_path = otns_path or self._detect_otns_path()
@@ -301,18 +302,18 @@ class OTNS(object):
         cmd = f'move {nodeid} {x} {y}'
         self._do_command(cmd)
 
-    def ping(self, srcid: int, dst: Union[int, str, ipaddress.IPv6Address], addrtype: str = 'any', datasize: int = 0,
+    def ping(self, srcid: int, dst: Union[int, str, ipaddress.IPv6Address], addrtype: str = 'any', datasize: int = 4,
              count: int = 1,
-             interval: float = 1) -> None:
+             interval: float = 10) -> None:
         """
         Ping from source node to destination node.
 
         :param srcid: source node ID
         :param dst: destination node ID or address
         :param addrtype: address type for the destination node (only useful for destination node ID)
-        :param datasize: ping data size
+        :param datasize: ping data size; WARNING - data size < 4 is ignored by OTNS.
         :param count: ping count
-        :param interval: ping interval (in seconds)
+        :param interval: ping interval (in seconds), also the max acceptable ping RTT before giving up.
 
         Use pings() to get ping results.
         """
