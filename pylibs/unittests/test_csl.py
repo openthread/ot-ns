@@ -119,31 +119,32 @@ class CslTests(OTNSTestCase):
             ns.go(5)
         self.verifyPings(ns.pings(), 15, maxDelay=3000, maxFails=1)
 
-        # disable CSL
-        ns.node_cmd(nodeid,"csl period 0")
-        ns.go(1)
+        for k in range(0,2):
+            # disable CSL
+            ns.node_cmd(nodeid,"csl period 0")
+            ns.go(1)
 
-        # SSED pings parent
-        for n in range(0,15):
-            ns.ping(2,1,datasize=n+10)
-            ns.go(5)
-        self.verifyPings(ns.pings(), 15, maxDelay=3000, maxFails=1)
+            # SSED pings parent
+            for n in range(0,15):
+                ns.ping(2,1,datasize=n+10)
+                ns.go(5)
+            self.verifyPings(ns.pings(), 15, maxDelay=3000, maxFails=1)
 
-        # re-enable CSL
-        ns.node_cmd(nodeid,"csl period 7800")
-        ns.go(1)
+            # re-enable CSL
+            ns.node_cmd(nodeid,"csl period 1800")
+            ns.go(1)
 
-        # SSED pings parent
-        for n in range(0,15):
-            ns.ping(2,1,datasize=n+10)
-            ns.go(5)
-        self.verifyPings(ns.pings(), 15, maxDelay=3000, maxFails=1)
+            # SSED pings parent
+            for n in range(0,15):
+                ns.ping(2,1,datasize=n+10)
+                ns.go(5)
+            self.verifyPings(ns.pings(), 15, maxDelay=3000, maxFails=1)
 
-        # parent pings SSED
-        for n in range(0,15):
-            ns.ping(1,2,datasize=n+10)
-            ns.go(5)
-        self.verifyPings(ns.pings(), 15, maxDelay=3000, maxFails=1)
+            # parent pings SSED
+            for n in range(0,15):
+                ns.ping(1,2,datasize=n+10)
+                ns.go(5)
+            self.verifyPings(ns.pings(), 15, maxDelay=3000, maxFails=1)
 
 if __name__ == '__main__':
     unittest.main()

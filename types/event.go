@@ -155,7 +155,7 @@ func (e *Event) Serialize() []byte {
 }
 
 // Deserialize deserializes []byte Event fields (as received from OpenThread node) into Event object e.
-func (e *Event) Deserialize(data []byte) {
+func (e *Event) Deserialize(data []byte) int {
 	n := len(data)
 	if n < EventMsgHeaderLen {
 		simplelogger.Panicf("event message length too short: %d", n)
@@ -164,8 +164,8 @@ func (e *Event) Deserialize(data []byte) {
 	e.Type = data[8]
 	datalen := binary.LittleEndian.Uint16(data[9:11])
 	var payloadOffset uint16 = 0
-	simplelogger.AssertTrue(datalen == uint16(n-EventMsgHeaderLen))
-	e.Data = data[EventMsgHeaderLen:]
+	simplelogger.AssertTrue(datalen <= uint16(n-EventMsgHeaderLen))
+	e.Data = data[EventMsgHeaderLen : EventMsgHeaderLen+datalen]
 
 	// Detect composite event types
 	switch e.Type {
@@ -194,11 +194,13 @@ func (e *Event) Deserialize(data []byte) {
 	}
 
 	data2 := make([]byte, datalen-payloadOffset)
-	copy(data2, e.Data[payloadOffset:])
+	copy(data2, e.Data[payloadOffset:payloadOffset+datalen])
 	e.Data = data2
 
 	// e.Timestamp is not in the event, so set to invalid initially.
 	e.Timestamp = InvalidTimestamp
+
+	return int(EventMsgHeaderLen + datalen)
 }
 
 func deserializeRadioCommData(data []byte) RadioCommEventData {
