@@ -70,7 +70,7 @@ type Config struct {
 	Speed             float64
 	Real              bool
 	DumpPackets       bool
-	NoPcap            bool
+	PcapChannels      map[ChannelId]struct{}
 	DefaultWatchOn    bool
 	DefaultWatchLevel string
 	VizUpdateTime     time.Duration
@@ -82,6 +82,7 @@ func DefaultConfig() *Config {
 		Speed:          1,
 		Real:           false,
 		DumpPackets:    false,
+		PcapChannels:   make(map[ChannelId]struct{}, 0),
 		DefaultWatchOn: false,
 		VizUpdateTime:  125 * time.Millisecond,
 		SimulationId:   0,
@@ -188,7 +189,7 @@ func NewDispatcher(ctx *progctx.ProgCtx, cfg *Config, cbHandler CallbackHandler)
 		visOptions:         defaultVisualizationOptions(),
 	}
 	d.speed = d.normalizeSpeed(d.speed)
-	if !d.cfg.NoPcap {
+	if len(d.cfg.PcapChannels) > 0 {
 		d.pcap, err = pcap.NewFile("current.pcap")
 		simplelogger.PanicIfError(err)
 		go d.pcapFrameWriter()
@@ -662,8 +663,9 @@ func (d *Dispatcher) sendRadioCommRxStartEvents(srcNode *Node, evt *Event) {
 		return // source node can't send - don't send
 	}
 
-	// record the sent frame in Pcap/Dump logs - once, at time of Tx start.
-	if !d.cfg.NoPcap {
+	// record the sent frame in Pcap/Dump logs - once, at time of Tx start. Only do pcap if channel is
+	// configured to be recorded in the pcap file.
+	if _, ok := d.cfg.PcapChannels[int(evt.RadioCommData.Channel)]; ok {
 		d.pcapFrameChan <- pcapFrameItem{evt.Timestamp, evt.Data[RadioMessagePsduOffset:]}
 	}
 	if d.cfg.DumpPackets {
@@ -1531,7 +1533,7 @@ func (d *Dispatcher) handleRadioState(node *Node, evt *Event) {
 	}
 
 	node.radioNode.SetRadioState(energyState, subState)
-	node.radioNode.SetChannel(evt.RadioStateData.Channel)
+	node.radioNode.SetChannel(int(evt.RadioStateData.Channel))
 
 	if d.energyAnalyser != nil {
 		radioEnergy := d.energyAnalyser.GetNode(node.Id)
