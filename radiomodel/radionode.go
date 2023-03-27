@@ -68,7 +68,7 @@ func NewRadioNode(nodeid NodeId, cfg *NodeConfig) *RadioNode {
 		X:             float64(cfg.X),
 		Y:             float64(cfg.Y),
 		RadioRange:    float64(cfg.RadioRange),
-		RadioChannel:  DefaultChannelNumber,
+		RadioChannel:  uint8(DefaultChannelNumber),
 		rssiSampleMax: RssiMinusInfinity,
 	}
 	return rn
@@ -76,7 +76,7 @@ func NewRadioNode(nodeid NodeId, cfg *NodeConfig) *RadioNode {
 
 func (rn *RadioNode) SetChannel(ch ChannelId) {
 	simplelogger.AssertTrue(ch >= MinChannelNumber && ch <= MaxChannelNumber)
-	rn.RadioChannel = ch
+	rn.RadioChannel = uint8(ch)
 }
 
 func (rn *RadioNode) SetRadioState(state RadioStates, subState RadioSubStates) {

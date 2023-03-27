@@ -105,7 +105,7 @@ func (rm *RadioModelIdeal) init() {
 
 func (rm *RadioModelIdeal) txStart(srcNode *RadioNode, q EventQueue, evt *Event) {
 	srcNode.TxPower = evt.RadioCommData.PowerDbm // get last node's properties from the OT node's event params.
-	srcNode.SetChannel(evt.RadioCommData.Channel)
+	srcNode.SetChannel(int(evt.RadioCommData.Channel))
 
 	// dispatch radio event RadioComm 'start of frame Rx' to listening nodes.
 	rxStartEvt := evt.Copy()
@@ -140,7 +140,7 @@ func (rm *RadioModelIdeal) txStop(node *RadioNode, q EventQueue, evt *Event) {
 
 func (rm *RadioModelIdeal) channelSampleStart(node *RadioNode, q EventQueue, evt *Event) {
 	node.rssiSampleMax = RssiMinusInfinity // Ideal model never has CCA failure.
-	node.SetChannel(evt.RadioCommData.Channel)
+	node.SetChannel(int(evt.RadioCommData.Channel))
 
 	// dispatch event with result back to node, when channel sampling stops.
 	sampleDoneEvt := evt.Copy()
