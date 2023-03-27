@@ -69,17 +69,18 @@ class CslTests(OTNSTestCase):
         ns = self.ns
 
         # setup a Parent Router with N SSED Children with different CSL Periods.
+        N = 2
         ns.add("router", 100, 100)
-        aCslPeriods = [3100, 500, 7225, 1024, 3125]
-        for n in range(0,5):
+        aCslPeriods = [3100, 500, 7225, 1024, 3125, 3124, 250, 5999, 777, 1024]
+        for n in range(0,N):
             nodeid = ns.add("sed", 80 + n*20, 150)
             ns.node_cmd(nodeid,"csl period " + str(aCslPeriods[n]))
             ns.go(1)
-        ns.go(10)
+        ns.go(45)
         self.assertFormPartitions(1)
 
         # do some pings
-        for n in range(0,5):
+        for n in range(0,N):
             ns.ping(1,2+n)
             ns.go(2)
             ns.ping(2+n,1)
@@ -87,14 +88,14 @@ class CslTests(OTNSTestCase):
 
         # long wait and some pings
         ns.go(300)
-        for n in range(0,5):
+        for n in range(0,N):
             ns.ping(1,2+n)
             ns.go(20)
             ns.ping(2+n,1)
             ns.go(20)
 
         # test ping results
-        self.verifyPings(ns.pings(), 20, maxDelay=3000, maxFails=1)
+        self.verifyPings(ns.pings(), N*4, maxDelay=3000, maxFails=1)
 
     def testCslReenable(self):
         ns = self.ns
@@ -119,7 +120,7 @@ class CslTests(OTNSTestCase):
             ns.go(5)
         self.verifyPings(ns.pings(), 15, maxDelay=3000, maxFails=1)
 
-        for k in range(0,2):
+        for k in range(0,4):
             # disable CSL
             ns.node_cmd(nodeid,"csl period 0")
             ns.go(1)
