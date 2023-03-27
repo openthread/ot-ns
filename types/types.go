@@ -33,6 +33,7 @@ import (
 )
 
 type NodeId = int
+type ChannelId = int
 
 const (
 	MaxNodeId       NodeId = 0xffff

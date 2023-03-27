@@ -274,7 +274,9 @@ func createSimulation(ctx *progctx.ProgCtx) *simulation.Simulation {
 
 	dispatcherCfg := dispatcher.DefaultConfig()
 	dispatcherCfg.SimulationId = simcfg.Id
-	dispatcherCfg.NoPcap = args.NoPcap
+	if !args.NoPcap {
+		dispatcherCfg.PcapChannels[simcfg.Channel] = struct{}{}
+	}
 	dispatcherCfg.DefaultWatchLevel = args.WatchLevel
 	dispatcherCfg.DefaultWatchOn = dispatcher.ParseWatchLogLevel(args.WatchLevel) != dispatcher.WatchOffLevel
 

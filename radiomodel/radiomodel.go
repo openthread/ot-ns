@@ -35,7 +35,6 @@ import (
 
 // IEEE 802.15.4-2015 related parameters
 type DbmValue = int8
-type ChannelId = uint8
 
 const (
 	MinChannelNumber     ChannelId = 0 // below 11 are sub-Ghz channels for 802.15.4-2015

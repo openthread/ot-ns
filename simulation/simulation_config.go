@@ -30,6 +30,7 @@ import (
 	"fmt"
 
 	"github.com/openthread/ot-ns/threadconst"
+	. "github.com/openthread/ot-ns/types"
 )
 
 const (
@@ -70,6 +71,7 @@ type Config struct {
 	DumpPackets    bool
 	RadioModel     string
 	Id             int
+	Channel        ChannelId
 }
 
 func DefaultConfig() *Config {
@@ -87,5 +89,6 @@ func DefaultConfig() *Config {
 		DispatcherPort: threadconst.InitialDispatcherPort,
 		RadioModel:     "Ideal_Rssi",
 		Id:             0,
+		Channel:        DefaultChannel,
 	}
 }

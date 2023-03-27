@@ -92,7 +92,7 @@ func (rm *RadioModelMutualInterference) OnEventDispatch(src *RadioNode, dst *Rad
 	case EventTypeRadioChannelSample:
 		// take final channel sample
 		if evt.RadioCommData.Error == OT_ERROR_NONE {
-			r := rm.getRssiOnChannel(src, evt.RadioCommData.Channel)
+			r := rm.getRssiOnChannel(src, int(evt.RadioCommData.Channel))
 			if r > src.rssiSampleMax {
 				src.rssiSampleMax = r
 			}
@@ -137,7 +137,7 @@ func (rm *RadioModelMutualInterference) init() {
 	rm.interferedBy = map[NodeId]map[NodeId]*RadioNode{}
 }
 
-func (rm *RadioModelMutualInterference) getRssiOnChannel(node *RadioNode, channel uint8) int8 {
+func (rm *RadioModelMutualInterference) getRssiOnChannel(node *RadioNode, channel ChannelId) int8 {
 	rssiMax := RssiMinusInfinity
 	// loop all active transmitters
 	for _, v := range rm.activeTransmitters[channel] {
@@ -154,7 +154,7 @@ func (rm *RadioModelMutualInterference) getRssiOnChannel(node *RadioNode, channe
 
 func (rm *RadioModelMutualInterference) txStart(node *RadioNode, q EventQueue, evt *Event) {
 	// verify node doesn't already transmit or sample on this channel.
-	ch := evt.RadioCommData.Channel // move to the (new) channel for this Tx
+	ch := int(evt.RadioCommData.Channel) // move to the (new) channel for this Tx
 	_, nodeTransmits := rm.activeTransmitters[ch][node.Id]
 	_, nodeSamples := rm.activeChannelSamplers[ch][node.Id]
 	if nodeTransmits || nodeSamples {
@@ -200,7 +200,7 @@ func (rm *RadioModelMutualInterference) txStart(node *RadioNode, q EventQueue, e
 }
 
 func (rm *RadioModelMutualInterference) txStop(node *RadioNode, q EventQueue, evt *Event) {
-	ch := evt.RadioCommData.Channel
+	ch := int(evt.RadioCommData.Channel)
 	_, nodeTransmits := rm.activeTransmitters[ch][node.Id]
 	simplelogger.AssertTrue(nodeTransmits)
 
@@ -244,7 +244,7 @@ func (rm *RadioModelMutualInterference) applyInterference(src *RadioNode, dst *R
 // update sample value for all channel-sampling nodes that may detect the new source src.
 func (rm *RadioModelMutualInterference) updateChannelSamplingNodes(src *RadioNode, evt *Event) {
 	simplelogger.AssertTrue(evt.Type == EventTypeRadioCommStart)
-	for _, samplingNode := range rm.activeChannelSamplers[evt.RadioCommData.Channel] {
+	for _, samplingNode := range rm.activeChannelSamplers[int(evt.RadioCommData.Channel)] {
 		r := rm.GetTxRssi(src, samplingNode)
 		if r > samplingNode.rssiSampleMax && r != RssiInvalid {
 			samplingNode.rssiSampleMax = r // TODO accurate method of energy combining.
@@ -253,7 +253,7 @@ func (rm *RadioModelMutualInterference) updateChannelSamplingNodes(src *RadioNod
 }
 
 func (rm *RadioModelMutualInterference) channelSampleStart(srcNode *RadioNode, q EventQueue, evt *Event) {
-	ch := evt.RadioCommData.Channel
+	ch := int(evt.RadioCommData.Channel)
 	// verify node doesn't already transmit or sample on its channel.
 	_, nodeTransmits := rm.activeTransmitters[ch][srcNode.Id]
 	_, nodeSamples := rm.activeChannelSamplers[ch][srcNode.Id]
