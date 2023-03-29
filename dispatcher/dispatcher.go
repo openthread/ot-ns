@@ -225,7 +225,6 @@ func (d *Dispatcher) Stop() {
 	_ = d.udpln.Close() // close socket to stop d.eventsReader
 	close(d.pcapFrameChan)
 	d.waitGroup.Wait()
-	_ = os.Remove(d.socketName)
 }
 
 func (d *Dispatcher) GetConfig() *Config {
@@ -579,23 +578,30 @@ func (d *Dispatcher) eventsReader() {
 		}
 
 		// Handle the new connection in a separate goroutine.
-		readTimeout := time.Millisecond * 500
+		readTimeout := time.Millisecond * 300
 		go func(conn net.Conn) {
 			defer conn.Close()
-			buf := make([]byte, 4096)
+			buf := make([]byte, 65536)
 			myNodeId := 0
 			var myNode *Node = nil
 			for {
 				_ = conn.SetReadDeadline(time.Now().Add(readTimeout))
 				n, err := conn.Read(buf)
-				if d.stopped || err == io.EOF {
+				if d.stopped || err == io.EOF || (myNode != nil && myNode.err != nil) {
 					break
 				}
 				if errors.Is(err, os.ErrDeadlineExceeded) {
+					if n > 0 {
+						simplelogger.Panicf("Unexpected n > 0 after socket read timeout.")
+					}
 					continue
 				}
 				if err != nil {
-					simplelogger.Fatalf("Socket read error: %+v", err)
+					simplelogger.Errorf("Socket read error: %+v", err)
+					if myNode != nil {
+						myNode.err = err
+					}
+					break
 				}
 				bufIdx := 0
 				for bufIdx < n {
