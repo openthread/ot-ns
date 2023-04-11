@@ -98,10 +98,11 @@ class ExternalRoutesTestbench(object):
             for k in range(0, Nbr):
                 if j < Nglobals:
                     self.add_route(k+1, self.aGlobalPrefixes[j])
-                    self.track_netdata_size()
+                    #self.track_netdata_size()
                 if j < Nulas:
                     self.add_route(k+1, self.aUlaPrefixes[j])
-                    self.track_netdata_size()
+                    #self.track_netdata_size()
+            self.track_netdata_size()
 
         ns.go(1)
         self.remove_all_nodes()
