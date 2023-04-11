@@ -210,6 +210,11 @@ func (s *Simulation) OnNodeRecover(nodeid NodeId) {
 }
 
 func (s *Simulation) OnNodeProcessFailure(node *Node) {
+	if s.ctx.Err() != nil {
+		// ignore any node errors when simulation is done.
+		simplelogger.Debugf("While exiting simulation, Node %v process failed: %s", node.Id, node.err)
+		return
+	}
 	s.err = node.err
 	simplelogger.Errorf("Node %v process failed: %s", node.Id, node.err)
 	s.PostAsync(false, func() {
