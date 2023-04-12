@@ -145,6 +145,7 @@ func parseListenAddr() {
 
 func Main(ctx *progctx.ProgCtx, visualizerCreator func(ctx *progctx.ProgCtx, args *MainArgs) visualize.Visualizer, cliOptions *runcli.CliOptions) {
 	parseArgs()
+	//simplelogger.SetOutput([]string{"stdout", "otns.log"}) // for debug: generate a log output file.
 	simplelogger.SetLevel(simplelogger.ParseLevel(args.LogLevel))
 	parseListenAddr()
 
