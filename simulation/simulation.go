@@ -120,7 +120,9 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 
 	// init of the sim/dispatcher nodes
 	node.uartType = NodeUartTypeVirtualTime
-	s.d.RecvEvents() // allow new node to connect, and to receive its startup events.
+	simplelogger.AssertTrue(s.d.IsAlive(nodeid))
+	evtCnt := s.d.RecvEvents() // allow new node to connect, and to receive its startup events.
+	simplelogger.AssertTrue(evtCnt > 0)
 	if s.d.IsAlive(nodeid) {
 		simplelogger.Fatalf("simulation AddNode: new node %d did not respond", nodeid)
 	}
@@ -272,6 +274,7 @@ func (s *Simulation) DeleteNode(nodeid NodeId) error {
 	_ = node.Exit()
 	delete(s.nodes, nodeid)
 	s.d.DeleteNode(nodeid)
+	s.d.Go(0)
 	return nil
 }
 

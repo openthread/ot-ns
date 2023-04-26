@@ -429,6 +429,7 @@ func (d *Dispatcher) RecvEvents() int {
 
 loop:
 	for {
+		//simplelogger.Warnf("d.alivesNodes=%d", d.aliveNodes)
 		shouldBlock := len(d.aliveNodes) > 0
 
 		if shouldBlock {
@@ -579,14 +580,14 @@ func (d *Dispatcher) eventsReader() {
 
 		// Handle the new connection in a separate goroutine.
 		readTimeout := time.Millisecond * 300
-		go func(conn net.Conn) {
-			defer conn.Close()
+		go func(myConn net.Conn) {
+			defer myConn.Close()
 			buf := make([]byte, 65536)
 			myNodeId := 0
 			var myNode *Node = nil
 			for {
-				_ = conn.SetReadDeadline(time.Now().Add(readTimeout))
-				n, err := conn.Read(buf)
+				_ = myConn.SetReadDeadline(time.Now().Add(readTimeout))
+				n, err := myConn.Read(buf)
 				if d.stopped || err == io.EOF || (myNode != nil && myNode.err != nil) {
 					break
 				}
@@ -614,7 +615,7 @@ func (d *Dispatcher) eventsReader() {
 						simplelogger.AssertTrue(myNodeId > 0)
 						myNode = d.GetNode(myNodeId)
 						simplelogger.AssertNotNil(myNode)
-						myNode.conn = conn // also identify the client connection, once.
+						myNode.conn = myConn // also identify the client connection, once.
 					}
 					evt.NodeId = myNodeId
 					d.eventChan <- evt
