@@ -274,7 +274,7 @@ func (s *Simulation) DeleteNode(nodeid NodeId) error {
 	_ = node.Exit()
 	delete(s.nodes, nodeid)
 	s.d.DeleteNode(nodeid)
-	s.d.Go(0)
+	s.d.RecvEvents()
 	return nil
 }
 

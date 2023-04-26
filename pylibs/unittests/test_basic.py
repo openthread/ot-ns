@@ -139,12 +139,22 @@ class BasicTests(OTNSTestCase):
     def testDelNodeAndImmediatelyRecreate(self):
         ns = self.ns
         id = ns.add("router")
-        self.assertTrue(len(ns.nodes()) == 1 and 1 in ns.nodes())
+        self.assertTrue(len(ns.nodes()) == 1 and 1 in ns.nodes() and id == 1)
         self.go(1)
         self.assertTrue(len(ns.nodes()) == 1 and 1 in ns.nodes())
+
         ns.delete(1)
+        self.assertTrue(len(ns.nodes()) == 0)
         id = ns.add("router")
-        self.assertTrue(len(ns.nodes()) == 1 and 1 in ns.nodes())
+        self.assertTrue(len(ns.nodes()) == 1 and 1 in ns.nodes() and id == 1)
+
+        id = ns.add("router")
+        id = ns.add("router")
+        id = ns.add("router")
+        self.assertTrue(len(ns.nodes()) == 4 and id == 4)
+
+        ns.delete(1,2,3,4)
+        self.assertTrue(len(ns.nodes()) == 0)
 
     def testMDREffective(self):
         ns = self.ns
