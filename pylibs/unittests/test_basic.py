@@ -136,6 +136,16 @@ class BasicTests(OTNSTestCase):
 
         self.assertTrue(ns.nodes() == {})
 
+    def testDelNodeAndImmediatelyRecreate(self):
+        ns = self.ns
+        id = ns.add("router")
+        self.assertTrue(len(ns.nodes()) == 1 and 1 in ns.nodes())
+        self.go(1)
+        self.assertTrue(len(ns.nodes()) == 1 and 1 in ns.nodes())
+        ns.delete(1)
+        id = ns.add("router")
+        self.assertTrue(len(ns.nodes()) == 1 and 1 in ns.nodes())
+
     def testMDREffective(self):
         ns = self.ns
         ns.packet_loss_ratio = 1
