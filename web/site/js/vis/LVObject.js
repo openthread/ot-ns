@@ -38,7 +38,6 @@ export default class LVObject extends VObject {
 
     update(dt) {
         super.update(dt);
-        console.log(this.toString() + '_lifetimeRemaining = ' + this._lifetimeRemaining);
         if (this._lifetimeRemaining > 0){
             if (this._lifetimeRealMode) {
                 this._lifetimeRemaining -= dt;
@@ -49,7 +48,6 @@ export default class LVObject extends VObject {
                 }else{
                     this._lifetimeRemaining -= dt * this.vis.speed;
                 }
-                console.log(this.toString() + '  virt _lifetimeRemaining = ' + this._lifetimeRemaining);
             }
             if (this._lifetimeRemaining < 0) {
                 this._lifetimeRemaining = 0;
@@ -63,7 +61,6 @@ export default class LVObject extends VObject {
 
     // set LVObject lifetime to a virtual (simtime) lifetime in us.
     setLifetimeVirtual(dtSimUs) {
-        console.log(this.toString() + 'setting virtual lifetime: ' + dtSimUs);
         this._startSimTime = this.vis.curTime;
         this._lastSimTime = this._startSimTime;
         this._lifetime = dtSimUs / 1000000;
@@ -73,7 +70,6 @@ export default class LVObject extends VObject {
 
     // set LVObject lifetime to a real (clock) lifetime in us.
     setLifetimeReal(dtRealUs) {
-        console.log(this.toString() + 'setting real lifetime: ' + dtRealUs);
         this._lifetime = dtRealUs / 1000000;
         this._lifetimeRemaining = this._lifetime;
         this._lifetimeRealMode = true;
