@@ -856,7 +856,14 @@ func (d *Dispatcher) deleteDisconnectedNodes() {
 		}
 	}
 	for nodeid := range nodesToDelete {
-		simplelogger.Warnf("Deleting dispatcher node %d due to failed socket: %v+", nodeid, d.nodes[nodeid].err)
+		if d.stopped {
+			return
+		}
+		if d.nodes[nodeid] == nil {
+			continue
+		}
+		err := d.nodes[nodeid].err
+		simplelogger.Warnf("Deleting dispatcher node %d due to failed socket: %v+", nodeid, err)
 		d.DeleteNode(nodeid)
 	}
 }
@@ -867,7 +874,7 @@ func (d *Dispatcher) syncAliveNodes() {
 		return
 	}
 	d.deleteDisconnectedNodes()
-	if len(d.aliveNodes) == 0 {
+	if len(d.aliveNodes) == 0 || d.stopped {
 		return
 	}
 
