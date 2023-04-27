@@ -45,6 +45,7 @@ import (
 
 type Simulation struct {
 	ctx            *progctx.ProgCtx
+	stopped        bool
 	err            error
 	cfg            *Config
 	nodes          map[NodeId]*Node
@@ -151,7 +152,6 @@ func (s *Simulation) Run() {
 	s.ctx.WaitAdd("simulation", 1)
 	defer s.ctx.WaitDone("simulation")
 	defer simplelogger.Debugf("simulation exit.")
-
 	defer s.Stop()
 
 	s.d.Run()
@@ -186,10 +186,11 @@ func (s *Simulation) Stop() {
 	}
 
 	simplelogger.Infof("stopping simulation and exiting nodes ...")
+	s.stopped = true
+
 	for _, node := range s.nodes {
 		_ = node.Exit()
 	}
-	s.nodes = nil
 }
 
 func (s *Simulation) SetVisualizer(vis visualize.Visualizer) {
@@ -329,9 +330,9 @@ func (s *Simulation) createTmpDir() error {
 	return err
 }
 
-// IsStopped returns if the simulation is already stopped.
+// IsStopped returns if the simulation is already stopped, or requested to be stopped.
 func (s *Simulation) IsStopped() bool {
-	return s.nodes == nil
+	return s.stopped
 }
 
 func (s *Simulation) SetTitleInfo(titleInfo visualize.TitleInfo) {
