@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2022, The OTNS Authors.
+// Copyright (c) 2020-2023, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -70,11 +70,17 @@ export class BroadcastMessage extends LVObject {
             return
         }
 
-        let beginRadius = 32;
-        let playRatio = this.getLifetimeProgress();
-        let radius = beginRadius + (this._targetRadius - beginRadius) * Math.pow(playRatio, 0.5);
-        this.sprite.scale.set(radius * 2 / BROADCAST_MESSAGE_SCALE, radius * 2 / BROADCAST_MESSAGE_SCALE);
-        this.position = this.src.position;
+        try {
+            let beginRadius = 32;
+            let playRatio = this.getLifetimeProgress();
+            let radius = beginRadius + (this._targetRadius - beginRadius) * Math.pow(playRatio, 0.5);
+            this.sprite.scale.set(radius * 2 / BROADCAST_MESSAGE_SCALE, radius * 2 / BROADCAST_MESSAGE_SCALE);
+            if (this.src != null && this.src.position != null) { // track the (possibly moving) source, if exists.
+                this.position = this.src.position;
+            }
+        }catch(err){
+            ;
+        }
     }
 }
 
@@ -120,18 +126,24 @@ export class UnicastMessage extends LVObject {
             return
         }
 
-        let dstx, dsty;
-        if (this.dst != null){  // track the (possibly moving) destination
-            dstx = this.dst.x;
-            dsty = this.dst.y;
-        }else{
-            dstx = this.src.x + this.dstPos.x;  // or use a relative dstpos.
-            dsty = this.src.y + this.dstPos.y;
+        try {
+            let dstx, dsty;
+            if (this.dst != null) {  // track the (possibly moving) destination
+                dstx = this.dst.x;
+                dsty = this.dst.y;
+            } else if (this.src != null) {
+                dstx = this.src.x + this.dstPos.x;  // or use a relative dstpos.
+                dsty = this.src.y + this.dstPos.y;
+            }
+            if (this.src != null) {
+                let dx = dstx - this.src.x;
+                let dy = dsty - this.src.y;
+                let r = this.getLifetimeProgress();
+                this.position.set(this.src.x + r * dx, this.src.y + r * dy);
+            }
+        }catch(err){
+            ;
         }
-        let dx = dstx - this.src.x;
-        let dy = dsty - this.src.y;
-        let r = this.getLifetimeProgress();
-        this.position.set(this.src.x + r * dx, this.src.y + r * dy);
     }
 }
 
