@@ -109,7 +109,7 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 	}
 
 	// creation of the sim/dispatcher nodes
-	simplelogger.Infof("simulation:AddNode: %+v, rawMode=%v", cfg, s.rawMode)
+	simplelogger.Debugf("simulation:AddNode: %+v, rawMode=%v", cfg, s.rawMode)
 	s.d.AddNode(nodeid, cfg) // ensure dispatcher-node is present before OT process starts.
 	node, err := newNode(s, nodeid, cfg)
 	if err != nil {
