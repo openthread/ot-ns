@@ -143,23 +143,30 @@ func (node *Node) sendEvent(evt *Event) {
 		node.failureCtrl.OnTimeAdvanced(oldTime)
 	}
 	//simplelogger.Debugf("N%v sendEvent -> %v", node.Id, evt.String())
-	node.sendRawData(evt.Serialize())
+	err := node.sendRawData(evt.Serialize())
+	if err != nil && node.err == nil {
+		node.err = err
+	}
 }
 
 // sendRawData is INTERNAL to send bytes to socket of node
-func (node *Node) sendRawData(msg []byte) {
+func (node *Node) sendRawData(msg []byte) error {
 	simplelogger.AssertNotNil(node.conn)
 	n, err := node.conn.Write(msg)
 	if err != nil {
-		node.err = err
+		return err
+	} else if len(msg) != n {
+		return fmt.Errorf("failed to write complete Event to socket %v+", node.conn)
 	}
-	if len(msg) != n {
-		node.err = fmt.Errorf("failed to write complete Event to socket %v+", node.conn)
-	}
+	return err
 }
 
 func (node *Node) IsFailed() bool {
 	return node.isFailed
+}
+
+func (node *Node) IsConnected() bool {
+	return node.conn != nil
 }
 
 func (node *Node) Fail() {

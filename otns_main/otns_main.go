@@ -207,7 +207,7 @@ func Main(ctx *progctx.ProgCtx, visualizerCreator func(ctx *progctx.ProgCtx, arg
 
 	vis.Run() // visualize must run in the main thread
 
-	simplelogger.Infof("waiting for OTNS to stop gracefully ...")
+	simplelogger.Debugf("waiting for OTNS to stop gracefully ...")
 	ctx.Wait()
 }
 
@@ -233,10 +233,10 @@ func handleSignals(ctx *progctx.ProgCtx) {
 	}()
 }
 
-func autoGo(prog *progctx.ProgCtx, sim *simulation.Simulation) {
+func autoGo(ctx *progctx.ProgCtx, sim *simulation.Simulation) {
 	for {
 		<-sim.Go(time.Second)
-		if prog.Err() != nil { // exit when context cancelled.
+		if ctx.Err() != nil { // exit when context is Done.
 			return
 		}
 	}

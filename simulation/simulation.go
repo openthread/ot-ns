@@ -110,11 +110,11 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 
 	// creation of the sim/dispatcher nodes
 	simplelogger.Debugf("simulation:AddNode: %+v, rawMode=%v", cfg, s.rawMode)
-	s.d.AddNode(nodeid, cfg) // ensure dispatcher-node is present before OT process starts.
+	dnode := s.d.AddNode(nodeid, cfg) // ensure dispatcher-node is present before OT process starts.
 	node, err := newNode(s, nodeid, cfg)
 	if err != nil {
 		simplelogger.Errorf("simulation add node failed: %v", err)
-		s.d.DeleteNode(nodeid)
+		s.d.DeleteNode(nodeid) // delete dispatcher node again.
 		return nil, err
 	}
 	s.nodes[nodeid] = node
@@ -123,18 +123,22 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 	node.uartType = NodeUartTypeVirtualTime
 	simplelogger.AssertTrue(s.d.IsAlive(nodeid))
 	evtCnt := s.d.RecvEvents() // allow new node to connect, and to receive its startup events.
-	simplelogger.AssertTrue(evtCnt > 0)
-	if s.d.IsAlive(nodeid) {
-		simplelogger.Fatalf("simulation AddNode: new node %d did not respond", nodeid)
-	}
-	node.setupMode()
-	if !s.rawMode {
-		initScript := cfg.InitScript
-		if len(initScript) == 0 {
-			initScript = s.cfg.InitScript // use default, if indicated so in cfg.
+
+	if s.ctx.Err() == nil { // only proceed with node if we're not exiting the simulation.
+		if !dnode.IsConnected() {
+			simplelogger.Errorf("simulation AddNode: new node %d did not respond (evtCnt=%d)", nodeid, evtCnt)
+			s.d.DeleteNode(nodeid)
+			return nil, err
 		}
-		node.SetupNetworkParameters(initScript)
-		node.Start()
+		node.setupMode()
+		if !s.rawMode {
+			initScript := cfg.InitScript
+			if len(initScript) == 0 {
+				initScript = s.cfg.InitScript // use default, if indicated so in cfg.
+			}
+			node.SetupNetworkParameters(initScript)
+			node.Start()
+		}
 	}
 
 	return node, nil
@@ -152,9 +156,14 @@ func (s *Simulation) Run() {
 	s.ctx.WaitAdd("simulation", 1)
 	defer s.ctx.WaitDone("simulation")
 	defer simplelogger.Debugf("simulation exit.")
-	defer s.Stop()
+	defer s.d.Stop() // backup dispatcher stopper.
+	defer s.Stop()   // backup simulation stopper.
 
+	// run dispatcher in current thread, until exit.
+	s.ctx.WaitAdd("dispatcher", 1)
 	s.d.Run()
+	s.Stop()   // first exit simulation nodes, then
+	s.d.Stop() // stop dispatcher and close its threads.
 }
 
 // Returns the last error that occurred in the simulation run, or nil if none.
@@ -181,7 +190,7 @@ func (s *Simulation) AutoGo() bool {
 }
 
 func (s *Simulation) Stop() {
-	if s.IsStopped() {
+	if s.stopped {
 		return
 	}
 
@@ -191,6 +200,7 @@ func (s *Simulation) Stop() {
 	for _, node := range s.nodes {
 		_ = node.Exit()
 	}
+	simplelogger.Debugf("all simulation nodes exited.")
 }
 
 func (s *Simulation) SetVisualizer(vis visualize.Visualizer) {
@@ -214,8 +224,7 @@ func (s *Simulation) OnNodeRecover(nodeid NodeId) {
 
 func (s *Simulation) OnNodeProcessFailure(node *Node) {
 	if s.ctx.Err() != nil {
-		// ignore any node errors when simulation is done.
-		simplelogger.Debugf("While exiting simulation, Node %v process failed: %s", node.Id, node.err)
+		// ignore any node errors when simulation is closing up.
 		return
 	}
 	s.err = node.err
@@ -272,10 +281,9 @@ func (s *Simulation) DeleteNode(nodeid NodeId) error {
 		return errors.Errorf("node not found")
 	}
 
-	_ = node.Exit()
 	delete(s.nodes, nodeid)
+	_ = node.Exit()
 	s.d.DeleteNode(nodeid)
-	s.d.RecvEvents()
 	return nil
 }
 
@@ -328,11 +336,6 @@ func (s *Simulation) createTmpDir() error {
 		return nil // ok, already present
 	}
 	return err
-}
-
-// IsStopped returns if the simulation is already stopped, or requested to be stopped.
-func (s *Simulation) IsStopped() bool {
-	return s.stopped
 }
 
 func (s *Simulation) SetTitleInfo(titleInfo visualize.TitleInfo) {

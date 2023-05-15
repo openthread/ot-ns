@@ -50,7 +50,7 @@ func testAddNodes(test *otnstester.OtnsTest) {
 
 	router2 := test.AddNode("router", 120, 120)
 	test.ExpectTrue(router2 == 2)
-	test.Go(time.Second * 10)
+	test.Go(time.Second * 121)
 	test.ExpectTrue(test.GetNodeState(router2) == RoleRouter)
 	test.ExpectVisualizeAddNode(router2, 120, 120, DefaultRadioRange)
 

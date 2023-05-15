@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Copyright (c) 2020, The OTNS Authors.
+# Copyright (c) 2020-2023, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -68,9 +68,9 @@ class OtnsPerformanceStressTest(BaseStressTest):
                 # make sure every node become Router
                 ns.node_cmd(nid, "routerupgradethreshold 32")
                 ns.node_cmd(nid, 'routerdowngradethreshold 33')
+                ns.go(1)  # give time to connect
                 expected_state = 'leader' if (r, c) == (0, 0) else 'router'
-                self.expect_node_state(nid, expected_state, 100)
-                ns.go(15)
+                self.expect_node_state(nid, expected_state, 121)  # give time to become Router
 
         secs = 0
         formed_one_partition_ok = False

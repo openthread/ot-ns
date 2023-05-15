@@ -51,7 +51,7 @@ var DefaultNodeInitScript = []string{
 	"networkkey " + DefaultNetworkKey,
 	fmt.Sprintf("panid 0x%x", DefaultPanid),
 	fmt.Sprintf("channel %d", DefaultChannel),
-	"routerselectionjitter 1",
+	//"routerselectionjitter 1", // jitter can be set to '1' to speed up network formation for realtime tests.
 	"ifconfig up",
 	"thread start",
 }

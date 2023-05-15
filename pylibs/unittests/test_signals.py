@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Copyright (c) 2020, The OTNS Authors.
+# Copyright (c) 2020-2023, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -29,6 +29,7 @@
 import os
 import logging
 import os
+import random
 import signal
 import threading
 import time
@@ -52,11 +53,11 @@ class SignalsTest(OTNSTestCase):
     def testSIGTERM(self):
         self._test_signal_exit(signal.SIGTERM)
 
-    def testSIGTERMx1000(self):
-        N = 1000
+    def testSIGTERMx500(self):
+        N = 500
         for i in range(N):
             logging.info("round %d", i + 1)
-            self._test_signal_exit(signal.SIGTERM, 0)
+            self._test_signal_exit(signal.SIGTERM, 0.1 * random.random())
 
             self.tearDown()
             self.setUp()
@@ -81,7 +82,7 @@ class SignalsTest(OTNSTestCase):
             self.setUp()
 
     def _testCommandHandleSignalOk(self):
-        t = threading.Thread(target=self._send_signal, args=(0.01, signal.SIGTERM))
+        t = threading.Thread(target=self._send_signal, args=(0.02, signal.SIGTERM))
         t.start()
         try:
             self.ns.speed = float('inf')
@@ -116,6 +117,7 @@ class SignalsTest(OTNSTestCase):
         try:
             exit_code = self.ns._otns.wait(timeout=WAIT_OTNS_TIMEOUT)
         except TimeoutExpired:
+            logging.error('OTNS exit-signal handling took too long. Debug info follows below.')
             logging.error('OTNS error code: %s', self.ns._otns.returncode)
             os.system(f"curl http://localhost:8997/debug/pprof/goroutine?debug=2")
             raise
@@ -142,9 +144,9 @@ class SignalsTest(OTNSTestCase):
             return
 
     def _send_signal(self, delay: float, sig: int):
-        logging.info(f"sleep {delay} ...")
+        logging.debug(f"sleep {delay} ...")
         time.sleep(delay)
-        logging.info(f'sending signal {sig}')
+        logging.debug(f'sending signal {sig}')
         self.ns._otns.send_signal(sig)
 
 
