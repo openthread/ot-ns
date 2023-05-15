@@ -333,7 +333,7 @@ func (rt *CmdRunner) executeAddNode(cc *CommandContext, cmd *AddCmd) {
 		cfg.IsBorderRouter = true
 		cfg.RxOffWhenIdle = false
 	} else {
-		panic("wrong node type")
+		simplelogger.Panicf("wrong node type: %s", cmd.Type.Val)
 	}
 
 	if cmd.Id != nil {
