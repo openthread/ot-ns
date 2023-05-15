@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2020-2022, The OTNS Authors.
+# Copyright (c) 2020-2023, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -148,13 +148,17 @@ class BasicTests(OTNSTestCase):
         id = ns.add("router")
         self.assertTrue(len(ns.nodes()) == 1 and 1 in ns.nodes() and id == 1)
 
-        id = ns.add("router")
-        id = ns.add("router")
+        ns.add("router")
+        ns.add("router")
         id = ns.add("router")
         self.assertTrue(len(ns.nodes()) == 4 and id == 4)
 
-        ns.delete(1,2,3,4)
+        ns.delete(1, 2, 3, 4)
         self.assertTrue(len(ns.nodes()) == 0)
+
+        ns.add("router")
+        id = ns.add("router")
+        self.assertTrue(len(ns.nodes()) == 2 and id == 2)
 
     def testMDREffective(self):
         ns = self.ns
@@ -186,7 +190,7 @@ class BasicTests(OTNSTestCase):
         ns = self.ns
         ns.add("router")
         fid = ns.add("router")
-        self.go(10)
+        self.go(20)
         self.assertFormPartitions(1)
 
         ns.radio_off(fid)
@@ -298,11 +302,11 @@ class BasicTests(OTNSTestCase):
 
         reed = ns.add("router")
         ns.set_router_upgrade_threshold(reed, 1)
-        ns.go(100)
+        ns.go(130)
         self.assertNodeState(reed, 'child')
 
         ns.set_router_upgrade_threshold(reed, 2)
-        ns.go(100)
+        ns.go(121)
         self.assertNodeState(reed, 'router')
 
     def testSetRouterDowngradeThreshold(self):

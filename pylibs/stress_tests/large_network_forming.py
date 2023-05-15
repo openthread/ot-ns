@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Copyright (c) 2020, The OTNS Authors.
+# Copyright (c) 2020-2023, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -31,14 +31,15 @@ import time
 
 from BaseStressTest import BaseStressTest
 
-XGAP = 100
-YGAP = 100
-RADIO_RANGE = int(XGAP * 1.5)
+XGAP = 80
+YGAP = 80
+RADIO_RANGE = int(XGAP * 2.5)
 
-LARGE_N = 8
-PACKET_LOSS_RATIO = 0.9
+LARGE_N = 11
+PACKET_LOSS_RATIO = 0.08
 
-SIMULATE_TIME = 3600
+SIMULATE_TIME_TOTAL = 600
+SIMULATE_TIME_PERIOD = 30
 REPEAT = max(int(os.getenv('STRESS_LEVEL', '1')) // 2, 1)
 
 
@@ -47,33 +48,38 @@ class StressTest(BaseStressTest):
 
     def __init__(self):
         super(StressTest, self).__init__("Large Network Formation Test",
-                                         ["Simulation Time", "Execution Time", "Average Partition Count in 60s"])
+                                         ["Rep", "Simulation Time", "Execution Time", "Partition Count"])
 
     def run(self):
         self.ns.packet_loss_ratio = PACKET_LOSS_RATIO
+        self.ns.radiomodel = 'MutualInterference'
+        self.ns.loglevel = 'info'
 
         durations = []
         partition_counts = []
-        for _ in range(REPEAT):
-            dt, par_cnt = self.test_n(LARGE_N)
-            durations.append(dt)
-            partition_counts.append(par_cnt)
+        for nrep in range(1, REPEAT+1):
+            durations, partition_counts = self.test_n(LARGE_N, durations, partition_counts, nrep)
 
-        self.result.append_row('%ds' % (SIMULATE_TIME * REPEAT), '%ds' % sum(durations),
-                               '%d' % (sum(partition_counts) / len(partition_counts)))
-
-    def test_n(self, n):
+    def test_n(self, n, durations, partition_counts, nrep):
         self.reset()
 
         for r in range(n):
             for c in range(n):
                 id = self.ns.add("router", 50 + XGAP * c, 50 + YGAP * r, radio_range=RADIO_RANGE)
-                self.ns.node_cmd(id, f'childtimeout {5}')
+                # self.ns.node_cmd(id, f'childtimeout {5}')  # prefer not to modify default childtimeout
 
-        t0 = time.time()
-        self.ns.go(SIMULATE_TIME)
-        dt = time.time() - t0
-        return dt, len(self.ns.partitions())
+        for _ in range(SIMULATE_TIME_TOTAL // SIMULATE_TIME_PERIOD):
+            t0 = time.time()
+            self.ns.go(SIMULATE_TIME_PERIOD)
+            dt = time.time() - t0
+
+            durations.append(dt)
+            par_cnt = len(self.ns.partitions())
+            partition_counts.append(par_cnt)
+            sim_time = self.ns.time // 1e6
+            self.result.append_row('%d' % nrep, '%ds' % sim_time, '%ds' % sum(durations), '%d' % par_cnt)
+
+        return durations, partition_counts
 
 
 if __name__ == '__main__':

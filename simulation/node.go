@@ -178,11 +178,12 @@ func (node *Node) Stop() {
 
 func (node *Node) Exit() error {
 	_ = node.cmd.Process.Signal(syscall.SIGTERM)
-	_ = node.virtualUartReader.Close()
 
 	err := node.cmd.Wait()
-	node.S.Dispatcher().NotifyExit(node.Id)
+	node.S.Dispatcher().RecvEvents() // ensure to receive any remaining events of exited node.
 
+	// no more events or lineReader lines should come, so we can close the log file and virtual-UART.
+	_ = node.virtualUartReader.Close()
 	if node.logFile != nil {
 		_ = node.logFile.Close()
 	}
@@ -644,7 +645,7 @@ func (node *Node) lineReaderStdErr(reader io.Reader) {
 	for scanner.Scan() {
 		line := scanner.Text()
 
-		// mark the error in the node
+		// mark the first error in the node
 		if node.err == nil {
 			node.err = errors.New(line)
 		}
@@ -713,7 +714,8 @@ func (node *Node) TryExpectLine(line interface{}, timeout time.Duration) (bool, 
 func (node *Node) expectLine(line interface{}, timeout time.Duration) []string {
 	found, output := node.TryExpectLine(line, timeout)
 	if !found {
-		simplelogger.Panicf("expect line timeout: %#v", line)
+		node.err = errors.Errorf("expect line timeout: %#v", line)
+		return []string{}
 	}
 
 	return output
@@ -794,7 +796,7 @@ func (node *Node) writeToLogFile(line string) {
 	if node.logFile != nil {
 		_, err := node.logFile.WriteString(line + "\n")
 		if err != nil {
-			simplelogger.Error("Couldn't write to log file of %v, closing it.", node)
+			simplelogger.Error("Couldn't write to log file of %v, closing it (%s)", node, node.logFile)
 			_ = node.logFile.Close()
 			node.logFile = nil
 		}

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2020-2022, The OTNS Authors.
+# Copyright (c) 2020-2023, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -166,6 +166,13 @@ class OTNS(object):
         :param level: new log-level name, debug | info | warn | error
         """
         self._do_command(f'log {level}')
+
+    @property
+    def time(self) -> str:
+        """
+        :return: current simulation time in microseconds (us)
+        """
+        return self._expect_int(self._do_command(f'time'))
 
     def set_poll_period(self, nodeid: int, period: float) -> None:
         ms = int(period * 1000)

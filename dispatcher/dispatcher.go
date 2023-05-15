@@ -114,6 +114,7 @@ type Dispatcher struct {
 	socketName            string
 	eventChan             chan *Event
 	waitGroup             sync.WaitGroup
+	waitGroupNodes        sync.WaitGroup
 	CurTime               uint64
 	currentGoDuration     goDuration
 	pauseTime             uint64
@@ -187,14 +188,17 @@ func NewDispatcher(ctx *progctx.ProgCtx, cfg *Config, cbHandler CallbackHandler)
 		watchingNodes:      map[NodeId]struct{}{},
 		goDurationChan:     make(chan goDuration, 1),
 		visOptions:         defaultVisualizationOptions(),
+		stopped:            false,
 	}
 	d.speed = d.normalizeSpeed(d.speed)
 	if len(d.cfg.PcapChannels) > 0 {
 		d.pcap, err = pcap.NewFile("current.pcap")
 		simplelogger.PanicIfError(err)
+		d.waitGroup.Add(1)
 		go d.pcapFrameWriter()
 	}
 
+	d.waitGroup.Add(1)
 	go d.eventsReader()
 
 	d.vis.SetSpeed(d.speed)
@@ -220,11 +224,23 @@ func (d *Dispatcher) Stop() {
 	}
 	simplelogger.Debugf("stopping dispatcher ...")
 	d.stopped = true
-	d.GoCancel()
+	d.ctx.Cancel("dispatcher-stop")
+	_ = d.udpln.Close() // close socket to stop d.eventsReader accepting new clients.
+	d.GoCancel()        // cancel current simulation period
 	d.vis.Stop()
-	_ = d.udpln.Close() // close socket to stop d.eventsReader
 	close(d.pcapFrameChan)
+	simplelogger.Debugf("waiting for dispatcher threads exit ...")
 	d.waitGroup.Wait()
+	simplelogger.Debugf("dispatcher exit.")
+}
+
+func (d *Dispatcher) IsStopped() bool {
+	select {
+	case <-d.ctx.Done():
+		return true
+	default:
+		return false
+	}
 }
 
 func (d *Dispatcher) GetConfig() *Config {
@@ -268,10 +284,7 @@ func (d *Dispatcher) GoCancel() <-chan struct{} {
 }
 
 func (d *Dispatcher) Run() {
-	d.ctx.WaitAdd("dispatcher", 1)
 	defer d.ctx.WaitDone("dispatcher")
-	defer simplelogger.Debugf("waiting for dispatcher exit.")
-	defer d.Stop()
 
 	done := d.ctx.Done()
 loop:
@@ -327,10 +340,10 @@ func (d *Dispatcher) goSimulateForDuration(duration goDuration) {
 
 	simplelogger.AssertTrue(d.CurTime <= d.pauseTime)
 
-	for d.CurTime <= d.pauseTime && !d.currentGoDuration.cancel {
+	for d.CurTime <= d.pauseTime {
 		d.handleTasks()
 
-		if d.ctx.Err() != nil {
+		if d.currentGoDuration.cancel || d.IsStopped() {
 			break
 		}
 
@@ -374,7 +387,7 @@ func (d *Dispatcher) handleRecvEvent(evt *Event) {
 	}
 
 	d.setAlive(nodeid)        // node stays alive until Alarm event is received.
-	evt.Timestamp = d.CurTime // timestamp incoming event
+	evt.Timestamp = d.CurTime // timestamp the incoming event
 
 	// TODO document this use (for alarm messages)
 	delay := evt.Delay
@@ -429,16 +442,16 @@ func (d *Dispatcher) RecvEvents() int {
 
 loop:
 	for {
-		//simplelogger.Warnf("d.alivesNodes=%d", d.aliveNodes)
 		shouldBlock := len(d.aliveNodes) > 0
 
 		if shouldBlock {
 			select {
-			case evt := <-d.eventChan:
+			case evt := <-d.eventChan: // new event
 				count += 1
 				d.handleRecvEvent(evt)
-			case <-blockTimeout:
-				// timeout
+			case <-blockTimeout: // timeout
+				break loop
+			case <-d.ctx.Done(): // exit of dispatcher: don't block then.
 				break loop
 			}
 		} else {
@@ -562,7 +575,6 @@ func (d *Dispatcher) processNextEvent(simSpeed float64) bool {
 }
 
 func (d *Dispatcher) eventsReader() {
-	d.waitGroup.Add(1)
 	defer d.waitGroup.Done()
 	defer os.RemoveAll(d.socketName) // delete socket file when done.
 	defer d.udpln.Close()
@@ -571,39 +583,47 @@ func (d *Dispatcher) eventsReader() {
 	for {
 		// Wait for OT nodes to connect.
 		conn, err := d.udpln.Accept()
-		if d.stopped {
+		if d.IsStopped() {
+			if conn != nil {
+				conn.Close()
+			}
 			break
 		}
 		if err != nil {
 			simplelogger.Fatalf("connection Accept() failed: %v", err)
+			break
 		}
 
 		// Handle the new connection in a separate goroutine.
-		readTimeout := time.Millisecond * 300
+		readTimeout := time.Millisecond * 5000
+		d.waitGroupNodes.Add(1)
+
 		go func(myConn net.Conn) {
+			defer d.waitGroupNodes.Done()
 			defer myConn.Close()
+
 			buf := make([]byte, 65536)
 			myNodeId := 0
 			var myNode *Node = nil
 			for {
 				_ = myConn.SetReadDeadline(time.Now().Add(readTimeout))
 				n, err := myConn.Read(buf)
-				if d.stopped || err == io.EOF || (myNode != nil && myNode.err != nil) {
+
+				if err == io.EOF {
 					break
-				}
-				if errors.Is(err, os.ErrDeadlineExceeded) {
+				} else if errors.Is(err, os.ErrDeadlineExceeded) {
 					if n > 0 {
 						simplelogger.Panicf("Unexpected n > 0 after socket read timeout.")
 					}
 					continue
-				}
-				if err != nil {
-					simplelogger.Errorf("Socket read error: %+v", err)
-					if myNode != nil {
+				} else if err != nil {
+					simplelogger.Errorf("Node %d - Socket read error: %+v", myNodeId, err)
+					if myNode != nil && myNode.err == nil {
 						myNode.err = err
 					}
 					break
 				}
+
 				bufIdx := 0
 				for bufIdx < n {
 					evt := &Event{}
@@ -623,10 +643,14 @@ func (d *Dispatcher) eventsReader() {
 			}
 		}(conn)
 	}
+
+	simplelogger.Debugf("dispatcher waiting for node socket threads to exit ...")
+	d.waitGroupNodes.Wait() // wait for all nodes to exit before closing eventsReader.
 }
 
 func (d *Dispatcher) advanceNodeTime(node *Node, timestamp uint64, force bool) {
 	simplelogger.AssertNotNil(node)
+
 	if d.cfg.Real {
 		node.CurTime = timestamp
 		return
@@ -822,8 +846,8 @@ func (d *Dispatcher) sendOneRadioFrame(evt *Event,
 }
 
 func (d *Dispatcher) setAlive(nodeid NodeId) {
-	if d.cfg.Real {
-		// real devices are always considered sleeping
+	if d.cfg.Real || d.isDeleted(nodeid) {
+		// real devices are always considered sleeping; deleted nodes can't become alive.
 		return
 	}
 	d.aliveNodes[nodeid] = struct{}{}
@@ -848,33 +872,9 @@ func (d *Dispatcher) setSleeping(nodeid NodeId) {
 	delete(d.aliveNodes, nodeid)
 }
 
-func (d *Dispatcher) deleteDisconnectedNodes() {
-	nodesToDelete := make([]NodeId, 0)
-	for nodeid := range d.nodes {
-		if d.nodes[nodeid].err != nil {
-			nodesToDelete = append(nodesToDelete, nodeid)
-		}
-	}
-	for nodeid := range nodesToDelete {
-		if d.stopped {
-			return
-		}
-		if d.nodes[nodeid] == nil {
-			continue
-		}
-		err := d.nodes[nodeid].err
-		simplelogger.Warnf("Deleting dispatcher node %d due to failed socket: %v+", nodeid, err)
-		d.DeleteNode(nodeid)
-	}
-}
-
 // syncAliveNodes advances the node's time of alive nodes only to current dispatcher time.
 func (d *Dispatcher) syncAliveNodes() {
-	if len(d.aliveNodes) == 0 || d.stopped {
-		return
-	}
-	d.deleteDisconnectedNodes()
-	if len(d.aliveNodes) == 0 || d.stopped {
+	if len(d.aliveNodes) == 0 || d.IsStopped() {
 		return
 	}
 
@@ -886,16 +886,12 @@ func (d *Dispatcher) syncAliveNodes() {
 
 // syncAllNodes advances all the node's time to current dispatcher time.
 func (d *Dispatcher) syncAllNodes() {
-	if d.stopped {
-		return
-	}
 	for nodeid := range d.nodes {
 		d.advanceNodeTime(d.nodes[nodeid], d.CurTime, false)
 	}
 }
 
 func (d *Dispatcher) pcapFrameWriter() {
-	d.waitGroup.Add(1)
 	defer d.waitGroup.Done()
 
 	defer func() {
@@ -1027,6 +1023,8 @@ func (d *Dispatcher) handleStatusPush(srcnode *Node, data string) {
 func (d *Dispatcher) AddNode(nodeid NodeId, cfg *NodeConfig) *Node {
 	simplelogger.AssertNil(d.nodes[nodeid])
 	simplelogger.Debugf("dispatcher AddNode id=%d", nodeid)
+	delete(d.deletedNodes, nodeid)
+
 	node := newNode(d, nodeid, cfg)
 	d.nodes[nodeid] = node
 	d.alarmMgr.AddNode(nodeid)
@@ -1163,10 +1161,8 @@ func (d *Dispatcher) visSend(srcid NodeId, dstid NodeId, visInfo *visualize.MsgV
 
 func (d *Dispatcher) advanceTime(ts uint64) {
 	simplelogger.AssertTrue(d.CurTime <= ts, "%v > %v", d.CurTime, ts)
-	simplelogger.AssertTrue(d.CurTime <= d.eventQueue.NextTimestamp())
 	if d.CurTime < ts {
 		d.CurTime = ts
-		simplelogger.AssertTrue(d.CurTime <= d.eventQueue.NextTimestamp())
 		if d.cfg.Real {
 			d.syncAllNodes()
 		}
@@ -1420,13 +1416,6 @@ func (d *Dispatcher) GetVisualizationOptions() VisualizationOptions {
 func (d *Dispatcher) SetVisualizationOptions(opts VisualizationOptions) {
 	simplelogger.Debugf("dispatcher set visualization options: %+v", opts)
 	d.visOptions = opts
-}
-
-// NotifyExit notifies the dispatcher that the node process has exited.
-func (d *Dispatcher) NotifyExit(nodeid NodeId) {
-	if !d.cfg.Real {
-		d.setSleeping(nodeid)
-	}
 }
 
 func (d *Dispatcher) NotifyCommand(nodeid NodeId) {

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Copyright (c) 2020, The OTNS Authors.
+# Copyright (c) 2020-2023, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -37,7 +37,7 @@ from otns.cli.errors import UnexpectedError
 from typing import Collection
 
 from StressTestResult import StressTestResult
-from errors import UnexpectedNodeAddr
+from errors import UnexpectedNodeAddr, UnexpectedNodeState
 
 
 class StressTestMetaclass(type):
