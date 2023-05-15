@@ -184,7 +184,7 @@ func NewDispatcher(ctx *progctx.ProgCtx, cfg *Config, cbHandler CallbackHandler)
 		speedStartRealTime: time.Now(),
 		lastVizTime:        time.Unix(0, 0),
 		vis:                vis,
-		taskChan:           make(chan func(), 100),
+		taskChan:           make(chan func(), 100000),
 		watchingNodes:      map[NodeId]struct{}{},
 		goDurationChan:     make(chan goDuration, 1),
 		visOptions:         defaultVisualizationOptions(),
@@ -561,8 +561,8 @@ func (d *Dispatcher) processNextEvent(simSpeed float64) bool {
 						}
 					}
 				}
-			} else {
-				// node may have been deleted in the meantime.
+			} else if evt.NodeId > 0 {
+				// node may have been deleted in the meantime. NodeId=0 means a deactivated event.
 				simplelogger.Debugf("processNextEvent() skipping event for deleted/unknown node %v: %v", evt.NodeId, evt)
 			}
 		}
@@ -1326,6 +1326,7 @@ func (d *Dispatcher) DeleteNode(id NodeId) {
 	d.energyAnalyser.DeleteNode(id)
 	d.vis.DeleteNode(id)
 	d.radioModel.DeleteNode(id)
+	d.eventQueue.DisableEventsForNode(id)
 }
 
 // SetNodeFailed sets the radio of the node to failed (true) or operational (false) state.

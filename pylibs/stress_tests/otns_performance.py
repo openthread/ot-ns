@@ -68,7 +68,7 @@ class OtnsPerformanceStressTest(BaseStressTest):
                 # make sure every node become Router
                 ns.node_cmd(nid, "routerupgradethreshold 32")
                 ns.node_cmd(nid, 'routerdowngradethreshold 33')
-                ns.go(1)  # give time to connect
+                ns.go(10)  # give time to connect
                 expected_state = 'leader' if (r, c) == (0, 0) else 'router'
                 self.expect_node_state(nid, expected_state, 121)  # give time to become Router
 
