@@ -1,4 +1,4 @@
-// Copyright (c) 2022, The OTNS Authors.
+// Copyright (c) 2022-2023, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -27,15 +27,12 @@
 import * as PIXI from "pixi.js-legacy";
 import VObject from "./VObject";
 import Button from "./Button";
-import {MAX_SPEED, PAUSE_SPEED} from "./consts";
+import {MAX_SPEED, PAUSE_SPEED, TUNE_SPEED_MIN, TUNE_SPEED_MAX, NODE_AUTOSPACING_PX} from "./consts";
 import {Resources} from "./resources";
 
 const {
     OtDeviceRole, NodeMode,
 } = require('../proto/visualize_grpc_pb.js');
-
-const TUNE_SPEED_MIN = 0.25;
-const TUNE_SPEED_MAX = 1024;
 
 export default class ActionBar extends VObject {
     constructor() {
@@ -71,6 +68,7 @@ export default class ActionBar extends VObject {
             sprite.tint = 0x4193F5;
             button.sprite = sprite
         });
+        this._speedDisplayBtn.minWidth = 88;
         this.addButton(">>", "any", "speed", (e) => {
             this.actionSpeedUp()
         });
@@ -85,9 +83,6 @@ export default class ActionBar extends VObject {
         });
         this.addButton("SED", "any", "add", (e) => {
             this.actionNewSED(e)
-        });
-        this.addButton("Clear", "any", "del", (e) => {
-            this.actionClear(e)
         });
         // add node context buttons
         this.addButton("Delete", "node", "del", (e) => {
@@ -107,6 +102,9 @@ export default class ActionBar extends VObject {
         });
         this._energyChartOnOffButton = this.addButton("Open Charts", "any", "", (e) => {
             this.actionOpenEnergyWindow()
+        });
+        this.addButton("Delete All", "any", "del", (e) => {
+            this.actionClear(e)
         });
     }
 
@@ -169,40 +167,44 @@ export default class ActionBar extends VObject {
         this.vis.setSpeed(speed)
     }
 
+    getNextNewNodePosition(placeBelow) {
+        return this.vis.getNextNewNodePosition(placeBelow)
+    }
+
     actionNewRouter(e) {
-        let pos = e.data.getLocalPosition(this.vis._root);
         let mode = new NodeMode();
         mode.setRxOnWhenIdle(true);
         mode.setFullThreadDevice(true);
         mode.setFullNetworkData(true);
-        this.vis.ctrlAddNode(Math.round(pos.x), Math.round(pos.y - 100), "router")
+        let pos = this.getNextNewNodePosition(false)
+        this.vis.ctrlAddNode(Math.round(pos.x), Math.round(pos.y), "router")
     }
 
     actionNewFED(e) {
-        let pos = e.data.getLocalPosition(this.vis._root);
         let mode = new NodeMode();
         mode.setRxOnWhenIdle(true);
         mode.setFullThreadDevice(true);
         mode.setFullNetworkData(true);
-        this.vis.ctrlAddNode(Math.round(pos.x), Math.round(pos.y - 100), "fed")
+        let pos = this.getNextNewNodePosition(true)
+        this.vis.ctrlAddNode(Math.round(pos.x), Math.round(pos.y), "fed")
     }
 
     actionNewMED(e) {
-        let pos = e.data.getLocalPosition(this.vis._root);
         let mode = new NodeMode();
         mode.setRxOnWhenIdle(true);
         mode.setFullThreadDevice(false);
         mode.setFullNetworkData(true);
-        this.vis.ctrlAddNode(Math.round(pos.x), Math.round(pos.y - 100), "med")
+        let pos = this.getNextNewNodePosition(true)
+        this.vis.ctrlAddNode(Math.round(pos.x), Math.round(pos.y), "med")
     }
 
     actionNewSED(e) {
-        let pos = e.data.getLocalPosition(this.vis._root);
         let mode = new NodeMode();
         mode.setRxOnWhenIdle(false);
         mode.setFullThreadDevice(false);
         mode.setFullNetworkData(true);
-        this.vis.ctrlAddNode(Math.round(pos.x), Math.round(pos.y - 100), "sed")
+        let pos = this.getNextNewNodePosition(true)
+        this.vis.ctrlAddNode(Math.round(pos.x), Math.round(pos.y), "sed")
     }
 
     actionDelete(e) {
@@ -295,6 +297,7 @@ export default class ActionBar extends VObject {
     }
 
     onDraggingDone() {
-
+        // just above the ActionBar's new position is where new nodes will be auto-placed.
+        this.vis.setNewNodesReferencePosition(this.position.x, this.position.y - (NODE_AUTOSPACING_PX/2));
     }
 }
