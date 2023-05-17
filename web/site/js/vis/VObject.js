@@ -204,7 +204,7 @@ export default class VObject {
         this._doDraggingMove(pos);
         delete this._draggingOffset;
         // apply the drag position at last
-        this.onDraggingDone()
+        this.onDraggingDone();
     }
 
     _doDraggingMove(pos) {
@@ -212,6 +212,9 @@ export default class VObject {
     }
 
     onDraggingTimer() {
+    }
+
+    onDraggingDone() {
     }
 }
 

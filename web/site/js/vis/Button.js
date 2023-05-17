@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2020-2023, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -26,9 +26,7 @@
 
 import * as PIXI from "pixi.js-legacy";
 import VObject from "./VObject";
-
-const BUTTON_LABEL_FONT_FAMILY = 'Verdana';
-
+import {BUTTON_LABEL_FONT_FAMILY} from "./consts";
 
 export default class Button extends VObject {
     constructor(owner, text, callback, onRefresh) {
@@ -36,6 +34,7 @@ export default class Button extends VObject {
         this.owner = owner;
         this._callback = callback;
         this._onRefresh = onRefresh;
+        this._minWidth = 16;
 
         let label = new PIXI.Text(text, {fontFamily: BUTTON_LABEL_FONT_FAMILY, fontSize: 16});
         this._label = label;
@@ -64,6 +63,15 @@ export default class Button extends VObject {
         });
 
         this._resetlayout()
+    }
+
+    get minWidth() {
+        return this._minWidth
+    }
+
+    set minWidth(w) {
+        this._minWidth = w;
+        this._resetlayout();
     }
 
     get sprite() {
@@ -113,6 +121,9 @@ export default class Button extends VObject {
 
         let width = spriteWidth + labelWidth + spriteLabelGap + 16;
         let height = Math.max(labelHeight, spriteHeight) + 16;
+
+        if (width < this.minWidth)
+            width = this.minWidth
 
         graphics.clear();
         graphics.beginFill(0xeeeeee);

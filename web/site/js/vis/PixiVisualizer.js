@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2022, The OTNS Authors.
+// Copyright (c) 2020-2023, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -28,7 +28,8 @@ import * as PIXI from "pixi.js-legacy";
 import VObject from "./VObject";
 import ActionBar from "./ActionBar";
 import {Text} from "./wrapper";
-import {FRAME_CONTROL_MASK_FRAME_TYPE, FRAME_TYPE_ACK, MAX_SPEED, PAUSE_SPEED} from "./consts";
+import {FRAME_CONTROL_MASK_FRAME_TYPE, FRAME_TYPE_ACK, MAX_SPEED, PAUSE_SPEED, NODE_AUTOSPACING_PX,
+    NODE_AUTOSPACING_FINE_PX} from "./consts";
 import Node from "./Node"
 import {AckMessage, BroadcastMessage, UnicastMessage} from "./message";
 import LogWindow, {LOG_WINDOW_WIDTH} from "./LogWindow";
@@ -56,6 +57,9 @@ export default class PixiVisualizer extends VObject {
         this.curSpeed = 1;
         this.nodes = {};
         this._messages = {};
+        this.newNodePos = new PIXI.Point(0, 0);
+        this.newNodeBelowPos = new PIXI.Point(0, NODE_AUTOSPACING_PX/2);
+        this.newNodesRefPos = new PIXI.Point(NODE_AUTOSPACING_PX, NODE_AUTOSPACING_PX);
 
         this.root = new PIXI.Container();
         // this.root.width =
@@ -318,6 +322,30 @@ export default class PixiVisualizer extends VObject {
         this.logNode(nodeId, msg)
     }
 
+    getNextNewNodePosition(isPlaceBelowParent) {
+        if (isPlaceBelowParent) {
+            let pos = new PIXI.Point( this.newNodePos.x + this.newNodeBelowPos.x + this.newNodesRefPos.x - NODE_AUTOSPACING_PX,
+                this.newNodePos.y + this.newNodeBelowPos.y + this.newNodesRefPos.y);
+            this.newNodeBelowPos.x += NODE_AUTOSPACING_FINE_PX;
+            return pos
+        }
+        let pos = new PIXI.Point(this.newNodePos.x + this.newNodesRefPos.x,
+            this.newNodePos.y + this.newNodesRefPos.y);
+        this.newNodePos.x += NODE_AUTOSPACING_PX;
+        this.newNodeBelowPos = new PIXI.Point(0, NODE_AUTOSPACING_PX/2);
+        if (this.newNodePos.x > (10*NODE_AUTOSPACING_PX)) { // move to next row of nodes.
+            this.newNodePos.x = 0;
+            this.newNodePos.y += NODE_AUTOSPACING_PX;
+        }
+        return pos
+    }
+
+    setNewNodesReferencePosition(x,y) {
+        this.newNodesRefPos = new PIXI.Point(x, y);
+        this.newNodePos = new PIXI.Point(0,0);
+        this.newNodeBelowPos = new PIXI.Point(0, NODE_AUTOSPACING_PX/2);
+    }
+
     visSetNodeRloc16(nodeId, rloc16) {
         let node = this.nodes[nodeId];
         let oldRloc16 = node.rloc16;
@@ -541,7 +569,7 @@ export default class PixiVisualizer extends VObject {
 
     setSpeed(speed) {
         if (this.real) {
-            console.error("not in real mode");
+            console.error("setSpeed() not available in real mode");
             return
         }
 
@@ -728,7 +756,7 @@ export default class PixiVisualizer extends VObject {
     }
 
     onResize(width, height) {
-        console.log('window resized to ' + width + "," + height);
+        console.log("window resized to " + width + "," + height);
         this.actionBar.position.set(10, height - this.actionBar.height - 20 - 10);
         this._resetLogWindowPosition(width, height);
     }

@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2020-2023, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -29,8 +29,8 @@ import VObject from "./VObject";
 import {NodeMode, OtDeviceRole} from '../proto/visualize_grpc_pb'
 import {Visualizer} from "./PixiVisualizer";
 import {Resources} from "./resources";
+import {NODE_LABEL_FONT_FAMILY} from "./consts";
 
-const NODE_LABEL_FONT_FAMILY = 'Comic Sans MS';
 const NODE_SHAPE_SCALE = 64;
 const NODE_SELECTION_SCALE = 128;
 const CIRCULAR_SHAPE_RADIUS = 20;

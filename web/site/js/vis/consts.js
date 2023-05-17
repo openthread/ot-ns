@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2020-2023, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -24,11 +24,22 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+// simulation speed controls
 export const PAUSE_SPEED = 0;
 export const MAX_SPEED = 1000000;
+export const TUNE_SPEED_MIN = 0.25;
+export const TUNE_SPEED_MAX = 1024;
+// export const TUNE_SPEED_SETTINGS = [0.1, 0.25, 0.5, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024];
 
+// radio frame info
 export const FRAME_CONTROL_MASK_FRAME_TYPE = 0x7;
 export const FRAME_TYPE_ACK = 2;
 
-// colors
+// colors and fonts
 export const COLOR_ACK_MESSAGE = 0xaee571;
+export const BUTTON_LABEL_FONT_FAMILY = 'verdana, helvetica, sans-serif';
+export const NODE_LABEL_FONT_FAMILY = 'helvetica, arial, monospace, sans-serif';
+
+// size constants
+export const NODE_AUTOSPACING_PX = 100;
+export const NODE_AUTOSPACING_FINE_PX = 30;
