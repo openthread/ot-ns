@@ -27,9 +27,8 @@
 // simulation speed controls
 export const PAUSE_SPEED = 0;
 export const MAX_SPEED = 1000000;
-export const TUNE_SPEED_MIN = 0.25;
-export const TUNE_SPEED_MAX = 1024;
-// export const TUNE_SPEED_SETTINGS = [0.1, 0.25, 0.5, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024];
+export const TUNE_SPEED_SETTINGS = [0.000001, 0.000005, 0.00001, 0.00005, 0.0001, 0.0005, 0.001, 0.005, 0.01,
+                                0.05, 0.1, 0.25, 0.5, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, MAX_SPEED];
 
 // radio frame info
 export const FRAME_CONTROL_MASK_FRAME_TYPE = 0x7;

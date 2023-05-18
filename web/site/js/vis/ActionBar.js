@@ -27,7 +27,7 @@
 import * as PIXI from "pixi.js-legacy";
 import VObject from "./VObject";
 import Button from "./Button";
-import {MAX_SPEED, PAUSE_SPEED, TUNE_SPEED_MIN, TUNE_SPEED_MAX, NODE_AUTOSPACING_PX} from "./consts";
+import {MAX_SPEED, PAUSE_SPEED, NODE_AUTOSPACING_PX, TUNE_SPEED_SETTINGS} from "./consts";
 import {Resources} from "./resources";
 
 const {
@@ -46,6 +46,7 @@ export default class ActionBar extends VObject {
         this._buttonContext = {};
         this._buttonRequiredAbility = {};
         this._abilities = {};
+        this._tuneSpeedIndex = TUNE_SPEED_SETTINGS.indexOf(1);
 
         this.addButton("<<", "any", "speed", (e) => {
             this.actionSpeedDown()
@@ -100,7 +101,7 @@ export default class ActionBar extends VObject {
         this._logOnOffButton = this.addButton("Show Log", "any", "", (e) => {
             this.actionToggleLogWindow()
         });
-        this._energyChartOnOffButton = this.addButton("Open Charts", "any", "", (e) => {
+        this._energyChartOnOffButton = this.addButton("Energy-stats", "any", "", (e) => {
             this.actionOpenEnergyWindow()
         });
         this.addButton("Delete All", "any", "del", (e) => {
@@ -131,22 +132,24 @@ export default class ActionBar extends VObject {
     }
 
     actionSpeedDown() {
-        if (!this.vis.isPaused()) {
-            if (this.vis.isMaxSpeed()) {
-                this.setNewSpeed(TUNE_SPEED_MAX)
-            } else {
-                this.setNewSpeed(this.vis.speed / 2)
-            }
+        if (this.vis.isPaused())
+            return;
+        this._tuneSpeedIndex--;
+        if (this._tuneSpeedIndex < 0){
+            this._tuneSpeedIndex = 0;
+        }else{
+            this.setNewSpeed(TUNE_SPEED_SETTINGS[this._tuneSpeedIndex]);
         }
     }
 
     actionSpeedUp() {
-        if (!this.vis.isPaused() && !this.vis.isMaxSpeed()) {
-            if (this.vis.speed >= TUNE_SPEED_MAX) {
-                this.setNewSpeed(MAX_SPEED)
-            } else {
-                this.setNewSpeed(this.vis.speed * 2)
-            }
+        if (this.vis.isPaused())
+            return;
+        this._tuneSpeedIndex++;
+        if (this._tuneSpeedIndex >= TUNE_SPEED_SETTINGS.length){
+            this._tuneSpeedIndex = TUNE_SPEED_SETTINGS.length-1;
+        }else{
+            this.setNewSpeed(TUNE_SPEED_SETTINGS[this._tuneSpeedIndex]);
         }
     }
 
@@ -155,16 +158,8 @@ export default class ActionBar extends VObject {
             speed = MAX_SPEED
         } else if (speed <= PAUSE_SPEED) {
             speed = PAUSE_SPEED;
-        } else {
-            if (speed >= 1) {
-                speed = Math.round(speed)
-            } else {
-                speed = Math.fround(speed)
-            }
-            speed = Math.max(TUNE_SPEED_MIN, speed);
-            speed = Math.min(TUNE_SPEED_MAX, speed);
         }
-        this.vis.setSpeed(speed)
+        this.vis.setSpeed(speed);
     }
 
     getNextNewNodePosition(placeBelow) {
