@@ -40,7 +40,7 @@ func TestAddOneRouter(t *testing.T) {
 }
 
 func testAddOneRouter(test *otnstester.OtnsTest) {
-	test.Reset()
+	test.Start("testAddOneRouter")
 
 	nodeid := test.AddNode("router", 100, 100)
 	test.ExpectTrue(nodeid == 1)

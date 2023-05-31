@@ -37,28 +37,18 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/openthread/ot-ns/cli/runcli"
-
-	"github.com/openthread/ot-ns/threadconst"
-
-	"github.com/openthread/ot-ns/dispatcher"
-
-	webSite "github.com/openthread/ot-ns/web/site"
-
-	"github.com/openthread/ot-ns/web"
-
-	"github.com/pkg/errors"
-
-	"github.com/openthread/ot-ns/progctx"
-	"github.com/openthread/ot-ns/visualize"
-
-	visualizeGrpc "github.com/openthread/ot-ns/visualize/grpc"
-
-	visualizeMulti "github.com/openthread/ot-ns/visualize/multi"
-
 	"github.com/openthread/ot-ns/cli"
-
+	"github.com/openthread/ot-ns/cli/runcli"
+	"github.com/openthread/ot-ns/dispatcher"
+	"github.com/openthread/ot-ns/progctx"
 	"github.com/openthread/ot-ns/simulation"
+	"github.com/openthread/ot-ns/types"
+	"github.com/openthread/ot-ns/visualize"
+	visualizeGrpc "github.com/openthread/ot-ns/visualize/grpc"
+	visualizeMulti "github.com/openthread/ot-ns/visualize/multi"
+	"github.com/openthread/ot-ns/web"
+	webSite "github.com/openthread/ot-ns/web/site"
+	"github.com/pkg/errors"
 	"github.com/simonlingoogle/go-simplelogger"
 )
 
@@ -89,11 +79,13 @@ var (
 func parseArgs() {
 	defaultOtCli := os.Getenv("OTNS_OT_CLI")
 	defaultOtCliMtd := os.Getenv("OTNS_OT_CLI_MTD")
-	if defaultOtCli == "" {
-		defaultOtCli = "./ot-cli-ftd"
-	}
-	if defaultOtCliMtd == "" {
-		defaultOtCliMtd = defaultOtCli // use same binary for FTD/MTD by default.
+	if defaultOtCli == "" && defaultOtCliMtd == "" {
+		defaultOtCli = simulation.DefaultExecutableConfig.Ftd
+		defaultOtCliMtd = simulation.DefaultExecutableConfig.Mtd
+	} else if defaultOtCliMtd == "" {
+		defaultOtCliMtd = defaultOtCli // use same CLI for MTD, by default. FTD can simulate being MTD.
+	} else if defaultOtCli == "" {
+		defaultOtCli = simulation.DefaultExecutableConfig.Ftd // only use custom MTD, not FTD.
 	}
 
 	flag.StringVar(&args.Speed, "speed", "1", "set simulating speed")
@@ -107,7 +99,7 @@ func parseArgs() {
 	flag.BoolVar(&args.OpenWeb, "web", true, "open web visualization")
 	flag.BoolVar(&args.RawMode, "raw", false, "use raw mode (skips OT node init by script)")
 	flag.BoolVar(&args.Real, "real", false, "use real mode (for real devices)")
-	flag.StringVar(&args.ListenAddr, "listen", fmt.Sprintf("localhost:%d", threadconst.InitialDispatcherPort), "specify UDP listen address and port")
+	flag.StringVar(&args.ListenAddr, "listen", fmt.Sprintf("localhost:%d", types.InitialDispatcherPort), "specify UDP listen address and port")
 	flag.BoolVar(&args.DumpPackets, "dump-packets", false, "dump packets")
 	flag.BoolVar(&args.NoPcap, "no-pcap", false, "do not generate PCAP file (named \"current.pcap\")")
 	flag.BoolVar(&args.NoReplay, "no-replay", false, "do not generate Replay file")
@@ -132,11 +124,11 @@ func parseListenAddr() {
 		notifyInvalidListenAddr()
 	}
 
-	if args.DispatcherPort < threadconst.InitialDispatcherPort || args.DispatcherPort%10 != 0 {
+	if args.DispatcherPort < types.InitialDispatcherPort || args.DispatcherPort%10 != 0 {
 		notifyInvalidListenAddr()
 	}
 
-	portOffset := (args.DispatcherPort - threadconst.InitialDispatcherPort) / 10
+	portOffset := (args.DispatcherPort - types.InitialDispatcherPort) / 10
 	simplelogger.Infof("Using env PORT_OFFSET=%d", portOffset)
 	if err = os.Setenv("PORT_OFFSET", strconv.Itoa(portOffset)); err != nil {
 		simplelogger.Panic(err)
@@ -180,8 +172,10 @@ func Main(ctx *progctx.ProgCtx, visualizerCreator func(ctx *progctx.ProgCtx, arg
 	go func() {
 		siteAddr := fmt.Sprintf("%s:%d", args.DispatcherHost, args.DispatcherPort-3)
 		err := webSite.Serve(siteAddr) // blocks until webSite.StopServe() called
-		if err != nil {
-			simplelogger.Errorf("site quited: %+v, OTNS-Web won't be available!", err)
+		if err != nil && ctx.Err() == nil {
+			simplelogger.Errorf("website stopped unexpectedly: %+v, OTNS-Web won't be available!", err)
+		} else if err != nil {
+			simplelogger.Debugf("website stopped while exiting: %+v", err)
 		}
 	}()
 	defer webSite.StopServe()
@@ -247,8 +241,9 @@ func createSimulation(ctx *progctx.ProgCtx) *simulation.Simulation {
 	var err error
 
 	simcfg := simulation.DefaultConfig()
-	simcfg.OtCliFtdPath = args.OtCliPath
-	simcfg.OtCliMtdPath = args.OtCliMtdPath
+	simcfg.ExeConfig.Ftd = args.OtCliPath
+	simcfg.ExeConfig.Mtd = args.OtCliMtdPath
+	simcfg.NewNodeConfig.InitScript = simulation.DefaultNodeInitScript
 
 	args.Speed = strings.ToLower(args.Speed)
 	if args.Speed == "max" {
@@ -265,7 +260,7 @@ func createSimulation(ctx *progctx.ProgCtx) *simulation.Simulation {
 	simcfg.DispatcherPort = args.DispatcherPort
 	simcfg.DumpPackets = args.DumpPackets
 	simcfg.AutoGo = args.AutoGo
-	simcfg.Id = (args.DispatcherPort - threadconst.InitialDispatcherPort) / 10
+	simcfg.Id = (args.DispatcherPort - types.InitialDispatcherPort) / 10
 	if len(args.InitScriptName) > 0 {
 		simcfg.InitScript, err = simulation.ReadNodeScript(args.InitScriptName)
 		if err != nil {

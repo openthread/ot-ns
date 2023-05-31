@@ -26,7 +26,9 @@
 
 package main
 
-import "github.com/openthread/ot-ns/types"
+import (
+	"github.com/openthread/ot-ns/types"
+)
 
 const (
 	RoleLeader = "leader"

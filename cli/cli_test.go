@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2022, The OTNS Authors.
+// Copyright (c) 2020-2023, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -30,6 +30,7 @@ import (
 	"testing"
 	"time"
 
+	. "github.com/openthread/ot-ns/types"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -39,13 +40,13 @@ func TestParseBytes(t *testing.T) {
 	assert.NotNil(t, err)
 
 	assert.Nil(t, ParseBytes([]byte("add router"), &cmd))
-	assert.True(t, cmd.Add != nil && cmd.Add.Type.Val == "router")
+	assert.True(t, cmd.Add != nil && cmd.Add.Type.Val == ROUTER)
 	assert.Nil(t, ParseBytes([]byte("add med"), &cmd))
-	assert.True(t, cmd.Add != nil && cmd.Add.Type.Val == "med")
+	assert.True(t, cmd.Add != nil && cmd.Add.Type.Val == MED)
 	assert.Nil(t, ParseBytes([]byte("add sed"), &cmd))
-	assert.True(t, cmd.Add != nil && cmd.Add.Type.Val == "sed")
+	assert.True(t, cmd.Add != nil && cmd.Add.Type.Val == SED)
 	assert.Nil(t, ParseBytes([]byte("add fed"), &cmd))
-	assert.True(t, cmd.Add != nil && cmd.Add.Type.Val == "fed")
+	assert.True(t, cmd.Add != nil && cmd.Add.Type.Val == FED)
 	assert.Nil(t, ParseBytes([]byte("add router x 100 y 200"), &cmd))
 	assert.True(t, *cmd.Add.X == 100 && *cmd.Add.Y == 200)
 	assert.Nil(t, ParseBytes([]byte("add router id 100"), &cmd))
@@ -66,6 +67,13 @@ func TestParseBytes(t *testing.T) {
 	assert.True(t, ParseBytes([]byte("del"), &cmd) != nil)
 
 	assert.True(t, ParseBytes([]byte("demo_legend \"title\" 100 200"), &cmd) == nil && cmd.DemoLegend != nil)
+
+	assert.True(t, ParseBytes([]byte("exe mtd \"MyExecutable_thingy\""), &cmd) == nil && cmd.Exe != nil)
+	assert.True(t, ParseBytes([]byte("exe ftd \"./path/to/my/ot-cli-ftd\""), &cmd) == nil && cmd.Exe != nil)
+	assert.True(t, ParseBytes([]byte("exe br \"./path/to/my/br-script.sh\""), &cmd) == nil && cmd.Exe != nil)
+	assert.True(t, ParseBytes([]byte("exe"), &cmd) == nil && cmd.Exe != nil)
+	assert.True(t, ParseBytes([]byte("exe default"), &cmd) == nil && cmd.Exe != nil)
+	assert.True(t, ParseBytes([]byte("exe v12"), &cmd) == nil && cmd.Exe != nil)
 
 	assert.True(t, ParseBytes([]byte("exit"), &cmd) == nil && cmd.Exit != nil)
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2022, The OTNS Authors.
+// Copyright (c) 2022-2023, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -60,14 +60,19 @@ type RadioNode struct {
 	rssiSampleMax DbmValue
 }
 
-func NewRadioNode(nodeid NodeId, cfg *NodeConfig) *RadioNode {
+type RadioNodeConfig struct {
+	X, Y       float64
+	RadioRange float64
+}
+
+func NewRadioNode(nodeid NodeId, cfg *RadioNodeConfig) *RadioNode {
 	rn := &RadioNode{
 		Id:            nodeid,
 		TxPower:       defaultTxPowerDbm,
 		RxSensitivity: receiveSensitivityDbm,
-		X:             float64(cfg.X),
-		Y:             float64(cfg.Y),
-		RadioRange:    float64(cfg.RadioRange),
+		X:             cfg.X,
+		Y:             cfg.Y,
+		RadioRange:    cfg.RadioRange,
 		RadioChannel:  uint8(DefaultChannelNumber),
 		rssiSampleMax: RssiMinusInfinity,
 	}

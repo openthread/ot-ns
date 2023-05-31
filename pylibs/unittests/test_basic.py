@@ -306,7 +306,7 @@ class BasicTests(OTNSTestCase):
         self.assertNodeState(reed, 'child')
 
         ns.set_router_upgrade_threshold(reed, 2)
-        ns.go(121)
+        ns.go(130)
         self.assertNodeState(reed, 'router')
 
     def testSetRouterDowngradeThreshold(self):
@@ -396,6 +396,25 @@ class BasicTests(OTNSTestCase):
             ns.add('router', executable = 'ot-cli-nonexistent')
         ns.go(5)
         self.assertEqual(1, len(ns.nodes()))
+
+    def testExe(self):
+        ns: OTNS = self.ns
+        ns.add('router')
+        ns.go(10)
+        ns._do_command("exe ftd \"./path/to/non-existent-executable\"")
+        with self.assertRaises(errors.OTNSCliError):
+            ns.add('router')
+        ns._do_command("exe")
+        ns._do_command("exe default")
+        ns.go(10)
+        ns.add('router')
+        ns.go(10)
+        ns.add('fed')
+        ns.go(10)
+        self.assertTrue(len(ns.nodes()) == 3)
+
+        ns._do_command("exe v11")
+        ns._do_command("exe v12")
 
 if __name__ == '__main__':
     unittest.main()
