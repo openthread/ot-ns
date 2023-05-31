@@ -24,39 +24,43 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-package types
+package simulation
 
-const (
-	DefaultRadioRange = 160
+import (
+	"strings"
+
+	. "github.com/openthread/ot-ns/types"
+	"github.com/simonlingoogle/go-simplelogger"
 )
 
-// NodeConfig is a generic config for a new simulated node (used in dispatcher, simulation, radiomodel,
-// ... packages).
-type NodeConfig struct {
-	ID             int
-	X, Y           int
-	IsMtd          bool
-	IsRouter       bool
-	IsBorderRouter bool
-	RxOffWhenIdle  bool
-	RadioRange     int
-	ExecutablePath string
-	Restore        bool
-	InitScript     []string
+type ExecutableConfig struct {
+	Ftd string
+	Mtd string
+	Br  string
 }
 
-func DefaultNodeConfig() NodeConfig {
-	return NodeConfig{
-		ID:             -1, // -1 for the next available nodeid
-		X:              0,
-		Y:              0,
-		IsRouter:       true,
-		IsMtd:          false,
-		IsBorderRouter: false,
-		RxOffWhenIdle:  false,
-		RadioRange:     DefaultRadioRange,
-		ExecutablePath: "",
-		Restore:        false,
-		InitScript:     nil,
+var DefaultExecutableConfig ExecutableConfig = ExecutableConfig{
+	Ftd: "./ot-cli-ftd",
+	Mtd: "./ot-cli-ftd",
+	Br:  "./otbr-sim.sh",
+}
+
+// GetExecutableForThreadVersion gets the prebuilt executable for given Thread version string as in cli.ThreadVersion
+func GetExecutableForThreadVersion(version string) string {
+	simplelogger.AssertTrue(strings.HasPrefix(version, "v1") && len(version) == 3)
+	return "./ot-rfsim/ot-versions/ot-cli-ftd_" + version
+}
+
+func DetermineExecutableBasedOnConfig(nodeCfg *NodeConfig, executableCfg *ExecutableConfig) string {
+	if nodeCfg.IsRouter {
+		return executableCfg.Ftd
 	}
+	if nodeCfg.IsMtd {
+		return executableCfg.Mtd
+	}
+	if nodeCfg.IsBorderRouter {
+		return executableCfg.Br
+	}
+	// FED or other type.
+	return executableCfg.Ftd
 }

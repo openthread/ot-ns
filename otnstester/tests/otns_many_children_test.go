@@ -42,8 +42,8 @@ func TestAddManySEDs(t *testing.T) {
 }
 
 func testAddManySEDs(test *otnstester.OtnsTest) {
-	test.Reset()
-	//test.Command("radiomodel Ideal")
+	test.Start("testAddManySEDs")
+	test.Command("radiomodel MutualInterference")
 
 	x := 500
 	y := 500

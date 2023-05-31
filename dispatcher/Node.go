@@ -33,6 +33,7 @@ import (
 	"github.com/openthread/ot-ns/radiomodel"
 	"github.com/openthread/ot-ns/threadconst"
 	. "github.com/openthread/ot-ns/types"
+
 	"github.com/simonlingoogle/go-simplelogger"
 )
 
@@ -89,6 +90,12 @@ type Node struct {
 func newNode(d *Dispatcher, nodeid NodeId, cfg *NodeConfig) *Node {
 	simplelogger.AssertTrue(cfg.RadioRange >= 0)
 
+	radioCfg := &radiomodel.RadioNodeConfig{
+		X:          float64(cfg.X),
+		Y:          float64(cfg.Y),
+		RadioRange: float64(cfg.RadioRange),
+	}
+
 	nc := &Node{
 		D:             d,
 		Id:            nodeid,
@@ -101,7 +108,7 @@ func newNode(d *Dispatcher, nodeid NodeId, cfg *NodeConfig) *Node {
 		Role:          OtDeviceRoleDisabled,
 		conn:          nil, // connection will be set when first event is received from node.
 		err:           nil, // keep track of connection errors.
-		radioNode:     radiomodel.NewRadioNode(nodeid, cfg),
+		radioNode:     radiomodel.NewRadioNode(nodeid, radioCfg),
 		joinerState:   OtJoinerStateIdle,
 		watchLogLevel: WatchDefaultLevel,
 	}

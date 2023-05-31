@@ -51,6 +51,7 @@ var commandHelp = map[string]string{
 	"cv":         "Configure visualization options.",
 	"del":        "Delete node(s) by node ID.",
 	"energy":     "Save node energy use information to a file.",
+	"exe":        "Display or set the OT executables used per node type.",
 	"exit":       "Exit OTNS (if not in node context) or exit node context.",
 	"go":         "Simulate for a specified time.",
 	"joins":      "Connect finished joiner sessions.",

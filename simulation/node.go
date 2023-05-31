@@ -80,11 +80,11 @@ type Node struct {
 	uartType          NodeUartType
 }
 
-func newNode(s *Simulation, id NodeId, cfg *NodeConfig) (*Node, error) {
+func newNode(s *Simulation, nodeid NodeId, cfg *NodeConfig) (*Node, error) {
 	var err error
-	logFileName := fmt.Sprintf("tmp/%d_%d.log", s.cfg.Id, id)
+	logFileName := fmt.Sprintf("tmp/%d_%d.log", s.cfg.Id, nodeid)
 	if !cfg.Restore {
-		flashFile := fmt.Sprintf("tmp/%d_%d.flash", s.cfg.Id, id)
+		flashFile := fmt.Sprintf("tmp/%d_%d.flash", s.cfg.Id, nodeid)
 		if err = os.RemoveAll(flashFile); err != nil {
 			simplelogger.Errorf("Remove flash file %s failed: %+v", flashFile, err)
 			return nil, err
@@ -102,21 +102,12 @@ func newNode(s *Simulation, id NodeId, cfg *NodeConfig) (*Node, error) {
 		return nil, err
 	}
 
-	// determine path of the OT CLI app and start OT node process.
-	otCliPath := s.cfg.OtCliFtdPath
-	if cfg.ExecutablePath != "" {
-		otCliPath = cfg.ExecutablePath
-	} else if cfg.IsBorderRouter {
-		otCliPath = s.cfg.OtBrPath
-	} else if cfg.IsMtd {
-		otCliPath = s.cfg.OtCliMtdPath
-	}
-	simplelogger.Debugf("node exe path: %s", otCliPath)
-	cmd := exec.CommandContext(context.Background(), otCliPath, strconv.Itoa(id), s.d.GetUnixSocketName())
+	simplelogger.Debugf("node exe path: %s", cfg.ExecutablePath)
+	cmd := exec.CommandContext(context.Background(), cfg.ExecutablePath, strconv.Itoa(nodeid), s.d.GetUnixSocketName())
 
 	node := &Node{
 		S:            s,
-		Id:           id,
+		Id:           nodeid,
 		cfg:          cfg,
 		cmd:          cmd,
 		pendingLines: make(chan string, 10000),
@@ -154,7 +145,8 @@ func (node *Node) String() string {
 	return fmt.Sprintf("Node<%d>", node.Id)
 }
 
-func (node *Node) SetupNetworkParameters(cfg []string) {
+func (node *Node) RunInitScript(cfg []string) {
+	simplelogger.AssertNotNil(cfg)
 	for _, cmd := range cfg {
 		node.Command(cmd, DefaultCommandTimeout)
 	}

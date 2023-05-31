@@ -13,6 +13,7 @@ Python libraries use the CLI to manage simulations.
 * [cv](#cv-option-onoff-)
 * [del](#del-node-id-node-id-)
 * [energy](#energy-save--filename-)
+* [exe](#exe)
 * [exit](#exit)
 * [go](#go-duration-speed-particular-speed)
 * [help](#help)
@@ -34,18 +35,22 @@ Python libraries use the CLI to manage simulations.
 * [title](#title-string)
 * [unwatch](#unwatch-node-id-node-id-)
 * [watch](#watch-node-id-node-id-)
-   * [watch \<nodeid\> \<LogLevel\>](#watch-node-id-node-id--loglevel)
-   * [watch default \<LogLevel\>](#watch-default-loglevel)
 * [web](#web)
 
 ## OTNS command reference
 
 
-### add \<type\> \[x \<x\>\] \[y \<y\>\] \[rr \<radio-range\>\] \[id \<node-id\>\] \[restore\]
+### add \<type\> \[x \<x\>\] \[y \<y\>\] \[rr \<radio-range\>\] \[id \<node-id\>\] \[restore\] \[exe \<path\>\] \[v11 | v12\]
 
-Add a node to the simulation and get the node ID. Node ID can be specified, otherwise OTNS assigns the next available one.
+Add a node to the simulation and get the node ID. Node ID can be specified, otherwise OTNS assigns the next available 
+one.
 
 If `restore` option is specified, the node restores its network configuration from persistent storage.
+
+The (advanced) `exe` option can be used to specify a node executable for the new node; however the `exe` command is 
+better used for this.
+The options `v11` and `v12` are a quick way to add a legacy Thread v1.1 or v1.2 node. This only works if the binaries 
+for these nodes have been built using the build scripts in the `ot-rfsim` submodule.
 
 ```bash
 > add router
@@ -164,6 +169,65 @@ Done
 > exit
 Done
 <EOF>
+```
+
+### exe
+
+Use 'exe' without arguments to list the OpenThread (OT) executables, or shell scripts, that are preconfigured for each 
+of the node types
+FTD (Full Thread Device), MTD (Minimal Thread Device) and BR (Thread Border Router). When a new node is created the
+executable currently in this list is used to start a node instance of the respective node type.
+
+```bash
+> exe
+ftd: ./ot-cli-ftd
+mtd: ./ot-cli-ftd
+br : ./otbr-sim.sh
+Done
+>  
+```
+
+### exe (default | v11 | v12 )
+
+Set all OpenThread (OT) executables, or shell scripts, for all node types to particular defaults. Value `default` will 
+use the OT-NS default executables which is OpenThread as built by the user and placed in the `.` directory from 
+where the simulator is run. Values starting with `v1` will use the pre-built binary of the specific indicated Thread 
+version, e.g. `v12` denotes Thread v1.2.x. 
+
+```bash
+> exe default
+ftd: ./ot-cli-ftd
+mtd: ./ot-cli-ftd
+br : ./otbr-sim.sh
+Done
+>
+```
+
+### exe \( ftd | mtd | br \) \["\<path-to-executable\>"\]
+
+Change the OpenThread (OT) executable, or shell script, for a particular node types as provided in the first 
+argument (ftd, mtd, or br). The path-to-executable is provided in the second argument and will replace the current 
+default executable for that node type. If only the first argument is given, the current executable for this node 
+type will be listed.
+
+Note that the default executable is used when normally adding a node using the GUI or a command such as 
+```add router x 200 y 200``` where the executable is not explictly specified. The "exe" argument of the "add" command 
+will however override the default executable always, for example as in the command 
+```add router x 200 y 200 exe "./my-override-ot-cli-ftd"``` .
+
+```bash
+> exe ftd "./my-ot-cli-ftd"
+Done
+> exe br "./br-script.sh"
+Done
+> exe
+ftd: ./my-ot-cli-ftd
+mtd: ./ot-cli-ftd
+br : ./br-script.sh
+Done
+> exe mtd
+mtd: ./ot-cli-ftd
+Done
 ```
 
 ### go \<duration\> \[speed \<particular-speed\>\]

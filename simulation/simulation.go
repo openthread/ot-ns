@@ -95,10 +95,6 @@ func NewSimulation(ctx *progctx.ProgCtx, cfg *Config, dispatcherCfg *dispatcher.
 }
 
 func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
-	if cfg == nil {
-		cfg = DefaultNodeConfig()
-	}
-
 	nodeid := cfg.ID
 	if nodeid <= 0 {
 		nodeid = s.genNodeId()
@@ -106,6 +102,11 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 
 	if s.nodes[nodeid] != nil {
 		return nil, errors.Errorf("node %d already exists", nodeid)
+	}
+
+	// auto-selection of Executable by simulation's policy, in case not defined yet.
+	if len(cfg.ExecutablePath) == 0 {
+		cfg.ExecutablePath = DetermineExecutableBasedOnConfig(cfg, &s.cfg.ExeConfig)
 	}
 
 	// creation of the sim/dispatcher nodes
@@ -126,17 +127,12 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 
 	if s.ctx.Err() == nil { // only proceed with node if we're not exiting the simulation.
 		if !dnode.IsConnected() {
-			simplelogger.Errorf("simulation AddNode: new node %d did not respond (evtCnt=%d)", nodeid, evtCnt)
-			s.d.DeleteNode(nodeid)
-			return nil, err
+			_ = s.DeleteNode(nodeid)
+			return nil, errors.Errorf("simulation AddNode: new node %d did not respond (evtCnt=%d)", nodeid, evtCnt)
 		}
 		node.setupMode()
 		if !s.rawMode {
-			initScript := cfg.InitScript
-			if len(initScript) == 0 {
-				initScript = s.cfg.InitScript // use default, if indicated so in cfg.
-			}
-			node.SetupNetworkParameters(initScript)
+			node.RunInitScript(cfg.InitScript)
 			node.Start()
 		}
 	}
@@ -359,4 +355,8 @@ func (s *Simulation) SetNetworkInfo(networkInfo visualize.NetworkInfo) {
 
 func (s *Simulation) GetEnergyAnalyser() *energy.EnergyAnalyser {
 	return s.energyAnalyser
+}
+
+func (s *Simulation) GetConfig() *Config {
+	return s.cfg
 }

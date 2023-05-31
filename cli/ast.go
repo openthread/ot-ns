@@ -44,6 +44,8 @@ type Command struct {
 	Debug               *DebugCmd               `| @@` //nolint
 	Del                 *DelCmd                 `| @@` //nolint
 	DemoLegend          *DemoLegendCmd          `| @@` //nolint
+	Energy              *EnergyCmd              `| @@` //nolint
+	Exe                 *ExeCmd                 `| @@` //nolint
 	Exit                *ExitCmd                `| @@` //nolint
 	Go                  *GoCmd                  `| @@` //nolint
 	Help                *HelpCmd                `| @@` //nolint
@@ -66,7 +68,6 @@ type Command struct {
 	Unwatch             *UnwatchCmd             `| @@` //nolint
 	Watch               *WatchCmd               `| @@` //nolint
 	Web                 *WebCmd                 `| @@` //nolint
-	Energy              *EnergyCmd              `| @@` //nolint
 }
 
 // noinspection GoStructTag
@@ -263,13 +264,24 @@ type TitleCmd struct {
 // noinspection GoStructTag
 type AddCmd struct {
 	Cmd        struct{}        `"add"`                //nolint
-	Type       NodeType        `@@`                   //nolint
+	Type       NodeTypeOrRole  `@@`                   //nolint
 	X          *int            `( "x" (@Int|@Float) ` //nolint
 	Y          *int            `| "y" (@Int|@Float) ` //nolint
 	Id         *AddNodeId      `| @@`                 //nolint
 	RadioRange *RadioRangeFlag `| @@`                 //nolint
 	Restore    *RestoreFlag    `| @@`                 //nolint
+	Version    *ThreadVersion  `| @@`                 //nolint
 	Executable *ExecutableFlag `| @@ )*`              //nolint
+}
+
+// noinspection GoStructTag
+type NodeTypeOrRole struct {
+	Val string `@("router"|"reed"|"fed"|"med"|"sed"|"ssed"|"br"|"mtd"|"ftd")` //nolint
+}
+
+// noinspection GoStructTag
+type AddNodeId struct {
+	Val int `"id" @Int` //nolint
 }
 
 // noinspection GoStructTag
@@ -283,6 +295,11 @@ type RestoreFlag struct {
 }
 
 // noinspection GoStructTag
+type ThreadVersion struct {
+	Val string `@("v11"|"v12")` //nolint
+}
+
+// noinspection GoStructTag
 type ExecutableFlag struct {
 	Dummy struct{} `"exe"`   //nolint
 	Path  string   `@String` //nolint
@@ -291,16 +308,6 @@ type ExecutableFlag struct {
 // noinspection MaxSpeedFlag
 type MaxSpeedFlag struct {
 	Dummy struct{} `( "max" | "inf")` //nolint
-}
-
-// noinspection GoStructTag
-type NodeType struct {
-	Val string `@("router"|"fed"|"med"|"sed"|"br")` //nolint
-}
-
-// noinspection GoStructTag
-type AddNodeId struct {
-	Val int `"id" @Int` //nolint
 }
 
 // noinspection GoStructTag
@@ -349,6 +356,20 @@ type EnergyCmd struct {
 // noinspection GoStructTag
 type SaveFlag struct {
 	Dummy struct{} `"save"` //nolint
+}
+
+// noinspection GoStructTag
+type ExeCmd struct {
+	Cmd      struct{}       `"exe"`       //nolint
+	NodeType NodeTypeOrRole `( @@`        //nolint
+	Default  *DefaultFlag   `| @@`        //nolint
+	Version  ThreadVersion  `| @@ )?`     //nolint
+	Path     string         `[ @String ]` //nolint
+}
+
+// noinspection GoStructTag
+type DefaultFlag struct {
+	Dummy struct{} `"default"` //nolint
 }
 
 // noinspection GoStructTag

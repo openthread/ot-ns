@@ -161,10 +161,16 @@ func (ot *OtnsTest) SetSpeed(speed int) {
 	ot.expectDone()
 }
 
+func (ot *OtnsTest) Start(testFunc string) {
+	ot.Reset()
+	simplelogger.Infof("Go test Start(): %v", testFunc)
+}
+
 func (ot *OtnsTest) Reset() {
 	ot.SetSpeed(dispatcher.MaxSimulateSpeed)
 	ot.SetPacketLossRatio(0)
 	ot.RemoveAllNodes()
+	ot.Go(time.Second)
 }
 
 func (ot *OtnsTest) SetPacketLossRatio(ratio float32) {
@@ -350,7 +356,7 @@ func NewOtnsTest(t *testing.T) *OtnsTest {
 		pendingVisualizeEvents: make(chan *visualize_grpc_pb.VisualizeEvent, 1000),
 	}
 
-	os.Args = append(os.Args, "-log", "info", "-web=false", "-autogo=false", "-watch", "info")
+	os.Args = append(os.Args, "-log", "debug", "-web=false", "-autogo=false", "-watch", "info")
 
 	_ = os.Remove(stdinPipeFile)
 	_ = os.Remove(stdoutPipeFile)

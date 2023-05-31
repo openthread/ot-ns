@@ -236,6 +236,8 @@ func (rt *CmdRunner) execute(cmd *Command, output io.Writer) {
 		rt.executeTime(cc, cmd.Time)
 	} else if cmd.Help != nil {
 		rt.executeHelp(cc, cmd.Help)
+	} else if cmd.Exe != nil {
+		rt.executeExe(cc, cmd.Exe)
 	} else {
 		simplelogger.Panicf("unimplemented command: %#v", cmd)
 	}
@@ -309,7 +311,7 @@ func (rt *CmdRunner) postAsyncWait(f func(sim *simulation.Simulation)) {
 
 func (rt *CmdRunner) executeAddNode(cc *CommandContext, cmd *AddCmd) {
 	simplelogger.Debugf("Add: %#v", *cmd)
-	cfg := DefaultNodeConfig()
+	cfg := cc.rt.sim.GetConfig().NewNodeConfig // copy current new-node config for simulation, and modify it.
 	if cmd.X != nil {
 		cfg.X = *cmd.X
 	}
@@ -317,28 +319,29 @@ func (rt *CmdRunner) executeAddNode(cc *CommandContext, cmd *AddCmd) {
 		cfg.Y = *cmd.Y
 	}
 
-	if cmd.Type.Val == "router" {
+	switch cmd.Type.Val {
+	case ROUTER, REED, FTD:
 		cfg.IsRouter = true
 		cfg.IsMtd = false
 		cfg.RxOffWhenIdle = false
-	} else if cmd.Type.Val == "fed" {
+	case FED:
 		cfg.IsRouter = false
 		cfg.IsMtd = false
 		cfg.RxOffWhenIdle = false
-	} else if cmd.Type.Val == "med" {
+	case MED, MTD:
 		cfg.IsRouter = false
 		cfg.IsMtd = true
 		cfg.RxOffWhenIdle = false
-	} else if cmd.Type.Val == "sed" {
+	case SED, SSED:
 		cfg.IsRouter = false
 		cfg.IsMtd = true
 		cfg.RxOffWhenIdle = true
-	} else if cmd.Type.Val == "br" {
+	case BR:
 		cfg.IsRouter = true
 		cfg.IsMtd = false
 		cfg.IsBorderRouter = true
 		cfg.RxOffWhenIdle = false
-	} else {
+	default:
 		simplelogger.Panicf("wrong node type: %s", cmd.Type.Val)
 	}
 
@@ -352,12 +355,14 @@ func (rt *CmdRunner) executeAddNode(cc *CommandContext, cmd *AddCmd) {
 
 	if cmd.Executable != nil {
 		cfg.ExecutablePath = cmd.Executable.Path
+	} else if cmd.Version != nil {
+		cfg.ExecutablePath = simulation.GetExecutableForThreadVersion(cmd.Version.Val)
 	}
 
 	cfg.Restore = cmd.Restore != nil
 
 	rt.postAsyncWait(func(sim *simulation.Simulation) {
-		node, err := sim.AddNode(cfg)
+		node, err := sim.AddNode(&cfg)
 		if err != nil {
 			cc.error(err)
 			return
@@ -751,7 +756,7 @@ func (rt *CmdRunner) executeWatch(cc *CommandContext, cmd *WatchCmd) {
 			// variant: 'watch <level>'
 			// Do nothing here. <level> was processed above as 'watchLogLevel'.
 		} else {
-			cc.errorf("unsupported combination of command options")
+			cc.errorf("watch: unsupported combination of command options")
 			return
 		}
 
@@ -949,6 +954,57 @@ func (rt *CmdRunner) executeEnergy(cc *CommandContext, energy *EnergyCmd) {
 		cc.outputf("energy <command>\n")
 		cc.outputf("\tsave [output name]\n")
 	}
+}
+
+func (rt *CmdRunner) executeExe(cc *CommandContext, cmd *ExeCmd) {
+	rt.postAsyncWait(func(sim *simulation.Simulation) {
+		cfg := sim.GetConfig()
+		isSetDefault := cmd.Default != nil
+		isSetNodeType := len(cmd.NodeType.Val) > 0
+		isSetVersion := len(cmd.Version.Val) > 0
+		isSetPath := len(cmd.Path) > 0
+
+		if isSetNodeType {
+			// get or set the exe per individual node type.
+			switch cmd.NodeType.Val {
+			case FTD, ROUTER, REED, FED:
+				if isSetPath {
+					cfg.ExeConfig.Ftd = cmd.Path
+				}
+				cc.outputf("ftd: %s\n", cfg.ExeConfig.Ftd)
+			case MTD, MED, SED, SSED:
+				if isSetPath {
+					cfg.ExeConfig.Mtd = cmd.Path
+				}
+				cc.outputf("mtd: %s\n", cfg.ExeConfig.Mtd)
+			case BR:
+				if isSetPath {
+					cfg.ExeConfig.Br = cmd.Path
+				}
+				cc.outputf("br : %s\n", cfg.ExeConfig.Br)
+			}
+			return
+		} else if isSetDefault && !isSetPath && !isSetNodeType && !isSetVersion {
+			// set defaults for all node types.
+			cfg.ExeConfig.Ftd = simulation.DefaultExecutableConfig.Ftd
+			cfg.ExeConfig.Mtd = simulation.DefaultExecutableConfig.Mtd
+			cfg.ExeConfig.Br = simulation.DefaultExecutableConfig.Br
+		} else if isSetVersion && !isSetPath {
+			// set executables to that of a named version for all node types except br.
+			cfg.ExeConfig.Ftd = simulation.GetExecutableForThreadVersion(cmd.Version.Val)
+			cfg.ExeConfig.Mtd = cfg.ExeConfig.Ftd
+			cfg.ExeConfig.Br = simulation.DefaultExecutableConfig.Br
+		} else if !isSetDefault && !isSetNodeType && !isSetVersion && !isSetPath {
+			// display the exe output list.
+		} else {
+			cc.errorf("exe: unsupported combination of command options")
+			return
+		}
+
+		cc.outputf("ftd: %s\n", cfg.ExeConfig.Ftd)
+		cc.outputf("mtd: %s\n", cfg.ExeConfig.Mtd)
+		cc.outputf("br : %s\n", cfg.ExeConfig.Br)
+	})
 }
 
 func (rt *CmdRunner) executeHelp(cc *CommandContext, cmd *HelpCmd) {

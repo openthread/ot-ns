@@ -34,6 +34,10 @@ from otns.cli import errors, OTNS
 
 
 class CslTests(OTNSTestCase):
+    #override
+    def setUp(self):
+        super().setUp()
+        self.ns.radiomodel = 'MutualInterference'
 
     def verifyPings(self, pings, n, maxDelay=1000, maxFails=0):
         self.assertEqual(n, len(pings))

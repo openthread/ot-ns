@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2020-2023, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -29,7 +29,4 @@ package threadconst
 const (
 	InvalidRloc16   uint16 = 0xfffe
 	BroadcastRloc16 uint16 = 0xffff
-
-	WellKnownNodeId       = 1000
-	InitialDispatcherPort = 9000
 )

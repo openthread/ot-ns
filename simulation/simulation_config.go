@@ -29,7 +29,6 @@ package simulation
 import (
 	"fmt"
 
-	"github.com/openthread/ot-ns/threadconst"
 	. "github.com/openthread/ot-ns/types"
 )
 
@@ -40,7 +39,7 @@ const (
 	DefaultChannel     = 11
 )
 
-// The init script is an array of commands, sent to a new node.
+// DefaultNodeInitScript is an array of commands, sent to a new node by default (unless changed).
 var DefaultNodeInitScript = []string{
 	"networkname " + DefaultNetworkName,
 	"networkkey " + DefaultNetworkKey,
@@ -53,9 +52,8 @@ var DefaultNodeInitScript = []string{
 
 type Config struct {
 	InitScript     []string
-	OtCliFtdPath   string
-	OtCliMtdPath   string
-	OtBrPath       string
+	ExeConfig      ExecutableConfig
+	NewNodeConfig  NodeConfig
 	Speed          float64
 	ReadOnly       bool
 	RawMode        bool
@@ -72,16 +70,15 @@ type Config struct {
 func DefaultConfig() *Config {
 	return &Config{
 		InitScript:     DefaultNodeInitScript,
+		ExeConfig:      DefaultExecutableConfig,
+		NewNodeConfig:  DefaultNodeConfig(),
 		Speed:          1,
 		ReadOnly:       false,
 		RawMode:        false,
-		OtCliFtdPath:   "./ot-cli-ftd",
-		OtCliMtdPath:   "./ot-cli-ftd", // by default re-uses the FTD executable for MTD.
-		OtBrPath:       "./otbr-sim.sh",
 		Real:           false,
 		AutoGo:         true,
 		DispatcherHost: "localhost",
-		DispatcherPort: threadconst.InitialDispatcherPort,
+		DispatcherPort: InitialDispatcherPort,
 		RadioModel:     "Ideal_Rssi",
 		Id:             0,
 		Channel:        DefaultChannel,
