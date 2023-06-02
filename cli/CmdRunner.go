@@ -311,12 +311,16 @@ func (rt *CmdRunner) postAsyncWait(f func(sim *simulation.Simulation)) {
 
 func (rt *CmdRunner) executeAddNode(cc *CommandContext, cmd *AddCmd) {
 	simplelogger.Debugf("Add: %#v", *cmd)
-	cfg := cc.rt.sim.GetConfig().NewNodeConfig // copy current new-node config for simulation, and modify it.
+	simCfg := cc.rt.sim.GetConfig()
+	cfg := simCfg.NewNodeConfig // copy current new-node config for simulation, and modify it.
+
 	if cmd.X != nil {
 		cfg.X = *cmd.X
+		cfg.IsAutoPlaced = false
 	}
 	if cmd.Y != nil {
 		cfg.Y = *cmd.Y
+		cfg.IsAutoPlaced = false
 	}
 
 	switch cmd.Type.Val {
@@ -588,7 +592,7 @@ func (rt *CmdRunner) executeMoveNode(cc *CommandContext, cmd *MoveCmd) {
 
 func (rt *CmdRunner) executeLsNodes(cc *CommandContext, cmd *NodesCmd) {
 	rt.postAsyncWait(func(sim *simulation.Simulation) {
-		for nodeid := range sim.Nodes() {
+		for _, nodeid := range sim.GetNodes() {
 			dnode := sim.Dispatcher().GetNode(nodeid)
 			var line strings.Builder
 			line.WriteString(fmt.Sprintf("id=%d\textaddr=%016x\trloc16=%04x\tx=%d\ty=%d\tstate=%s\tfailed=%v", nodeid, dnode.ExtAddr, dnode.Rloc16,
@@ -746,7 +750,7 @@ func (rt *CmdRunner) executeWatch(cc *CommandContext, cmd *WatchCmd) {
 			return
 		} else if len(cmd.Nodes) == 0 && len(cmd.All) > 0 && len(cmd.Default) == 0 {
 			// variant: 'watch all [<level>]'
-			for _, nodeid := range sim.GetNodes() {
+			for nodeid := range sim.Nodes() {
 				nodesToWatch = append(nodesToWatch, NodeSelector{Id: nodeid})
 			}
 		} else if len(cmd.Nodes) > 0 && len(cmd.All) == 0 && len(cmd.Default) == 0 {

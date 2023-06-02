@@ -40,5 +40,4 @@ export const BUTTON_LABEL_FONT_FAMILY = 'verdana, helvetica, sans-serif';
 export const NODE_LABEL_FONT_FAMILY = 'helvetica, arial, monospace, sans-serif';
 
 // size constants
-export const NODE_AUTOSPACING_PX = 100;
-export const NODE_AUTOSPACING_FINE_PX = 30;
+export const NODE_SPACING_ABOVE_ACTIONBAR_PX = 80;

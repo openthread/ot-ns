@@ -27,7 +27,12 @@
 import * as PIXI from "pixi.js-legacy";
 import VObject from "./VObject";
 import Button from "./Button";
-import {MAX_SPEED, PAUSE_SPEED, NODE_AUTOSPACING_PX, TUNE_SPEED_SETTINGS} from "./consts";
+import {
+    MAX_SPEED,
+    PAUSE_SPEED,
+    TUNE_SPEED_SETTINGS,
+    NODE_SPACING_ABOVE_ACTIONBAR_PX
+} from "./consts";
 import {Resources} from "./resources";
 
 const {
@@ -162,44 +167,20 @@ export default class ActionBar extends VObject {
         this.vis.setSpeed(speed);
     }
 
-    getNextNewNodePosition(placeBelow) {
-        return this.vis.getNextNewNodePosition(placeBelow)
-    }
-
     actionNewRouter(e) {
-        let mode = new NodeMode();
-        mode.setRxOnWhenIdle(true);
-        mode.setFullThreadDevice(true);
-        mode.setFullNetworkData(true);
-        let pos = this.getNextNewNodePosition(false)
-        this.vis.ctrlAddNode(Math.round(pos.x), Math.round(pos.y), "router")
+        this.vis.ctrlAddNode("router")
     }
 
     actionNewFED(e) {
-        let mode = new NodeMode();
-        mode.setRxOnWhenIdle(true);
-        mode.setFullThreadDevice(true);
-        mode.setFullNetworkData(true);
-        let pos = this.getNextNewNodePosition(true)
-        this.vis.ctrlAddNode(Math.round(pos.x), Math.round(pos.y), "fed")
+        this.vis.ctrlAddNode("fed")
     }
 
     actionNewMED(e) {
-        let mode = new NodeMode();
-        mode.setRxOnWhenIdle(true);
-        mode.setFullThreadDevice(false);
-        mode.setFullNetworkData(true);
-        let pos = this.getNextNewNodePosition(true)
-        this.vis.ctrlAddNode(Math.round(pos.x), Math.round(pos.y), "med")
+        this.vis.ctrlAddNode("med")
     }
 
     actionNewSED(e) {
-        let mode = new NodeMode();
-        mode.setRxOnWhenIdle(false);
-        mode.setFullThreadDevice(false);
-        mode.setFullNetworkData(true);
-        let pos = this.getNextNewNodePosition(true)
-        this.vis.ctrlAddNode(Math.round(pos.x), Math.round(pos.y), "sed")
+        this.vis.ctrlAddNode("sed")
     }
 
     actionDelete(e) {
@@ -293,6 +274,6 @@ export default class ActionBar extends VObject {
 
     onDraggingDone() {
         // just above the ActionBar's new position is where new nodes will be auto-placed.
-        this.vis.setNewNodesReferencePosition(this.position.x, this.position.y - (NODE_AUTOSPACING_PX/2));
+        this.vis.ctrlSetNewNodePosition(this.position.x, this.position.y - NODE_SPACING_ABOVE_ACTIONBAR_PX);
     }
 }
