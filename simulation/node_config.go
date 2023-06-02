@@ -39,6 +39,16 @@ type ExecutableConfig struct {
 	Br  string
 }
 
+type NodeAutoPlacer struct {
+	X, Y            int
+	Xref, Yref      int
+	Xmax            int
+	NodeDeltaCoarse int
+	NodeDeltaFine   int
+	fineCount       int
+	isReset         bool
+}
+
 var DefaultExecutableConfig ExecutableConfig = ExecutableConfig{
 	Ftd: "./ot-cli-ftd",
 	Mtd: "./ot-cli-ftd",
@@ -63,4 +73,60 @@ func DetermineExecutableBasedOnConfig(nodeCfg *NodeConfig, executableCfg *Execut
 	}
 	// FED or other type.
 	return executableCfg.Ftd
+}
+
+func NewNodeAutoPlacer() *NodeAutoPlacer {
+	return &NodeAutoPlacer{
+		Xref:            100,
+		Yref:            100,
+		Xmax:            1500,
+		X:               100,
+		Y:               100,
+		NodeDeltaCoarse: 100,
+		NodeDeltaFine:   40,
+		fineCount:       0,
+		isReset:         true,
+	}
+}
+
+// UpdateXReference updates the reference X position of the NodeAutoPlacer to 'x'. It starts placing from there.
+func (nap *NodeAutoPlacer) UpdateXReference(x int) {
+	nap.Xref = x
+	nap.X = x
+}
+
+// UpdateYReference updates the reference Y position of the NodeAutoPlacer to 'y'. It starts placing from there.
+func (nap *NodeAutoPlacer) UpdateYReference(y int) {
+	nap.Yref = y
+	nap.Y = y
+}
+
+// UpdateReference updates the reference position of the NodeAutoPlacer to 'x', 'y'. It starts placing from there.
+func (nap *NodeAutoPlacer) UpdateReference(x, y int) {
+	nap.Xref = x
+	nap.X = x
+	nap.Yref = y
+	nap.Y = y
+}
+
+func (nap *NodeAutoPlacer) NextNodePosition(isBelowParent bool) (int, int) {
+	var x, y int
+	if isBelowParent {
+		y = nap.Y + nap.NodeDeltaCoarse/2
+		x = nap.X + nap.fineCount*nap.NodeDeltaFine - nap.NodeDeltaFine
+		nap.fineCount++
+	} else {
+		if !nap.isReset {
+			nap.X += nap.NodeDeltaCoarse
+			if nap.X > nap.Xmax {
+				nap.X = nap.Xref
+				nap.Y += nap.NodeDeltaCoarse
+			}
+		}
+		nap.isReset = false
+		nap.fineCount = 0
+		x = nap.X
+		y = nap.Y
+	}
+	return x, y
 }

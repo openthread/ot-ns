@@ -57,9 +57,7 @@ export default class PixiVisualizer extends VObject {
         this.curSpeed = 1;
         this.nodes = {};
         this._messages = {};
-        this.newNodePos = new PIXI.Point(0, 0);
-        this.newNodeBelowPos = new PIXI.Point(0, NODE_AUTOSPACING_PX/2);
-        this.newNodesRefPos = new PIXI.Point(NODE_AUTOSPACING_PX, NODE_AUTOSPACING_PX);
+        this.newNodePos = null;
 
         this.root = new PIXI.Container();
         // this.root.width =
@@ -322,30 +320,6 @@ export default class PixiVisualizer extends VObject {
         this.logNode(nodeId, msg)
     }
 
-    getNextNewNodePosition(isPlaceBelowParent) {
-        if (isPlaceBelowParent) {
-            let pos = new PIXI.Point( this.newNodePos.x + this.newNodeBelowPos.x + this.newNodesRefPos.x - NODE_AUTOSPACING_PX,
-                this.newNodePos.y + this.newNodeBelowPos.y + this.newNodesRefPos.y);
-            this.newNodeBelowPos.x += NODE_AUTOSPACING_FINE_PX;
-            return pos
-        }
-        let pos = new PIXI.Point(this.newNodePos.x + this.newNodesRefPos.x,
-            this.newNodePos.y + this.newNodesRefPos.y);
-        this.newNodePos.x += NODE_AUTOSPACING_PX;
-        this.newNodeBelowPos = new PIXI.Point(0, NODE_AUTOSPACING_PX/2);
-        if (this.newNodePos.x > (10*NODE_AUTOSPACING_PX)) { // move to next row of nodes.
-            this.newNodePos.x = 0;
-            this.newNodePos.y += NODE_AUTOSPACING_PX;
-        }
-        return pos
-    }
-
-    setNewNodesReferencePosition(x,y) {
-        this.newNodesRefPos = new PIXI.Point(x, y);
-        this.newNodePos = new PIXI.Point(0,0);
-        this.newNodeBelowPos = new PIXI.Point(0, NODE_AUTOSPACING_PX/2);
-    }
-
     visSetNodeRloc16(nodeId, rloc16) {
         let node = this.nodes[nodeId];
         let oldRloc16 = node.rloc16;
@@ -480,11 +454,19 @@ export default class PixiVisualizer extends VObject {
         console.log("CountDown not implemented")
     }
 
-    ctrlAddNode(x, y, type) {
-        x = Math.floor(x);
-        y = Math.floor(y);
+    ctrlAddNode(type) {
+        if (this.newNodePos == null) {
+            this.runCommand("add " + type);
+        }else{
+            this.runCommand("add " + type + " x " + this.newNodePos.x + " y " + this.newNodePos.y);
+            this.newNodePos = null
+        }
+    }
 
-        this.runCommand("add " + type + " x " + x + " y " + y)
+    ctrlSetNewNodePosition(x, y) {
+        x = Math.round(x);
+        y = Math.round(y);
+        this.newNodePos = new PIXI.Point(x,y);
     }
 
     ctrlMoveNodeTo(nodeId, x, y, cb) {

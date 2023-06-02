@@ -55,6 +55,7 @@ type Simulation struct {
 	rawMode        bool
 	networkInfo    visualize.NetworkInfo
 	energyAnalyser *energy.EnergyAnalyser
+	nodePlacer     *NodeAutoPlacer
 }
 
 func NewSimulation(ctx *progctx.ProgCtx, cfg *Config, dispatcherCfg *dispatcher.Config) (*Simulation, error) {
@@ -64,6 +65,7 @@ func NewSimulation(ctx *progctx.ProgCtx, cfg *Config, dispatcherCfg *dispatcher.
 		nodes:       map[NodeId]*Node{},
 		rawMode:     cfg.RawMode,
 		networkInfo: visualize.DefaultNetworkInfo(),
+		nodePlacer:  NewNodeAutoPlacer(),
 	}
 	s.networkInfo.Real = cfg.Real
 
@@ -102,6 +104,13 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 
 	if s.nodes[nodeid] != nil {
 		return nil, errors.Errorf("node %d already exists", nodeid)
+	}
+
+	// node position
+	if cfg.IsAutoPlaced {
+		cfg.X, cfg.Y = s.nodePlacer.NextNodePosition(cfg.IsMtd || !cfg.IsRouter)
+	} else {
+		s.nodePlacer.UpdateReference(cfg.X, cfg.Y)
 	}
 
 	// auto-selection of Executable by simulation's policy, in case not defined yet.
@@ -171,6 +180,7 @@ func (s *Simulation) Nodes() map[NodeId]*Node {
 	return s.nodes
 }
 
+// GetNodes returns a sorted array of NodeIds.
 func (s *Simulation) GetNodes() []NodeId {
 	keys := make([]NodeId, len(s.nodes))
 	i := 0
@@ -178,6 +188,7 @@ func (s *Simulation) GetNodes() []NodeId {
 		keys[i] = key
 		i++
 	}
+	sort.Ints(keys)
 	return keys
 }
 

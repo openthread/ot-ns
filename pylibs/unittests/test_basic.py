@@ -97,8 +97,9 @@ class BasicTests(OTNSTestCase):
         self.go(10)
         self.assertEqual(ns.get_state(1), "leader")
 
+        n=0
         for type in ("router", "fed", "med", "sed"):
-            nodeid = ns.add(type)
+            nodeid = ns.add(type, x=n*10, y=0)
             self.go(10)
             self.assertFormPartitions(1)
             rloc16 = ns.get_rloc16(nodeid)
@@ -107,17 +108,18 @@ class BasicTests(OTNSTestCase):
             ns.delete(nodeid)
             ns.go(10)
 
-            self.assertEqual(nodeid, ns.add(type, restore=True))
+            self.assertEqual(nodeid, ns.add(type, x=n*10, y=0, restore=True))
 
             self.go(1.5)
             self.assertFormPartitions(1)
             self.assertEqual(rloc16, ns.get_rloc16(nodeid))
+            n += 1
 
     def testDelNode(self):
         ns = self.ns
         ns.add("router")
         ns.add("router")
-        self.go(10)
+        self.go(12)
         self.assertFormPartitions(1)
         ns.delete(1)
         self.go(10)
@@ -321,7 +323,7 @@ class BasicTests(OTNSTestCase):
         ns: OTNS = self.ns
         ns.coaps_enable()
         for i in range(10):
-            id = ns.add('router')
+            id = ns.add('router', x=i*10, y=0)
             ns.node_cmd(id, 'routerselectionjitter 1')
             ns.go(5)
 

@@ -26,15 +26,12 @@
 
 package types
 
-const (
-	DefaultRadioRange = 160
-)
-
 // NodeConfig is a generic config for a new simulated node (used in dispatcher, simulation, radiomodel,
 // ... packages).
 type NodeConfig struct {
 	ID             int
 	X, Y           int
+	IsAutoPlaced   bool
 	IsMtd          bool
 	IsRouter       bool
 	IsBorderRouter bool
@@ -50,11 +47,12 @@ func DefaultNodeConfig() NodeConfig {
 		ID:             -1, // -1 for the next available nodeid
 		X:              0,
 		Y:              0,
+		IsAutoPlaced:   true,
 		IsRouter:       true,
 		IsMtd:          false,
 		IsBorderRouter: false,
 		RxOffWhenIdle:  false,
-		RadioRange:     DefaultRadioRange,
+		RadioRange:     160,
 		ExecutablePath: "",
 		Restore:        false,
 		InitScript:     nil,
