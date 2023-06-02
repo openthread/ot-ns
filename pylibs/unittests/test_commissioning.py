@@ -50,9 +50,9 @@ class CommissioningTests(OTNSTestCase):
 
     def testRawSetup(self):
         ns = self.ns
-        n1 = ns.add("router")
-        n2 = ns.add("router")
-        n3 = ns.add("router")
+        n1 = ns.add("router", x=0, y=0)
+        n2 = ns.add("router", x=50, y=0)
+        n3 = ns.add("router", x=0, y=50)
         for id in (n1, n2, n3):
             ns.set_network_name(id, "test")
             ns.set_panid(id, 0xface)

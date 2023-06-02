@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Copyright (c) 2020, The OTNS Authors.
+# Copyright (c) 2020-2023, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -30,6 +30,7 @@
 import inspect
 import logging
 import sys
+import time
 import os
 
 
@@ -89,6 +90,7 @@ def run_suite(script_dir, suite_name: str):
             t = cls()
             logging.info("Running stress test: %s ...", t.name)
             t.run(report=True)
+            time.sleep(2)  # allow some time for visuals/animations to catch up on last events of test.
 
 
 if __name__ == '__main__':

@@ -31,6 +31,14 @@
 OT_DIR=${OT_DIR:-}
 OTBIN_DIR=
 
+show_help()
+{
+    set +x
+    echo -e "\nUsage: test <test-group-name-1> [<test-group-name-N>]* "
+    echo -e "\nThe following test-group-names can be provided as arguments:"
+    echo -e "  go-tests\n  py-unittests\n  py-examples\n  signals\n  stress-tests\n  build-openthread\n\n"
+}
+
 installed()
 {
     command -v "$1" >/dev/null 2>&1
@@ -162,6 +170,11 @@ stress_tests()
 
 main()
 {
+    if [ "$#" -eq 0 ]; then
+        show_help
+        return 1
+    fi
+
     while (("$#")); do
         case "$1" in
             go-tests)
@@ -190,6 +203,7 @@ main()
                 ;;
             *)
                 echo "Error: Unsupported test $1" >&2
+                show_help
                 return 1
                 ;;
         esac
