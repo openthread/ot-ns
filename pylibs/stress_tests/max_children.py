@@ -36,23 +36,25 @@ PARENT_X = 500
 PARENT_Y = 500
 MAX_DISTANCE = 400
 RADIO_RANGE = int(MAX_DISTANCE * 1.2)
-CHILDREN_N = 128
+CHILDREN_N = 10
 
 
 class StressTest(BaseStressTest):
     SUITE = 'network-limits'
 
     TIME_LIMIT = {
-        'fed': 3,
-        'med': 3,
-        'sed': 3,
+        'fed': 1,
+        'med': 1,
+        'sed': 1,
     }
 
     def __init__(self):
-        super(StressTest, self).__init__("Parent with 128 Children",
+        super(StressTest, self).__init__("Parent with max Children count",
                                          [])
 
     def run(self):
+        self.ns.speed = 30 # speed is lowered to see the visualization, when run locally.
+        self.ns.radiomodel = 'MutualInterference'
         self.test('fed')
         self.test('med')
         self.test('sed')

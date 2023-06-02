@@ -50,20 +50,13 @@ class CommissioningTests(OTNSTestCase):
 
     def testRawSetup(self):
         ns = self.ns
-        n1 = ns.add("router")
-        n2 = ns.add("router")
-        n3 = ns.add("router")
-
-        ns.node_cmd(n1, "dataset init new")
-        ns.node_cmd(n1, "dataset panid 0xface")
-        ns.node_cmd(n1, "dataset networkkey 00112233445566778899aabbccddeeff")
-        ns.node_cmd(n1, "dataset networkname test")
-        ns.node_cmd(n1, "dataset commit active")
-        ns.ifconfig_up(n1)
-        ns.thread_start(n1)
-
-        for id in (n2, n3):
-            ns.config_dataset(id, panid=0xface, network_name="test", networkkey="00112233445566778899aabbccddeeff")
+        n1 = ns.add("router", x=0, y=0)
+        n2 = ns.add("router", x=50, y=0)
+        n3 = ns.add("router", x=0, y=50)
+        for id in (n1, n2, n3):
+            ns.set_network_name(id, "test")
+            ns.set_panid(id, 0xface)
+            ns.set_networkkey(id, "00112233445566778899aabbccddeeff")
             ns.ifconfig_up(id)
             ns.thread_start(id)
 
