@@ -71,7 +71,6 @@ func (rm *RadioModelMutualInterference) CheckRadioReachable(src *RadioNode, dst 
 }
 
 func (rm *RadioModelMutualInterference) GetTxRssi(srcNode *RadioNode, dstNode *RadioNode) DbmValue {
-	simplelogger.AssertTrue(srcNode != dstNode)
 	rssi := computeIndoorRssi(srcNode.RadioRange, srcNode.GetDistanceTo(dstNode), srcNode.TxPower, dstNode.RxSensitivity)
 	return rssi
 }

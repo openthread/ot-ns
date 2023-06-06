@@ -28,7 +28,6 @@ package radiomodel
 
 import (
 	. "github.com/openthread/ot-ns/types"
-	"github.com/simonlingoogle/go-simplelogger"
 )
 
 // RadioModelIdeal is an ideal radio model with infinite parallel transmission capacity per
@@ -62,7 +61,6 @@ func (rm *RadioModelIdeal) CheckRadioReachable(src *RadioNode, dst *RadioNode) b
 }
 
 func (rm *RadioModelIdeal) GetTxRssi(srcNode *RadioNode, dstNode *RadioNode) DbmValue {
-	simplelogger.AssertTrue(srcNode != dstNode)
 	rssi := rm.FixedRssi // in the most ideal case, always assume a good RSSI up until the max range.
 	if rm.UseVariableRssi {
 		rssi = computeIndoorRssi(srcNode.RadioRange, srcNode.GetDistanceTo(dstNode), srcNode.TxPower, dstNode.RxSensitivity)

@@ -85,6 +85,8 @@ class BaseStressTest(object, metaclass=StressTestMetaclass):
         nodes = self.ns.nodes()
         if nodes:
             self.ns.delete(*nodes.keys())
+        self.ns.speed = float('inf')
+        self.ns.go(1)
 
     def stop(self):
         self.result.stop()
