@@ -38,6 +38,7 @@ type RadioModelIdeal struct {
 	Name            string
 	UseVariableRssi bool // when true uses distance-dependent RSSI model, else FixedRssi.
 	FixedRssi       DbmValue
+	IndoorParams    *IndoorModelParams
 
 	nodes map[NodeId]*RadioNode
 }
@@ -63,7 +64,7 @@ func (rm *RadioModelIdeal) CheckRadioReachable(src *RadioNode, dst *RadioNode) b
 func (rm *RadioModelIdeal) GetTxRssi(srcNode *RadioNode, dstNode *RadioNode) DbmValue {
 	rssi := rm.FixedRssi // in the most ideal case, always assume a good RSSI up until the max range.
 	if rm.UseVariableRssi {
-		rssi = computeIndoorRssi(srcNode.RadioRange, srcNode.GetDistanceTo(dstNode), srcNode.TxPower, dstNode.RxSensitivity)
+		rssi = computeIndoorRssi(srcNode.RadioRange, srcNode.GetDistanceTo(dstNode), srcNode.TxPower, rm.IndoorParams)
 	}
 	return rssi
 }

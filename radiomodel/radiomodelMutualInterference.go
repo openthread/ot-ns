@@ -1,4 +1,4 @@
-// Copyright (c) 2022, The OTNS Authors.
+// Copyright (c) 2022-2023, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -38,9 +38,17 @@ import (
 // is also radio reception possible beyond the radioRange. Also, devices with better Rx sensitivity will receive
 // radio frames at longer distances beyond the radioRange.
 type RadioModelMutualInterference struct {
+	Name string
+
 	// Configured minimum Signal-to-Interference (SIR) ratio in dB that is required to receive a signal
 	// in presence of at least one interfering, other signal.
 	MinSirDb DbmValue
+
+	// Whether RF signal reception is limited to the RadioRange disc of each node, or not (default false).
+	// If true, the interference (e.g. RSSI sampled on channel) extends beyond the disc but proper frame
+	// reception is confined to the disc.
+	IsDiscLimit  bool
+	IndoorParams *IndoorModelParams
 
 	nodes                 map[NodeId]*RadioNode
 	activeTransmitters    map[ChannelId]map[NodeId]*RadioNode
@@ -63,15 +71,19 @@ func (rm *RadioModelMutualInterference) DeleteNode(nodeid NodeId) {
 }
 
 func (rm *RadioModelMutualInterference) CheckRadioReachable(src *RadioNode, dst *RadioNode) bool {
-	if src != dst && dst.RadioState == RadioRx {
-		rssi := rm.GetTxRssi(src, dst)
-		return rssi >= RssiMin && rssi <= RssiMax && rssi >= dst.RxSensitivity
+	if src == dst || dst.RadioState != RadioRx {
+		return false
 	}
-	return false
+	if rm.IsDiscLimit && src.GetDistanceTo(dst) > src.RadioRange {
+		return false
+	}
+	rssi := rm.GetTxRssi(src, dst)
+	return rssi >= RssiMin && rssi <= RssiMax && rssi >= dst.RxSensitivity
 }
 
 func (rm *RadioModelMutualInterference) GetTxRssi(srcNode *RadioNode, dstNode *RadioNode) DbmValue {
-	rssi := computeIndoorRssi(srcNode.RadioRange, srcNode.GetDistanceTo(dstNode), srcNode.TxPower, dstNode.RxSensitivity)
+	dist := srcNode.GetDistanceTo(dstNode)
+	rssi := computeIndoorRssi(srcNode.RadioRange, dist, srcNode.TxPower, rm.IndoorParams)
 	return rssi
 }
 
@@ -122,7 +134,7 @@ func (rm *RadioModelMutualInterference) HandleEvent(node *RadioNode, q EventQueu
 }
 
 func (rm *RadioModelMutualInterference) GetName() string {
-	return "MutualInterference"
+	return rm.Name
 }
 
 func (rm *RadioModelMutualInterference) init() {
