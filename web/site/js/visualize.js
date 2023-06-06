@@ -27,6 +27,7 @@
 import PixiVisualizer from "./vis/PixiVisualizer";
 import * as PIXI from 'pixi.js'
 import {SetResources} from "./vis/resources";
+import {StatusCode} from "grpc-web";
 
 const {
     VisualizeRequest, VisualizeEvent, OtDeviceRole, NodeMode,
@@ -192,9 +193,18 @@ function loadOk() {
     });
 
     stream.on('status', function (status) {
+        if (status != null) {
+            console.log('visualize gRPC stream status: code = ' + status.code + ' details = ' + status.details);
+            if (status.code != StatusCode.OK) {
+                vis.visStopIdleCheckTimer(); // stop expecting the HeartBeat events
+            }
+        }
     });
+
     stream.on('end', function (end) {
         // stream end signal
+        console.log('visualize gRPC stream end');
+        vis.visStopIdleCheckTimer();
     });
 }
 

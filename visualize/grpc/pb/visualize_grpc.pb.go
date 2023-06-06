@@ -3150,7 +3150,6 @@ const _ = grpc.SupportPackageIsVersion6
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type VisualizeGrpcServiceClient interface {
-	//    rpc Echo (EchoRequest) returns (EchoResponse);
 	Visualize(ctx context.Context, in *VisualizeRequest, opts ...grpc.CallOption) (VisualizeGrpcService_VisualizeClient, error)
 	Command(ctx context.Context, in *CommandRequest, opts ...grpc.CallOption) (*CommandResponse, error)
 	EnergyReport(ctx context.Context, in *VisualizeRequest, opts ...grpc.CallOption) (VisualizeGrpcService_EnergyReportClient, error)
@@ -3239,7 +3238,6 @@ func (x *visualizeGrpcServiceEnergyReportClient) Recv() (*NetworkEnergyEvent, er
 
 // VisualizeGrpcServiceServer is the server API for VisualizeGrpcService service.
 type VisualizeGrpcServiceServer interface {
-	//    rpc Echo (EchoRequest) returns (EchoResponse);
 	Visualize(*VisualizeRequest, VisualizeGrpcService_VisualizeServer) error
 	Command(context.Context, *CommandRequest) (*CommandResponse, error)
 	EnergyReport(*VisualizeRequest, VisualizeGrpcService_EnergyReportServer) error
