@@ -202,6 +202,13 @@ export default class PixiVisualizer extends VObject {
         this._resetIdleCheckTimer()
     }
 
+    visStopIdleCheckTimer() {
+        if (this._idleCheckTimer) {
+            this.cancelCallback(this._idleCheckTimer);
+            delete this._idleCheckTimer
+        }
+    }
+
     setOTVersion(version, commit) {
         this.otVersion = version;
         this.otCommit = commit;

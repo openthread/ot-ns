@@ -35,8 +35,7 @@ class VisualizeGrpcServiceServicer(object):
     """Missing associated documentation comment in .proto file."""
 
     def Visualize(self, request, context):
-        """rpc Echo (EchoRequest) returns (EchoResponse);
-        """
+        """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
