@@ -63,13 +63,13 @@ const (
 )
 
 type Node struct {
-	S   *Simulation
-	Id  int
-	cfg *NodeConfig
-
+	S       *Simulation
+	Id      int
+	cfg     *NodeConfig
 	cmd     *exec.Cmd
 	logFile *os.File
 	err     error
+	errProc error
 
 	pendingLines      chan string
 	pipeIn            io.WriteCloser
@@ -145,11 +145,15 @@ func (node *Node) String() string {
 	return fmt.Sprintf("Node<%d>", node.Id)
 }
 
-func (node *Node) RunInitScript(cfg []string) {
+func (node *Node) RunInitScript(cfg []string) error {
 	simplelogger.AssertNotNil(cfg)
 	for _, cmd := range cfg {
+		if node.err != nil {
+			return node.err
+		}
 		node.Command(cmd, DefaultCommandTimeout)
 	}
+	return node.err
 }
 
 func (node *Node) Start() {
@@ -195,7 +199,7 @@ func (node *Node) AssurePrompt() {
 	}
 
 	node.inputCommand("")
-	node.expectLine("", DefaultCommandTimeout)
+	_, _ = node.expectLine("", DefaultCommandTimeout)
 }
 
 func (node *Node) inputCommand(cmd string) {
@@ -211,18 +215,35 @@ func (node *Node) inputCommand(cmd string) {
 
 func (node *Node) CommandExpectNone(cmd string, timeout time.Duration) {
 	node.inputCommand(cmd)
-	node.expectLine(cmd, timeout)
+	_, _ = node.expectLine(cmd, timeout)
 }
 
 func (node *Node) Command(cmd string, timeout time.Duration) []string {
 	node.inputCommand(cmd)
-	node.expectLine(cmd, timeout)
-	output := node.expectLine(DoneOrErrorRegexp, timeout)
-
+	_, err1 := node.expectLine(cmd, timeout)
+	if err1 != nil {
+		node.err = err1
+		simplelogger.Error(err1)
+		return []string{}
+	}
+	output, err := node.expectLine(DoneOrErrorRegexp, timeout)
+	if err != nil {
+		node.err = err
+		simplelogger.Error(err)
+		return []string{}
+	}
+	if len(output) == 0 {
+		err = fmt.Errorf("%v - Command() response timeout for cmd '%s' after %v", node, cmd, timeout)
+		node.err = err
+		simplelogger.Error(err)
+		return []string{}
+	}
 	var result string
 	output, result = output[:len(output)-1], output[len(output)-1]
 	if result != "Done" {
-		simplelogger.Panicf("%v - Unexpected cmd result: %s", node, result)
+		err = fmt.Errorf("%v - Unexpected cmd result for cmd '%s': %s", node, cmd, result)
+		node.err = err
+		simplelogger.Error(err)
 	}
 	return output
 }
@@ -230,7 +251,9 @@ func (node *Node) Command(cmd string, timeout time.Duration) []string {
 func (node *Node) CommandExpectString(cmd string, timeout time.Duration) string {
 	output := node.Command(cmd, timeout)
 	if len(output) != 1 {
-		simplelogger.Panicf("expected 1 line, but received %d: %#v", len(output), output)
+		node.err = fmt.Errorf("%v - expected 1 line, but received %d: %#v", node, len(output), output)
+		simplelogger.Error(node.err)
+		return ""
 	}
 
 	return output[0]
@@ -248,7 +271,7 @@ func (node *Node) CommandExpectInt(cmd string, timeout time.Duration) int {
 	}
 
 	if err != nil {
-		simplelogger.Panicf("unexpected number: %#v", s)
+		simplelogger.Panicf("%v - parsing unexpected Int number: %#v", node, s)
 	}
 	return int(iv)
 }
@@ -632,9 +655,9 @@ func (node *Node) lineReaderStdErr(reader io.Reader) {
 	for scanner.Scan() {
 		line := scanner.Text()
 
-		// mark the first error in the node
-		if node.err == nil {
-			node.err = errors.New(line)
+		// mark the first error output line of the node
+		if node.errProc == nil {
+			node.errProc = errors.New(line)
 		}
 
 		// append it to node-specific log file.
@@ -647,7 +670,7 @@ func (node *Node) lineReaderStdErr(reader io.Reader) {
 	}
 
 	// when the stderr of the node closes and any error was raised, inform simulation of node's failure.
-	if node.err != nil {
+	if node.errProc != nil {
 		node.S.OnNodeProcessFailure(node)
 	}
 }
@@ -698,14 +721,15 @@ func (node *Node) TryExpectLine(line interface{}, timeout time.Duration) (bool, 
 	}
 }
 
-func (node *Node) expectLine(line interface{}, timeout time.Duration) []string {
+func (node *Node) expectLine(line interface{}, timeout time.Duration) ([]string, error) {
 	found, output := node.TryExpectLine(line, timeout)
 	if !found {
-		node.err = errors.Errorf("expect line timeout: %#v", line)
-		return []string{}
+		node.err = errors.Errorf("%v - expect line timeout: %#v", node, line)
+		simplelogger.Error(node.err)
+		return []string{}, node.err
 	}
 
-	return output
+	return output, nil
 }
 
 func (node *Node) CommandExpectEnabledOrDisabled(cmd string, timeout time.Duration) bool {
@@ -723,7 +747,7 @@ func (node *Node) CommandExpectEnabledOrDisabled(cmd string, timeout time.Durati
 func (node *Node) Ping(addr string, payloadSize int, count int, interval int, hopLimit int) {
 	cmd := fmt.Sprintf("ping async %s %d %d %d %d", addr, payloadSize, count, interval, hopLimit)
 	node.inputCommand(cmd)
-	node.expectLine(cmd, DefaultCommandTimeout)
+	_, _ = node.expectLine(cmd, DefaultCommandTimeout)
 	node.AssurePrompt()
 }
 
