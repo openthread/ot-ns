@@ -36,6 +36,7 @@ from test_ping import PingTests
 from test_csl import CslTests
 from otns.cli import errors, OTNS
 
+
 class BasicTests_MutualInterference(BasicTests):
     #override
     def setUp(self):
@@ -67,15 +68,21 @@ class BasicTests_MutualInterference(BasicTests):
         ns.radiomodel = 'MutualInterference'
         self.assertEqual('MutualInterference', ns.radiomodel)
         ns.go(200)
-        #self.assertFormPartitions(1) # only 1 partition for non-legacy OT nodes. Cant check yet whether legacy.
+        self.assertFormPartitions(1)
 
         ns.radiomodel = 'Ideal_Rssi'
         ns.go(180)
         self.assertFormPartitions(3)
         self.assertEqual('Ideal_Rssi', ns.radiomodel)
 
+        ns.radiomodel = 'MIDisc'
+        self.assertEqual('MIDisc', ns.radiomodel)
+        ns.go(200)
+        self.assertFormPartitions(3)
+
         with self.assertRaises(errors.OTNSCliError):
             ns.radiomodel = 'NotExistingName'
+
 
 class BasicTests_IdealRssi(BasicTests):
     #override
@@ -83,11 +90,20 @@ class BasicTests_IdealRssi(BasicTests):
         super().setUp()
         self.ns.radiomodel = 'Ideal_Rssi'
 
+
+class BasicTests_MIDisc(BasicTests):
+    #override
+    def setUp(self):
+        super().setUp()
+        self.ns.radiomodel = 'MIDisc'
+
+
 class CommissioningTests_MutualInterference(CommissioningTests):
     #override
     def setUp(self):
         super().setUp()
         self.ns.radiomodel = 'MutualInterference'
+
 
 class CommissioningTests_IdealRssi(CommissioningTests):
     #override
@@ -95,11 +111,27 @@ class CommissioningTests_IdealRssi(CommissioningTests):
         super().setUp()
         self.ns.radiomodel = 'Ideal_Rssi'
 
+
+class CommissioningTests_MIDisc(CommissioningTests):
+    #override
+    def setUp(self):
+        super().setUp()
+        self.ns.radiomodel = 'MIDisc'
+
+
 class PingTests_MutualInterference(PingTests):
     #override
     def setUp(self):
         super().setUp()
         self.ns.radiomodel = 'MutualInterference'
+
+
+class PingTests_MIDisc(PingTests):
+    #override
+    def setUp(self):
+        super().setUp()
+        self.ns.radiomodel = 'MIDisc'
+
 
 class CslTests_MutualInterference(CslTests):
     #override
@@ -107,12 +139,16 @@ class CslTests_MutualInterference(CslTests):
         super().setUp()
         self.ns.radiomodel = 'MutualInterference'
 
+
 if __name__ == '__main__':
     loader = unittest.defaultTestLoader
     suite = loader.loadTestsFromTestCase(BasicTests_MutualInterference)
     suite.addTest(loader.loadTestsFromTestCase(BasicTests_IdealRssi))
+    suite.addTest(loader.loadTestsFromTestCase(BasicTests_MIDisc))
     suite.addTest(loader.loadTestsFromTestCase(CommissioningTests_MutualInterference))
     suite.addTest(loader.loadTestsFromTestCase(CommissioningTests_IdealRssi))
+    suite.addTest(loader.loadTestsFromTestCase(CommissioningTests_MIDisc))
     suite.addTest(loader.loadTestsFromTestCase(PingTests_MutualInterference))
+    suite.addTest(loader.loadTestsFromTestCase(PingTests_MIDisc))
     suite.addTest(loader.loadTestsFromTestCase(CslTests_MutualInterference))
     unittest.TextTestRunner().run(suite)

@@ -1,4 +1,4 @@
-// Copyright (c) 2022, The OTNS Authors.
+// Copyright (c) 2022-2023, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -101,6 +101,13 @@ type RadioModel interface {
 	init()
 }
 
+// IndoorModelParams stores model parameters for the simple indoor path loss model.
+type IndoorModelParams struct {
+	ExponentDb    float64
+	FixedLossDb   float64
+	RangeInMeters float64
+}
+
 // Create creates a new RadioModel with given name, or nil if model not found.
 func Create(modelName string) RadioModel {
 	var model RadioModel
@@ -114,10 +121,32 @@ func Create(modelName string) RadioModel {
 		model = &RadioModelIdeal{
 			Name:            "Ideal_Rssi",
 			UseVariableRssi: true,
+			IndoorParams: &IndoorModelParams{
+				ExponentDb:    35.0,
+				FixedLossDb:   40.0,
+				RangeInMeters: radioRangeIndoorDistInMeters,
+			},
 		}
 	case "MutualInterference", "MI", "M", "3":
 		model = &RadioModelMutualInterference{
+			Name:     "MutualInterference",
 			MinSirDb: 1, // minimum Signal-to-Interference (SIR) (dB) required to detect signal
+			IndoorParams: &IndoorModelParams{
+				ExponentDb:    35.0,
+				FixedLossDb:   40.0,
+				RangeInMeters: radioRangeIndoorDistInMeters,
+			},
+		}
+	case "MIDisc", "MID", "4":
+		model = &RadioModelMutualInterference{
+			Name:        "MIDisc",
+			MinSirDb:    1, // minimum Signal-to-Interference (SIR) (dB) required to detect signal
+			IsDiscLimit: true,
+			IndoorParams: &IndoorModelParams{
+				ExponentDb:    15.0,
+				FixedLossDb:   40.0,
+				RangeInMeters: radioRangeIndoorDistInMeters,
+			},
 		}
 	default:
 		model = nil
@@ -140,20 +169,19 @@ func interferePsduData(data []byte, sirDb float64) []byte {
 	return intfData
 }
 
-// computeIndoorRssi computes the RSSI for a receiver at distance dist, using a simple indoor exponent=3.xx loss model.
-func computeIndoorRssi(srcRadioRange float64, dist float64, txPower int8, rxSensitivity int8) int8 {
+// computeIndoorRssi computes the RSSI for a receiver at distance dist, using a simple indoor exponent loss model.
+func computeIndoorRssi(srcRadioRange float64, dist float64, txPower int8, modelParams *IndoorModelParams) int8 {
 	pathloss := 0.0
-	distMeters := dist * radioRangeIndoorDistInMeters / srcRadioRange
+	distMeters := dist * modelParams.RangeInMeters / srcRadioRange
 	if distMeters >= 0.072 {
-		pathloss = 35.0*math.Log10(distMeters) + 40.0
+		pathloss = modelParams.ExponentDb*math.Log10(distMeters) + modelParams.FixedLossDb
 	}
 	rssi := float64(txPower) - pathloss
 	rssiInt := int(math.Round(rssi))
-	// constrain RSSI value to int8 and return it. If RSSI is below the receiver's rxSensitivity,
-	// then return the RssiMinusInfinity value.
+	// constrain RSSI value to int8 and return it. If RSSI is lower, return RssiMinusInfinity.
 	if rssiInt >= int(RssiInvalid) {
 		rssiInt = int(RssiMax)
-	} else if rssiInt < int(RssiMin) || rssiInt < int(rxSensitivity) {
+	} else if rssiInt < int(RssiMin) {
 		rssiInt = int(RssiMinusInfinity)
 	}
 	return int8(rssiInt)
