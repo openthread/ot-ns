@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2020-2023, The OTNS Authors.
+# Copyright (c) 2023, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -25,20 +25,43 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-import setuptools
+from otns.cli import OTNS
+from otns.cli.errors import OTNSExitedError
 
-setuptools.setup(
-    name="pyOTNS",
-    version="1.0.0",
-    author="The OTNS Authors",
-    description="Run OpenThread mesh network simulation using OTNS from Python",
-    url="https://github.com/EskoDijk/ot-ns",
-    packages=setuptools.find_packages(),
-    classifiers=[
-        "Programming Language :: Python :: 3",
-        "License :: OSI Approved :: BSD 3-Clause License",
-        "Operating System :: OS Independent",
-    ],
-    python_requires='>=3.7',
-    install_requires=['PyYAML'],
-)
+
+def main():
+    # the 'is_interactive' parameter will configure OTNS for interactive use.
+    ns = OTNS(is_interactive=True)
+
+    ns.radiomodel = 'MIDisc'
+    ns.speed = 0.008
+    ns.set_title("Interactive simulation with OTNS CLI example - switch to cmdline and e.g. type 'ping 1 5'")
+
+    # add some nodes and let them form network
+    ns.add("router")
+    ns.go(10)
+    ns.add("router")
+    ns.go(10)
+    ns.add("router")
+    ns.go(10)
+    ns.add("router")
+    ns.go(10)
+    ns.add("router")
+    ns.go(10)
+
+    # here we call the CLI for the user to type commands. Now the simulation can be manipulated as wanted,
+    # using the CLI or GUI commands. Typing 'exit' will exit this call.
+    ns.interactive_cli()
+
+    # after the user exits, more scripted things could be done. But usually the script would also exit.
+    ns.speed = 10.0
+    ns.add("fed")
+    ns.go(60)
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except OTNSExitedError as ex:
+        if ex.exit_code != 0:
+            raise
