@@ -28,13 +28,13 @@
 import ipaddress
 import logging
 import os
+import readline
 import shutil
 import signal
 import subprocess
+import threading
 from typing import List, Union, Optional, Tuple, Dict, Any, Collection
-
 import yaml
-
 from .errors import OTNSCliError, OTNSExitedError
 
 
@@ -45,12 +45,23 @@ class OTNS(object):
 
     MAX_SIMULATE_SPEED = 1000000  # Max simulating speed
     PAUSE_SIMULATE_SPEED = 0
-    MAX_PING_DELAY = 10000 # Max delay assigned to a failed ping
+    MAX_PING_DELAY = 10000  # Max delay assigned to a failed ping
 
-    def __init__(self, otns_path: Optional[str] = None, otns_args: Optional[List[str]] = None):
+    CLI_PROMPT = '> '
+    CLI_USER_HINT = 'OTNS command CLI - type \'exit\' to exit, or \'help\' for command overview.'
+
+    def __init__(self, otns_path: Optional[str] = None, otns_args: Optional[List[str]] = None,
+                 is_interactive: Optional[bool] = False):
         self._otns_path = otns_path or self._detect_otns_path()
-        self._otns_args = list(otns_args or []) + ['-autogo=false', '-web=false']
+        forced_args = ['-autogo=false', '-web=false']
+        if is_interactive:
+            forced_args = ['-autogo=true', '-web=true']
+        self._otns_args = list(otns_args or []) + forced_args
         logging.info("otns found: %s", self._otns_path)
+
+        self._lock_interactive_cli = threading.Lock()
+        self._lock_otns_do_command = threading.Lock()
+        self._cli_thread = None
         self._launch_otns()
         self._closed = False
 
@@ -72,6 +83,9 @@ class OTNS(object):
             return
 
         self._closed = True
+        if self._cli_thread is not None:
+            logging.info("OTNS simulation is to be closed - waiting for user CLI exit by the \'exit\' command.")
+            self._cli_thread.join()
         logging.info("waiting for OTNS to close ...")
         self._otns.send_signal(signal.SIGTERM)
         try:
@@ -194,28 +208,79 @@ class OTNS(object):
 
         return which_otns
 
-    def _do_command(self, cmd: str) -> List[str]:
-        logging.info("OTNS <<< %s", cmd)
-        try:
-            self._otns.stdin.write(cmd.encode('ascii') + b'\n')
-            self._otns.stdin.flush()
-        except BrokenPipeError:
-            self._on_otns_eof()
-
-        output = []
-        while True:
-            line = self._otns.stdout.readline()
-            if line == b'':
+    def _do_command(self, cmd: str, do_logging: bool = True) -> List[str]:
+        with self._lock_otns_do_command:
+            if do_logging:
+                logging.info("OTNS <<< %s", cmd)
+            try:
+                self._otns.stdin.write(cmd.encode('ascii') + b'\n')
+                self._otns.stdin.flush()
+            except BrokenPipeError:
                 self._on_otns_eof()
 
-            line = line.rstrip(b'\r\n').decode('utf-8')
-            logging.info(f"OTNS >>> {line}")
-            if line == 'Done':
-                return output
-            elif line.startswith('Error: '):
-                raise OTNSCliError(line[7:])
+            output = []
+            while True:
+                line = self._otns.stdout.readline()
+                if line == b'':
+                    self._on_otns_eof()
 
-            output.append(line)
+                line = line.rstrip(b'\r\n').decode('utf-8')
+                if do_logging:
+                    logging.info(f"OTNS >>> {line}")
+                if line == 'Done':
+                    return output
+                elif line.startswith('Error: '):
+                    raise OTNSCliError(line[7:])
+
+                output.append(line)
+
+    def interactive_cli(self, prompt: Optional[str] = CLI_PROMPT,
+                        user_hint: Optional[str] = CLI_USER_HINT,
+                        close_otns_on_exit: Optional[bool] = False):
+        """
+        Start an interactive CLI and GUI session, where the user can control the simulation until the
+        exit command is typed.
+
+        :param prompt: (optional) custom prompt string
+        :param user_hint: (optional) user hint about being in CLI mode
+        :param close_otns_on_exit: (optional) behavior to close OTNS when user exits the CLI.
+        """
+        with self._lock_interactive_cli:
+            readline.set_auto_history(True)  # using Python readline library for CLI history on input().
+            print(user_hint)
+            while True:
+                cmd = input(prompt)
+                if len(cmd.strip()) == 0:
+                    continue
+                if cmd == 'exit':
+                    break
+
+                output_lines = self._do_command(cmd)
+                for line in output_lines:
+                    print(line)
+
+            if close_otns_on_exit:
+                self.close()
+
+    def interactive_cli_threaded(self, prompt: Optional[str] = CLI_PROMPT,
+                                 user_hint: Optional[str] = CLI_USER_HINT,
+                                 close_otns_on_exit: Optional[bool] = True):
+        """
+        Start an interactive CLI and GUI session in a new thread. The user can now control the simulation
+        using CLI and GUI, while the Python script also operates on the simulation in parallel. If the
+        user types 'exit' the OTNS simulation will be closed.
+
+        :param prompt: (optional) custom prompt string
+        :param user_hint: (optional) user hint about being in CLI mode
+        :param close_otns_on_exit: (optional) behavior to close OTNS when user exits the CLI.
+
+        :return: True if thread could be started, False if not (e.g. already running).
+        """
+        if self._cli_thread is not None:
+            return False
+        self._cli_thread = threading.Thread(target=self.interactive_cli, args=(prompt, user_hint))
+        self._cli_thread.start()
+        return True
 
     def add(self, type: str, x: float = None, y: float = None, id=None, radio_range=None, executable=None,
             restore=False) -> int:

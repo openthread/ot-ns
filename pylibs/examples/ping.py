@@ -38,13 +38,15 @@ def main():
 
     ns = OTNS()
     ns.set_title("Ping Example")
-    ns.set_network_info(version="Latest", commit="main", real=False)
     ns.web()
+    ns.radiomodel = 'Ideal'
 
-    ns.speed = 4
+    ns.speed = 6
 
     def add_node(*args, **kwargs):
-        return ns.add(*args, **kwargs, radio_range=RADIO_RANGE)
+        nid = ns.add(*args, **kwargs, radio_range=RADIO_RANGE)
+        ns.node_cmd(nid, 'routerselectionjitter 1')
+        return nid
 
     add_node("fed", 100, 100)
     add_node("fed", 100, 300)

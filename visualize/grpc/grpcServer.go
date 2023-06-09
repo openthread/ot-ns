@@ -86,11 +86,7 @@ func (gs *grpcServer) Visualize(req *pb.VisualizeRequest, stream pb.VisualizeGrp
 	}
 
 exit:
-	if err == nil {
-		simplelogger.Infof("Visualize stream exit (no error)")
-	} else {
-		simplelogger.Errorf("Visualize stream exit, with error: %v", err)
-	}
+	simplelogger.Debugf("Visualize stream exit: %v", err)
 	return err
 }
 
