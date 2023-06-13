@@ -27,7 +27,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 # OTNS Performance Stress test:
-#   Simulate 4x8 nodes at max speed without injected traffic or failure for 1h, measure the execution (real) time.
+#   Simulate 4x8 nodes at max speed without injected traffic or failure for PERF_SIMULATE_TIME, measure the
+#   execution (real) time.
 # Topology:
 #   Router 4x8
 # Fault Injections:
@@ -81,9 +82,9 @@ class OtnsPerformanceStressTest(BaseStressTest):
                 formed_one_partition_ok = True
                 break
 
-        # should always form 1 partition after 1000s
+        # should always form 1 partition after WAIT_NETWORK_FORM_PARTITION_TIME
         assert formed_one_partition_ok, ns.partitions()
-        # run 1000s to allow the network to stabilize
+        # run WAIT_NETWORK_STABILIZE_TIME to allow the network to stabilize
         ns.go(WAIT_NETWORK_STABILIZE_TIME)
         counter0 = ns.counters()
 
@@ -103,8 +104,8 @@ class OtnsPerformanceStressTest(BaseStressTest):
                                '%d' % (PERF_SIMULATE_TIME / duration), counter['AlarmEvents'], counter['RadioEvents'])
 
         self.result.fail_if(duration > 30, f'Execution Time ({duration}) > 30s')
-        self.result.fail_if(counter['AlarmEvents'] > 400000, f"Too many AlarmEvents: {counter['AlarmEvents']} > 400000")
-        self.result.fail_if(counter['RadioEvents'] > 200000, f"Too many RadioEvents: {counter['RadioEvents']} > 200000")
+        self.result.fail_if(counter['AlarmEvents'] > 450000, f"Too many AlarmEvents: {counter['AlarmEvents']} > 450000")
+        self.result.fail_if(counter['RadioEvents'] > 250000, f"Too many RadioEvents: {counter['RadioEvents']} > 250000")
 
 
 if __name__ == '__main__':

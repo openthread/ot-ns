@@ -36,7 +36,7 @@ import (
 )
 
 var (
-	logPattern = regexp.MustCompile(`\[(-|C|W|N|I|D)].+\n`)
+	logPattern = regexp.MustCompile(`\[(-|C|W|N|I|D|CRIT|WARN|NOTE|INFO|DEBG)].+\n`)
 )
 
 type otOutFilter struct {
@@ -95,7 +95,7 @@ func (cc *otOutFilter) readFirstLine(p []byte) int {
 			// filter out the log line and send to printLog()
 			simplelogger.AssertTrue(logIdx[1] == len(firstline))
 			logStr := strings.TrimSpace(firstline)
-			logLevelIndicatorStr := firstline[logIdx[2]:logIdx[3]]
+			logLevelIndicatorStr := firstline[logIdx[2] : logIdx[2]+1]
 			simplelogger.AssertTrue(len(logLevelIndicatorStr) == 1)
 			cc.printLog(logLevelIndicatorStr, logStr)
 			sn += logIdx[1]

@@ -115,7 +115,7 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 
 	// auto-selection of Executable by simulation's policy, in case not defined yet.
 	if len(cfg.ExecutablePath) == 0 {
-		cfg.ExecutablePath = DetermineExecutableBasedOnConfig(cfg, &s.cfg.ExeConfig)
+		cfg.ExecutablePath = s.cfg.ExeConfig.DetermineExecutableBasedOnConfig(cfg)
 	}
 
 	// creation of the sim/dispatcher nodes
@@ -125,6 +125,7 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 	if err != nil {
 		simplelogger.Errorf("simulation add node failed: %v", err)
 		s.d.DeleteNode(nodeid) // delete dispatcher node again.
+		s.nodePlacer.ReuseNextNodePosition()
 		return nil, err
 	}
 	s.nodes[nodeid] = node
@@ -137,6 +138,7 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 	if s.ctx.Err() == nil { // only proceed with node if we're not exiting the simulation.
 		if !dnode.IsConnected() {
 			_ = s.DeleteNode(nodeid)
+			s.nodePlacer.ReuseNextNodePosition()
 			return nil, errors.Errorf("simulation AddNode: new node %d did not respond (evtCnt=%d)", nodeid, evtCnt)
 		}
 		node.setupMode()
@@ -147,6 +149,7 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 			} else {
 				simplelogger.Errorf("simulation init script failed, deleting node: %v", err)
 				_ = s.DeleteNode(node.Id)
+				s.nodePlacer.ReuseNextNodePosition()
 				return nil, err
 			}
 		}

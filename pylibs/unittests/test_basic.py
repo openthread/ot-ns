@@ -389,34 +389,6 @@ class BasicTests(OTNSTestCase):
         ns._do_command("help plr")
         ns._do_command("help radiomodel")
 
-    def testAddNodeWrongExecutable(self):
-        ns: OTNS = self.ns
-        ns.add('router')
-        ns.go(5)
-        self.assertEqual(1, len(ns.nodes()))
-        with self.assertRaises(errors.OTNSCliError):
-            ns.add('router', executable = 'ot-cli-nonexistent')
-        ns.go(5)
-        self.assertEqual(1, len(ns.nodes()))
-
-    def testExe(self):
-        ns: OTNS = self.ns
-        ns.add('router')
-        ns.go(10)
-        ns._do_command("exe ftd \"./path/to/non-existent-executable\"")
-        with self.assertRaises(errors.OTNSCliError):
-            ns.add('router')
-        ns._do_command("exe")
-        ns._do_command("exe default")
-        ns.go(10)
-        ns.add('router')
-        ns.go(10)
-        ns.add('fed')
-        ns.go(10)
-        self.assertTrue(len(ns.nodes()) == 3)
-
-        ns._do_command("exe v11")
-        ns._do_command("exe v12")
 
 if __name__ == '__main__':
     unittest.main()

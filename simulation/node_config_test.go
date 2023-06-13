@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2022, The OTNS Authors.
+// Copyright (c) 2023, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -24,58 +24,44 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-package otoutfilter
+package simulation
 
 import (
-	"io/ioutil"
-	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+
+	"github.com/openthread/ot-ns/types"
 )
 
-func TestOTOutFilter(t *testing.T) {
-	input := "> cmd1\n" +
-		"Done\n" +
-		"> cmd2\n" +
-		"Error: fail\n" +
-		"\n" +
-		"> cmd3\n" +
-		//-|C|W|N|I|D
-		"Any 00:00:17.817 [-]log1\n" +
-		"B01:00:17.817 [C]log2\n" +
-		"C 02:43:37.817 [W] log3\n" +
-		"D  33:00:17.817 [N] log4\n" +
-		"E text 44:33:22.123 [I]log5\n" +
-		"F text [x] no log\n" +
-		"00:00:00.000 [INFO]-CORE----: Notifier: StateChanged (0x01001009) [Ip6+ LLAddr Ip6Mult+ NetifState]\n" +
-		"00:00:00.000 [NOTE]-CLI-----: Output: > Done\n" +
-		"00:00:00.000 [DEBG]-PLAT----: Clear ExtAddr entries\n" +
-		"30:30:23.456 [WARN]-PLAT----: some text\n" +
-		"G[C]log2\n" +
-		"H[W] log3\n" +
-		"I[N] log4\n" +
-		"JKL[I]log5\n" +
-		"\n[D]log6\n" +
-		"Done\n" +
-		""
-	expectOutput := "cmd1\n" +
-		"Done\n" +
-		"cmd2\n" +
-		"Error: fail\n" +
-		"\n" +
-		"cmd3\n" +
-		"" +
-		"F text [x] no log\n" +
-		"\n" +
-		"Done\n" +
-		""
-
-	r := NewOTOutFilter(strings.NewReader(input), "Node<1> - ", nil)
-	output, err := ioutil.ReadAll(r)
-	if err != nil {
-		t.Fatal(err)
+func TestDetermineExecutableBasedOnConfig(t *testing.T) {
+	cfg := ExecutableConfig{
+		Ftd:         "my-ftd-fail",
+		Mtd:         "ot-cli-mtd",
+		Br:          "br-script",
+		SearchPaths: []string{".", "./otrfsim/path/not/found", "../ot-rfsim/build/bin"},
 	}
 
-	if string(output) != expectOutput {
-		t.Fatalf("output %#v, expect: %#v", string(output), expectOutput)
-	}
+	// if file could not be located, special name is returned.
+	nodeCfg := types.DefaultNodeConfig()
+	exe := cfg.DetermineExecutableBasedOnConfig(&nodeCfg)
+	assert.Equal(t, "./EXECUTABLE-NOT-FOUND", exe)
+
+	// test assumes that ot-rfsim has been built.
+	nodeCfg.IsMtd = true
+	nodeCfg.IsRouter = false
+	exe = cfg.DetermineExecutableBasedOnConfig(&nodeCfg)
+	assert.Equal(t, "../ot-rfsim/build/bin/ot-cli-mtd", exe)
+
+	// test assumes that ot-rfsim has been built.
+	cfg.Mtd = "./ot-cli-mtd"
+	exe = cfg.DetermineExecutableBasedOnConfig(&nodeCfg)
+	assert.Equal(t, "../ot-rfsim/build/bin/ot-cli-mtd", exe)
+
+	// Also non-executable files could be supplied. The error comes only later when adding the node type.
+	cfg.Ftd = "../simulation/node_config.go"
+	nodeCfg.IsMtd = false
+	nodeCfg.IsRouter = true
+	exe = cfg.DetermineExecutableBasedOnConfig(&nodeCfg)
+	assert.Equal(t, "../simulation/node_config.go", exe)
 }
