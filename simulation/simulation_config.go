@@ -51,36 +51,38 @@ var DefaultNodeInitScript = []string{
 }
 
 type Config struct {
-	InitScript     []string
-	ExeConfig      ExecutableConfig
-	NewNodeConfig  NodeConfig
-	Speed          float64
-	ReadOnly       bool
-	RawMode        bool
-	Real           bool
-	AutoGo         bool
-	DispatcherHost string
-	DispatcherPort int
-	DumpPackets    bool
-	RadioModel     string
-	Id             int
-	Channel        ChannelId
+	InitScript       []string
+	ExeConfig        ExecutableConfig
+	ExeConfigDefault ExecutableConfig
+	NewNodeConfig    NodeConfig
+	Speed            float64
+	ReadOnly         bool
+	RawMode          bool
+	Real             bool
+	AutoGo           bool
+	DispatcherHost   string
+	DispatcherPort   int
+	DumpPackets      bool
+	RadioModel       string
+	Id               int
+	Channel          ChannelId
 }
 
 func DefaultConfig() *Config {
 	return &Config{
-		InitScript:     DefaultNodeInitScript,
-		ExeConfig:      DefaultExecutableConfig,
-		NewNodeConfig:  DefaultNodeConfig(),
-		Speed:          1,
-		ReadOnly:       false,
-		RawMode:        false,
-		Real:           false,
-		AutoGo:         true,
-		DispatcherHost: "localhost",
-		DispatcherPort: InitialDispatcherPort,
-		RadioModel:     "Ideal_Rssi",
-		Id:             0,
-		Channel:        DefaultChannel,
+		InitScript:       DefaultNodeInitScript,
+		ExeConfig:        DefaultExecutableConfig,
+		ExeConfigDefault: DefaultExecutableConfig,
+		NewNodeConfig:    DefaultNodeConfig(),
+		Speed:            1,
+		ReadOnly:         false,
+		RawMode:          false,
+		Real:             false,
+		AutoGo:           true,
+		DispatcherHost:   "localhost",
+		DispatcherPort:   InitialDispatcherPort,
+		RadioModel:       "Ideal_Rssi",
+		Id:               0,
+		Channel:          DefaultChannel,
 	}
 }

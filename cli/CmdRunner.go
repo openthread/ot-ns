@@ -593,10 +593,12 @@ func (rt *CmdRunner) executeMoveNode(cc *CommandContext, cmd *MoveCmd) {
 func (rt *CmdRunner) executeLsNodes(cc *CommandContext, cmd *NodesCmd) {
 	rt.postAsyncWait(func(sim *simulation.Simulation) {
 		for _, nodeid := range sim.GetNodes() {
+			snode := sim.Nodes()[nodeid]
 			dnode := sim.Dispatcher().GetNode(nodeid)
 			var line strings.Builder
 			line.WriteString(fmt.Sprintf("id=%d\textaddr=%016x\trloc16=%04x\tx=%d\ty=%d\tstate=%s\tfailed=%v", nodeid, dnode.ExtAddr, dnode.Rloc16,
 				dnode.X, dnode.Y, dnode.Role, dnode.IsFailed()))
+			line.WriteString(fmt.Sprintf("\texe=%s", snode.GetExecutableName()))
 			cc.outputf("%s\n", line.String())
 		}
 	})
@@ -990,14 +992,12 @@ func (rt *CmdRunner) executeExe(cc *CommandContext, cmd *ExeCmd) {
 			return
 		} else if isSetDefault && !isSetPath && !isSetNodeType && !isSetVersion {
 			// set defaults for all node types.
-			cfg.ExeConfig.Ftd = simulation.DefaultExecutableConfig.Ftd
-			cfg.ExeConfig.Mtd = simulation.DefaultExecutableConfig.Mtd
-			cfg.ExeConfig.Br = simulation.DefaultExecutableConfig.Br
+			cfg.ExeConfig = cfg.ExeConfigDefault
 		} else if isSetVersion && !isSetPath {
 			// set executables to that of a named version for all node types except br.
 			cfg.ExeConfig.Ftd = simulation.GetExecutableForThreadVersion(cmd.Version.Val)
 			cfg.ExeConfig.Mtd = cfg.ExeConfig.Ftd
-			cfg.ExeConfig.Br = simulation.DefaultExecutableConfig.Br
+			cfg.ExeConfig.Br = cfg.ExeConfigDefault.Br
 		} else if !isSetDefault && !isSetNodeType && !isSetVersion && !isSetPath {
 			// display the exe output list.
 		} else {
@@ -1008,6 +1008,8 @@ func (rt *CmdRunner) executeExe(cc *CommandContext, cmd *ExeCmd) {
 		cc.outputf("ftd: %s\n", cfg.ExeConfig.Ftd)
 		cc.outputf("mtd: %s\n", cfg.ExeConfig.Mtd)
 		cc.outputf("br : %s\n", cfg.ExeConfig.Br)
+		cc.outputf("Executables search path: %s\n", cfg.ExeConfig.SearchPathsString())
+		cc.outputf("Detected FTD path      : %s\n", cfg.ExeConfig.DetermineExecutableBasedOnConfig(&cfg.NewNodeConfig))
 	})
 }
 

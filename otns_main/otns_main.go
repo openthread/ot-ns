@@ -241,10 +241,10 @@ func createSimulation(ctx *progctx.ProgCtx) *simulation.Simulation {
 	var err error
 
 	simcfg := simulation.DefaultConfig()
+
 	simcfg.ExeConfig.Ftd = args.OtCliPath
 	simcfg.ExeConfig.Mtd = args.OtCliMtdPath
 	simcfg.NewNodeConfig.InitScript = simulation.DefaultNodeInitScript
-
 	args.Speed = strings.ToLower(args.Speed)
 	if args.Speed == "max" {
 		speed = dispatcher.MaxSimulateSpeed

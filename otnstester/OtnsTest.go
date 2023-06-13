@@ -303,6 +303,10 @@ func (ot *OtnsTest) Commandf(format string, args ...interface{}) []string {
 }
 
 func (ot *OtnsTest) visualizeStreamReadRoutine() {
+	if ot.visualizeStream == nil {
+		simplelogger.Errorf("No ot.visualizeStream was created yet (due to timeout)")
+		return
+	}
 	vctx := ot.visualizeStream.Context()
 
 	for vctx.Err() == nil {

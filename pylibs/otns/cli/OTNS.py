@@ -283,7 +283,7 @@ class OTNS(object):
         return True
 
     def add(self, type: str, x: float = None, y: float = None, id=None, radio_range=None, executable=None,
-            restore=False) -> int:
+            restore=False, version: str = None) -> int:
         """
         Add a new node to the simulation.
 
@@ -294,6 +294,7 @@ class OTNS(object):
         :param radio_range: node radio range or None for default
         :param executable: specify the executable for the new node, or use default executable if None
         :param restore: whether the node restores network configuration from persistent storage
+        :param version: optional OT node version string like 'v11', 'v12', or 'v13'
 
         :return: added node ID
         """
@@ -314,6 +315,9 @@ class OTNS(object):
 
         if restore:
             cmd += f' restore'
+
+        if version is not None:
+            cmd += f' {version}'
 
         return self._expect_int(self._do_command(cmd))
 

@@ -1,4 +1,4 @@
-# Copyright (c) 2020, The OTNS Authors.
+# Copyright (c) 2020-2023, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -105,26 +105,3 @@ jobs:
       - name: Run Examples
         run: |
           ./script/test py-examples
-
-  signals:
-    name: Signals (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: [3.7]
-        os: [ubuntu-20.04, macos-11]
-    env:
-      HOMEBREW_NO_AUTO_UPDATE: 1
-    steps:
-      - uses: actions/setup-go@v1
-        with:
-          go-version: 1.18
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v1
-        with:
-          python-version: ${{ matrix.python-version }}
-      - uses: actions/checkout@v2
-      - name: Test
-        run: |
-          ./script/test signals

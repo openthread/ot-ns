@@ -25,11 +25,8 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-import logging
 import unittest
-from typing import Dict
 
-from OTNSTestCase import OTNSTestCase
 from test_basic import BasicTests
 from test_commissioning import CommissioningTests
 from test_ping import PingTests
@@ -38,12 +35,13 @@ from otns.cli import errors, OTNS
 
 
 class BasicTests_MutualInterference(BasicTests):
-    #override
+
+    # override
     def setUp(self):
         super().setUp()
         self.ns.radiomodel = 'MutualInterference'
 
-    #override: need to adjust for longer range of MutualInterference model.
+    # override: need to adjust for longer range of MutualInterference model.
     def testRadioNotInRange(self):
         ns = self.ns
         radio_range = 100
@@ -85,56 +83,64 @@ class BasicTests_MutualInterference(BasicTests):
 
 
 class BasicTests_IdealRssi(BasicTests):
-    #override
+
+    # override
     def setUp(self):
         super().setUp()
         self.ns.radiomodel = 'Ideal_Rssi'
 
 
 class BasicTests_MIDisc(BasicTests):
-    #override
+
+    # override
     def setUp(self):
         super().setUp()
         self.ns.radiomodel = 'MIDisc'
 
 
 class CommissioningTests_MutualInterference(CommissioningTests):
-    #override
+
+    # override
     def setUp(self):
         super().setUp()
         self.ns.radiomodel = 'MutualInterference'
 
 
 class CommissioningTests_IdealRssi(CommissioningTests):
-    #override
+
+    # override
     def setUp(self):
         super().setUp()
         self.ns.radiomodel = 'Ideal_Rssi'
 
 
 class CommissioningTests_MIDisc(CommissioningTests):
-    #override
+
+    # override
     def setUp(self):
         super().setUp()
         self.ns.radiomodel = 'MIDisc'
 
 
 class PingTests_MutualInterference(PingTests):
-    #override
+
+    # override
     def setUp(self):
         super().setUp()
         self.ns.radiomodel = 'MutualInterference'
 
 
 class PingTests_MIDisc(PingTests):
-    #override
+
+    # override
     def setUp(self):
         super().setUp()
         self.ns.radiomodel = 'MIDisc'
 
 
 class CslTests_MutualInterference(CslTests):
-    #override
+
+    # override
     def setUp(self):
         super().setUp()
         self.ns.radiomodel = 'MutualInterference'
