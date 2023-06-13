@@ -97,13 +97,6 @@ func newNode(s *Simulation, nodeid NodeId, cfg *NodeConfig) (*Node, error) {
 		}
 	}
 
-	// open log file for node's OT output
-	logFile, err := os.OpenFile(logFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0664)
-	if err != nil {
-		simplelogger.Errorf("Opening node log file %s failed: %+v", logFileName, err)
-		return nil, err
-	}
-
 	simplelogger.Debugf("node exe path: %s", cfg.ExecutablePath)
 	cmd := exec.CommandContext(context.Background(), cfg.ExecutablePath, strconv.Itoa(nodeid), s.d.GetUnixSocketName())
 
@@ -114,7 +107,7 @@ func newNode(s *Simulation, nodeid NodeId, cfg *NodeConfig) (*Node, error) {
 		cmd:          cmd,
 		pendingLines: make(chan string, 10000),
 		uartType:     NodeUartTypeUndefined,
-		logFile:      logFile,
+		logFile:      nil,
 		err:          nil,
 	}
 
@@ -132,7 +125,19 @@ func newNode(s *Simulation, nodeid NodeId, cfg *NodeConfig) (*Node, error) {
 		return nil, err
 	}
 
+	// open log file for node's OT output
+	logFile, err := os.OpenFile(logFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0664)
+	if err != nil {
+		simplelogger.Errorf("Opening node log file %s failed: %+v", logFileName, err)
+		return nil, err
+	}
+	node.logFile = logFile
+	simplelogger.Debugf("Node log file '%s' opened.", logFileName)
+
 	if err = cmd.Start(); err != nil {
+		if logFile != nil {
+			_ = logFile.Close()
+		}
 		return nil, err
 	}
 
@@ -632,16 +637,19 @@ func (node *Node) GetSingleton() bool {
 }
 
 func (node *Node) lineReader(reader io.Reader, uartType NodeUartType) {
-	// close the line channel after line reader routine exit.
+	// TODO close the line channel after line reader routine exits?
+
 	// Below filter takes out any OT node log-message lines and sends these to the handler.
 	scanner := bufio.NewScanner(otoutfilter.NewOTOutFilter(bufio.NewReader(reader), "", node.handlerLogMsg))
 	scanner.Split(bufio.ScanLines)
 
+	// Below loop handles the remainder of OT node output that are not OT node log messages.
 	for scanner.Scan() {
 		line := scanner.Text()
 
-		// append line to node-specific log file.
-		node.writeToLogFile(line)
+		node.S.PostAsync(false, func() {
+			node.writeToLogFile(line)
+		})
 
 		if node.uartType == NodeUartTypeUndefined {
 			simplelogger.Debugf("%v's UART type is %v", node, uartType)
@@ -671,11 +679,9 @@ func (node *Node) lineReaderStdErr(reader io.Reader) {
 			node.errProc = errors.New(line)
 		}
 
-		// append it to node-specific log file.
-		node.writeToLogFile(line)
-
-		// send it to watch output.
+		// send it to log file and watch output.
 		node.S.PostAsync(false, func() {
+			node.writeToLogFile(line)
 			node.S.Dispatcher().WatchMessage(node.Id, dispatcher.WatchCritLevel, fmt.Sprintf("%v StdErr: %v", node, line))
 		})
 	}
@@ -689,12 +695,10 @@ func (node *Node) lineReaderStdErr(reader io.Reader) {
 // handles an incoming log message from the OT-Node and its detected loglevel (otLevel). It is written
 // to the node's log file. Display of the log message is done by the Dispatcher.
 func (node *Node) handlerLogMsg(otLevel string, msg string) {
-	// append msg to node-specific log file.
-	node.writeToLogFile(msg)
-
 	// create a node-specific log message that may be used by the Dispatcher's Watch function.
 	lev := dispatcher.ParseWatchLogLevel(otLevel)
 	node.S.PostAsync(false, func() {
+		node.writeToLogFile(msg)
 		node.S.Dispatcher().WatchMessage(node.Id, lev, msg)
 	})
 }
@@ -815,12 +819,21 @@ func (node *Node) onUartWrite(data []byte) {
 }
 
 func (node *Node) writeToLogFile(line string) {
-	if node.logFile != nil {
-		_, err := node.logFile.WriteString(line + "\n")
-		if err != nil {
-			simplelogger.Error("Couldn't write to log file of %v, closing it (%s)", node, node.logFile)
-			_ = node.logFile.Close()
-			node.logFile = nil
-		}
+	if node.logFile == nil {
+		return
+	}
+
+	// determine node us timestamp
+	dnode := node.S.Dispatcher().GetNode(node.Id)
+	var timestamp uint64 = 0
+	if dnode != nil {
+		timestamp = dnode.CurTime
+	}
+
+	_, err := node.logFile.WriteString(fmt.Sprintf("%-10d ", timestamp) + line + "\n")
+	if err != nil {
+		simplelogger.Error("Couldn't write to log file of %v, closing it (%s)", node, node.logFile)
+		_ = node.logFile.Close()
+		node.logFile = nil
 	}
 }

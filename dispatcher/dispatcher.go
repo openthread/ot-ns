@@ -386,6 +386,7 @@ func (d *Dispatcher) handleRecvEvent(evt *Event) {
 		return // node was deleted already: just silently ignore event.
 	}
 
+	node.conn = evt.Conn      // store socket connection for this node.
 	d.setAlive(nodeid)        // node stays alive until Alarm event is received.
 	evt.Timestamp = d.CurTime // timestamp the incoming event
 
@@ -399,7 +400,7 @@ func (d *Dispatcher) handleRecvEvent(evt *Event) {
 	if d.cfg.Real && (evt.Type == EventTypeAlarmFired || evt.Type == EventTypeRadioReceived ||
 		evt.Type == EventTypeRadioCommStart || evt.Type == EventTypeRadioChannelSample ||
 		evt.Type == EventTypeRadioState) {
-		simplelogger.Warnf("unexpected event in real mode: %v", evt.Type)
+		simplelogger.Fatalf("unexpected event in real mode: %v", evt.Type)
 		return
 	}
 
@@ -409,7 +410,7 @@ func (d *Dispatcher) handleRecvEvent(evt *Event) {
 		d.setSleeping(node.Id)
 		d.alarmMgr.SetTimestamp(nodeid, d.CurTime+delay) // schedule future wake-up of node
 	case EventTypeRadioReceived:
-		simplelogger.Panicf("legacy EventTypeRadioReceived received - wrong OT node executable version.")
+		simplelogger.Panicf("legacy EventTypeRadioReceived received - unsupported OT node executable version.")
 	case EventTypeRadioCommStart:
 		fallthrough
 	case EventTypeRadioChannelSample:
@@ -585,7 +586,7 @@ func (d *Dispatcher) eventsReader() {
 		conn, err := d.udpln.Accept()
 		if d.IsStopped() {
 			if conn != nil {
-				conn.Close()
+				_ = conn.Close()
 			}
 			break
 		}
@@ -633,11 +634,9 @@ func (d *Dispatcher) eventsReader() {
 					if myNodeId == 0 && evt.Type == EventTypeNodeInfo {
 						myNodeId = evt.NodeInfoData.NodeId
 						simplelogger.AssertTrue(myNodeId > 0)
-						myNode = d.GetNode(myNodeId)
-						simplelogger.AssertNotNil(myNode)
-						myNode.conn = myConn // also identify the client connection, once.
 					}
 					evt.NodeId = myNodeId
+					evt.Conn = myConn
 					d.eventChan <- evt
 				}
 			}

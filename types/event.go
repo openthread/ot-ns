@@ -30,6 +30,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math"
+	"net"
 	"strings"
 	"unicode"
 
@@ -71,6 +72,7 @@ type Event struct {
 	NodeId       NodeId
 	Timestamp    uint64
 	MustDispatch bool
+	Conn         net.Conn
 
 	// supplementary payload data stored in Event.Data, depends on the event type.
 	AlarmData      AlarmEventData

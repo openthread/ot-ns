@@ -308,7 +308,7 @@ class BasicTests(OTNSTestCase):
         self.assertNodeState(reed, 'child')
 
         ns.set_router_upgrade_threshold(reed, 2)
-        ns.go(130)
+        ns.go(150)
         self.assertNodeState(reed, 'router')
 
     def testSetRouterDowngradeThreshold(self):
