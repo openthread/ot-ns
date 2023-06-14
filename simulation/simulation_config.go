@@ -29,14 +29,18 @@ package simulation
 import "github.com/openthread/ot-ns/threadconst"
 
 const (
-	DefaultNetworkName = "OTSIM"
-	DefaultNetworkKey  = "00112233445566778899aabbccddeeff"
-	DefaultPanid       = 0xface
-	DefaultChannel     = 11
+	DefaultChannel         = 11
+	DefaultChannelMask     = 0x07fff800
+	DefaultExtPanid        = "dead00beef00cafe"
+	DefaultMeshLocalPrefix = "fdde:ad00:beef:0::"
+	DefaultNetworkKey      = "00112233445566778899aabbccddeeff"
+	DefaultNetworkName     = "otns"
+	DefaultPanid           = 0xface
+	DefaultPskc            = "3aa55f91ca47d1e4e71a08cb35e91591"
+	DefaultSecurityPolicy  = "672 onrc"
 )
 
 type Config struct {
-	NetworkName    string
 	NetworkKey     string
 	Panid          uint16
 	Channel        int
@@ -52,7 +56,6 @@ type Config struct {
 
 func DefaultConfig() *Config {
 	return &Config{
-		NetworkName:    DefaultNetworkName,
 		NetworkKey:     DefaultNetworkKey,
 		Panid:          DefaultPanid,
 		Channel:        DefaultChannel,
