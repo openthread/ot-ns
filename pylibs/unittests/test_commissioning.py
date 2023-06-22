@@ -54,14 +54,16 @@ class BasicTests(OTNSTestCase):
         n2 = ns.add("router")
         n3 = ns.add("router")
 
-        ns.config_dataset(n1, panid=0xface, network_name="test", networkkey="00112233445566778899aabbccddeeff")
+        ns.node_cmd(n1, "dataset init new")
+        ns.node_cmd(n1, "dataset panid 0xface")
+        ns.node_cmd(n1, "dataset networkkey 00112233445566778899aabbccddeeff")
+        ns.node_cmd(n1, "dataset networkname test")
+        ns.node_cmd(n1, "dataset commit active")
         ns.ifconfig_up(n1)
         ns.thread_start(n1)
 
         for id in (n2, n3):
-            ns.set_network_name(id, "test")
-            ns.set_panid(id, 0xface)
-            ns.set_networkkey(id, "00112233445566778899aabbccddeeff")
+            ns.config_dataset(id, panid=0xface, network_name="test", networkkey="00112233445566778899aabbccddeeff")
             ns.ifconfig_up(id)
             ns.thread_start(id)
 
