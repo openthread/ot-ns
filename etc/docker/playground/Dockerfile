@@ -28,9 +28,8 @@
 FROM openthread/environment
 
 WORKDIR /openthread
-RUN ./bootstrap
-RUN make -f examples/Makefile-simulation OTNS=1 BACKBONE_ROUTER=1 DUA=1 MLR=1 THREAD_VERSION=1.2
-RUN strip /openthread/output/simulation/bin/ot-cli-ftd
+RUN ./script/cmake-build simulation -DOT_OTNS=on -DOT_SIMULATION_VIRTUAL_TIME=on -DOT_BACKBONE_ROUTER=on -DOT_DUA=on -DOT_MLR=on
+RUN strip /openthread/build/simulation/examples/apps/cli/ot-cli-ftd
 
 # Stage 1: build OTNS and dependencies
 FROM golang:1.17-buster
@@ -48,7 +47,7 @@ RUN strip /go/bin/grpcwebproxy /go/bin/otns
 # Stage 2: build the final image
 FROM debian:buster
 
-COPY --from=0 /openthread/output/simulation/bin/ot-cli-ftd /usr/bin/
+COPY --from=0 /openthread/build/simulation/examples/apps/cli/ot-cli-ftd /usr/bin/
 COPY --from=1 /go/bin/grpcwebproxy /go/bin/otns /usr/bin/
 
 EXPOSE 8997 8998 8999 9000
