@@ -231,7 +231,7 @@ func deserializeRadioStateData(data []byte) RadioStateEventData {
 func deserializeNodeInfoData(data []byte) NodeInfoEventData {
 	simplelogger.AssertTrue(len(data) >= NodeInfoEventDataHeaderLen)
 	s := NodeInfoEventData{
-		NodeId: NodeId(uint32(data[0])),
+		NodeId: NodeId(binary.LittleEndian.Uint32(data[0:4])),
 	}
 	return s
 }
