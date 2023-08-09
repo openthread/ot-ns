@@ -1,4 +1,4 @@
-// Copyright (c) 2022, The OTNS Authors.
+// Copyright (c) 2022-2023, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -128,6 +128,21 @@ func TestSerializeRadioRxDoneEvent(t *testing.T) {
 	}
 	data := ev.Serialize()
 	assert.Equal(t, dataExpected, data)
+}
+
+func TestDeserializeNodeInfoEvent(t *testing.T) {
+	data, _ := hex.DecodeString("00000000000000000c040020000000")
+	var ev Event
+	ev.Deserialize(data)
+	assert.True(t, 0 == ev.Delay)
+	assert.Equal(t, EventTypeNodeInfo, ev.Type)
+	assert.Equal(t, 32, ev.NodeInfoData.NodeId)
+
+	data, _ = hex.DecodeString("00000000000000000c040081800a00")
+	ev.Deserialize(data)
+	assert.True(t, 0 == ev.Delay)
+	assert.Equal(t, EventTypeNodeInfo, ev.Type)
+	assert.Equal(t, 688257, ev.NodeInfoData.NodeId)
 }
 
 func TestEventCopy(t *testing.T) {
