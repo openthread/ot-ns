@@ -54,7 +54,7 @@ class CslTests(OTNSTestCase):
 
         # add SSED
         nodeid = ns.add("sed", 220, 100)
-        ns.node_cmd(nodeid,"csl period 1800")
+        ns.node_cmd(nodeid,"csl period 288000")
         ns.go(10)
 
         # Parent comes in, SSED connects
@@ -75,10 +75,11 @@ class CslTests(OTNSTestCase):
         # setup a Parent Router with N SSED Children with different CSL Periods.
         N = 8
         ns.add("router", 100, 100)
+        # below CSL periods to test (given in units of 160 us)
         aCslPeriods = [3100, 500, 7225, 1024, 3125, 3124, 250, 5999, 777, 1024]
         for n in range(0,N):
             nodeid = ns.add("sed", 80 + n*20, 150)
-            ns.node_cmd(nodeid,"csl period " + str(aCslPeriods[n]))
+            ns.node_cmd(nodeid,"csl period " + str(aCslPeriods[n] * 160))
             ns.go(1)
         ns.go(45)
         self.assertFormPartitions(1)
@@ -109,7 +110,7 @@ class CslTests(OTNSTestCase):
         ns.add("router", 100, 100)
         ns.go(10)
         nodeid = ns.add("sed", 200, 100)
-        ns.node_cmd(nodeid,"csl period 1800")
+        ns.node_cmd(nodeid,"csl period 288000")
         ns.go(10)
         self.assertFormPartitions(1)
 
@@ -137,7 +138,7 @@ class CslTests(OTNSTestCase):
             self.verifyPings(ns.pings(), 15, maxDelay=3000, maxFails=1)
 
             # re-enable CSL
-            ns.node_cmd(nodeid,"csl period 1800")
+            ns.node_cmd(nodeid,"csl period 144000")
             ns.go(1)
 
             # SSED pings parent
