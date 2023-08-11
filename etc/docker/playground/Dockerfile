@@ -24,15 +24,8 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-# Stage 0: build OpenThread
-FROM openthread/environment
-
-WORKDIR /openthread
-RUN ./script/cmake-build simulation -DOT_OTNS=on -DOT_SIMULATION_VIRTUAL_TIME=on -DOT_BACKBONE_ROUTER=on -DOT_DUA=on -DOT_MLR=on
-RUN strip /openthread/build/simulation/examples/apps/cli/ot-cli-ftd
-
-# Stage 1: build OTNS and dependencies
-FROM golang:1.17-buster
+# Stage 0: build OTNS and dependencies
+FROM golang:1.18
 
 RUN apt-get update
 RUN apt-get install -y python3 python3-pip unzip
@@ -41,15 +34,20 @@ COPY . /otns
 WORKDIR /otns
 RUN ./script/install-deps
 RUN ./script/install
+WORKDIR /otns/ot-rfsim
+RUN ./script/bootstrap
+RUN ./script/build_latest
+RUN ./script/build_v11
+RUN ./script/build_v12
+RUN ./script/build_v13
 
 RUN strip /go/bin/grpcwebproxy /go/bin/otns
 
-# Stage 2: build the final image
+# Stage 1: build the final image
 FROM debian:buster
 
-COPY --from=0 /openthread/build/simulation/examples/apps/cli/ot-cli-ftd /usr/bin/
-COPY --from=1 /go/bin/grpcwebproxy /go/bin/otns /usr/bin/
+COPY --from=0 /go/bin/grpcwebproxy /go/bin/otns /usr/bin/
 
 EXPOSE 8997 8998 8999 9000
 
-ENTRYPOINT [ "otns", "-ot-cli", "ot-cli-ftd" ]
+ENTRYPOINT [ "otns" ]
