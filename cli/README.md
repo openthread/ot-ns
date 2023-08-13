@@ -45,12 +45,13 @@ Python libraries use the CLI to manage simulations.
 Add a node to the simulation and get the node ID. Node ID can be specified, otherwise OTNS assigns the next available 
 one.
 
-If `restore` option is specified, the node restores its network configuration from persistent storage.
+If the `restore` option is specified, the node restores its network configuration from persistent storage.
 
 The (advanced) `exe` option can be used to specify a node executable for the new node; however the `exe` command is 
 better used for this.
 The options `v11` and `v12` are a quick way to add a legacy Thread v1.1 or v1.2 node. This only works if the binaries 
-for these nodes have been built using the build scripts in the `ot-rfsim` submodule.
+for these nodes have been built using the build scripts in the `ot-rfsim` submodule. See [GUIDE.md](../GUIDE.md) for 
+details on this.
 
 ```bash
 > add router
@@ -71,11 +72,15 @@ Done
 > add fed x 200 y 200 id 25
 25
 Done
+> add router v11
+6
+Done
 ```
 
 ### coaps enable
 
-Enable collecting info of CoAP messages.
+Enable collecting info of CoAP messages. CoAP message transmission and reception is detected through the special 
+"coap" OTNS push events sent from the OT node binary to the simulator.
 
 ```
 > coaps enable
@@ -102,11 +107,13 @@ Display runtime counters.
 AlarmEvents                              95983
 RadioEvents                              1674
 StatusPushEvents                         47
+UartWriteEvents                          182322
+CollisionEvents                          0
 DispatchByExtAddrSucc                    239
 DispatchByExtAddrFail                    0
 DispatchByShortAddrSucc                  188
 DispatchByShortAddrFail                  0
-DispatchAllInRange                       0
+DispatchAllInRange                       290
 Done
 ```
 
@@ -157,7 +164,7 @@ Done
 ``` 
 
 ### energy \[save\] "\<filename\>"
-To be documented - saves energy use information of nodes to file.
+To be documented (TODO) - saves energy use information of nodes to file.
 
 ### exit
 
@@ -178,20 +185,28 @@ of the node types
 FTD (Full Thread Device), MTD (Minimal Thread Device) and BR (Thread Border Router). When a new node is created the
 executable currently in this list is used to start a node instance of the respective node type.
 
+NOTE: the `br` (Border Router) node type is currently not supported (functionality is under construction).
+
+The line `Executables search path` lists the paths where the executable of that given name will be searched first.
+Finally, the line `Detected FTD path` lists the final detected path where the `ftd` executable has been found. This 
+is provided as a sanity check (for the FTD case only) that the right executable has been detected for future OT nodes.
+
 ```bash
 > exe
-ftd: ./ot-cli-ftd
-mtd: ./ot-cli-ftd
-br : ./otbr-sim.sh
+ftd: ot-cli-ftd
+mtd: ot-cli-ftd
+br : ot-br.sh
+Executables search path: [".", "./ot-rfsim/ot-versions"]
+Detected FTD path      : ./ot-rfsim/ot-versions/ot-cli-ftd
 Done
 >  
 ```
 
-### exe (default | v11 | v12 )
+### exe (default | v11 | v12 | v13)
 
 Set all OpenThread (OT) executables, or shell scripts, for all node types to particular defaults. Value `default` will 
 use the OT-NS default executables which is OpenThread as built by the user and placed in the `.` directory from 
-where the simulator is run. Values starting with `v1` will use the pre-built binary of the specific indicated Thread 
+where the simulator is run. Values starting with `v` will use the pre-built binary of the specific indicated Thread 
 version, e.g. `v12` denotes Thread v1.2.x. 
 
 ```bash
@@ -224,6 +239,8 @@ Done
 ftd: ./my-ot-cli-ftd
 mtd: ./ot-cli-ftd
 br : ./br-script.sh
+Executables search path: [".", "./ot-rfsim/ot-versions"]
+Detected FTD path      : ./my-ot-cli-ftd
 Done
 > exe mtd
 mtd: ./ot-cli-ftd
@@ -265,7 +282,7 @@ Show help text for a specific CLI command.
 
 ### joins
 
-Connect finished joiner sessions.
+Displays finished joiner sessions.
 
 ```bash
 > joins
@@ -276,7 +293,8 @@ Done
 ### log \[ debug | info | warn | error \]
 
 Inspect the current log level, or set a new log level. The default is taken from the command line argument,
-or 'warn' if nothing specified. Use 'debug' to see detailed log messages.
+or 'warn' if nothing is specified yet. Use 'debug' to see detailed log messages.
+Log level 'info' or lower is needed to see any OT node's stack + application log messages.
 
 ```bash
 > log
@@ -291,7 +309,7 @@ Done
 
 ### move \<node-id\> \<x\> \<y\>
 
-Move a node to the target position.
+Move a node to the target position (x,y).
 
 ```bash
 > move 1 200 300
@@ -302,6 +320,10 @@ Done
 
 Set network info.
 
+NOTE: this command will be modified or removed in a next version, because the version, commit and 'real' information 
+does not accurately reflect the information from the present simulation and the nodes present in it. For example, 
+nodes of multiple commit versions may be present, as well as multiple versions.
+
 ```bash
 > netinfo version "Latest"
 Done
@@ -310,11 +332,12 @@ Done
 > netinfo real y
 Done
 ```
+
 ### node \<node-id\>
 
 Switch CLI context to a specific OT node. From within this new context, regular OT commands (e.g. "help") can be 
-used to directly interact with the node. The command 'exit' or 'node 0' can then be used again to exit the node 
-context and return the CLI to global context.
+used to directly interact with the node's CLI. The command 'exit' or 'node 0' can then be used again to exit the node 
+context and return the CLI to global (OTNS) command context.
 
 ```bash
 > node 3
@@ -328,7 +351,8 @@ Done
 ```
 
 While in a node context, there is a shortcut to execute global-scope commands instead of node-specific OT CLI 
-commands. This is adding the exclamation mark '!' character before the command.
+commands. This is adding the exclamation mark '!' character before the command. This is useful to avoid frequently 
+changing between global and node contexts.
 
 ```bash
 > node 2
@@ -356,7 +380,8 @@ Done
 
 ### nodes
 
-List nodes.
+List current nodes in the simulation and some key status information. The attribute 'failed' represents whether the 
+node is currently in a simulated radio failure (true), or not (false).
 
 ```bash
 > nodes
@@ -368,7 +393,7 @@ Done
 
 ### partitions (pts)
 
-List partitions. 
+List Thread partitions in the current simulation. 
 ```
 > partitions
 partition=4683661d	nodes=4,1,3
@@ -382,7 +407,10 @@ Done
 
 ### ping \<src-id\> \[\<dst-id\> \[\<addr-type\>\] | "\<dst-addr\>" \] \[datasize \<datasize\>\] \[count \<count\>\] \[interval \<interval\>\] \[hoplimit \<hoplimit\>\]
 
-Ping from the source node to a destination (another node or an IPv6 address). 
+Request ping from the source node to a destination (another node or an IPv6 address).
+
+NOTE: Sleepy End Devices (SEDs) typically don't respond to a ping request, while Synchronized Sleepy End Devices
+(SSEDs) do. A regular SED can be turned into a SSED by using the `csl period` command on the SED node.
 
 ```bash
 > ping 1 2 
@@ -413,7 +441,12 @@ Done
 
 ### plr
 
-Get the global packet loss ratio
+Get the global packet loss ratio (PLR) defined in the simulation. Value `0` means no random packet loss, `0.5` means 
+50% of packets are randomly lost, while `1.0` means 100% of packets are lost.
+
+Note that packets can be lost even if PLR is 0, for example if the RSSI of a frame is below the receiver's 
+detection threshold, or if it has been interfered by another transmission. The PLR defines just an additional 
+mechanism of pure random loss.
 
 ```bash
 > plr 
@@ -423,7 +456,7 @@ Done
 
 ### plr \<plr\>
 
-Set the global packet loss ratio
+Set the global packet loss ratio (PLR) of the simulation.
 
 ```bash
 > plr 0.5
@@ -434,6 +467,7 @@ Done
 ### radio \<node-id\> \[<node-id> ...\] \[on \| off \| ft \<fail-duration\> \<fail-interval\>\]
 
 Set the radio on/off/fail time parameters in seconds. 
+While a node's radio is off/failed, a red cross will be shown over the node in the Web GUI.
 
 ```bash
 > radio 1 off
@@ -489,7 +523,7 @@ Done
 
 ### scan \<node-id\>
 
-Perform a network scan.
+Perform a network scan by the indicated node.
 
 ```bash
 > scan 2
@@ -542,6 +576,8 @@ Done
 
 Display current simulation time in us. 
 
+The below shows an example of a paused simulation, that is advanced by exactly 100 microseconds.
+
 ```bash
 > time
 312560
@@ -556,14 +592,14 @@ Done
 
 ### title "\<string\>"
 
-Set simulation title.
+Set simulation title. This is displayed in the GUI.
 
 ```bash
 > title "Example"
 Done
 ```
 
-### title "\<string\>" \[x \<int\>\] \[y \<int\>\]
+#### title "\<string\>" \[x \<int\>\] \[y \<int\>\]
 
 Set simulation title at specified position. 
 
@@ -572,7 +608,7 @@ Set simulation title at specified position.
 Done
 ```
 
-### title "\<string\>" \[fs \<int\>\]
+#### title "\<string\>" \[fs \<int\>\]
 
 Set simulation title with specified font size. 
 
@@ -625,7 +661,7 @@ cause OT stack log messages from indicated log level, or higher (more important)
 Info (I) level or up is shown. Setting the level can be useful for interactive debugging or inspection of a node's behavior 
 including the operation of its simulated radio.
 
-* Valid long-form LogLevels are "debug", "info", "note", "warn", "error", or "crit" (same as "error").
+* Valid long-form LogLevels are "trace", "debug", "info", "note", "warn", "error", or "crit" (same as "error").
 * Valid short-form LogLevels that are named like in the OT stack log output are "D", "I", "N", "W", "C"; with 
  additionally "T" for trace or "E" for error/critical available.
 * This command can also be used to change the LogLevel of one or more nodes being already watched, to a new  
@@ -650,7 +686,7 @@ Done
 #### watch all \[\<LogLevel\>\]
 
 Enable the watch status for all nodes. See [watch](#watch-node-id-node-id-) for details and 
-[watch \<LogLevel\>](#watch-node-id-node-id--loglevel) for the LogLevel option.
+[watch \<LogLevel\>](#watch-node-id-node-id--loglevel) for details about the LogLevel option.
 
 ```bash
 > watch all
@@ -681,7 +717,9 @@ Done
 
 ### web
 
-Open a web browser for visualization. 
+Open a web browser (tab) for visualization. 
+
+NOTE: multiple web browser tabs/windows may be opened for the same simulation.
 
 ```bash
 > web
