@@ -47,8 +47,8 @@ one.
 
 If the `restore` option is specified, the node restores its network configuration from persistent storage.
 
-The (advanced) `exe` option can be used to specify a node executable for the new node; however the `exe` command is 
-better used for this.
+The (advanced) `exe` option can be used to specify a node executable for the new node; either a name only which is 
+then located in the default search paths, or a full abs or rel pathname pointing to the executable to use.
 The options `v11` and `v12` are a quick way to add a legacy Thread v1.1 or v1.2 node. This only works if the binaries 
 for these nodes have been built using the build scripts in the `ot-rfsim` submodule. See [GUIDE.md](../GUIDE.md) for 
 details on this.
@@ -74,6 +74,12 @@ Done
 Done
 > add router v11
 6
+Done
+> add router exe "ot-cli-ftd_nologs"
+7
+Done
+> add router exe "/home/user/my/path/to/ot-cli-ftd"
+8
 Done
 ```
 

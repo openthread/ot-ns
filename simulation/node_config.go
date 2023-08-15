@@ -81,6 +81,24 @@ func isFile(exePath string) bool {
 	return false
 }
 
+// DetermineExecutableBasedOnExeName returns a full path to the named executable, by searching in standard
+// search paths if needed. If the given exeName is already a full path itself, it will be returned itself.
+func (cfg *ExecutableConfig) DetermineExecutableBasedOnExeName(exeName string) string {
+	if filepath.IsAbs(exeName) || exeName[0] == '.' {
+		return exeName
+	}
+	for _, sp := range cfg.SearchPaths {
+		exePath := filepath.Join(sp, exeName)
+		if isFile(exePath) {
+			if filepath.IsAbs(exePath) || exePath[0] == '.' {
+				return exePath
+			}
+			return "./" + exePath
+		}
+	}
+	return exeName
+}
+
 func (cfg *ExecutableConfig) DetermineExecutableBasedOnConfig(nodeCfg *NodeConfig) string {
 	exeName := cfg.Ftd
 	if nodeCfg.IsMtd {
@@ -95,16 +113,7 @@ func (cfg *ExecutableConfig) DetermineExecutableBasedOnConfig(nodeCfg *NodeConfi
 	}
 
 	// if not found directly, it means it's just a name that needs to be located in our search paths.
-	for _, sp := range cfg.SearchPaths {
-		exePath := filepath.Join(sp, exeName)
-		if isFile(exePath) {
-			if filepath.IsAbs(exePath) || exePath[0] == '.' {
-				return exePath
-			}
-			return "./" + exePath
-		}
-	}
-	return "./EXECUTABLE-NOT-FOUND"
+	return cfg.DetermineExecutableBasedOnExeName(exeName)
 }
 
 func NewNodeAutoPlacer() *NodeAutoPlacer {

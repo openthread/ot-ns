@@ -358,7 +358,7 @@ func (rt *CmdRunner) executeAddNode(cc *CommandContext, cmd *AddCmd) {
 	}
 
 	if cmd.Executable != nil {
-		cfg.ExecutablePath = cmd.Executable.Path
+		cfg.ExecutablePath = simCfg.ExeConfig.DetermineExecutableBasedOnExeName(cmd.Executable.Path)
 	} else if cmd.Version != nil {
 		cfg.ExecutablePath = simulation.GetExecutableForThreadVersion(cmd.Version.Val)
 	}

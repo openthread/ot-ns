@@ -29,7 +29,6 @@
 . "$(dirname "$0")"/common.sh
 
 OT_DIR=${OT_DIR:-}
-OTBIN_DIR=
 
 show_help()
 {
@@ -66,7 +65,7 @@ go_tests()
 
     pwd
     for d in $PKG; do
-        OTNS_OT_CLI=$OTBIN_DIR/ot-cli-ftd go test -race -coverprofile=profile.out -covermode=atomic -coverpkg=./... "$d"
+        go test -race -coverprofile=profile.out -covermode=atomic -coverpkg=./... "$d"
         if [ -f profile.out ]; then
             cat profile.out >>coverage.txt
             rm profile.out
@@ -90,8 +89,6 @@ get_openthread()
         OT_DIR=$PWD/ot-rfsim
         git submodule update --init --recursive --depth 1
     fi
-
-    OTBIN_DIR=$OT_DIR/build/bin
 }
 
 get_openthread_versions()
@@ -100,8 +97,6 @@ get_openthread_versions()
         OT_DIR=$PWD/ot-rfsim
         git submodule update --init --recursive
     fi
-
-    OTBIN_DIR=$OT_DIR/build/bin
 }
 
 build_openthread()
@@ -124,11 +119,8 @@ build_openthread()
         fi
 
         ./script/build "${options[@]}"
+        cp ./build/bin/ot-cli-ftd ./ot-versions
     )
-
-    OT_CLI_FTD_PATH="$OTBIN_DIR/ot-cli-ftd"
-    echo "To use build result, launch OTNS with command: otns -ot-cli $OT_CLI_FTD_PATH"
-    echo "Or cd into $OTBIN_DIR and start OTNS with: otns"
 }
 
 build_openthread_versions()
@@ -153,10 +145,6 @@ build_openthread_versions()
             ./script/build_latest
         fi
     )
-
-    OT_CLI_FTD_PATH="$OT_DIR/ot-versions/ot-cli-ftd"
-    echo "To use build result, launch OTNS with command: otns -ot-cli $OT_CLI_FTD_PATH"
-    echo "Or cd into the directory of $OT_CLI_FTD_PATH and start OTNS with: otns"
 }
 
 py_unittests()
@@ -190,11 +178,9 @@ py_examples()
     install_deps
     install_otns
     build_openthread
-    cd "$OTBIN_DIR"
     check_py_example "$OTNSDIR"/pylibs/examples/simple.py
     check_py_example "$OTNSDIR"/pylibs/examples/ping.py
     check_py_example "$OTNSDIR"/pylibs/examples/farm.py
-    cd -
 }
 
 stress_tests()
@@ -202,9 +188,7 @@ stress_tests()
     install_deps
     install_otns
     build_openthread
-    cd "$OTBIN_DIR"
     python3 "$OTNSDIR"/pylibs/stress_tests/run_stress_suite.py "$@"
-    cd -
 }
 
 main()

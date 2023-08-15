@@ -42,10 +42,10 @@ func TestDetermineExecutableBasedOnConfig(t *testing.T) {
 		SearchPaths: []string{".", "./otrfsim/path/not/found", "../ot-rfsim/build/bin"},
 	}
 
-	// if file could not be located, special name is returned.
+	// if file could not be located, same name is returned.
 	nodeCfg := types.DefaultNodeConfig()
 	exe := cfg.DetermineExecutableBasedOnConfig(&nodeCfg)
-	assert.Equal(t, "./EXECUTABLE-NOT-FOUND", exe)
+	assert.Equal(t, "my-ftd-fail", exe)
 
 	// test assumes that ot-rfsim has been built.
 	nodeCfg.IsMtd = true
@@ -54,7 +54,7 @@ func TestDetermineExecutableBasedOnConfig(t *testing.T) {
 	assert.Equal(t, "../ot-rfsim/build/bin/ot-cli-mtd", exe)
 
 	// test assumes that ot-rfsim has been built.
-	cfg.Mtd = "./ot-cli-mtd"
+	cfg.Mtd = "ot-cli-mtd"
 	exe = cfg.DetermineExecutableBasedOnConfig(&nodeCfg)
 	assert.Equal(t, "../ot-rfsim/build/bin/ot-cli-mtd", exe)
 
