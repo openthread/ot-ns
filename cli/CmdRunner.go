@@ -571,11 +571,13 @@ func (rt *CmdRunner) executeRadio(cc *CommandContext, radio *RadioCmd) {
 			} else if radio.Off != nil {
 				sim.SetNodeFailed(node.Id, true)
 			} else if radio.FailTime != nil {
-				if radio.FailTime.FailInterval > 0 && radio.FailTime.FailDuration > 0 {
+				if radio.FailTime.FailDuration > 0 && radio.FailTime.FailInterval > radio.FailTime.FailDuration {
 					dnode.SetFailTime(dispatcher.FailTime{
 						FailDuration: uint64(radio.FailTime.FailDuration * 1000000),
 						FailInterval: uint64(radio.FailTime.FailInterval * 1000000),
 					})
+				} else if radio.FailTime.FailInterval <= radio.FailTime.FailDuration {
+					cc.errorf("ft parameter: fail-duration must be < fail-interval")
 				} else {
 					dnode.SetFailTime(dispatcher.NonFailTime)
 				}

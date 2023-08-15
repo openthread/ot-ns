@@ -54,6 +54,7 @@ const (
 	EventTypeRadioRxDone        EventType = 10
 	EventTypeExtAddr            EventType = 11
 	EventTypeNodeInfo           EventType = 12
+	EventTypeFailureControl     EventType = 13
 )
 
 const (

@@ -147,7 +147,16 @@ func (node *Node) sendEvent(evt *Event) {
 	node.CurTime += evt.Delay
 	simplelogger.AssertTrue(evt.Delay == 0 || node.CurTime == node.D.CurTime)
 	if evt.Timestamp > oldTime {
-		node.failureCtrl.OnTimeAdvanced(oldTime)
+		reEvaluateTime := node.failureCtrl.OnTimeAdvanced(oldTime)
+		if reEvaluateTime < Ever {
+			failureCtrlEvent := &Event{
+				Type:         EventTypeFailureControl,
+				NodeId:       node.Id,
+				Timestamp:    reEvaluateTime,
+				MustDispatch: false,
+			}
+			node.D.eventQueue.Add(failureCtrlEvent)
+		}
 	}
 	//simplelogger.Debugf("N%v sendEvent -> %v", node.Id, evt.String())
 	err := node.sendRawData(evt.Serialize())
@@ -181,6 +190,7 @@ func (node *Node) Fail() {
 		node.isFailed = true
 		node.D.cbHandler.OnNodeFail(node.Id)
 		node.D.vis.OnNodeFail(node.Id)
+		node.D.logDebugForNode(node.Id, "radio set to scheduled failure")
 	}
 }
 
@@ -189,6 +199,7 @@ func (node *Node) Recover() {
 		node.isFailed = false
 		node.D.cbHandler.OnNodeRecover(node.Id)
 		node.D.vis.OnNodeRecover(node.Id)
+		node.D.logDebugForNode(node.Id, "radio recovered from scheduled failure")
 	}
 }
 

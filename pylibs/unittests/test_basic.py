@@ -219,6 +219,10 @@ class BasicTests(OTNSTestCase):
 
         self.assertAlmostEqual(failed_count / total_count, 0.2, delta=0.1)
 
+        # fail-interval param must be greater than fail-duration.
+        with self.assertRaises(errors.OTNSCliError):
+            ns.radio_set_fail_time(id, fail_time=(18,16))
+
     def testCliCmd(self):
         ns = self.ns
         id = ns.add("router")

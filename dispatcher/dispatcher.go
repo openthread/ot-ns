@@ -549,7 +549,12 @@ func (d *Dispatcher) processNextEvent(simSpeed float64) bool {
 			if node != nil {
 				// execute event - either a msg sent out, or handled by RadioModel.
 				if !evt.MustDispatch {
-					d.radioModel.HandleEvent(node.radioNode, d.eventQueue, evt)
+					switch evt.Type {
+					case EventTypeFailureControl:
+						d.advanceNodeTime(node, evt.Timestamp, false)
+					default:
+						d.radioModel.HandleEvent(node.radioNode, d.eventQueue, evt)
+					}
 				} else {
 					switch evt.Type {
 					case EventTypeRadioCommStart:

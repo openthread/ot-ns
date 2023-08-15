@@ -486,9 +486,12 @@ Done
 Done
 > radio 1 2 3 ft 10 60
 Done
+> radio 3 ft 0.364 10.0
+Done
 ```
 
-`ft 10 60` means the nodes' radio will on average be non-functional for 10 seconds every 60 seconds. 
+`ft 10 60` means the nodes' radio will be non-functional for a single window of 10 seconds, on average once every 
+60 seconds. 
 
 ### radiomodel \[\<modelName\>\]
 
