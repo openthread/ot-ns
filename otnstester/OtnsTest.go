@@ -31,6 +31,8 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path"
+	"runtime"
 	"strconv"
 	"strings"
 	"syscall"
@@ -353,6 +355,14 @@ func Instance(t *testing.T) *OtnsTest {
 }
 
 func NewOtnsTest(t *testing.T) *OtnsTest {
+	// ensure test is run from the repo base directory.
+	_, filename, _, _ := runtime.Caller(0)
+	dir := path.Join(path.Dir(filename), "..")
+	err := os.Chdir(dir)
+	if err != nil {
+		panic(err)
+	}
+
 	ot := &OtnsTest{
 		T:                      t,
 		otnsDone:               make(chan struct{}),
@@ -365,7 +375,7 @@ func NewOtnsTest(t *testing.T) *OtnsTest {
 	_ = os.Remove(stdinPipeFile)
 	_ = os.Remove(stdoutPipeFile)
 
-	err := syscall.Mkfifo(stdinPipeFile, 0644)
+	err = syscall.Mkfifo(stdinPipeFile, 0644)
 	simplelogger.PanicIfError(err)
 
 	ot.stdin, err = os.OpenFile(stdinPipeFile, os.O_RDWR, os.ModeNamedPipe)
