@@ -1,4 +1,4 @@
-// Copyright (c) 2022, The OTNS Authors.
+// Copyright (c) 2022-2023, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -107,8 +107,8 @@ func Serve(listenAddr string) error {
 		return http.ErrServerClosed
 	}
 	httpServer = &http.Server{Addr: listenAddr, Handler: nil}
-	httpServerMutex.Unlock()
 	simplelogger.Infof("OTNS web serving on %s ...", listenAddr)
+	httpServerMutex.Unlock()
 	return httpServer.ListenAndServe()
 }
 

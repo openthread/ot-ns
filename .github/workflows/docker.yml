@@ -34,7 +34,7 @@ on:
 
 jobs:
   cancel-previous-runs:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: rokroskar/workflow-run-cleanup-action@master
         env:
@@ -43,7 +43,7 @@ jobs:
 
   buildx:
     name: buildx-${{ matrix.version }}
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:

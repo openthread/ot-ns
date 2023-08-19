@@ -1,4 +1,4 @@
-# Copyright (c) 2020, The OTNS Authors.
+# Copyright (c) 2020-2023, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -33,7 +33,7 @@ on:
 
 jobs:
   cancel-previous-runs:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: rokroskar/workflow-run-cleanup-action@master
         env:
@@ -42,14 +42,14 @@ jobs:
 
   go-lint:
     name: Go Lint
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       HOMEBREW_NO_AUTO_UPDATE: 1
     steps:
-      - uses: actions/setup-go@v1
+      - uses: actions/setup-go@v4
         with:
           go-version: 1.18
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Check pretty
         run: |
           ./script/check-pretty

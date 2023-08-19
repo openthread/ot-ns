@@ -34,7 +34,7 @@ on:
 
 jobs:
   cancel-previous-runs:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: rokroskar/workflow-run-cleanup-action@master
         env:
@@ -51,15 +51,15 @@ jobs:
       matrix:
         go: [1.18]
         python-version: [3.7]
-        os: [ubuntu-20.04]
+        os: [ubuntu-22.04]
     steps:
-      - uses: actions/setup-go@v1
+      - uses: actions/setup-go@v4
         with:
           go-version: ${{ matrix.go }}
       - uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Build
         run: |
           docker build -t otns-env -f etc/docker/environment/Dockerfile .

@@ -33,7 +33,7 @@ on:
 
 jobs:
   cancel-previous-runs:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: rokroskar/workflow-run-cleanup-action@master
         env:
@@ -46,19 +46,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04, macos-11]
+        os: [ubuntu-22.04, macos-11]
     env:
       HOMEBREW_NO_AUTO_UPDATE: 1
     steps:
-      - uses: actions/setup-go@v1
+      - uses: actions/setup-go@v4
         with:
           go-version: 1.18
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Test
         run: |
           ./script/test go-tests
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@v3
 
   py-unittests:
     name: Unittests (${{ matrix.os }})
@@ -67,18 +67,18 @@ jobs:
       fail-fast: false
       matrix:
         python-version: [3.7]
-        os: [ubuntu-20.04, macos-11]
+        os: [ubuntu-22.04, macos-11]
     env:
       HOMEBREW_NO_AUTO_UPDATE: 1
     steps:
-      - uses: actions/setup-go@v1
+      - uses: actions/setup-go@v4
         with:
           go-version: 1.18
       - name: Set up Python
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Test
         run: |
           ./script/test py-unittests
@@ -90,18 +90,18 @@ jobs:
       fail-fast: false
       matrix:
         python-version: [3.7]
-        os: [ubuntu-20.04, macos-11]
+        os: [ubuntu-22.04, macos-11]
     env:
       HOMEBREW_NO_AUTO_UPDATE: 1
     steps:
-      - uses: actions/setup-go@v1
+      - uses: actions/setup-go@v4
         with:
           go-version: 1.18
       - name: Set up Python
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Run Examples
         run: |
           ./script/test py-examples
