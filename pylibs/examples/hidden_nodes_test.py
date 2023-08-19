@@ -40,7 +40,8 @@ PING_INTERVAL = 1
 
 # get a string that prints statistics/info of node 'nodeid'
 def print_stats(ns, nodeid: int):
-    return "\n".join(ns.node_cmd(nodeid, 'neighbor table')) + "\n" + \
+    return "CCA threshold (dBm): " + "\n".join(ns.node_cmd(nodeid, 'ccathreshold')) + "\n\n" + \
+           "\n".join(ns.node_cmd(nodeid, 'neighbor table')) + "\n" + \
            "\n".join(ns.node_cmd(nodeid, 'counters mac'))
 
 def print_pings(pings):
