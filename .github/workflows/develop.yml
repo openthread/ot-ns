@@ -51,9 +51,9 @@ jobs:
       matrix:
         go: [1.18]
         python-version: [3.7]
-        os: [ubuntu-20.04]
+        os: [ubuntu-22.04]
     steps:
-      - uses: actions/setup-go@v3
+      - uses: actions/setup-go@v4
         with:
           go-version: ${{ matrix.go }}
       - uses: actions/setup-python@v4

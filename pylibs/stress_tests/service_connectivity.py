@@ -38,7 +38,7 @@
 #   Nodes fail for 30s in every 600s
 #   Packet Loss Ratio set to 0.1
 # Pass Criteria:
-#   Max Delay (of all nodes) <= MAX_DELAY_TIME s
+#   Max Delay (over all nodes) <= MAX_DELAY_TIME s
 #
 import logging
 import os
@@ -56,14 +56,14 @@ RADIO_RANGE = 400
 XMAX = 1000
 YMAX = 1000
 
-TOTAL_SIMULATION_TIME = 3600 * int(os.getenv("STRESS_LEVEL", "1"))
-MAX_DELAY_TIME = 3600
-MOVE_INTERVAL = 60
-PING_INTERVAL = 60
-PING_DATA_SIZE = 32
+TOTAL_SIMULATION_TIME = 3600 * int(os.getenv("STRESS_LEVEL", "1")) # seconds
+MAX_DELAY_TIME = 1800 # seconds - TODO what is this?
+MOVE_INTERVAL = 60 # seconds
+PING_INTERVAL = 60 # seconds
+PING_DATA_SIZE = 32 # bytes
 
-FAIL_DURATION = 30
-FAIL_INTERVAL = 600
+FAIL_DURATION = 30 # seconds (of failure during one FAIL_INTERVAL)
+FAIL_INTERVAL = 600 # seconds
 MOVE_COUNT = 3
 
 BR = None  # the Border Router

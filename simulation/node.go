@@ -75,7 +75,7 @@ type Node struct {
 
 	pendingLines      chan string
 	pipeIn            io.WriteCloser
-	pipeOut           io.Reader
+	pipeOut           io.ReadCloser
 	pipeErr           io.ReadCloser
 	virtualUartReader *io.PipeReader
 	virtualUartPipe   *io.PipeWriter
@@ -182,11 +182,17 @@ func (node *Node) Stop() {
 func (node *Node) Exit() error {
 	_ = node.cmd.Process.Signal(syscall.SIGTERM)
 
-	err := node.cmd.Wait()
-	node.S.Dispatcher().RecvEvents() // ensure to receive any remaining events of exited node.
+	node.S.Dispatcher().RecvEvents() // ensure to receive any remaining events of node.
 
-	// no more events or lineReader lines should come, so we can close the log file and virtual-UART.
+	// no more events or lineReader lines should come, so we can close the virtual-UART.
+	// pipes are closed to allow cmd.Wait() to be successful and not hang.
+	_ = node.pipeIn.Close()
+	_ = node.pipeErr.Close()
+	_ = node.pipeOut.Close()
 	_ = node.virtualUartReader.Close()
+
+	err := node.cmd.Wait() // wait for process end
+
 	if node.logFile != nil {
 		_ = node.logFile.Close()
 	}

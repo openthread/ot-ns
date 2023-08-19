@@ -50,9 +50,9 @@ jobs:
       fail-fast: false
       matrix:
         go: [ 1.18 ]
-        os: [ ubuntu-20.04, macos-11 ]
+        os: [ ubuntu-22.04, macos-11 ]
     steps:
-      - uses: actions/setup-go@v3
+      - uses: actions/setup-go@v4
         with:
           go-version: ${{ matrix.go }}
       - uses: actions/checkout@v3
