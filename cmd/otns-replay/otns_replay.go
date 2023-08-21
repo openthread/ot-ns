@@ -1,4 +1,4 @@
-// Copyright (c) 2022, The OTNS Authors.
+// Copyright (c) 2022-2023, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -30,6 +30,7 @@ import (
 	"context"
 	"flag"
 	"net"
+	"net/http"
 	"os"
 
 	"github.com/openthread/ot-ns/progctx"
@@ -72,7 +73,9 @@ func main() {
 	go func() {
 		siteAddr := ":8997"
 		err := webSite.Serve(siteAddr)
-		simplelogger.PanicIfError(err)
+		if err != http.ErrServerClosed {
+			simplelogger.PanicIfError(err)
+		}
 	}()
 
 	go func() {

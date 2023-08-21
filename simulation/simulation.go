@@ -213,9 +213,18 @@ func (s *Simulation) Stop() {
 	simplelogger.Infof("stopping simulation and exiting nodes ...")
 	s.stopped = true
 
+	// for faster process, signal node exit first in parallel.
+	for _, node := range s.nodes {
+		_ = node.SignalExit()
+	}
+	s.Dispatcher().RecvEvents() // meanwhile receive any events of (exiting) nodes.
+
+	// then clean up and wait for each node process to stop, sequentially.
 	for _, node := range s.nodes {
 		_ = node.Exit()
 	}
+	s.Dispatcher().RecvEvents() // ensure to receive any remaining events of exited nodes.
+
 	simplelogger.Debugf("all simulation nodes exited.")
 }
 
@@ -300,6 +309,7 @@ func (s *Simulation) DeleteNode(nodeid NodeId) error {
 
 	delete(s.nodes, nodeid)
 	_ = node.Exit()
+	s.d.RecvEvents() // ensure to receive any final events of deleted node.
 	s.d.DeleteNode(nodeid)
 	return nil
 }

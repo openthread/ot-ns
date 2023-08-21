@@ -169,16 +169,15 @@ func Main(ctx *progctx.ProgCtx, visualizerCreator func(ctx *progctx.ProgCtx, arg
 		vis = visualizeGrpc.NewGrpcVisualizer(visGrpcServerAddr, replayFn)
 	}
 
+	ctx.WaitAdd("webserver", 1)
 	go func() {
+		defer ctx.WaitDone("webserver")
 		siteAddr := fmt.Sprintf("%s:%d", args.DispatcherHost, args.DispatcherPort-3)
 		err := webSite.Serve(siteAddr) // blocks until webSite.StopServe() called
 		if err != nil && ctx.Err() == nil {
-			simplelogger.Errorf("website stopped unexpectedly: %+v, OTNS-Web won't be available!", err)
-		} else if err != nil {
-			simplelogger.Debugf("website stopped while exiting: %+v", err)
+			simplelogger.Errorf("webserver stopped unexpectedly: %+v, OTNS-Web won't be available!", err)
 		}
 	}()
-	defer webSite.StopServe()
 
 	sim := createSimulation(ctx)
 	rt := cli.NewCmdRunner(ctx, sim)
@@ -202,6 +201,7 @@ func Main(ctx *progctx.ProgCtx, visualizerCreator func(ctx *progctx.ProgCtx, arg
 	vis.Run() // visualize must run in the main thread
 
 	simplelogger.Debugf("waiting for OTNS to stop gracefully ...")
+	webSite.StopServe()
 	ctx.Wait()
 }
 
@@ -212,8 +212,8 @@ func handleSignals(ctx *progctx.ProgCtx) {
 
 	ctx.WaitAdd("handleSignals", 1)
 	go func() {
+		defer simplelogger.Debugf("handleSignals exit.")
 		defer ctx.WaitDone("handleSignals")
-		defer simplelogger.Debugf("waiting for handleSignals exit.")
 
 		for {
 			select {

@@ -67,9 +67,9 @@ func (ctx *ProgCtx) Cancel(err interface{}) {
 	ctx.cancel()
 
 	if e, ok := err.(error); ok {
-		simplelogger.TraceError("program exit: %v", e)
+		simplelogger.TraceError("program exit requested with ctx error: %v", e)
 	} else {
-		simplelogger.Infof("program exit: %v", err)
+		simplelogger.Debugf("program exit requested without ctx error: %v", err)
 	}
 
 	for _, f := range ctx.deferred {
