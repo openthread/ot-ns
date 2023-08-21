@@ -28,8 +28,9 @@ import * as PIXI from "pixi.js-legacy";
 import VObject from "./VObject";
 import ActionBar from "./ActionBar";
 import {Text} from "./wrapper";
-import {FRAME_CONTROL_MASK_FRAME_TYPE, FRAME_TYPE_ACK, MAX_SPEED, PAUSE_SPEED, NODE_AUTOSPACING_PX,
-    NODE_AUTOSPACING_FINE_PX} from "./consts";
+import {
+    FRAME_CONTROL_MASK_FRAME_TYPE, FRAME_TYPE_ACK, LOG_WINDOW_FONT_COLOR, MAX_SPEED, PAUSE_SPEED
+} from "./consts";
 import Node from "./Node"
 import {AckMessage, BroadcastMessage, UnicastMessage} from "./message";
 import LogWindow, {LOG_WINDOW_WIDTH} from "./LogWindow";
@@ -258,7 +259,7 @@ export default class PixiVisualizer extends VObject {
         return count
     }
 
-    log(text, color = '#0052ff') {
+    log(text, color = LOG_WINDOW_FONT_COLOR) {
         if (this.logWindow) {
             this.logWindow.addLog(text, color)
         }
@@ -470,6 +471,7 @@ export default class PixiVisualizer extends VObject {
         }
     }
 
+    // Set the position (x,y) for the next new node to be placed.
     ctrlSetNewNodePosition(x, y) {
         x = Math.round(x);
         y = Math.round(y);
@@ -679,11 +681,8 @@ export default class PixiVisualizer extends VObject {
     }
 
     randomColor() {
-        const letters = '0123456789ABCDEF';
-        let color = '#';
-        for (let i = 0; i < 6; i++) {
-            color += letters[Math.floor(Math.random() * 16)];
-        }
+        let hue = Math.floor(Math.random() * 360);
+        let color = `hsl(${hue}deg, 92%, 23%)`;
         return color;
     }
 

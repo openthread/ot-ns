@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2022, The OTNS Authors.
+// Copyright (c) 2020-2023, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -32,14 +32,11 @@ import (
 	"time"
 
 	"github.com/openthread/ot-ns/energy"
-	"github.com/openthread/ot-ns/visualize/grpc/replay"
-
-	"github.com/simonlingoogle/go-simplelogger"
-
-	pb "github.com/openthread/ot-ns/visualize/grpc/pb"
-
 	. "github.com/openthread/ot-ns/types"
 	"github.com/openthread/ot-ns/visualize"
+	pb "github.com/openthread/ot-ns/visualize/grpc/pb"
+	"github.com/openthread/ot-ns/visualize/grpc/replay"
+	"github.com/simonlingoogle/go-simplelogger"
 )
 
 type grpcVisualizer struct {

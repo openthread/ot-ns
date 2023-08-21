@@ -38,6 +38,6 @@ export const FRAME_TYPE_ACK = 2;
 export const COLOR_ACK_MESSAGE = 0xaee571;
 export const BUTTON_LABEL_FONT_FAMILY = 'verdana, helvetica, sans-serif';
 export const NODE_LABEL_FONT_FAMILY = 'helvetica, arial, monospace, sans-serif';
-
-// size constants
-export const NODE_SPACING_ABOVE_ACTIONBAR_PX = 80;
+export const LOG_WINDOW_FONT_FAMILY = 'verdana, helvetica, sans-serif';
+export const LOG_WINDOW_FONT_SIZE = 11.5
+export const LOG_WINDOW_FONT_COLOR = "Blue"

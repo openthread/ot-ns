@@ -120,7 +120,7 @@ func NewNodeAutoPlacer() *NodeAutoPlacer {
 	return &NodeAutoPlacer{
 		Xref:            100,
 		Yref:            100,
-		Xmax:            1500,
+		Xmax:            1450,
 		X:               100,
 		Y:               100,
 		NodeDeltaCoarse: 100,

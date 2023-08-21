@@ -273,7 +273,6 @@ export default class ActionBar extends VObject {
     }
 
     onDraggingDone() {
-        // just above the ActionBar's new position is where new nodes will be auto-placed.
-        this.vis.ctrlSetNewNodePosition(this.position.x, this.position.y - NODE_SPACING_ABOVE_ACTIONBAR_PX);
+        //
     }
 }
