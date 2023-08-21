@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2020-2023, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -27,13 +27,16 @@
 import * as PIXI from "pixi.js-legacy";
 import VObject from "./VObject";
 import {Scrollbox} from 'pixi-scrollbox'
+import {
+    LOG_WINDOW_FONT_FAMILY, LOG_WINDOW_FONT_SIZE, LOG_WINDOW_FONT_COLOR
+} from "./consts";
 
 
 const LOG_TEXT_STYLE = {
-    fill: "#0052ff",
-    fontFamily: "Verdana",
-    fontSize: 11,
-    fontStyle: "italic",
+    fill: LOG_WINDOW_FONT_COLOR,
+    fontFamily: LOG_WINDOW_FONT_FAMILY,
+    fontSize: LOG_WINDOW_FONT_SIZE,
+    fontStyle: "normal",
     fontWeight: "normal"
 };
 
@@ -70,7 +73,7 @@ export default class LogWindow extends VObject {
         this.loglist = [];
     }
 
-    addLog(text, color = "#0052ff") {
+    addLog(text, color = LOG_WINDOW_FONT_COLOR) {
         if (this.loglist.length === LOG_WINDOW_MAX_SIZE) {
             let rm = this.loglist.shift();
             this.logContainer.removeChild(rm)

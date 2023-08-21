@@ -288,6 +288,7 @@ func (s *Simulation) MoveNodeTo(nodeid NodeId, x, y int) {
 		return
 	}
 	s.d.SetNodePos(nodeid, x, y)
+	s.nodePlacer.UpdateReference(x, y)
 }
 
 func (s *Simulation) DeleteNode(nodeid NodeId) error {
