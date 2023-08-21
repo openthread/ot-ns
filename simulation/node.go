@@ -179,18 +179,19 @@ func (node *Node) Stop() {
 	simplelogger.Debugf("%v - stopped, state = %s", node, node.GetState())
 }
 
+func (node *Node) SignalExit() error {
+	return node.cmd.Process.Signal(syscall.SIGTERM)
+}
+
 func (node *Node) Exit() error {
 	_ = node.cmd.Process.Signal(syscall.SIGTERM)
 
-	node.S.Dispatcher().RecvEvents() // ensure to receive any remaining events of node.
-
-	// no more events or lineReader lines should come, so we can close the virtual-UART.
+	// no more events or lineReader lines will be accepted, so we close the virtual-UART.
 	// pipes are closed to allow cmd.Wait() to be successful and not hang.
 	_ = node.pipeIn.Close()
 	_ = node.pipeErr.Close()
 	_ = node.pipeOut.Close()
 	_ = node.virtualUartReader.Close()
-
 	err := node.cmd.Wait() // wait for process end
 
 	if node.logFile != nil {
@@ -838,7 +839,10 @@ func (node *Node) writeToLogFile(line string) {
 
 	_, err := node.logFile.WriteString(fmt.Sprintf("%-10d ", timestamp) + line + "\n")
 	if err != nil {
-		simplelogger.Error("Couldn't write to log file of %v, closing it (%s)", node, node.logFile)
+		if node.S.ctx.Err() == nil {
+			simplelogger.Debugf("ctx.Err()=%v", node.S.ctx.Err())
+			simplelogger.Errorf("Couldn't write to log file of %v, closing it (%s)", node, node.logFile.Name())
+		}
 		_ = node.logFile.Close()
 		node.logFile = nil
 	}

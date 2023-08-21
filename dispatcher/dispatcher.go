@@ -229,7 +229,7 @@ func (d *Dispatcher) Stop() {
 	d.GoCancel()        // cancel current simulation period
 	d.vis.Stop()
 	close(d.pcapFrameChan)
-	simplelogger.Debugf("waiting for dispatcher threads exit ...")
+	simplelogger.Debugf("waiting for dispatcher threads to stop ...")
 	d.waitGroup.Wait()
 	simplelogger.Debugf("dispatcher exit.")
 }
@@ -582,7 +582,8 @@ func (d *Dispatcher) processNextEvent(simSpeed float64) bool {
 
 func (d *Dispatcher) eventsReader() {
 	defer d.waitGroup.Done()
-	defer os.RemoveAll(d.socketName) // delete socket file when done.
+	defer simplelogger.Debugf("dispatcher node socket threads stopped.")
+	defer os.RemoveAll(d.socketName) // delete Unix socket file when done.
 	defer d.udpln.Close()
 
 	simplelogger.Debugf("dispatcher listening on socket %s ...", d.socketName)
@@ -610,7 +611,7 @@ func (d *Dispatcher) eventsReader() {
 
 			buf := make([]byte, 65536)
 			myNodeId := 0
-			var myNode *Node = nil
+
 			for {
 				_ = myConn.SetReadDeadline(time.Now().Add(readTimeout))
 				n, err := myConn.Read(buf)
@@ -624,9 +625,6 @@ func (d *Dispatcher) eventsReader() {
 					continue
 				} else if err != nil {
 					simplelogger.Errorf("Node %d - Socket read error: %+v", myNodeId, err)
-					if myNode != nil && myNode.err == nil {
-						myNode.err = err
-					}
 					break
 				}
 
@@ -648,8 +646,8 @@ func (d *Dispatcher) eventsReader() {
 		}(conn)
 	}
 
-	simplelogger.Debugf("dispatcher waiting for node socket threads to exit ...")
-	d.waitGroupNodes.Wait() // wait for all nodes to exit before closing eventsReader.
+	simplelogger.Debugf("waiting for dispatcher node socket threads to stop ...")
+	d.waitGroupNodes.Wait() // wait for all node goroutines to stop before closing eventsReader.
 }
 
 func (d *Dispatcher) advanceNodeTime(node *Node, timestamp uint64, force bool) {

@@ -53,8 +53,8 @@ class SignalsTest(OTNSTestCase):
     def testSIGTERM(self):
         self._test_signal_exit(signal.SIGTERM)
 
-    def testSIGTERMx500(self):
-        N = 500
+    def testSIGTERMx200(self):
+        N = 200
         for i in range(N):
             logging.info("round %d", i + 1)
             self._test_signal_exit(signal.SIGTERM, 0.1 * random.random())

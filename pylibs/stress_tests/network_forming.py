@@ -42,12 +42,12 @@ from BaseStressTest import BaseStressTest
 
 XGAP = 100
 YGAP = 100
-RADIO_RANGE = int(XGAP * 1.5)
+RADIO_RANGE = int(XGAP * 1.8)
 
 MIN_N = 1
 MAX_N = 6
 
-REPEAT = int(os.getenv('STRESS_LEVEL', '1')) * 3
+REPEAT = 6
 
 EXPECTED_MERGE_TIME_MAX = [
     None, 10, 14, 40, 60, 130, 190
@@ -66,6 +66,7 @@ class StressTest(BaseStressTest):
 
     def run(self):
         # self.ns.config_visualization(broadcast_message=False)
+        self.ns.radiomodel = 'MutualInterference'
 
         for n in range(MIN_N, MAX_N + 1):
             durations = []

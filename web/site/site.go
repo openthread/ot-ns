@@ -107,12 +107,14 @@ func Serve(listenAddr string) error {
 		return http.ErrServerClosed
 	}
 	httpServer = &http.Server{Addr: listenAddr, Handler: nil}
-	simplelogger.Infof("OTNS web serving on %s ...", listenAddr)
+	simplelogger.Infof("OTNS webserver now serving on %s ...", listenAddr)
+	defer simplelogger.Debugf("webserver exit.")
 	httpServerMutex.Unlock()
 	return httpServer.ListenAndServe()
 }
 
 func StopServe() {
+	simplelogger.Debugf("requesting webserver to exit ...")
 	httpServerMutex.Lock()
 	if httpServer != nil {
 		_ = httpServer.Close()

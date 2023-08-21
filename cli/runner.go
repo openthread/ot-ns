@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2020-2023, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -38,7 +38,7 @@ var (
 )
 
 func Run(cr *CmdRunner, cliOptions *runcli.CliOptions) error {
-	defer simplelogger.Debugf("CLI exit")
+	defer simplelogger.Debugf("CLI exit.")
 
 	return runcli.RunCli(cr, cliOptions)
 }
