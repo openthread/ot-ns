@@ -103,6 +103,9 @@ class OTNS(object):
         """
         if duration is None:
             cmd = 'go ever'
+        elif duration < 1e-3:
+            dur_us = round(duration * 1e6)
+            cmd = f'go {dur_us}us'
         else:
             cmd = f'go {duration}'
 

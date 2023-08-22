@@ -286,11 +286,17 @@ class BasicTests(OTNSTestCase):
         self.tearDown()
 
         with OTNS(otns_args=['-log', 'debug']) as ns:
-            ns.add("router")
+            nid = ns.add("router")
+            self.assertEqual(1, nid)
+            ns.go(10)
+            self.assertEqual(10e6,ns.time)
 
         # run a second time to make sure the previous simulation is properly terminated
         with OTNS(otns_args=['-log', 'debug']) as ns:
-            ns.add("router")
+            nid = ns.add("router")
+            self.assertEqual(1, nid)
+            ns.go(10)
+            self.assertEqual(10e6,ns.time)
 
     def testSetRouterUpgradeThreshold(self):
         ns: OTNS = self.ns
@@ -393,6 +399,28 @@ class BasicTests(OTNSTestCase):
         ns._do_command("help plr")
         ns._do_command("help radiomodel")
 
+    def testGoUnits(self):
+        ns: OTNS = self.ns
+        ns.add('router')
+        ns.add('router')
+
+        ns.go(10)
+        self.assertEqual(10e6, ns.time) # ns.time returns microseconds
+        ns.go(0.001)
+        self.assertEqual(10001e3, ns.time)
+        ns.go(1e-3)
+        self.assertEqual(10002e3, ns.time)
+        ns.go(1e-6)
+        self.assertEqual(10002001, ns.time)
+        ns.go(3e-5)
+        self.assertEqual(10002031, ns.time)
+        ns.go(1e-7)
+        self.assertEqual(10002031, ns.time) # no time advance: rounded to nearest microsecond.
+        ns.go(0.000999) # almost 1 ms
+        self.assertEqual(10003030, ns.time)
+        ns.go(4.0000004)
+        self.assertEqual(14003030, ns.time) # rounded to nearest microsecond.
+        self.assertFormPartitions(1)
 
 if __name__ == '__main__':
     unittest.main()
