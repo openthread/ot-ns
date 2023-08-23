@@ -32,10 +32,10 @@ import sys
 import time
 import traceback
 from functools import wraps
-from otns.cli import OTNS
-from otns.cli.errors import UnexpectedError
 from typing import Collection
 
+from otns.cli import OTNS
+from otns.cli.errors import UnexpectedError
 from StressTestResult import StressTestResult
 from errors import UnexpectedNodeAddr, UnexpectedNodeState
 

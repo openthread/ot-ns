@@ -32,7 +32,7 @@ from otns.cli.errors import OTNSExitedError
 TEST_SCENARIO = 0
 
 SPEED = 1e6
-RADIO_RANGE = 250
+RADIO_RANGE = 360
 PING_DATA_SIZE = 64
 NUM_PINGS = 100
 PING_INTERVAL = 1
@@ -55,8 +55,9 @@ def main():
     ns = OTNS(otns_args=["-log", "info", "-watch", "trace"])
     ns.speed = SPEED
     ns.web()
-    # The test setups are only valid for this radio model.
-    ns.radiomodel = 'MutualInterference'
+    # The test setups are only valid for this radio model. Disc model is used to enforce a hidden
+    # node situation.
+    ns.radiomodel = 'MIDisc'
 
     if TEST_SCENARIO == 0:
         print('\n ==============Scenario A (Static): Interferer out of Source range ======================')
@@ -71,8 +72,6 @@ def main():
         ns.go(10)
         dst = ns.add("router", x=700, y=300, radio_range=RADIO_RANGE)
         intf = ns.add("router", x=525, y=450, radio_range=RADIO_RANGE)
-        ns.node_cmd(dst, "state router") # due to very low RSSI, a node may stay End Device. This forces it to Router.
-        ns.node_cmd(intf, "state router")
 
     elif TEST_SCENARIO == 2:
         print('\n ==============Scenario C (Static): Interferer out of Destination range ======================')
@@ -80,8 +79,6 @@ def main():
         ns.go(10)
         dst = ns.add("router", x=700, y=300, radio_range=RADIO_RANGE)
         intf = ns.add("router", x=175, y=300, radio_range=RADIO_RANGE)
-        ns.node_cmd(dst, "state router") # due to very low RSSI, a node may stay End Device. This forces it to Router.
-        ns.node_cmd(intf, "state router")
 
     else:
         return

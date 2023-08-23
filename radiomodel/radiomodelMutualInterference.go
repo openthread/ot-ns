@@ -45,8 +45,8 @@ type RadioModelMutualInterference struct {
 	MinSirDb DbmValue
 
 	// Whether RF signal reception is limited to the RadioRange disc of each node, or not (default false).
-	// If true, the interference (e.g. RSSI sampled on channel) extends beyond the disc but proper frame
-	// reception is confined to the disc.
+	// If true, the interference (e.g. RSSI sampled on channel) is confined to the disc and frame
+	// reception is also confined to the disc.
 	IsDiscLimit  bool
 	IndoorParams *IndoorModelParams
 
@@ -83,6 +83,9 @@ func (rm *RadioModelMutualInterference) CheckRadioReachable(src *RadioNode, dst 
 
 func (rm *RadioModelMutualInterference) GetTxRssi(srcNode *RadioNode, dstNode *RadioNode) DbmValue {
 	dist := srcNode.GetDistanceTo(dstNode)
+	if rm.IsDiscLimit && dist > srcNode.RadioRange {
+		return RssiMinusInfinity
+	}
 	rssi := computeIndoorRssi(srcNode.RadioRange, dist, srcNode.TxPower, rm.IndoorParams)
 	return rssi
 }
