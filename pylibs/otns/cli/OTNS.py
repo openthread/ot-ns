@@ -342,6 +342,24 @@ class OTNS(object):
         cmd = f'watch {" ".join(map(str, nodeids))}'
         self._do_command(cmd)
 
+    def watch_all(self, level: str) -> None:
+        """
+        Set watch log level on all current nodes.
+
+        :param level: watch log level 'trace', 'debug', 'info', 'warn', 'crit', or 'off'.
+        """
+        cmd = f'watch all {level}'
+        self._do_command(cmd)
+
+    def watch_default(self, level: str) -> None:
+        """
+        Set default watch log level for newly to be created nodes.
+
+        :param level: watch log level 'trace', 'debug', 'info', 'warn', 'crit', or 'off'.
+        """
+        cmd = f'watch default {level}'
+        self._do_command(cmd)
+
     def watched(self) -> List[int]:
         """
         Get the nodes currently being watched.
