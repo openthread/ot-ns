@@ -71,7 +71,7 @@ func TestDeserializeRadioStateEvent(t *testing.T) {
 	assert.True(t, 13 == ev.RadioStateData.Channel)
 	assert.True(t, 5 == ev.RadioStateData.PowerDbm)
 	assert.True(t, RadioTx == ev.RadioStateData.EnergyState)
-	assert.True(t, OT_RADIO_SUBSTATE_RX_ACK_TX_ONGOING == ev.RadioStateData.SubState)
+	assert.True(t, RFSIM_RADIO_SUBSTATE_RX_ACK_TX_ONGOING == ev.RadioStateData.SubState)
 	assert.True(t, RadioRx == ev.RadioStateData.State)
 }
 

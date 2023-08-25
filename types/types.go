@@ -153,57 +153,57 @@ func (s RadioStates) String() string {
 type RadioSubStates byte
 
 const (
-	OT_RADIO_SUBSTATE_READY             RadioSubStates = 0
-	OT_RADIO_SUBSTATE_IFS_WAIT          RadioSubStates = iota
-	OT_RADIO_SUBSTATE_TX_CCA            RadioSubStates = iota
-	OT_RADIO_SUBSTATE_TX_CCA_TO_TX      RadioSubStates = iota
-	OT_RADIO_SUBSTATE_TX_FRAME_ONGOING  RadioSubStates = iota
-	OT_RADIO_SUBSTATE_TX_TX_TO_RX       RadioSubStates = iota
-	OT_RADIO_SUBSTATE_TX_TX_TO_AIFS     RadioSubStates = iota
-	OT_RADIO_SUBSTATE_TX_AIFS_WAIT      RadioSubStates = iota
-	OT_RADIO_SUBSTATE_TX_ACK_RX_ONGOING RadioSubStates = iota
-	OT_RADIO_SUBSTATE_RX_FRAME_ONGOING  RadioSubStates = iota
-	OT_RADIO_SUBSTATE_RX_AIFS_WAIT      RadioSubStates = iota
-	OT_RADIO_SUBSTATE_RX_ACK_TX_ONGOING RadioSubStates = iota
-	OT_RADIO_SUBSTATE_RX_TX_TO_RX       RadioSubStates = iota
-	OT_RADIO_SUBSTATE_RX_ENERGY_SCAN    RadioSubStates = iota
-	OT_RADIO_SUBSTATE_STARTUP           RadioSubStates = iota
-	OT_RADIO_SUBSTATE_INVALID           RadioSubStates = iota
+	RFSIM_RADIO_SUBSTATE_READY             RadioSubStates = 0
+	RFSIM_RADIO_SUBSTATE_IFS_WAIT          RadioSubStates = iota
+	RFSIM_RADIO_SUBSTATE_TX_CCA            RadioSubStates = iota
+	RFSIM_RADIO_SUBSTATE_TX_CCA_TO_TX      RadioSubStates = iota
+	RFSIM_RADIO_SUBSTATE_TX_FRAME_ONGOING  RadioSubStates = iota
+	RFSIM_RADIO_SUBSTATE_TX_TX_TO_RX       RadioSubStates = iota
+	RFSIM_RADIO_SUBSTATE_TX_TX_TO_AIFS     RadioSubStates = iota
+	RFSIM_RADIO_SUBSTATE_TX_AIFS_WAIT      RadioSubStates = iota
+	RFSIM_RADIO_SUBSTATE_TX_ACK_RX_ONGOING RadioSubStates = iota
+	RFSIM_RADIO_SUBSTATE_RX_FRAME_ONGOING  RadioSubStates = iota
+	RFSIM_RADIO_SUBSTATE_RX_AIFS_WAIT      RadioSubStates = iota
+	RFSIM_RADIO_SUBSTATE_RX_ACK_TX_ONGOING RadioSubStates = iota
+	RFSIM_RADIO_SUBSTATE_RX_TX_TO_RX       RadioSubStates = iota
+	RFSIM_RADIO_SUBSTATE_RX_ENERGY_SCAN    RadioSubStates = iota
+	RFSIM_RADIO_SUBSTATE_STARTUP           RadioSubStates = iota
+	RFSIM_RADIO_SUBSTATE_INVALID           RadioSubStates = iota
 )
 
 func (s RadioSubStates) String() string {
 	switch s {
-	case OT_RADIO_SUBSTATE_READY:
+	case RFSIM_RADIO_SUBSTATE_READY:
 		return "Ready__"
-	case OT_RADIO_SUBSTATE_IFS_WAIT:
+	case RFSIM_RADIO_SUBSTATE_IFS_WAIT:
 		return "IFS____"
-	case OT_RADIO_SUBSTATE_TX_CCA:
+	case RFSIM_RADIO_SUBSTATE_TX_CCA:
 		return "CCA____"
-	case OT_RADIO_SUBSTATE_TX_CCA_TO_TX:
+	case RFSIM_RADIO_SUBSTATE_TX_CCA_TO_TX:
 		return "CCA2Tx_"
-	case OT_RADIO_SUBSTATE_TX_FRAME_ONGOING:
+	case RFSIM_RADIO_SUBSTATE_TX_FRAME_ONGOING:
 		return "FrameTx"
-	case OT_RADIO_SUBSTATE_TX_TX_TO_RX:
+	case RFSIM_RADIO_SUBSTATE_TX_TX_TO_RX:
 		return "Tx2Rx__"
-	case OT_RADIO_SUBSTATE_TX_TX_TO_AIFS:
+	case RFSIM_RADIO_SUBSTATE_TX_TX_TO_AIFS:
 		return "Tx2AIFS"
-	case OT_RADIO_SUBSTATE_TX_AIFS_WAIT:
+	case RFSIM_RADIO_SUBSTATE_TX_AIFS_WAIT:
 		return "TxAIFS_"
-	case OT_RADIO_SUBSTATE_TX_ACK_RX_ONGOING:
+	case RFSIM_RADIO_SUBSTATE_TX_ACK_RX_ONGOING:
 		return "AckRx__"
-	case OT_RADIO_SUBSTATE_RX_FRAME_ONGOING:
+	case RFSIM_RADIO_SUBSTATE_RX_FRAME_ONGOING:
 		return "FrameRx"
-	case OT_RADIO_SUBSTATE_RX_AIFS_WAIT:
+	case RFSIM_RADIO_SUBSTATE_RX_AIFS_WAIT:
 		return "RxAIFS_"
-	case OT_RADIO_SUBSTATE_RX_ACK_TX_ONGOING:
+	case RFSIM_RADIO_SUBSTATE_RX_ACK_TX_ONGOING:
 		return "AckTx__"
-	case OT_RADIO_SUBSTATE_RX_TX_TO_RX:
+	case RFSIM_RADIO_SUBSTATE_RX_TX_TO_RX:
 		return "AckT2Rx"
-	case OT_RADIO_SUBSTATE_RX_ENERGY_SCAN:
+	case RFSIM_RADIO_SUBSTATE_RX_ENERGY_SCAN:
 		return "EnrScan"
-	case OT_RADIO_SUBSTATE_STARTUP:
+	case RFSIM_RADIO_SUBSTATE_STARTUP:
 		return "Startup"
-	case OT_RADIO_SUBSTATE_INVALID:
+	case RFSIM_RADIO_SUBSTATE_INVALID:
 		return "Invalid"
 	default:
 		simplelogger.Panicf("invalid RadioSubState: %v", s)
