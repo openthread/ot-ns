@@ -37,7 +37,7 @@ require (
 	github.com/stretchr/testify v1.7.0
 	google.golang.org/grpc v1.48.0
 	google.golang.org/protobuf v1.27.1
-	gopkg.in/yaml.v3 v3.0.0-20200605160147-a5ece683394c
+	gopkg.in/yaml.v3 v3.0.0
 )
 
 require (
