@@ -251,7 +251,7 @@ func (rm *RadioModelMutualInterference) applyInterference(src *RadioNode, dst *R
 			// interfering signal gets too close to the wanted-signal rssi: impacts the signal.
 			evt.Data = interferePsduData(evt.Data, float64(sirDb))
 			evt.RadioCommData.Error = OT_ERROR_FCS
-			simplelogger.Debugf("Node<%v> %v applied OT_ERROR_FCS with sirDb=%v dst=%v", src.Id, evt.Timestamp, sirDb, dst.Id)
+			simplelogger.Debugf("%s %11d applied OT_ERROR_FCS with sirDb=%v dst=%v", GetNodeName(src.Id), evt.Timestamp, sirDb, dst.Id)
 		}
 	}
 }

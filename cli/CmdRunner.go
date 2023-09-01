@@ -588,7 +588,7 @@ func (rt *CmdRunner) executeRadio(cc *CommandContext, radio *RadioCmd) {
 
 func (rt *CmdRunner) executeMoveNode(cc *CommandContext, cmd *MoveCmd) {
 	rt.postAsyncWait(func(sim *simulation.Simulation) {
-		sim.MoveNodeTo(cmd.Target.Id, cmd.X, cmd.Y)
+		cc.error(sim.MoveNodeTo(cmd.Target.Id, cmd.X, cmd.Y))
 	})
 }
 
@@ -714,23 +714,19 @@ func (rt *CmdRunner) executeRadioModel(cc *CommandContext, cmd *RadioModelCmd) {
 
 func (rt *CmdRunner) executeLogLevel(cc *CommandContext, cmd *LogLevelCmd) {
 	if cmd.Level == "" {
-		cc.outputf("%v\n", simplelogger.GetLevel().String())
+		cc.outputf("%v\n", GetWatchLogLevelString(rt.sim.GetLogLevel()))
 	} else {
-		simplelogger.SetLevel(simplelogger.ParseLevel(cmd.Level))
+		rt.sim.SetLogLevel(ParseWatchLogLevel(cmd.Level))
 	}
 }
 
 func (rt *CmdRunner) executeWatch(cc *CommandContext, cmd *WatchCmd) {
 	rt.postAsyncWait(func(sim *simulation.Simulation) {
-		watchLogLevel := ""
+		watchLogLevelStr := ""
+		var watchLogLevel WatchLogLevel = WatchDefaultLevel
 		if len(cmd.Level) > 0 {
-			watchLogLevel = cmd.Level
-			// if a 'low' level is given, ensure that the level's messages can be seen by activating 'Info' level.
-			// TODO have separate log objects
-			lev := dispatcher.ParseWatchLogLevel(watchLogLevel)
-			if lev > dispatcher.WatchInfoLevel && simplelogger.GetLevel() > simplelogger.InfoLevel {
-				simplelogger.SetLevel(simplelogger.InfoLevel)
-			}
+			watchLogLevelStr = cmd.Level
+			watchLogLevel = ParseWatchLogLevel(watchLogLevelStr)
 		}
 		nodesToWatch := cmd.Nodes
 
@@ -776,6 +772,12 @@ func (rt *CmdRunner) executeWatch(cc *CommandContext, cmd *WatchCmd) {
 			}
 			sim.Dispatcher().WatchNode(node.Id, watchLogLevel)
 		}
+
+		// adapt simulation's overall logLevel down to 'info', if needed to see watch items.
+		if watchLogLevel > sim.GetLogLevel() && sim.GetLogLevel() < WatchInfoLevel {
+			sim.SetLogLevel(WatchInfoLevel)
+			simplelogger.Infof("Simulation log level lowered to 'info'.")
+		}
 	})
 }
 
@@ -820,26 +822,40 @@ func (rt *CmdRunner) executePlr(cc *CommandContext, cmd *PlrCmd) {
 }
 
 func (rt *CmdRunner) executeScan(cc *CommandContext, cmd *ScanCmd) {
+	var scanStartTs uint64
+	var simTime uint64
+	ok := true
+
 	rt.postAsyncWait(func(sim *simulation.Simulation) {
 		node, _ := rt.getNode(sim, cmd.Node)
 		if node == nil {
 			cc.errorf("node not found")
+			ok = false
 			return
 		}
 
 		node.CommandExpectNone("scan", simulation.DefaultCommandTimeout)
+		scanStartTs = node.S.Dispatcher().CurTime
+		simTime = scanStartTs
 	})
+	if !ok {
+		return
+	}
 
-	timeout := time.Millisecond * 600 // FIXME: hardcoding
-	deadline := time.Now().Add(timeout)
-	for time.Now().Before(deadline) {
+	var scanTimeUs uint64 = 5000000 // TODO: verify if time ok - scan is about 5 seconds of simulation time.
+	for simTime < scanStartTs+scanTimeUs && ok {
 		rt.postAsyncWait(func(sim *simulation.Simulation) {
 			node, _ := rt.getNode(sim, cmd.Node)
 			if node == nil {
+				ok = false
 				return
 			}
 			node.AssurePrompt()
+			simTime = node.S.Dispatcher().CurTime
 		})
+		if ok {
+			time.Sleep(time.Millisecond * 200)
+		}
 	}
 }
 

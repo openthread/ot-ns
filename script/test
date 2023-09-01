@@ -175,6 +175,7 @@ check_py_example()
     sleep 10
     killall otns || true
     wait $pid || die "Run pyOTNS example failed :$1"
+    sleep 0.5 # in rare cases, it takes more time for the UDP ports to be freed.
 }
 
 py_examples()
@@ -183,8 +184,10 @@ py_examples()
     install_otns
     build_openthread
     check_py_example "$OTNSDIR"/pylibs/examples/simple.py
+    check_py_example "$OTNSDIR"/pylibs/examples/form_partition.py
     check_py_example "$OTNSDIR"/pylibs/examples/ping.py
     check_py_example "$OTNSDIR"/pylibs/examples/farm.py
+    check_py_example "$OTNSDIR"/pylibs/examples/many_hops_network.py
 }
 
 stress_tests()

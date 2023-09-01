@@ -47,6 +47,7 @@ type pingRequest struct {
 	Dst       string
 	DataSize  int
 }
+
 type PingResult struct {
 	Dst      string
 	DataSize int
@@ -110,7 +111,7 @@ func newNode(d *Dispatcher, nodeid NodeId, cfg *NodeConfig) *Node {
 		err:           nil, // keep track of connection errors.
 		radioNode:     radiomodel.NewRadioNode(nodeid, radioCfg),
 		joinerState:   OtJoinerStateIdle,
-		watchLogLevel: WatchDefaultLevel,
+		watchLogLevel: WatchCritLevel,
 	}
 
 	nc.failureCtrl = newFailureCtrl(nc, NonFailTime)
@@ -118,11 +119,7 @@ func newNode(d *Dispatcher, nodeid NodeId, cfg *NodeConfig) *Node {
 }
 
 func (node *Node) String() string {
-	spacing := ""
-	if node.Id < 10 {
-		spacing = " "
-	}
-	return fmt.Sprintf("Node<%d>%s", node.Id, spacing)
+	return GetNodeName(node.Id)
 }
 
 // SendEvent sends Event evt serialized to the node, over socket. If evt.Timestamp != InvalidTimestamp,
@@ -146,9 +143,11 @@ func (node *Node) sendEvent(evt *Event) {
 	node.D.setAlive(node.Id)
 	node.CurTime += evt.Delay
 	simplelogger.AssertTrue(evt.Delay == 0 || node.CurTime == node.D.CurTime)
+
+	// re-evaluate the FailutreCtrl when node time advances.
 	if evt.Timestamp > oldTime {
-		reEvaluateTime := node.failureCtrl.OnTimeAdvanced(oldTime)
-		if reEvaluateTime < Ever {
+		reEvaluateTime, isUpdated := node.failureCtrl.OnTimeAdvanced(oldTime)
+		if isUpdated {
 			failureCtrlEvent := &Event{
 				Type:         EventTypeFailureControl,
 				NodeId:       node.Id,
@@ -158,7 +157,7 @@ func (node *Node) sendEvent(evt *Event) {
 			node.D.eventQueue.Add(failureCtrlEvent)
 		}
 	}
-	//simplelogger.Debugf("N%v sendEvent -> %v", node.Id, evt.String())
+
 	err := node.sendRawData(evt.Serialize())
 	if err != nil && node.err == nil {
 		node.err = err
@@ -172,9 +171,13 @@ func (node *Node) sendRawData(msg []byte) error {
 	if err != nil {
 		return err
 	} else if len(msg) != n {
-		return fmt.Errorf("failed to write complete Event to socket %v+", node.conn)
+		return fmt.Errorf("failed to write complete Event to %s socket %v+", node.String(), node.conn)
 	}
 	return err
+}
+
+func (node *Node) log(level WatchLogLevel, msg string) {
+	node.D.cbHandler.OnLogMessage(node.Id, level, false, msg)
 }
 
 func (node *Node) IsFailed() bool {
@@ -190,7 +193,7 @@ func (node *Node) Fail() {
 		node.isFailed = true
 		node.D.cbHandler.OnNodeFail(node.Id)
 		node.D.vis.OnNodeFail(node.Id)
-		node.D.logDebugForNode(node.Id, "radio set to scheduled failure")
+		node.log(WatchDebugLevel, "radio set to scheduled failure")
 	}
 }
 
@@ -199,7 +202,7 @@ func (node *Node) Recover() {
 		node.isFailed = false
 		node.D.cbHandler.OnNodeRecover(node.Id)
 		node.D.vis.OnNodeRecover(node.Id)
-		node.D.logDebugForNode(node.Id, "radio recovered from scheduled failure")
+		node.log(WatchDebugLevel, "radio recovered from scheduled failure")
 	}
 }
 
@@ -214,7 +217,7 @@ func (node *Node) SetFailTime(failTime FailTime) {
 func (node *Node) onPingRequest(timestamp uint64, dstaddr string, datasize int) {
 	if datasize < 4 {
 		// if datasize < 4, timestamp is 0, these ping requests are ignored
-		simplelogger.Debugf("onPingRequest(): ignoring ping request with datasize=%d < 4", datasize)
+		node.log(WatchWarnLevel, fmt.Sprintf("onPingRequest(): ignoring ping request with datasize=%d < 4", datasize))
 		return
 	}
 
@@ -228,7 +231,7 @@ func (node *Node) onPingRequest(timestamp uint64, dstaddr string, datasize int) 
 func (node *Node) onPingReply(timestamp uint64, dstaddr string, datasize int, hoplimit int) {
 	if datasize < 4 {
 		// if datasize < 4, timestamp is 0, these ping replies are ignored
-		simplelogger.Debugf("onPingReply(): ignoring ping reply with datasize=%d < 4", datasize)
+		node.log(WatchWarnLevel, fmt.Sprintf("onPingReply(): ignoring ping reply with datasize=%d < 4", datasize))
 		return
 	}
 	const maxPingDelayUs uint64 = 10 * 1000000

@@ -1,4 +1,4 @@
-// Copyright (c) 2022, The OTNS Authors.
+// Copyright (c) 2022-2023, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -27,16 +27,15 @@
 package simulation
 
 import (
+	"fmt"
 	"io/ioutil"
 	"strings"
-
-	"github.com/simonlingoogle/go-simplelogger"
 )
 
 func ReadNodeScript(fn string) ([]string, error) {
 	script, err := ioutil.ReadFile(fn)
 	if err != nil {
-		simplelogger.Fatalf("Could not read OT node script file: %s", fn)
+		err = fmt.Errorf("could not read OT node script file: %s (%w)", fn, err)
 		return []string{}, err
 	}
 	linesToFilter := strings.Split(string(script), "\n")

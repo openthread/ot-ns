@@ -25,6 +25,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+
 import logging
 import unittest
 from typing import Dict
@@ -36,7 +37,7 @@ from otns.cli import errors, OTNS
 class BasicTests(OTNSTestCase):
     def testGetSetSpeed(self):
         ns = self.ns
-        self.assertEqual(ns.speed, OTNS.MAX_SIMULATE_SPEED)
+        self.assertEqual(ns.speed, OTNS.DEFAULT_SIMULATE_SPEED)
         ns.speed = 2
         self.assertEqual(ns.speed, 2)
         ns.speed = float('inf')
@@ -109,10 +110,11 @@ class BasicTests(OTNSTestCase):
             ns.go(10)
 
             self.assertEqual(nodeid, ns.add(type, x=n*10, y=10, restore=True))
-
-            self.go(1.7)
-            self.assertFormPartitions(1)
             self.assertEqual(rloc16, ns.get_rloc16(nodeid))
+            self.go(0.1)
+            while len(ns.partitions()) > 1 and ns.time < 100e6:
+                self.go(0.1)
+            self.assertFormPartitions(1)
             n += 1
 
     def testDelNode(self):
@@ -286,17 +288,26 @@ class BasicTests(OTNSTestCase):
         self.tearDown()
 
         with OTNS(otns_args=['-log', 'debug']) as ns:
+            self.assertEqual(OTNS.DEFAULT_SIMULATE_SPEED, ns.speed)
+            ns.speed = 19999
             nid = ns.add("router")
             self.assertEqual(1, nid)
             ns.go(10)
             self.assertEqual(10e6,ns.time)
 
         # run a second time to make sure the previous simulation is properly terminated
-        with OTNS(otns_args=['-log', 'debug']) as ns:
+        with OTNS(otns_args=['-log', 'warn', '-speed', '18123']) as ns:
+            self.assertEqual(18123, ns.speed)
             nid = ns.add("router")
             self.assertEqual(1, nid)
             ns.go(10)
             self.assertEqual(10e6,ns.time)
+
+        with OTNS() as ns:
+            ns.add('router')
+            ns.add('router')
+            self.assertEqual(OTNS.DEFAULT_SIMULATE_SPEED, ns.speed)
+            self.assertEqual(0,ns.time)
 
     def testSetRouterUpgradeThreshold(self):
         ns: OTNS = self.ns
@@ -393,6 +404,8 @@ class BasicTests(OTNSTestCase):
         ns.unwatchAll()
         self.assertEqual([], ns.watched())
 
+        ns.watch
+
     def testHelp(self):
         ns: OTNS = self.ns
         ns._do_command("help")
@@ -421,6 +434,31 @@ class BasicTests(OTNSTestCase):
         ns.go(4.0000004)
         self.assertEqual(14003030, ns.time) # rounded to nearest microsecond.
         self.assertFormPartitions(1)
+
+    def testScan(self):
+        self.tearDown()
+        with OTNS(otns_args=['-log', 'warn', '-autogo=true']) as ns:
+            ns.radiomodel = 'MutualInterference'
+            ns.add('router')
+
+            with self.assertRaises(errors.OTNSCliError):
+                ns._do_command("scan 2")
+
+            ns.add('router')
+            ns.add('router')
+            ns.add('router', x=100, y=200)
+            ns.add('router')
+            ns.add('router')
+
+            ns.go(50)
+            ns.speed = 10
+            ns._do_command("scan 1")
+            ns.speed = 50
+            ns._do_command("scan 2")
+            ns.speed = 1e6
+            ns._do_command("scan 3")
+            ns.speed = 1000
+            ns._do_command("scan 6")
 
 if __name__ == '__main__':
     unittest.main()

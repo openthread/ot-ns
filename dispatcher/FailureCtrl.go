@@ -37,20 +37,17 @@ type FailTime struct {
 	FailInterval uint64 // unit: us
 }
 
-func (ft FailTime) CanFail() bool {
-	return ft.FailDuration > 0
-}
-
 var (
 	NonFailTime = FailTime{0, 0}
 )
 
 type FailureCtrl struct {
-	owner     *Node
-	failTime  FailTime
-	recoverTs uint64 // unit: us; timestamp when recovery from failure starts (valid if currently failed)
-	failTs    uint64 // unit: us; timestamp when failure starts (valid if currently not failed)
-	remainTm  uint64 // unit: us; time that remains in this fail cycle after failure has ended.
+	owner           *Node
+	failTime        FailTime
+	recoverTs       uint64 // unit: us; timestamp when recovery from failure starts (valid if currently failed)
+	failTs          uint64 // unit: us; timestamp when failure starts (valid if currently not failed)
+	remainTm        uint64 // unit: us; time that remains in this fail cycle after failure has ended.
+	prevOpTimestamp uint64 // unit: us; time of previous reported next-operation timestamp.
 }
 
 func newFailureCtrl(owner *Node, failTime FailTime) *FailureCtrl {
@@ -59,6 +56,10 @@ func newFailureCtrl(owner *Node, failTime FailTime) *FailureCtrl {
 		failTime: failTime,
 	}
 	return fc
+}
+
+func (ft FailTime) CanFail() bool {
+	return ft.FailDuration > 0
 }
 
 func (fc *FailureCtrl) SetFailTime(failTime FailTime) {
@@ -73,9 +74,13 @@ func (fc *FailureCtrl) SetFailTime(failTime FailTime) {
 	fc.calcNextFailTimestamp()
 }
 
-func (fc *FailureCtrl) OnTimeAdvanced(oldTime uint64) uint64 {
+// OnTimeAdvanced must be called when the node's time advances. It performs fail/recover operations as
+// needed, and returns the timestamp of a next expected fail/recover operation as well as a flag
+// that is set to 'true' if the next-operation timestamp moved further into the future.
+func (fc *FailureCtrl) OnTimeAdvanced(oldTime uint64) (uint64, bool) {
+	isUpdated := false
 	if !fc.failTime.CanFail() {
-		return Ever
+		return Ever, isUpdated
 	}
 
 	simplelogger.AssertTrue(fc.owner.CurTime > oldTime)
@@ -87,9 +92,12 @@ func (fc *FailureCtrl) OnTimeAdvanced(oldTime uint64) uint64 {
 			fc.recoverTs = 0
 			fc.calcNextFailTimestamp()
 			fc.owner.Recover()
-			return fc.failTs
+			fc.prevOpTimestamp = fc.failTs
+			return fc.failTs, true
 		}
-		return fc.recoverTs
+		isUpdated = fc.recoverTs > fc.prevOpTimestamp
+		fc.prevOpTimestamp = fc.recoverTs
+		return fc.recoverTs, isUpdated
 	}
 
 	// if node is not failed currently
@@ -98,9 +106,12 @@ func (fc *FailureCtrl) OnTimeAdvanced(oldTime uint64) uint64 {
 		fc.recoverTs = fc.owner.CurTime + fc.failTime.FailDuration
 		fc.failTs = 0
 		fc.owner.Fail()
-		return fc.recoverTs
+		fc.prevOpTimestamp = fc.recoverTs
+		return fc.recoverTs, true
 	}
-	return fc.failTs
+	isUpdated = fc.failTs > fc.prevOpTimestamp
+	fc.prevOpTimestamp = fc.failTs
+	return fc.failTs, isUpdated
 }
 
 func (fc *FailureCtrl) calcNextFailTimestamp() {

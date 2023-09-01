@@ -44,7 +44,6 @@ class OTNSTestCase(unittest.TestCase):
     def setUp(self) -> None:
         logging.info("Setting up for test: %s", self.name())
         self.ns = OTNS(otns_args=['-log', 'debug']) # may add '-watch', 'trace' to see detailed OT node traces.
-        self.ns.speed = OTNS.MAX_SIMULATE_SPEED
 
     def tearDown(self) -> None:
         self.ns.close()

@@ -44,6 +44,7 @@ class OTNS(object):
     """
 
     MAX_SIMULATE_SPEED = 1000000  # Max simulating speed
+    DEFAULT_SIMULATE_SPEED = MAX_SIMULATE_SPEED
     PAUSE_SIMULATE_SPEED = 0
     MAX_PING_DELAY = 10000  # Max delay assigned to a failed ping
 
@@ -53,10 +54,12 @@ class OTNS(object):
     def __init__(self, otns_path: Optional[str] = None, otns_args: Optional[List[str]] = None,
                  is_interactive: Optional[bool] = False):
         self._otns_path = otns_path or self._detect_otns_path()
-        forced_args = ['-autogo=false', '-web=false']
         if is_interactive:
-            forced_args = ['-autogo=true', '-web=true']
-        self._otns_args = list(otns_args or []) + forced_args
+            default_args = ['-autogo=true', '-web=true', '-speed', str(OTNS.DEFAULT_SIMULATE_SPEED)]
+        else:
+            default_args = ['-autogo=false', '-web=false', '-speed', str(OTNS.DEFAULT_SIMULATE_SPEED)]
+        # Note: given otns_args may override i.e. revert the default_args
+        self._otns_args = default_args + list(otns_args or [])
         logging.info("otns found: %s", self._otns_path)
 
         self._lock_interactive_cli = threading.Lock()
@@ -76,8 +79,6 @@ class OTNS(object):
     def close(self) -> None:
         """
         Close OTNS simulation.
-
-        :param timeout: timeout for waiting otns process to quit
         """
         if self._closed:
             return
@@ -949,7 +950,10 @@ class OTNS(object):
 
     def _on_otns_eof(self):
         exit_code = self._otns.wait()
-        logging.warning("otns exited: code = %d", exit_code)
+        if exit_code < 0:
+            logging.warning("otns exited due to termination signal: code = %d", exit_code)
+        else:
+            logging.warning("otns exited: code = %d", exit_code)
         raise OTNSExitedError(exit_code)
 
 

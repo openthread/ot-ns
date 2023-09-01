@@ -121,3 +121,12 @@ func NewOTOutFilter(reader io.Reader, logPrintPrefix string,
 	handlerLogMsg func(otLevel string, msg string)) io.Reader {
 	return &otOutFilter{subr: reader, logPrintPrefix: logPrintPrefix, logHandler: handlerLogMsg}
 }
+
+func DetectLogLine(line string) (bool, string) {
+	logIdx := logPattern.FindStringSubmatchIndex(line)
+	if logIdx == nil {
+		return false, ""
+	}
+	logLevelIndicatorStr := line[logIdx[2] : logIdx[2]+1]
+	return true, logLevelIndicatorStr
+}

@@ -54,11 +54,9 @@ import (
 )
 
 const (
-	Ever uint64 = math.MaxUint64 / 2
-)
-
-const (
-	MaxSimulateSpeed = 1000000
+	Ever               uint64 = math.MaxUint64 / 2
+	MaxSimulateSpeed          = 1000000
+	DefaultReadTimeout        = time.Second * 5
 )
 
 type pcapFrameItem struct {
@@ -90,11 +88,20 @@ func DefaultConfig() *Config {
 }
 
 type CallbackHandler interface {
+	// OnNodeFail Notifies that the node's radio went into a simulated "fail" (off) state
 	OnNodeFail(nodeid NodeId)
+
+	// OnNodeRecover Notifies that the node's radio recovered from a simulated "fail" (off) state
 	OnNodeRecover(nodeid NodeId)
 
-	// Notifies that the node's UART was written with data.
+	// OnUartWrite Notifies that the node's UART was written with data.
 	OnUartWrite(nodeid NodeId, data []byte)
+
+	// OnLogMessage Notifies that a log message from Dispatcher can be added to the node's log.
+	OnLogMessage(nodeid NodeId, level WatchLogLevel, isWatchTriggered bool, msg string)
+
+	// OnNextEventTime Notifies that the Dispatcher simulation moves to the next event time.
+	OnNextEventTime(curTimeUs uint64, nextTimeUs uint64)
 }
 
 // represents a particular duration of simulation at a given speed, or DefaultDispatcherSpeed. It can be
@@ -184,7 +191,7 @@ func NewDispatcher(ctx *progctx.ProgCtx, cfg *Config, cbHandler CallbackHandler)
 		speedStartRealTime: time.Now(),
 		lastVizTime:        time.Unix(0, 0),
 		vis:                vis,
-		taskChan:           make(chan func(), 100000),
+		taskChan:           make(chan func(), 10000),
 		watchingNodes:      map[NodeId]struct{}{},
 		goDurationChan:     make(chan goDuration, 1),
 		visOptions:         defaultVisualizationOptions(),
@@ -222,11 +229,12 @@ func (d *Dispatcher) Stop() {
 	if d.stopped {
 		return
 	}
-	simplelogger.Debugf("stopping dispatcher ...")
 	d.stopped = true
+	simplelogger.Debugf("stopping dispatcher ...")
 	d.ctx.Cancel("dispatcher-stop")
-	_ = d.udpln.Close() // close socket to stop d.eventsReader accepting new clients.
 	d.GoCancel()        // cancel current simulation period
+	_ = d.udpln.Close() // close socket to stop d.eventsReader accepting new clients.
+
 	d.vis.Stop()
 	close(d.pcapFrameChan)
 	simplelogger.Debugf("waiting for dispatcher threads to stop ...")
@@ -299,17 +307,15 @@ loop:
 				// no nodes or no sim progress, sleep for a small duration to avoid high cpu
 				d.RecvEvents()
 				time.Sleep(time.Millisecond * 10)
-				close(duration.done)
-				break
-			}
+			} else {
+				simplelogger.AssertTrue(d.CurTime == d.pauseTime)
+				d.goSimulateForDuration(duration)
+				simplelogger.AssertTrue(d.CurTime == d.pauseTime)
 
-			simplelogger.AssertTrue(d.CurTime == d.pauseTime)
-			d.goSimulateForDuration(duration)
-			simplelogger.AssertTrue(d.CurTime == d.pauseTime)
-
-			d.syncAllNodes()
-			if d.pcap != nil {
-				_ = d.pcap.Sync()
+				d.syncAllNodes()
+				if d.pcap != nil {
+					_ = d.pcap.Sync()
+				}
 			}
 			close(duration.done)
 			break
@@ -357,6 +363,7 @@ func (d *Dispatcher) goSimulateForDuration(duration goDuration) {
 			simplelogger.AssertTrue(d.CurTime <= d.pauseTime)
 
 			if !goon && len(d.aliveNodes) == 0 {
+				d.cbHandler.OnNextEventTime(d.CurTime, d.pauseTime)
 				d.advanceTime(d.pauseTime) // if nothing more to do before d.pauseTime.
 				break
 			}
@@ -400,7 +407,7 @@ func (d *Dispatcher) handleRecvEvent(evt *Event) {
 	if d.cfg.Real && (evt.Type == EventTypeAlarmFired || evt.Type == EventTypeRadioReceived ||
 		evt.Type == EventTypeRadioCommStart || evt.Type == EventTypeRadioChannelSample ||
 		evt.Type == EventTypeRadioState) {
-		simplelogger.Fatalf("unexpected event in real mode: %v", evt.Type)
+		simplelogger.Panicf("unexpected event in real mode: %v", evt.Type)
 		return
 	}
 
@@ -431,6 +438,9 @@ func (d *Dispatcher) handleRecvEvent(evt *Event) {
 		node.onStatusPushExtAddr(extaddr)
 	case EventTypeNodeInfo:
 		break
+	case EventTypeNodeExit:
+		d.setSleeping(node.Id)
+		d.alarmMgr.SetTimestamp(node.Id, Ever)
 	default:
 		simplelogger.Panicf("received event type not implemented: %v", evt.Type)
 	}
@@ -438,7 +448,7 @@ func (d *Dispatcher) handleRecvEvent(evt *Event) {
 
 // RecvEvents receives events from nodes, and handles these, until there is no more alive node.
 func (d *Dispatcher) RecvEvents() int {
-	blockTimeout := time.After(time.Second * 5)
+	blockTimeout := time.After(DefaultReadTimeout)
 	count := 0
 
 loop:
@@ -447,7 +457,10 @@ loop:
 
 		if shouldBlock {
 			select {
-			case evt := <-d.eventChan: // new event
+			case evt, ok := <-d.eventChan: // new event
+				if !ok { // channel closed
+					break loop
+				}
 				count += 1
 				d.handleRecvEvent(evt)
 			case <-blockTimeout: // timeout
@@ -457,7 +470,10 @@ loop:
 			}
 		} else {
 			select {
-			case evt := <-d.eventChan:
+			case evt, ok := <-d.eventChan:
+				if !ok { // channel closed
+					break loop
+				}
 				count += 1
 				d.handleRecvEvent(evt)
 			default:
@@ -468,7 +484,7 @@ loop:
 	return count
 }
 
-// processNextEvent processes all next events from the eventQueue for the current time instant.
+// processNextEvent processes all next events from the eventQueue for the next time instant.
 // Returns true if the simulation needs to continue, or false if not (e.g. it's time to pause).
 func (d *Dispatcher) processNextEvent(simSpeed float64) bool {
 	simplelogger.AssertTrue(d.CurTime <= d.pauseTime)
@@ -526,12 +542,12 @@ func (d *Dispatcher) processNextEvent(simSpeed float64) bool {
 	if nextEventTime > d.pauseTime {
 		return false
 	}
+	d.cbHandler.OnNextEventTime(d.CurTime, nextEventTime)
+	d.advanceTime(nextEventTime)
 
 	// process (if any) all queued events, that happen at exactly procUntilTime
 	procUntilTime := nextEventTime
 	for nextEventTime <= procUntilTime {
-		d.advanceTime(nextEventTime)
-
 		if nextAlarmTime <= nextSendTime {
 			// process next alarm
 			nextAlarm := d.alarmMgr.NextAlarm()
@@ -569,7 +585,7 @@ func (d *Dispatcher) processNextEvent(simSpeed float64) bool {
 				}
 			} else if evt.NodeId > 0 {
 				// node may have been deleted in the meantime. NodeId=0 means a deactivated event.
-				simplelogger.Debugf("processNextEvent() skipping event for deleted/unknown node %v: %v", evt.NodeId, evt)
+				simplelogger.Warnf("processNextEvent() skips event for deleted/unknown node %v: %v", evt.NodeId, evt)
 			}
 		}
 		nextAlarmTime = d.alarmMgr.NextTimestamp()
@@ -590,19 +606,18 @@ func (d *Dispatcher) eventsReader() {
 	for {
 		// Wait for OT nodes to connect.
 		conn, err := d.udpln.Accept()
-		if d.IsStopped() {
+		if err != nil || d.IsStopped() {
 			if conn != nil {
 				_ = conn.Close()
 			}
-			break
-		}
-		if err != nil {
-			simplelogger.Fatalf("connection Accept() failed: %v", err)
+			if !d.IsStopped() {
+				simplelogger.Panicf("connection Accept() failed: %v", err)
+			}
 			break
 		}
 
 		// Handle the new connection in a separate goroutine.
-		readTimeout := time.Millisecond * 5000
+		readTimeout := DefaultReadTimeout
 		d.waitGroupNodes.Add(1)
 
 		go func(myConn net.Conn) {
@@ -616,7 +631,7 @@ func (d *Dispatcher) eventsReader() {
 				_ = myConn.SetReadDeadline(time.Now().Add(readTimeout))
 				n, err := myConn.Read(buf)
 
-				if err == io.EOF {
+				if errors.Is(err, io.EOF) {
 					break
 				} else if errors.Is(err, os.ErrDeadlineExceeded) {
 					if n > 0 {
@@ -643,11 +658,20 @@ func (d *Dispatcher) eventsReader() {
 					d.eventChan <- evt
 				}
 			}
+
+			// Once the socket is disconnected, signal one last event.
+			d.eventChan <- &Event{
+				Delay:  0,
+				Type:   EventTypeNodeExit,
+				NodeId: myNodeId,
+				Conn:   myConn,
+			}
 		}(conn)
 	}
 
 	simplelogger.Debugf("waiting for dispatcher node socket threads to stop ...")
 	d.waitGroupNodes.Wait() // wait for all node goroutines to stop before closing eventsReader.
+	close(d.eventChan)
 }
 
 func (d *Dispatcher) advanceNodeTime(node *Node, timestamp uint64, force bool) {
@@ -660,7 +684,7 @@ func (d *Dispatcher) advanceNodeTime(node *Node, timestamp uint64, force bool) {
 
 	oldTime := node.CurTime
 	if timestamp <= oldTime && !force {
-		// node time was already newer than the requested timestamp
+		// node time was already equal to or newer than the requested timestamp
 		return
 	}
 
@@ -922,16 +946,8 @@ func (d *Dispatcher) GetVisualizer() visualize.Visualizer {
 	return d.vis
 }
 
-func (d *Dispatcher) logDebugForNode(id NodeId, str string) {
-	spacing := ""
-	if id < 10 {
-		spacing = " "
-	}
-	simplelogger.Debugf("Node<%d>%s %9d - %s", id, spacing, d.CurTime, str)
-}
-
 func (d *Dispatcher) handleStatusPush(srcnode *Node, data string) {
-	d.logDebugForNode(srcnode.Id, fmt.Sprintf("status push: %#v", data))
+	d.cbHandler.OnLogMessage(srcnode.Id, WatchDebugLevel, srcnode.watchLogLevel >= WatchDebugLevel, fmt.Sprintf("status push: %#v", data))
 	statuses := strings.Split(data, ";")
 	srcid := srcnode.Id
 	for _, status := range statuses {
@@ -1036,7 +1052,7 @@ func (d *Dispatcher) AddNode(nodeid NodeId, cfg *NodeConfig) *Node {
 	d.setAlive(nodeid)
 
 	if d.cfg.DefaultWatchOn {
-		d.WatchNode(nodeid, d.cfg.DefaultWatchLevel)
+		d.WatchNode(nodeid, ParseWatchLogLevel(d.cfg.DefaultWatchLevel))
 	}
 	return node
 }
@@ -1045,7 +1061,7 @@ func (d *Dispatcher) setNodeRloc16(srcid NodeId, rloc16 uint16) {
 	node := d.nodes[srcid]
 	simplelogger.AssertNotNil(node)
 
-	d.logDebugForNode(srcid, fmt.Sprintf("set node rloc: %x -> %x", node.Rloc16, rloc16))
+	d.cbHandler.OnLogMessage(srcid, WatchDebugLevel, false, fmt.Sprintf("set node RLOC16: %x -> %x", node.Rloc16, rloc16))
 	oldRloc16 := node.Rloc16
 	if oldRloc16 != threadconst.InvalidRloc16 {
 		// remove node from old rloc map
@@ -1181,7 +1197,7 @@ func (d *Dispatcher) advanceTime(ts uint64) {
 		d.lastVizTime = time.Now()
 	}
 
-	if d.energyAnalyser != nil && (ts >= d.lastEnergyVizTime+energy.ComputePeriod || d.lastEnergyVizTime == 0) {
+	if d.energyAnalyser != nil && (ts >= d.lastEnergyVizTime+energy.ComputePeriod || (d.lastEnergyVizTime == 0 && ts > 0)) {
 		d.energyAnalyser.StoreNetworkEnergy(ts)
 		d.vis.UpdateNodesEnergy(d.energyAnalyser.GetLatestEnergyOfNodes(), ts, true)
 		d.lastEnergyVizTime = ts
@@ -1221,21 +1237,28 @@ loop:
 	}
 }
 
-func (d *Dispatcher) WatchNode(nodeid NodeId, watchLogLevel string) {
+func (d *Dispatcher) WatchNode(nodeid NodeId, watchLogLevel WatchLogLevel) {
 	d.watchingNodes[nodeid] = struct{}{}
 	node := d.nodes[nodeid]
 	if node != nil {
-		node.watchLogLevel = ParseWatchLogLevel(watchLogLevel)
+		node.watchLogLevel = watchLogLevel
 	}
 }
 
 func (d *Dispatcher) UnwatchNode(nodeid NodeId) {
+	node := d.nodes[nodeid]
+	if node != nil {
+		node.watchLogLevel = WatchCritLevel
+	}
 	delete(d.watchingNodes, nodeid)
 }
 
-func (d *Dispatcher) IsWatching(nodeid NodeId) bool {
-	_, ok := d.watchingNodes[nodeid]
-	return ok
+func (d *Dispatcher) GetWatchLevel(nodeid NodeId) WatchLogLevel {
+	node := d.nodes[nodeid]
+	if node != nil {
+		return node.watchLogLevel
+	}
+	return WatchOffLevel
 }
 
 func (d *Dispatcher) GetWatchingNodes() []NodeId {
@@ -1247,43 +1270,6 @@ func (d *Dispatcher) GetWatchingNodes() []NodeId {
 	}
 	sort.Ints(watchingNodeIds)
 	return watchingNodeIds
-}
-
-// WatchMessage logs a message for a particular node, to be seen by all Watchers of the node.
-func (d *Dispatcher) WatchMessage(id NodeId, logLevel WatchLogLevel, msg string) {
-	node := d.nodes[id]
-	_, isWatching := d.watchingNodes[id]
-	if node == nil || !isWatching {
-		return // ignore, not being watched.
-	}
-	if node.watchLogLevel >= logLevel {
-		watchLog(node, logLevel, fmt.Sprintf("%s %9d %s", node, d.CurTime, msg))
-	}
-}
-
-// helper function to log to right simplelogger level, overriding simplelogger's level.
-func watchLog(node *Node, logLevel WatchLogLevel, msg string) {
-	switch logLevel {
-	case WatchCritLevel:
-		simplelogger.Errorf(msg)
-	case WatchWarnLevel:
-		simplelogger.Warnf(msg)
-	case WatchInfoLevel, WatchNoteLevel:
-		simplelogger.Infof(msg)
-	case WatchDebugLevel, WatchTraceLevel:
-		// TODO may consider own logger object for dispatcher to avoid below workaround.
-		if simplelogger.GetLevel() == simplelogger.DebugLevel {
-			simplelogger.Debugf(msg)
-		} else {
-			simplelogger.Infof(msg)
-		}
-	default:
-		simplelogger.Errorf(msg)
-	}
-}
-
-func (d *Dispatcher) GetAliveCount() int {
-	return len(d.aliveNodes)
 }
 
 func (d *Dispatcher) GetNode(id NodeId) *Node {
@@ -1432,7 +1418,7 @@ func (d *Dispatcher) dumpPacket(item *Event) {
 		_, _ = fmt.Fprintf(&sb, "%02X", b)
 	}
 
-	_, _ = fmt.Fprintf(os.Stdout, "%s\n", sb.String())
+	PrintConsole(sb.String())
 }
 
 func (d *Dispatcher) setNodeRole(node *Node, role OtDeviceRole) {
@@ -1527,15 +1513,10 @@ func (d *Dispatcher) handleRadioState(node *Node, evt *Event) {
 	state := evt.RadioStateData.State
 	energyState := evt.RadioStateData.EnergyState
 
-	if node.watchLogLevel >= WatchTraceLevel && d.IsWatching(node.Id) {
-		msg := fmt.Sprintf("%s %9d EnergyState=%+v SubState=%+v RadioState=%+v",
-			node, evt.Timestamp, energyState, subState, state)
-		// TODO may consider own logger object for dispatcher to avoid below workaround.
-		if simplelogger.GetLevel() == simplelogger.DebugLevel {
-			simplelogger.Debugf(msg)
-		} else {
-			simplelogger.Infof(msg)
-		}
+	if node.watchLogLevel >= WatchTraceLevel {
+		msg := fmt.Sprintf("EnergyState=%s SubState=%s RadioState=%s RadioTime=%d NextStTime=+%d",
+			energyState, subState, state, evt.RadioStateData.RadioTime, evt.Delay)
+		d.cbHandler.OnLogMessage(node.Id, WatchTraceLevel, true, msg)
 	}
 
 	node.radioNode.SetRadioState(energyState, subState)
@@ -1547,10 +1528,11 @@ func (d *Dispatcher) handleRadioState(node *Node, evt *Event) {
 		radioEnergy.SetRadioState(energyState, d.CurTime)
 	}
 
-	// if a next radio-state transition is indicated, make sure to schedule node wake-up for that time.
+	// if a next radio-state transition time is indicated, make sure to schedule node wake-up for that time.
 	// This is independent from any alarm-time set by the node.
 	if evt.Delay > 0 {
-		radioWakeUpEvt := evt.Copy()
+		radioWakeUpEvt := evt.Copy() // TODO can recycle event itself
+		radioWakeUpEvt.Delay = 0
 		radioWakeUpEvt.Timestamp += evt.Delay
 		radioWakeUpEvt.MustDispatch = true
 		d.eventQueue.Add(&radioWakeUpEvt)

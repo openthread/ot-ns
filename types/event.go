@@ -55,6 +55,7 @@ const (
 	EventTypeExtAddr            EventType = 11
 	EventTypeNodeInfo           EventType = 12
 	EventTypeFailureControl     EventType = 13
+	EventTypeNodeExit           EventType = 14
 )
 
 const (
@@ -97,13 +98,14 @@ type RadioCommEventData struct {
 	Duration uint64
 }
 
-const RadioStateEventDataHeaderLen = 5 // from OT-RFSIM platform, event-sim.h struct
+const RadioStateEventDataHeaderLen = 13 // from OT-RFSIM platform, event-sim.h struct
 type RadioStateEventData struct {
 	Channel     uint8
 	PowerDbm    int8
 	EnergyState RadioStates
 	SubState    RadioSubStates
 	State       RadioStates
+	RadioTime   uint64
 }
 
 const NodeInfoEventDataHeaderLen = 4 // from OT-RFSIM platform, otSimSendNodeInfoEvent()
@@ -225,6 +227,7 @@ func deserializeRadioStateData(data []byte) RadioStateEventData {
 		EnergyState: RadioStates(data[2]),
 		SubState:    RadioSubStates(data[3]),
 		State:       RadioStates(data[4]),
+		RadioTime:   binary.LittleEndian.Uint64(data[5:13]),
 	}
 	return s
 }
