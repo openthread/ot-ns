@@ -27,6 +27,7 @@
 package types
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/simonlingoogle/go-simplelogger"
@@ -58,6 +59,16 @@ const (
 	MTD    = "mtd"
 	FTD    = "ftd"
 )
+
+func GetNodeName(id NodeId) string {
+	spacing := "  "
+	if id >= 100 {
+		spacing = ""
+	} else if id >= 10 {
+		spacing = " "
+	}
+	return fmt.Sprintf("Node<%d>%s", id, spacing)
+}
 
 type NodeMode struct {
 	RxOnWhenIdle     bool
@@ -124,6 +135,17 @@ func (r OtDeviceRole) String() string {
 		return "invalid"
 	}
 }
+
+type OtJoinerState int
+
+const (
+	OtJoinerStateIdle      OtJoinerState = 0
+	OtJoinerStateDiscover  OtJoinerState = 1
+	OtJoinerStateConnect   OtJoinerState = 2
+	OtJoinerStateConnected OtJoinerState = 3
+	OtJoinerStateEntrust   OtJoinerState = 4
+	OtJoinerStateJoined    OtJoinerState = 5
+)
 
 type RadioStates byte
 

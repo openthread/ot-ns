@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2020-2023, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -100,7 +100,7 @@ func (ctx *ProgCtx) WaitDone(name string) {
 
 func (ctx *ProgCtx) Wait() {
 	ctx.routinesLock.Lock()
-	simplelogger.Infof("program context waiting routines: %v", ctx.routines)
+	simplelogger.Debugf("program context waiting routines: %v", ctx.routines)
 	ctx.routinesLock.Unlock()
 
 	ctx.wg.Wait()

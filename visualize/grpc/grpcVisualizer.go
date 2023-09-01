@@ -497,7 +497,7 @@ func (gv *grpcVisualizer) UpdateNodesEnergy(nodes []*pb.NodeEnergy, timestamp ui
 	gv.Lock()
 	defer gv.Unlock()
 
-	simplelogger.Debugf("Updating Nodes Energy to the charts")
+	//simplelogger.Debugf("Updating Nodes Energy to the charts")
 	gv.server.SendEnergyEvent(&pb.NetworkEnergyEvent{
 		Timestamp:   timestamp / 1000000, // convert to s
 		NodesEnergy: nodes,

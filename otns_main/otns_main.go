@@ -42,7 +42,7 @@ import (
 	"github.com/openthread/ot-ns/dispatcher"
 	"github.com/openthread/ot-ns/progctx"
 	"github.com/openthread/ot-ns/simulation"
-	"github.com/openthread/ot-ns/types"
+	. "github.com/openthread/ot-ns/types"
 	"github.com/openthread/ot-ns/visualize"
 	visualizeGrpc "github.com/openthread/ot-ns/visualize/grpc"
 	visualizeMulti "github.com/openthread/ot-ns/visualize/multi"
@@ -99,7 +99,7 @@ func parseArgs() {
 	flag.BoolVar(&args.OpenWeb, "web", true, "open web visualization")
 	flag.BoolVar(&args.RawMode, "raw", false, "use raw mode (skips OT node init by script)")
 	flag.BoolVar(&args.Real, "real", false, "use real mode (for real devices)")
-	flag.StringVar(&args.ListenAddr, "listen", fmt.Sprintf("localhost:%d", types.InitialDispatcherPort), "specify UDP listen address and port")
+	flag.StringVar(&args.ListenAddr, "listen", fmt.Sprintf("localhost:%d", InitialDispatcherPort), "specify UDP listen address and port")
 	flag.BoolVar(&args.DumpPackets, "dump-packets", false, "dump packets")
 	flag.BoolVar(&args.NoPcap, "no-pcap", false, "do not generate PCAP file (named \"current.pcap\")")
 	flag.BoolVar(&args.NoReplay, "no-replay", false, "do not generate Replay file")
@@ -124,11 +124,11 @@ func parseListenAddr() {
 		notifyInvalidListenAddr()
 	}
 
-	if args.DispatcherPort < types.InitialDispatcherPort || args.DispatcherPort%10 != 0 {
+	if args.DispatcherPort < InitialDispatcherPort || args.DispatcherPort%10 != 0 {
 		notifyInvalidListenAddr()
 	}
 
-	portOffset := (args.DispatcherPort - types.InitialDispatcherPort) / 10
+	portOffset := (args.DispatcherPort - InitialDispatcherPort) / 10
 	simplelogger.Infof("Using env PORT_OFFSET=%d", portOffset)
 	if err = os.Setenv("PORT_OFFSET", strconv.Itoa(portOffset)); err != nil {
 		simplelogger.Panic(err)
@@ -185,7 +185,7 @@ func Main(ctx *progctx.ProgCtx, visualizerCreator func(ctx *progctx.ProgCtx, arg
 	go sim.Run()
 	go func() {
 		err := cli.Run(rt, cliOptions)
-		ctx.Cancel(errors.Wrapf(err, "console exit"))
+		ctx.Cancel(errors.Wrapf(err, "console-exit"))
 	}()
 
 	web.ConfigWeb(args.DispatcherHost, args.DispatcherPort-2, args.DispatcherPort-1, args.DispatcherPort-3)
@@ -199,6 +199,7 @@ func Main(ctx *progctx.ProgCtx, visualizerCreator func(ctx *progctx.ProgCtx, arg
 	}
 
 	vis.Run() // visualize must run in the main thread
+	ctx.Cancel("main")
 
 	simplelogger.Debugf("waiting for OTNS to stop gracefully ...")
 	webSite.StopServe()
@@ -212,14 +213,13 @@ func handleSignals(ctx *progctx.ProgCtx) {
 
 	ctx.WaitAdd("handleSignals", 1)
 	go func() {
-		defer simplelogger.Debugf("handleSignals exit.")
 		defer ctx.WaitDone("handleSignals")
 
 		for {
 			select {
 			case sig := <-c:
-				simplelogger.Infof("signal received: %v", sig)
-				ctx.Cancel(nil)
+				simplelogger.Infof("Unix signal received: %v", sig)
+				ctx.Cancel("signal-" + sig.String())
 			case <-ctx.Done():
 				return
 			}
@@ -260,13 +260,15 @@ func createSimulation(ctx *progctx.ProgCtx) *simulation.Simulation {
 	simcfg.DispatcherPort = args.DispatcherPort
 	simcfg.DumpPackets = args.DumpPackets
 	simcfg.AutoGo = args.AutoGo
-	simcfg.Id = (args.DispatcherPort - types.InitialDispatcherPort) / 10
+	simcfg.Id = (args.DispatcherPort - InitialDispatcherPort) / 10
 	if len(args.InitScriptName) > 0 {
 		simcfg.InitScript, err = simulation.ReadNodeScript(args.InitScriptName)
 		if err != nil {
+			simplelogger.Error(err)
 			return nil
 		}
 	}
+	simcfg.LogLevel = ParseWatchLogLevel(args.LogLevel)
 
 	dispatcherCfg := dispatcher.DefaultConfig()
 	dispatcherCfg.SimulationId = simcfg.Id
@@ -274,7 +276,7 @@ func createSimulation(ctx *progctx.ProgCtx) *simulation.Simulation {
 		dispatcherCfg.PcapChannels[simcfg.Channel] = struct{}{}
 	}
 	dispatcherCfg.DefaultWatchLevel = args.WatchLevel
-	dispatcherCfg.DefaultWatchOn = dispatcher.ParseWatchLogLevel(args.WatchLevel) != dispatcher.WatchOffLevel
+	dispatcherCfg.DefaultWatchOn = ParseWatchLogLevel(args.WatchLevel) != WatchOffLevel
 
 	sim, err := simulation.NewSimulation(ctx, simcfg, dispatcherCfg)
 	simplelogger.FatalIfError(err)
