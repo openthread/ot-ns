@@ -34,15 +34,14 @@
 # Fault Injections:
 #   None
 # Pass Criteria:
-#   Execution time <= 30s
+#   Execution time <= 60s
 #
 import time
 
 from BaseStressTest import BaseStressTest
 
-XGAP = 100
-YGAP = 100
-RADIO_RANGE = int(XGAP * 1.5)
+XGAP = 200
+YGAP = 200
 
 ROWS, COLS = 4, 8
 assert ROWS * COLS <= 32
@@ -65,13 +64,18 @@ class OtnsPerformanceStressTest(BaseStressTest):
 
         for r in range(ROWS):
             for c in range(COLS):
-                nid = ns.add("router", 100 + XGAP * c, 100 + YGAP * r, radio_range=RADIO_RANGE)
+                nid = ns.add("router", 100 + XGAP * c, 100 + YGAP * r)
                 # make sure every node become Router
                 ns.node_cmd(nid, "routerupgradethreshold 32")
                 ns.node_cmd(nid, 'routerdowngradethreshold 33')
+                ns.node_cmd(nid, 'routerselectionjitter 10')
                 ns.go(10)  # give time to connect
+
+        for r in range(ROWS):
+            for c in range(COLS):
+                nid = 1 + c + r * COLS
                 expected_state = 'leader' if (r, c) == (0, 0) else 'router'
-                self.expect_node_state(nid, expected_state, 121)  # give time to become Router
+                self.expect_node_state(nid, expected_state, 10)  # give time to become Router
 
         secs = 0
         formed_one_partition_ok = False
@@ -103,9 +107,9 @@ class OtnsPerformanceStressTest(BaseStressTest):
         self.result.append_row('%ds' % PERF_SIMULATE_TIME, '%ds' % duration,
                                '%d' % (PERF_SIMULATE_TIME / duration), counter['AlarmEvents'], counter['RadioEvents'])
 
-        self.result.fail_if(duration > 30, f'Execution Time ({duration}) > 30s')
-        self.result.fail_if(counter['AlarmEvents'] > 450000, f"Too many AlarmEvents: {counter['AlarmEvents']} > 450000")
-        self.result.fail_if(counter['RadioEvents'] > 250000, f"Too many RadioEvents: {counter['RadioEvents']} > 250000")
+        self.result.fail_if(duration > 60, f'Execution Time ({duration}) > 60s')
+        self.result.fail_if(counter['AlarmEvents'] > 900000, f"Too many AlarmEvents: {counter['AlarmEvents']} > 900000")
+        self.result.fail_if(counter['RadioEvents'] > 500000, f"Too many RadioEvents: {counter['RadioEvents']} > 500000")
 
 
 if __name__ == '__main__':

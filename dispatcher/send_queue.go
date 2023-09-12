@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2022, The OTNS Authors.
+// Copyright (c) 2020-2023, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -36,15 +36,15 @@ type sendQueue struct {
 	q []*Event
 }
 
-func (sq sendQueue) Len() int {
+func (sq *sendQueue) Len() int {
 	return len(sq.q)
 }
 
-func (sq sendQueue) Less(i, j int) bool {
+func (sq *sendQueue) Less(i, j int) bool {
 	return sq.q[i].Timestamp < sq.q[j].Timestamp
 }
 
-func (sq sendQueue) Swap(i, j int) {
+func (sq *sendQueue) Swap(i, j int) {
 	sq.q[i], sq.q[j] = sq.q[j], sq.q[i]
 }
 
@@ -59,7 +59,7 @@ func (sq *sendQueue) Pop() (elem interface{}) {
 	return
 }
 
-func (sq sendQueue) NextTimestamp() uint64 {
+func (sq *sendQueue) NextTimestamp() uint64 {
 	if len(sq.q) > 0 {
 		return sq.q[0].Timestamp
 	} else {
@@ -67,7 +67,7 @@ func (sq sendQueue) NextTimestamp() uint64 {
 	}
 }
 
-func (sq sendQueue) NextEvent() *Event {
+func (sq *sendQueue) NextEvent() *Event {
 	if len(sq.q) > 0 {
 		return sq.q[0]
 	} else {

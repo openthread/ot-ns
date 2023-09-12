@@ -30,34 +30,32 @@ import (
 	"math"
 
 	. "github.com/openthread/ot-ns/types"
-	"github.com/simonlingoogle/go-simplelogger"
 )
 
-// IEEE 802.15.4-2015 related parameters
-type DbmValue = int8
+type DbValue = float64
 
+// IEEE 802.15.4-2015 related parameters for 2.4 GHz O-QPSK PHY
 const (
 	MinChannelNumber     ChannelId = 0 // below 11 are sub-Ghz channels for 802.15.4-2015
 	MaxChannelNumber     ChannelId = 26
 	DefaultChannelNumber ChannelId = 11
+	TimeUsPerBit                   = 4
 )
 
 // default radio & simulation parameters
 const (
-	receiveSensitivityDbm DbmValue = -100 // TODO for now MUST be manually kept equal to OT: SIM_RECEIVE_SENSITIVITY
-	defaultTxPowerDbm     DbmValue = 0    // Default, RadioTxEvent msg will override it. OT: SIM_TX_POWER
-
-	// Handtuned - for indoor model, how many meters r is RadioRange disc until Link
-	// quality drops below 2 (10 dB margin).
-	radioRangeIndoorDistInMeters = 26.70
+	receiveSensitivityDbm DbValue = -100.0 // MUST be manually kept equal to OT: SIM_RECEIVE_SENSITIVITY
+	defaultTxPowerDbm     DbValue = 0.0    // Default, RadioTxEvent msg will override it. OT: SIM_TX_POWER
+	noiseFloorIndoorDbm   DbValue = -95.0  // Indoor model ambient noise floor (dBm)
+	defaultMeterPerUnit   float64 = 0.10   // Default distance equivalent in meters of one grid/pixel distance unit.
 )
 
-// RSSI parameter encodings
+// RSSI parameter encodings for communication with OT node (maps to int8)
 const (
-	RssiInvalid       DbmValue = 127
-	RssiMax           DbmValue = 126
-	RssiMin           DbmValue = -126
-	RssiMinusInfinity DbmValue = -127
+	RssiInvalid       DbValue = 127.0
+	RssiMax           DbValue = 126.0
+	RssiMin           DbValue = -126.0
+	RssiMinusInfinity DbValue = -127.0
 )
 
 // EventQueue is the abstraction of the queue where the radio model sends its outgoing (new) events to.
@@ -74,19 +72,20 @@ type RadioModel interface {
 	// DeleteNode removes a RadioNode from the model.
 	DeleteNode(nodeid NodeId)
 
-	// CheckRadioReachable checks if the srcNode radio can reach the dstNode radio, now.
+	// CheckRadioReachable checks if the srcNode radio can reach the dstNode radio, now, with a >0 probability.
 	CheckRadioReachable(srcNode *RadioNode, dstNode *RadioNode) bool
 
 	// GetTxRssi calculates at what RSSI level a radio frame Tx would be received by
 	// dstNode, according to the radio model, in the ideal case of no other transmitters/interferers.
 	// It returns the expected RSSI value at dstNode, or RssiMinusInfinity if the RSSI value will
 	// fall below the minimum Rx sensitivity of the dstNode.
-	GetTxRssi(srcNode *RadioNode, dstNode *RadioNode) DbmValue
+	GetTxRssi(srcNode *RadioNode, dstNode *RadioNode) DbValue
 
 	// OnEventDispatch is called when the Dispatcher sends an Event to a particular dstNode. The method
 	// implementation may e.g. apply interference to a frame in transit, prior to delivery of the
-	// frame at a single receiving radio dstNode, or set additional info in the event.
-	// Returns true if event can be dispatched, false if not.
+	// frame at a single receiving radio dstNode, or apply loss of the frame, or set additional info
+	// in the event. Returns true if event can be dispatched, false if not (e.g. due to Rx radio not
+	// able to detect the frame).
 	OnEventDispatch(srcNode *RadioNode, dstNode *RadioNode, evt *Event) bool
 
 	// HandleEvent handles all radio-model events coming out of the simulator event queue.
@@ -101,52 +100,54 @@ type RadioModel interface {
 	init()
 }
 
-// IndoorModelParams stores model parameters for the simple indoor path loss model.
-type IndoorModelParams struct {
-	ExponentDb    float64
-	FixedLossDb   float64
-	RangeInMeters float64
+// RadioModelParams stores model parameters for the radio model.
+type RadioModelParams struct {
+	MeterPerUnit        float64 // the distance in meters, equivalent to a single distance unit(pixel)
+	ExponentDb          DbValue // the exponent (dB) in the regular/LOS model
+	FixedLossDb         DbValue // the fixed loss (dB) term in the regular/LOS model
+	NlosExponentDb      DbValue // the exponent (dB) in the NLOS model
+	NlosFixedLossDb     DbValue // the fixed loss (dB) term in the NLOS model
+	NoiseFloorDbm       DbValue // the noise floor (ambient noise, in dBm)
+	SnrMinThresholdDb   DbValue // the minimal value an SNR/SINR should be, to have a non-zero frame success probability.
+	ShadowFadingSigmaDb DbValue // sigma (stddev) parameter for Shadow Fading (SF), in dB
 }
 
-// Create creates a new RadioModel with given name, or nil if model not found.
-func Create(modelName string) RadioModel {
+// NewRadioModel creates a new RadioModel with given name, or nil if model not found.
+func NewRadioModel(modelName string) RadioModel {
 	var model RadioModel
 	switch modelName {
 	case "Ideal", "I", "1":
 		model = &RadioModelIdeal{
 			Name:      "Ideal",
 			FixedRssi: -60,
+			Params: &RadioModelParams{
+				MeterPerUnit: defaultMeterPerUnit,
+			},
 		}
 	case "Ideal_Rssi", "IR", "2", "default":
 		model = &RadioModelIdeal{
 			Name:            "Ideal_Rssi",
 			UseVariableRssi: true,
-			IndoorParams: &IndoorModelParams{
-				ExponentDb:    35.0,
-				FixedLossDb:   40.0,
-				RangeInMeters: radioRangeIndoorDistInMeters,
-			},
+			Params:          newIndoorModelParamsItu(),
 		}
 	case "MutualInterference", "MI", "M", "3":
 		model = &RadioModelMutualInterference{
-			Name:     "MutualInterference",
-			MinSirDb: 1, // minimum Signal-to-Interference (SIR) (dB) required to detect signal
-			IndoorParams: &IndoorModelParams{
-				ExponentDb:    35.0,
-				FixedLossDb:   40.0,
-				RangeInMeters: radioRangeIndoorDistInMeters,
-			},
+			Name:         "MutualInterference",
+			Params:       newIndoorModelParams3gpp(),
+			shadowFading: newShadowFading(),
 		}
 	case "MIDisc", "MID", "4":
 		model = &RadioModelMutualInterference{
-			Name:        "MIDisc",
-			MinSirDb:    1, // minimum Signal-to-Interference (SIR) (dB) required to detect signal
-			IsDiscLimit: true,
-			IndoorParams: &IndoorModelParams{
-				ExponentDb:    15.0,
-				FixedLossDb:   40.0,
-				RangeInMeters: radioRangeIndoorDistInMeters,
-			},
+			Name:         "MIDisc",
+			IsDiscLimit:  true,
+			Params:       newIndoorModelParams3gpp(),
+			shadowFading: newShadowFading(),
+		}
+	case "Outdoor", "5":
+		model = &RadioModelMutualInterference{
+			Name:         "Outdoor",
+			Params:       newOutdoorModelParams(),
+			shadowFading: newShadowFading(),
 		}
 	default:
 		model = nil
@@ -157,32 +158,23 @@ func Create(modelName string) RadioModel {
 	return model
 }
 
-// interferePsduData simulates the interference (garbling) of PSDU data based on a given SIR level (dB).
-func interferePsduData(data []byte, sirDb float64) []byte {
-	simplelogger.AssertTrue(len(data) >= 2)
-	intfData := data
-	if sirDb < 0 {
-		// modify MAC frame FCS, as a substitute for interfered frame.
-		intfData[len(data)-2]++
-		intfData[len(data)-1]++
+// addSignalPowersDbm calculates signal power in dBm of two added, uncorrelated, signals with powers p1 and p2 (dBm).
+func addSignalPowersDbm(p1 DbValue, p2 DbValue) DbValue {
+	if p1 > p2+15.0 {
+		return p1
 	}
-	return intfData
+	if p2 > p1+15.0 {
+		return p2
+	}
+	return 10.0 * math.Log10(math.Pow(10, p1/10.0)+math.Pow(10, p2/10.0))
 }
 
-// computeIndoorRssi computes the RSSI for a receiver at distance dist, using a simple indoor exponent loss model.
-func computeIndoorRssi(srcRadioRange float64, dist float64, txPower int8, modelParams *IndoorModelParams) int8 {
-	pathloss := 0.0
-	distMeters := dist * modelParams.RangeInMeters / srcRadioRange
-	if distMeters >= 0.072 {
-		pathloss = modelParams.ExponentDb*math.Log10(distMeters) + modelParams.FixedLossDb
+// clipRssi clips the RSSI value (in dBm, as DbValue) to int8 range for return to OT nodes.
+func clipRssi(rssi DbValue) int8 {
+	if rssi > RssiMax {
+		rssi = RssiMax
+	} else if rssi < RssiMin {
+		rssi = RssiMinusInfinity
 	}
-	rssi := float64(txPower) - pathloss
-	rssiInt := int(math.Round(rssi))
-	// constrain RSSI value to int8 and return it. If RSSI is lower, return RssiMinusInfinity.
-	if rssiInt >= int(RssiInvalid) {
-		rssiInt = int(RssiMax)
-	} else if rssiInt < int(RssiMin) {
-		rssiInt = int(RssiMinusInfinity)
-	}
-	return int8(rssiInt)
+	return int8(math.Round(rssi))
 }

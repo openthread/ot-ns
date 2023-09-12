@@ -34,10 +34,6 @@ from otns.cli import errors, OTNS
 
 
 class CslTests(OTNSTestCase):
-    #override
-    def setUp(self):
-        super().setUp()
-        self.ns.radiomodel = 'MutualInterference'
 
     def verifyPings(self, pings, n, maxDelay=1000, maxFails=0):
         self.assertEqual(n, len(pings))
@@ -74,7 +70,7 @@ class CslTests(OTNSTestCase):
 
         # setup a Parent Router with N SSED Children with different CSL Periods.
         N = 8
-        ns.add("router", 100, 100)
+        ns.add("router", 150, 100)
         # below CSL periods to test (given in units of 160 us)
         aCslPeriods = [3100, 500, 7225, 1024, 3125, 3124, 250, 5999, 777, 1024]
         for n in range(0,N):

@@ -260,28 +260,26 @@ func (rt *CmdRunner) executeGo(cc *CommandContext, cmd *GoCmd) {
 		// when in AutoGo mode, 'go' command used to quickly jump time.
 		speed = dispatcher.MaxSimulateSpeed
 	}
-	if speed == 0 { // when paused or silly 'speed' param, assume 'go' to quickly jump time.
+	if speed == 0 { // when paused or silly 'speed' param, assume 'go' is used to quickly jump time.
 		speed = dispatcher.MaxSimulateSpeed
 	}
 
 	// execute the Go
-	var done <-chan struct{}
+	var done <-chan error
 	if cmd.Ever == nil {
 		rt.postAsyncWait(func(sim *simulation.Simulation) {
 			done = sim.GoAtSpeed(timeDurToGo, speed)
 		})
-		<-done // block for the simulation period.
-		cc.err = rt.sim.Error()
+		cc.err = <-done // block for the simulation period.
 	} else {
-		for { // run forever or until rt.ctx indicates "done" or until error
+		for { // run forever but stop if rt.ctx.Err indicates "done"
 			rt.postAsyncWait(func(sim *simulation.Simulation) {
 				sim.SetSpeed(speed) // permanent speed update
 				done = sim.Go(time.Hour)
 			})
-			<-done
+			cc.err = <-done
 
-			if rt.ctx.Err() != nil || rt.sim.Error() != nil {
-				cc.err = rt.sim.Error()
+			if rt.ctx.Err() != nil {
 				break
 			}
 		}
@@ -530,6 +528,7 @@ func (rt *CmdRunner) executeNode(cc *CommandContext, cmd *NodeCmd) {
 			for _, line := range output {
 				cc.outputf("%s\n", line)
 			}
+			node.DisplayPendingLogEntries(sim.Dispatcher().CurTime)
 		} else {
 			contextNodeId = node.Id
 		}
@@ -698,7 +697,7 @@ func (rt *CmdRunner) executeRadioModel(cc *CommandContext, cmd *RadioModelCmd) {
 		ok := false
 		var model radiomodel.RadioModel = nil
 		rt.postAsyncWait(func(sim *simulation.Simulation) {
-			model = radiomodel.Create(name)
+			model = radiomodel.NewRadioModel(name)
 			ok = model != nil
 			if ok {
 				sim.Dispatcher().SetRadioModel(model)
@@ -707,7 +706,7 @@ func (rt *CmdRunner) executeRadioModel(cc *CommandContext, cmd *RadioModelCmd) {
 		if ok {
 			cc.outputf("%v\n", model.GetName())
 		} else {
-			cc.outputf("Error: Radiomodel '%v' is not defined.\n", name)
+			cc.errorf("radiomodel '%v' is not defined", name)
 		}
 	}
 }

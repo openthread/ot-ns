@@ -35,7 +35,6 @@ from otns.cli.errors import OTNSCliError
 
 XGAP = 100
 YGAP = 100
-RADIO_RANGE = 150
 
 PASSWORD = "TEST123"
 
@@ -54,7 +53,6 @@ class CommissioningStressTest(BaseStressTest):
         self._join_count = 0
         self._join_fail_count = 0
         self.ns.packet_loss_ratio = 0.05
-        self.ns.radiomodel = 'MutualInterference'
 
     def run(self):
         for _ in range(REPEAT):
@@ -84,7 +82,7 @@ class CommissioningStressTest(BaseStressTest):
                 device_role = 'router'
                 if R >= 3 and C >= 3 and (r in (0, R - 1) or c in (0, C - 1)):
                     device_role = random.choice(['fed','med','sed'])
-                G[r][c] = ns.add(device_role, x=c * XGAP + XGAP, y=YGAP + r * YGAP, radio_range=RADIO_RANGE)
+                G[r][c] = ns.add(device_role, x=c * XGAP + XGAP, y=YGAP + r * YGAP)
                 RC[G[r][c]] = (r, c)
 
         joined: List[List[bool]] = [[False] * C for _ in range(R)]

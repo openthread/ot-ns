@@ -68,39 +68,54 @@ class PingTests(OTNSTestCase):
 
     def testPingLineTopology(self):
         ns = self.ns
-        pingDelays = []
-        pingDataSize = 128 # two-fragment ping packet adds extra closely spaced traffic.
 
         for i in range(10):
             ns.add("router", i*80, 200)
-        ns.go(300)
+        for i in range(100):
+            ns.go(20)
+            pts = ns.partitions()
+            if len(pts) == 1 and 0 not in pts:
+                break
 
-        for i in range(80):
-            ns.ping(1, 10, datasize=pingDataSize)
-            ns.go(0.100)
-            ns.ping(10, 1, datasize=pingDataSize)
-            ns.go(10.900)
+        # two-fragment ping packet adds extra closely spaced traffic. This impacts performance greatly in
+        # hidden-node situations.
+        for pingDataSize in [64,128]:
+            #ns.go(50)
+            pingDelays = []
 
-        pings = ns.pings()
-        self.assertTrue(pings)
-        for srcid, dst, datasize, delay in pings:
-            self.assertTrue(srcid in (1, 10))
-            self.assertTrue(datasize == pingDataSize)
-            pingDelays.append(delay)
+            for i in range(80):
+                ns.ping(1, 10, datasize=pingDataSize)
+                ns.go(0.100)
+                ns.ping(10, 1, datasize=pingDataSize) # reverse-direction ping may collide with earlier ping
+                ns.go(10.900)
 
-        self.assertFalse(ns.pings())
+            pings = ns.pings()
+            self.assertTrue(pings)
+            for srcid, dst, datasize, delay in pings:
+                self.assertTrue(srcid in (1, 10))
+                self.assertTrue(datasize == pingDataSize)
+                pingDelays.append(delay)
 
-        pingSuccess = 1.0 - (pingDelays.count(10000) / len(pingDelays))
-        pingDelays = list(filter(lambda a: a < 10000, pingDelays))
-        pingAvg = sum(pingDelays) / len(pingDelays)
+            self.assertFalse(ns.pings())
 
-        logging.info(f"Ping success rate   : {pingSuccess}")
-        logging.info(f"Average ping latency: {pingAvg}")
-        if ns.radiomodel == 'MIDisc':
-            # For the MIDisc radio model, the hidden-node problem pops up strongly. Lower expectations.
-            self.assertTrue(pingAvg < 600 and pingSuccess > 0.2)
-        else:
-            self.assertTrue(pingAvg < 600 and pingSuccess > 0.7)
+            pingSuccess = 1.0 - (pingDelays.count(10000) / len(pingDelays))
+            pingDelays = list(filter(lambda a: a < 10000, pingDelays))
+            pingAvg = sum(pingDelays) / len(pingDelays)
+
+            logging.info(f"Ping success rate   : {pingSuccess}")
+            logging.info(f"Average ping latency: {pingAvg}")
+
+            if pingDataSize == 64:
+                if ns.radiomodel == 'MIDisc':
+                    # For the MIDisc radio model, the hidden-node problem pops up strongly. Lower expectations.
+                    self.assertTrue(pingAvg < 600 and pingSuccess > 0.2)
+                elif ns.radiomodel == 'MutualInterference':
+                    # Some degree of hidden-node problem.
+                    self.assertTrue(pingAvg < 600 and pingSuccess > 0.5)
+                else:
+                    self.assertTrue(pingAvg < 500 and pingSuccess > 0.75)
+            else:
+                self.assertTrue(pingAvg < 600 and pingSuccess > 0.1)
 
 if __name__ == '__main__':
     unittest.main()

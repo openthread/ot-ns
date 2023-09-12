@@ -43,26 +43,27 @@ from otns.cli import OTNS
 from otns.cli.errors import OTNSExitedError
 
 R = 6
-RECEIVER_RADIO_RANGE = 300 * R
-HORSE_RADIO_RANGE = 80 * R
+RECEIVER_TX_POWER = 12 # dBm, integer
+HORSE_TX_POWER = 0 #dBm, integer
 HORSE_NUM = 10
 FARM_RECT = [10 * R, 10 * R, 210 * R, 110 * R]
 
 
 def main():
-    ns = OTNS(otns_args=['-log', 'info'])
-    ns.speed = 1
+    ns = OTNS(otns_args=['-log', 'info', '-no-logfile'])
+    ns.speed = 4
+    ns.radiomodel = 'Outdoor'
     ns.set_title("Farm Example")
     ns.set_network_info(version="Latest", commit="main", real=False)
     ns.config_visualization(broadcast_message=False)
     ns.web()
 
-    gateway = ns.add("router", FARM_RECT[0], FARM_RECT[1], radio_range=RECEIVER_RADIO_RANGE)
-    ns.add("router", FARM_RECT[0], FARM_RECT[3], radio_range=RECEIVER_RADIO_RANGE)
-    ns.add("router", FARM_RECT[2], FARM_RECT[1], radio_range=RECEIVER_RADIO_RANGE)
-    ns.add("router", FARM_RECT[2], FARM_RECT[3], radio_range=RECEIVER_RADIO_RANGE)
-    ns.add("router", (FARM_RECT[0] + FARM_RECT[2]) // 2, FARM_RECT[1], radio_range=RECEIVER_RADIO_RANGE)
-    ns.add("router", (FARM_RECT[0] + FARM_RECT[2]) // 2, FARM_RECT[3], radio_range=RECEIVER_RADIO_RANGE)
+    gateway = ns.add("router", FARM_RECT[0], FARM_RECT[1])
+    ns.add("router", FARM_RECT[0], FARM_RECT[3], txpower=RECEIVER_TX_POWER)
+    ns.add("router", FARM_RECT[2], FARM_RECT[1], txpower=RECEIVER_TX_POWER)
+    ns.add("router", FARM_RECT[2], FARM_RECT[3], txpower=RECEIVER_TX_POWER)
+    ns.add("router", (FARM_RECT[0] + FARM_RECT[2]) // 2, FARM_RECT[1], txpower=RECEIVER_TX_POWER)
+    ns.add("router", (FARM_RECT[0] + FARM_RECT[2]) // 2, FARM_RECT[3], txpower=RECEIVER_TX_POWER)
 
     horse_pos = {}
     horse_move_dir = {}
@@ -70,7 +71,7 @@ def main():
     for i in range(HORSE_NUM):
         rx = random.randint(FARM_RECT[0] + 20, FARM_RECT[2] - 20)
         ry = random.randint(FARM_RECT[1] + 20, FARM_RECT[3] - 20)
-        sid = ns.add("sed", rx, ry, radio_range=HORSE_RADIO_RANGE)
+        sid = ns.add("sed", rx, ry, txpower=HORSE_TX_POWER)
         horse_pos[sid] = (rx, ry)
         horse_move_dir[sid] = random.uniform(0, math.pi * 2)
 

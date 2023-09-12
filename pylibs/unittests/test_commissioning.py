@@ -65,6 +65,7 @@ class CommissioningTests(OTNSTestCase):
 
     def testCommissioning(self):
         ns = self.ns
+
         n1 = ns.add("router")
         n2 = ns.add("router")
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Copyright (c) 2020, The OTNS Authors.
+# Copyright (c) 2020-2023, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,14 +27,14 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 # CoAP Multicast Stress Test:
-#   The Border Router multicasts COAP messages to all nodes and measure the coverage and delay with injected failures.
+#   The Border Router multicasts COAP messages to all nodes and measure the coverage and delay.
 # Topology:
-#   Router x8 (one being Border Router)
-#   FED x8
-#   MED x8
-#   SED x8
+#   Router xROUTER_COUNT (one being Border Router)
+#   FED xFED_COUNT
+#   MED xMED_COUNT
+#   SED xSED_COUNT
 # Fault Injections:
-#   Packet Loss Ratio set to 0.5
+#   No global packet loss set - uses radiomodel MutualInterference.
 # Pass Criteria:
 #   Average Coverage >= 70%
 #   Average Delay < 200ms (2000ms for SEDs)
@@ -82,7 +82,7 @@ class StressTest(BaseStressTest):
     def run(self):
         ns = self.ns
         ns.coaps_enable()
-        ns.packet_loss_ratio = 0.3
+        ns.packet_loss_ratio = 0.0
 
         assert ROUTER_COUNT >= 1
         BR = ns.add("router", x=200, y=200, radio_range=RADIO_RANGE)
@@ -110,7 +110,7 @@ class StressTest(BaseStressTest):
             ns.node_cmd(nid, f'coap start')
             ns.node_cmd(nid, f'coap resource test')
 
-        ns.go(60)
+        ns.go(120)
 
         SEND_INTERVAL = 10
 

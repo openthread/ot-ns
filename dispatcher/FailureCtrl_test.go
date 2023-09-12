@@ -49,10 +49,13 @@ func (m mockDispatcherCallback) OnNodeRecover(nodeid NodeId) {
 func (m mockDispatcherCallback) OnUartWrite(nodeid NodeId, data []byte) {
 }
 
-func (m mockDispatcherCallback) OnLogMessage(nodeid NodeId, level WatchLogLevel, nodeIsWatched bool, msg string) {
+func (m mockDispatcherCallback) OnLogMessage(logEntry LogEntry) {
 }
 
 func (m mockDispatcherCallback) OnNextEventTime(curTimeUs uint64, nextTimeUs uint64) {
+}
+
+func (m mockDispatcherCallback) OnStop() {
 }
 
 func TestFailureCtrlNonFailure(t *testing.T) {

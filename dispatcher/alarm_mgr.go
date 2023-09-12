@@ -88,10 +88,6 @@ func newAlarmMgr() *alarmMgr {
 	return mgr
 }
 
-func (am *alarmMgr) SetNotified(id NodeId) {
-	am.SetTimestamp(id, Ever)
-}
-
 func (am *alarmMgr) AddNode(nodeid NodeId) {
 	e := am.events[nodeid]
 	simplelogger.AssertNil(e)
@@ -102,6 +98,10 @@ func (am *alarmMgr) AddNode(nodeid NodeId) {
 	}
 	heap.Push(&am.q, e)
 	am.events[nodeid] = e
+}
+
+func (am *alarmMgr) SetNotified(nodeid NodeId) {
+	am.SetTimestamp(nodeid, Ever)
 }
 
 func (am *alarmMgr) SetTimestamp(nodeid int, timestamp uint64) {

@@ -51,6 +51,13 @@ const (
 	WatchDefaultLevel               = WatchInfoLevel
 )
 
+type LogEntry struct {
+	NodeId  NodeId
+	Level   WatchLogLevel
+	Msg     string
+	IsWatch bool
+}
+
 var (
 	isLogToTerminal = false
 )
@@ -137,7 +144,7 @@ func GetSimpleloggerLevel(lev WatchLogLevel) simplelogger.Level {
 // PrintConsole prints a message for the user at the current console/CLI.
 func PrintConsole(msg string) {
 	if isLogToTerminal {
-		fmt.Fprint(os.Stderr, "\033[2K\r") // ANSI sequence to clear the CLI line
+		fmt.Fprint(os.Stdout, "\033[2K\r") // ANSI sequence to clear the CLI line
 	}
 	fmt.Fprint(os.Stdout, msg+"\n")
 	if isLogToTerminal {
@@ -148,7 +155,7 @@ func PrintConsole(msg string) {
 // PrintLog prints the log msg at specified level using simplelogger.
 func PrintLog(lev WatchLogLevel, msg string) {
 	if isLogToTerminal {
-		fmt.Fprint(os.Stderr, "\033[2K\r") // ANSI sequence to clear the CLI line
+		fmt.Fprint(os.Stdout, "\033[2K\r") // ANSI sequence to clear the CLI line
 	}
 	switch GetSimpleloggerLevel(lev) {
 	case simplelogger.DebugLevel:

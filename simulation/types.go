@@ -35,23 +35,12 @@ import (
 	. "github.com/openthread/ot-ns/types"
 )
 
-var (
-	exitError              = fmt.Errorf("operation aborted due to simulation exit")
-	nonResponsiveNodeError = fmt.Errorf("node did not respond within timeout")
-)
-
 type CmdRunner interface {
 	RunCommand(cmd string, output io.Writer) error
 
 	// GetContextNodeId gets the user's current selected node ID context for running commands, or
 	// types.InvalidNodeId if no node context selected.
 	GetContextNodeId() NodeId
-}
-
-type logEntry struct {
-	level   WatchLogLevel
-	msg     string
-	isWatch bool
 }
 
 func getTimestampedLogMessage(ts uint64, logMsg string) string {

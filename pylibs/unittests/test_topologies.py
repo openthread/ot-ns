@@ -37,7 +37,6 @@ class TopologiesTests(OTNSTestCase):
         n = 1024 # network size (nodes)
         ns = self.ns
         ns.loglevel = 'info'
-        ns.radiomodel = 'MutualInterference'
         ns.add("router")
         ns.go(10)
         self.assertEqual(ns.get_state(1), "leader")
@@ -59,7 +58,6 @@ class TopologiesTests(OTNSTestCase):
 
         ns = self.ns
         ns.loglevel = 'info'
-        ns.radiomodel = 'MutualInterference'
         x = x0
         y = x0
         for i in range(nn):

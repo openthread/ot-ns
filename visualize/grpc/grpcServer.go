@@ -112,7 +112,7 @@ func (gs *grpcServer) EnergyReport(req *pb.VisualizeRequest, stream pb.Visualize
 	<-contextDone
 	err = stream.Context().Err()
 
-	simplelogger.Infof("energy report stream exit: %v", err)
+	simplelogger.Debugf("energy report stream exit: %v", err)
 	return err
 }
 
@@ -125,7 +125,9 @@ func (gs *grpcServer) Command(ctx context.Context, req *pb.CommandRequest) (*pb.
 
 func (gs *grpcServer) Run() error {
 	lis, err := net.Listen("tcp", gs.address)
-	simplelogger.PanicIfError(err)
+	if err != nil {
+		return err
+	}
 	simplelogger.Infof("gRPC visualizer serving on %s ...", lis.Addr())
 	return gs.server.Serve(lis)
 }

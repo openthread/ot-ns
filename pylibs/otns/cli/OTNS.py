@@ -33,6 +33,7 @@ import shutil
 import signal
 import subprocess
 import threading
+import time
 from typing import List, Union, Optional, Tuple, Dict, Any, Collection
 import yaml
 from .errors import OTNSCliError, OTNSExitedError
@@ -88,6 +89,11 @@ class OTNS(object):
             logging.info("OTNS simulation is to be closed - waiting for user CLI exit by the \'exit\' command.")
             self._cli_thread.join()
         logging.info("waiting for OTNS to close ...")
+        try:
+            self._do_command("exit", do_logging=False)
+        except OTNSExitedError:
+            pass
+        time.sleep(0.010)
         self._otns.send_signal(signal.SIGTERM)
         try:
             self._otns.__exit__(None, None, None)
@@ -164,7 +170,7 @@ class OTNS(object):
         """
         Set radiomodel for simulation.
 
-        :param model: name of new radio model to use. Default is "Ideal".
+        :param model: name of new radio model to use. Default is "MutualInterference".
         """
         assert self._do_command(f'radiomodel {model}')[0] == model
 
@@ -287,7 +293,7 @@ class OTNS(object):
         return True
 
     def add(self, type: str, x: float = None, y: float = None, id=None, radio_range=None, executable=None,
-            restore=False, version: str = None) -> int:
+            restore=False, txpower: int=None, version: str = None) -> int:
         """
         Add a new node to the simulation.
 
@@ -298,6 +304,7 @@ class OTNS(object):
         :param radio_range: node radio range or None for default
         :param executable: specify the executable for the new node, or use default executable if None
         :param restore: whether the node restores network configuration from persistent storage
+        :param txpower: Tx power in dBm of node, or None for OT node default
         :param version: optional OT node version string like 'v11', 'v12', or 'v13'
 
         :return: added node ID
@@ -322,6 +329,11 @@ class OTNS(object):
 
         if version is not None:
             cmd += f' {version}'
+
+        if txpower is not None:
+            nodeid = self._expect_int(self._do_command(cmd))
+            self.node_cmd(nodeid,f'txpower {txpower}')
+            return nodeid
 
         return self._expect_int(self._do_command(cmd))
 

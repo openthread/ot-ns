@@ -70,6 +70,7 @@ type MainArgs struct {
 	DumpPackets    bool
 	NoPcap         bool
 	NoReplay       bool
+	NoLogFile      bool
 }
 
 var (
@@ -88,21 +89,22 @@ func parseArgs() {
 		defaultOtCli = simulation.DefaultExecutableConfig.Ftd // only use custom MTD, not FTD.
 	}
 
-	flag.StringVar(&args.Speed, "speed", "1", "set simulating speed")
+	flag.StringVar(&args.Speed, "speed", "1", "set simulation speed")
 	flag.StringVar(&args.OtCliPath, "ot-cli", defaultOtCli, "specify the OT CLI executable, for FTD and also for MTD if not configured otherwise.")
 	flag.StringVar(&args.OtCliMtdPath, "ot-cli-mtd", defaultOtCliMtd, "specify the OT CLI MTD executable, separately from FTD executable.")
 	flag.StringVar(&args.InitScriptName, "ot-script", "", "specify the OT node init script filename, to use for init of new nodes. By default an internal script is used.")
 	flag.BoolVar(&args.AutoGo, "autogo", true, "auto go (runs the simulation at given speed, without issuing 'go' commands.)")
 	flag.BoolVar(&args.ReadOnly, "readonly", false, "readonly simulation can not be manipulated")
-	flag.StringVar(&args.LogLevel, "log", "warn", "set logging level: debug, info, warn, error.")
+	flag.StringVar(&args.LogLevel, "log", "warn", "set logging level: trace, debug, info, warn, error.")
 	flag.StringVar(&args.WatchLevel, "watch", "off", "set default watch level for all new nodes: off, trace, debug, info, note, warn, error.")
 	flag.BoolVar(&args.OpenWeb, "web", true, "open web visualization")
 	flag.BoolVar(&args.RawMode, "raw", false, "use raw mode (skips OT node init by script)")
-	flag.BoolVar(&args.Real, "real", false, "use real mode (for real devices)")
+	flag.BoolVar(&args.Real, "real", false, "use real mode (for real devices - currently NOT SUPPORTED)")
 	flag.StringVar(&args.ListenAddr, "listen", fmt.Sprintf("localhost:%d", InitialDispatcherPort), "specify UDP listen address and port")
 	flag.BoolVar(&args.DumpPackets, "dump-packets", false, "dump packets")
 	flag.BoolVar(&args.NoPcap, "no-pcap", false, "do not generate PCAP file (named \"current.pcap\")")
-	flag.BoolVar(&args.NoReplay, "no-replay", false, "do not generate Replay file")
+	flag.BoolVar(&args.NoReplay, "no-replay", false, "do not generate Replay file (named \"otns_?.replay\")")
+	flag.BoolVar(&args.NoLogFile, "no-logfile", false, "do not generate node log files (named \"tmp/?_?.log\")")
 
 	flag.Parse()
 }
@@ -136,18 +138,19 @@ func parseListenAddr() {
 }
 
 func Main(ctx *progctx.ProgCtx, visualizerCreator func(ctx *progctx.ProgCtx, args *MainArgs) visualize.Visualizer, cliOptions *runcli.CliOptions) {
-	parseArgs()
-	//simplelogger.SetOutput([]string{"stdout", "otns.log"}) // for debug: generate a log output file.
-	simplelogger.SetLevel(simplelogger.ParseLevel(args.LogLevel))
-	parseListenAddr()
+	handleSignals(ctx)
 
-	rand.Seed(time.Now().UnixNano())
 	// run console in the main goroutine
 	ctx.Defer(func() {
 		_ = os.Stdin.Close()
 	})
 
-	handleSignals(ctx)
+	parseArgs()
+	//simplelogger.SetOutput([]string{"stdout", "otns.log"}) // for debug: generate a log output file.
+	simplelogger.SetLevel(GetSimpleloggerLevel(ParseWatchLogLevel(args.LogLevel)))
+	parseListenAddr()
+
+	rand.Seed(time.Now().UnixNano())
 
 	var vis visualize.Visualizer
 	if visualizerCreator != nil {
@@ -183,10 +186,6 @@ func Main(ctx *progctx.ProgCtx, visualizerCreator func(ctx *progctx.ProgCtx, arg
 	rt := cli.NewCmdRunner(ctx, sim)
 	sim.SetVisualizer(vis)
 	go sim.Run()
-	go func() {
-		err := cli.Run(rt, cliOptions)
-		ctx.Cancel(errors.Wrapf(err, "console-exit"))
-	}()
 
 	web.ConfigWeb(args.DispatcherHost, args.DispatcherPort-2, args.DispatcherPort-1, args.DispatcherPort-3)
 	simplelogger.Debugf("open web: %v", args.OpenWeb)
@@ -198,6 +197,11 @@ func Main(ctx *progctx.ProgCtx, visualizerCreator func(ctx *progctx.ProgCtx, arg
 		go autoGo(ctx, sim)
 	}
 
+	go func() {
+		err := cli.Run(rt, cliOptions)
+		ctx.Cancel(errors.Wrapf(err, "console-exit"))
+	}()
+
 	vis.Run() // visualize must run in the main thread
 	ctx.Cancel("main")
 
@@ -208,13 +212,14 @@ func Main(ctx *progctx.ProgCtx, visualizerCreator func(ctx *progctx.ProgCtx, arg
 
 func handleSignals(ctx *progctx.ProgCtx) {
 	c := make(chan os.Signal, 1)
+	sigHandlerReady := make(chan struct{})
 	signal.Notify(c, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGINT, syscall.SIGHUP)
 	signal.Ignore(syscall.SIGALRM)
 
 	ctx.WaitAdd("handleSignals", 1)
 	go func() {
 		defer ctx.WaitDone("handleSignals")
-
+		close(sigHandlerReady)
 		for {
 			select {
 			case sig := <-c:
@@ -225,11 +230,12 @@ func handleSignals(ctx *progctx.ProgCtx) {
 			}
 		}
 	}()
+	<-sigHandlerReady
 }
 
 func autoGo(ctx *progctx.ProgCtx, sim *simulation.Simulation) {
 	for {
-		<-sim.Go(time.Second)
+		<-sim.Go(time.Second * 5)
 		if ctx.Err() != nil { // exit when context is Done.
 			return
 		}
@@ -245,6 +251,7 @@ func createSimulation(ctx *progctx.ProgCtx) *simulation.Simulation {
 	simcfg.ExeConfig.Ftd = args.OtCliPath
 	simcfg.ExeConfig.Mtd = args.OtCliMtdPath
 	simcfg.NewNodeConfig.InitScript = simulation.DefaultNodeInitScript
+	simcfg.NewNodeConfig.NodeLogFile = !args.NoLogFile
 	args.Speed = strings.ToLower(args.Speed)
 	if args.Speed == "max" {
 		speed = dispatcher.MaxSimulateSpeed

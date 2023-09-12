@@ -98,19 +98,21 @@ type CallbackHandler interface {
 	OnUartWrite(nodeid NodeId, data []byte)
 
 	// OnLogMessage Notifies that a log message from Dispatcher can be added to the node's log.
-	OnLogMessage(nodeid NodeId, level WatchLogLevel, isWatchTriggered bool, msg string)
+	OnLogMessage(logEntry LogEntry)
 
 	// OnNextEventTime Notifies that the Dispatcher simulation moves to the next event time.
 	OnNextEventTime(curTimeUs uint64, nextTimeUs uint64)
+
+	// OnStop Notifies the Dispatcher needs to stop the simulation and requests nodes to be closed.
+	OnStop()
 }
 
-// represents a particular duration of simulation at a given speed, or DefaultDispatcherSpeed. It can be
-// cancelled also by setting the cancel flag.
+// goDuration represents a particular duration of the simulation at a given speed.
 type goDuration struct {
 	duration time.Duration
-	done     chan struct{}
-	speed    float64
-	cancel   bool
+	done     chan error // signals end of the simulation duration and success (nil) or some error.
+	speed    float64    // a speedup value, or DefaultDispatcherSpeed.
+	cancel   bool       // if set to true, the simulation duration will be cancelled early.
 }
 
 type Dispatcher struct {
@@ -263,9 +265,9 @@ func (d *Dispatcher) Nodes() map[NodeId]*Node {
 	return d.nodes
 }
 
-func (d *Dispatcher) Go(duration time.Duration) <-chan struct{} {
+func (d *Dispatcher) Go(duration time.Duration) <-chan error {
 	simplelogger.AssertTrue(duration >= 0)
-	done := make(chan struct{})
+	done := make(chan error, 1)
 	d.goDurationChan <- goDuration{
 		duration: duration,
 		done:     done,
@@ -274,9 +276,9 @@ func (d *Dispatcher) Go(duration time.Duration) <-chan struct{} {
 	return done
 }
 
-func (d *Dispatcher) GoAtSpeed(duration time.Duration, speed float64) <-chan struct{} {
+func (d *Dispatcher) GoAtSpeed(duration time.Duration, speed float64) <-chan error {
 	simplelogger.AssertTrue(speed >= 0.0 && duration >= 0)
-	done := make(chan struct{})
+	done := make(chan error, 1)
 	d.goDurationChan <- goDuration{
 		duration: duration,
 		done:     done,
@@ -286,7 +288,7 @@ func (d *Dispatcher) GoAtSpeed(duration time.Duration, speed float64) <-chan str
 }
 
 // GoCancel cancels the current Go....() operation and pauses the simulation at d.CurTime.
-func (d *Dispatcher) GoCancel() <-chan struct{} {
+func (d *Dispatcher) GoCancel() <-chan error {
 	d.currentGoDuration.cancel = true
 	return d.currentGoDuration.done
 }
@@ -300,7 +302,6 @@ loop:
 		select {
 		case f := <-d.taskChan:
 			f()
-			break
 		case duration := <-d.goDurationChan:
 			d.currentGoDuration = duration
 			if len(d.nodes) == 0 || duration.duration < 0 {
@@ -318,8 +319,6 @@ loop:
 				}
 			}
 			close(duration.done)
-			break
-
 		case <-done:
 			break loop
 		}
@@ -384,17 +383,12 @@ func (d *Dispatcher) goSimulateForDuration(duration goDuration) {
 func (d *Dispatcher) handleRecvEvent(evt *Event) {
 	nodeid := evt.NodeId
 	node := d.nodes[nodeid]
-
 	if node == nil {
-		if !d.isDeleted(nodeid) {
-			// can not find the node, and the node is not registered (created by OTNS)
-			simplelogger.Warnf("Event (type %v) received from unknown Node %v, discarding.", evt.Type, evt.NodeId)
-		}
-		return // node was deleted already: just silently ignore event.
+		simplelogger.Warnf("Event (type %v) received from unknown Node %v, discarding.", evt.Type, evt.NodeId)
+		return
 	}
 
 	node.conn = evt.Conn      // store socket connection for this node.
-	d.setAlive(nodeid)        // node stays alive until Alarm event is received.
 	evt.Timestamp = d.CurTime // timestamp the incoming event
 
 	// TODO document this use (for alarm messages)
@@ -414,10 +408,10 @@ func (d *Dispatcher) handleRecvEvent(evt *Event) {
 	switch evt.Type {
 	case EventTypeAlarmFired:
 		d.Counters.AlarmEvents += 1
-		d.setSleeping(node.Id)
+		if evt.MsgId == node.msgId {
+			d.setSleeping(node.Id)
+		}
 		d.alarmMgr.SetTimestamp(nodeid, d.CurTime+delay) // schedule future wake-up of node
-	case EventTypeRadioReceived:
-		simplelogger.Panicf("legacy EventTypeRadioReceived received - unsupported OT node executable version.")
 	case EventTypeRadioCommStart:
 		fallthrough
 	case EventTypeRadioChannelSample:
@@ -438,7 +432,8 @@ func (d *Dispatcher) handleRecvEvent(evt *Event) {
 		node.onStatusPushExtAddr(extaddr)
 	case EventTypeNodeInfo:
 		break
-	case EventTypeNodeExit:
+	case EventTypeNodeDisconnected:
+		simplelogger.Debugf("%s socket disconnected.", node)
 		d.setSleeping(node.Id)
 		d.alarmMgr.SetTimestamp(node.Id, Ever)
 	default:
@@ -448,32 +443,33 @@ func (d *Dispatcher) handleRecvEvent(evt *Event) {
 
 // RecvEvents receives events from nodes, and handles these, until there is no more alive node.
 func (d *Dispatcher) RecvEvents() int {
-	blockTimeout := time.After(DefaultReadTimeout)
+	done := d.ctx.Done()
 	count := 0
+	isExiting := false
+	blockTimeout := time.After(DefaultReadTimeout)
 
 loop:
 	for {
 		shouldBlock := len(d.aliveNodes) > 0
-
 		if shouldBlock {
 			select {
-			case evt, ok := <-d.eventChan: // new event
-				if !ok { // channel closed
-					break loop
-				}
+			case evt := <-d.eventChan: // new event
 				count += 1
 				d.handleRecvEvent(evt)
 			case <-blockTimeout: // timeout
 				break loop
-			case <-d.ctx.Done(): // exit of dispatcher: don't block then.
-				break loop
+			case <-done:
+				if !isExiting {
+					d.cbHandler.OnStop()
+					blockTimeout = time.After(time.Millisecond * 250)
+					isExiting = true
+				}
+				time.Sleep(time.Millisecond * 10)
+				break
 			}
 		} else {
 			select {
-			case evt, ok := <-d.eventChan:
-				if !ok { // channel closed
-					break loop
-				}
+			case evt := <-d.eventChan:
 				count += 1
 				d.handleRecvEvent(evt)
 			default:
@@ -566,8 +562,12 @@ func (d *Dispatcher) processNextEvent(simSpeed float64) bool {
 				// execute event - either a msg sent out, or handled by RadioModel.
 				if !evt.MustDispatch {
 					switch evt.Type {
-					case EventTypeFailureControl:
+					case EventTypeAlarmFired:
 						d.advanceNodeTime(node, evt.Timestamp, false)
+					case EventTypeRadioLog:
+						if node.watchLogLevel >= WatchTraceLevel {
+							node.log(WatchTraceLevel, string(evt.Data))
+						}
 					default:
 						d.radioModel.HandleEvent(node.radioNode, d.eventQueue, evt)
 					}
@@ -584,8 +584,7 @@ func (d *Dispatcher) processNextEvent(simSpeed float64) bool {
 					}
 				}
 			} else if evt.NodeId > 0 {
-				// node may have been deleted in the meantime. NodeId=0 means a deactivated event.
-				simplelogger.Warnf("processNextEvent() skips event for deleted/unknown node %v: %v", evt.NodeId, evt)
+				simplelogger.Warnf("processNextEvent() with deleted/unknown node %v: %v", evt.NodeId, evt)
 			}
 		}
 		nextAlarmTime = d.alarmMgr.NextTimestamp()
@@ -617,9 +616,7 @@ func (d *Dispatcher) eventsReader() {
 		}
 
 		// Handle the new connection in a separate goroutine.
-		readTimeout := DefaultReadTimeout
 		d.waitGroupNodes.Add(1)
-
 		go func(myConn net.Conn) {
 			defer d.waitGroupNodes.Done()
 			defer myConn.Close()
@@ -628,18 +625,16 @@ func (d *Dispatcher) eventsReader() {
 			myNodeId := 0
 
 			for {
-				_ = myConn.SetReadDeadline(time.Now().Add(readTimeout))
 				n, err := myConn.Read(buf)
 
 				if errors.Is(err, io.EOF) {
 					break
-				} else if errors.Is(err, os.ErrDeadlineExceeded) {
-					if n > 0 {
-						simplelogger.Panicf("Unexpected n > 0 after socket read timeout.")
-					}
-					continue
 				} else if err != nil {
-					simplelogger.Errorf("Node %d - Socket read error: %+v", myNodeId, err)
+					d.cbHandler.OnLogMessage(LogEntry{
+						NodeId: myNodeId,
+						Level:  WatchCritLevel,
+						Msg:    fmt.Sprintf("closing socket after read error: %+v", err),
+					})
 					break
 				}
 
@@ -647,31 +642,44 @@ func (d *Dispatcher) eventsReader() {
 				for bufIdx < n {
 					evt := &Event{}
 					nextEventOffset := evt.Deserialize(buf[bufIdx:n])
+					if nextEventOffset == 0 { // a complete event wasn't found.
+						simplelogger.Panicf("Node %d - Too many events, or incorrect event data - may increase 'buf' size in Dispatcher.eventsReader()")
+					}
 					bufIdx += nextEventOffset
 					// First event received should be NodeInfo type. From this, we learn nodeId.
 					if myNodeId == 0 && evt.Type == EventTypeNodeInfo {
 						myNodeId = evt.NodeInfoData.NodeId
 						simplelogger.AssertTrue(myNodeId > 0)
+						simplelogger.Debugf("Init event received from new Node %d", myNodeId)
 					}
 					evt.NodeId = myNodeId
 					evt.Conn = myConn
 					d.eventChan <- evt
+				}
+
+				// increase buf size when needed
+				if n > len(buf)/2 {
+					buf = make([]byte, len(buf)*2)
+					d.cbHandler.OnLogMessage(LogEntry{
+						NodeId: myNodeId,
+						Level:  WatchWarnLevel,
+						Msg:    fmt.Sprintf("increasing eventsReader() buf size to: %d KB", len(buf)/1024),
+					})
 				}
 			}
 
 			// Once the socket is disconnected, signal one last event.
 			d.eventChan <- &Event{
 				Delay:  0,
-				Type:   EventTypeNodeExit,
+				Type:   EventTypeNodeDisconnected,
 				NodeId: myNodeId,
-				Conn:   myConn,
+				Conn:   nil,
 			}
 		}(conn)
 	}
 
 	simplelogger.Debugf("waiting for dispatcher node socket threads to stop ...")
 	d.waitGroupNodes.Wait() // wait for all node goroutines to stop before closing eventsReader.
-	close(d.eventChan)
 }
 
 func (d *Dispatcher) advanceNodeTime(node *Node, timestamp uint64, force bool) {
@@ -692,24 +700,35 @@ func (d *Dispatcher) advanceNodeTime(node *Node, timestamp uint64, force bool) {
 		Type:      EventTypeAlarmFired,
 		Timestamp: timestamp,
 	}
-	node.sendEvent(msg) // actively move the node's virtual-time to new time using an alarm-event msg.
+	node.sendEvent(msg) // move the OT-node's virtual-time to new time using an alarm msg.
 }
 
 // SendToUART sends data to virtual time UART of the target node.
-func (d *Dispatcher) SendToUART(id NodeId, data []byte) {
+func (d *Dispatcher) SendToUART(id NodeId, data []byte) error {
+	var err error
 	evt := &Event{
-		Timestamp: InvalidTimestamp,
-		Delay:     0,
+		Timestamp: d.CurTime,
 		Type:      EventTypeUartWrite,
 		Data:      data,
 		NodeId:    id,
 	}
 	dstnode := d.nodes[id]
 	if dstnode != nil {
-		dstnode.sendEvent(evt)
+		if dstnode.conn == nil {
+			err = fmt.Errorf("SendToUart() cannot send to node %d: connection closed.", id)
+		} else {
+			if dstnode.watchLogLevel >= WatchTraceLevel {
+				simplelogger.Debugf("%s UART-write: %s", GetNodeName(id), string(data))
+			}
+			dstnode.sendEvent(evt)
+			if dstnode.err != nil {
+				err = dstnode.err
+			}
+		}
 	} else {
-		simplelogger.Debugf("SendToUART() cannot send to deleted/unknown node: %v", id)
+		err = fmt.Errorf("SendToUART() cannot send to deleted/unknown Dispatcher node: %d", id)
 	}
+	return err
 }
 
 // sendRadioCommRxStartEvents dispatches an event to nearby nodes eligible to receiving the frame.
@@ -831,8 +850,7 @@ func (d *Dispatcher) sendRadioCommRxDoneEvents(srcNode *Node, evt *Event) {
 	}
 }
 
-func (d *Dispatcher) checkRadioReachable(src *Node,
-	dst *Node) bool {
+func (d *Dispatcher) checkRadioReachable(src *Node, dst *Node) bool {
 	// the RadioModel will check distance and radio-state of receivers.
 	return src != dst && src != nil && dst != nil &&
 		d.radioModel.CheckRadioReachable(src.radioNode, dst.radioNode)
@@ -861,6 +879,7 @@ func (d *Dispatcher) sendOneRadioFrame(evt *Event,
 
 	// create new Event copy for individual dispatch to dstNode.
 	evt2 := evt.Copy()
+	evt2.NodeId = dstnode.Id
 
 	// Tx failure cases below:
 	//   3) radio model indicates failure on this specific link (e.g. interference) now.
@@ -872,10 +891,8 @@ func (d *Dispatcher) sendOneRadioFrame(evt *Event,
 }
 
 func (d *Dispatcher) setAlive(nodeid NodeId) {
-	if d.cfg.Real || d.isDeleted(nodeid) {
-		// real devices are always considered sleeping; deleted nodes can't become alive.
-		return
-	}
+	simplelogger.AssertFalse(d.cfg.Real)
+	simplelogger.AssertFalse(d.isDeleted(nodeid))
 	d.aliveNodes[nodeid] = struct{}{}
 }
 
@@ -895,6 +912,8 @@ func (d *Dispatcher) isDeleted(nodeid NodeId) bool {
 
 func (d *Dispatcher) setSleeping(nodeid NodeId) {
 	simplelogger.AssertFalse(d.cfg.Real)
+	//simplelogger.AssertTrue(d.IsAlive(nodeid))
+	simplelogger.AssertFalse(d.isDeleted(nodeid))
 	delete(d.aliveNodes, nodeid)
 }
 
@@ -915,6 +934,7 @@ func (d *Dispatcher) syncAllNodes() {
 	for nodeid := range d.nodes {
 		d.advanceNodeTime(d.nodes[nodeid], d.CurTime, false)
 	}
+	d.RecvEvents() // blocks until all nodes asleep again.
 }
 
 func (d *Dispatcher) pcapFrameWriter() {
@@ -947,7 +967,9 @@ func (d *Dispatcher) GetVisualizer() visualize.Visualizer {
 }
 
 func (d *Dispatcher) handleStatusPush(srcnode *Node, data string) {
-	d.cbHandler.OnLogMessage(srcnode.Id, WatchDebugLevel, srcnode.watchLogLevel >= WatchDebugLevel, fmt.Sprintf("status push: %#v", data))
+	if srcnode.watchLogLevel >= WatchDebugLevel {
+		srcnode.log(WatchDebugLevel, "status push: %#v", data)
+	}
 	statuses := strings.Split(data, ";")
 	srcid := srcnode.Id
 	for _, status := range statuses {
@@ -1061,7 +1083,7 @@ func (d *Dispatcher) setNodeRloc16(srcid NodeId, rloc16 uint16) {
 	node := d.nodes[srcid]
 	simplelogger.AssertNotNil(node)
 
-	d.cbHandler.OnLogMessage(srcid, WatchDebugLevel, false, fmt.Sprintf("set node RLOC16: %x -> %x", node.Rloc16, rloc16))
+	node.log(WatchDebugLevel, "set node RLOC16: %x -> %x", node.Rloc16, rloc16)
 	oldRloc16 := node.Rloc16
 	if oldRloc16 != threadconst.InvalidRloc16 {
 		// remove node from old rloc map
@@ -1514,9 +1536,10 @@ func (d *Dispatcher) handleRadioState(node *Node, evt *Event) {
 	energyState := evt.RadioStateData.EnergyState
 
 	if node.watchLogLevel >= WatchTraceLevel {
-		msg := fmt.Sprintf("EnergyState=%s SubState=%s RadioState=%s RadioTime=%d NextStTime=+%d",
-			energyState, subState, state, evt.RadioStateData.RadioTime, evt.Delay)
-		d.cbHandler.OnLogMessage(node.Id, WatchTraceLevel, true, msg)
+		const hdr = "(OTNS)       [T] RadioState----:"
+		msg := fmt.Sprintf("%s EnergyState=%s SubState=%s RadioState=%s RadioTime=%d NextStTime=+%d",
+			hdr, energyState, subState, state, evt.RadioStateData.RadioTime, evt.Delay)
+		node.log(WatchTraceLevel, msg)
 	}
 
 	node.radioNode.SetRadioState(energyState, subState)
@@ -1529,12 +1552,12 @@ func (d *Dispatcher) handleRadioState(node *Node, evt *Event) {
 	}
 
 	// if a next radio-state transition time is indicated, make sure to schedule node wake-up for that time.
-	// This is independent from any alarm-time set by the node.
+	// This is independent from any alarm-time set by the node which is the OT's stack next-operation time.
 	if evt.Delay > 0 {
-		radioWakeUpEvt := evt.Copy() // TODO can recycle event itself
-		radioWakeUpEvt.Delay = 0
-		radioWakeUpEvt.Timestamp += evt.Delay
-		radioWakeUpEvt.MustDispatch = true
-		d.eventQueue.Add(&radioWakeUpEvt)
+		d.eventQueue.Add(&Event{
+			Type:      EventTypeAlarmFired,
+			NodeId:    node.Id,
+			Timestamp: d.CurTime + evt.Delay,
+		})
 	}
 }
