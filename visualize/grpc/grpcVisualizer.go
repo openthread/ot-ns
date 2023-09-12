@@ -28,6 +28,7 @@ package visualize_grpc
 
 import (
 	"math"
+	"net"
 	"sync"
 	"time"
 
@@ -65,7 +66,13 @@ func (gv *grpcVisualizer) SetNetworkInfo(networkInfo visualize.NetworkInfo) {
 func (gv *grpcVisualizer) Run() {
 	err := gv.server.Run()
 	if err != nil {
-		simplelogger.Warnf("gRPC server quit: %v", err)
+		if opErr, ok := err.(*net.OpError); ok {
+			if opErr.Op == "listen" {
+				simplelogger.Errorf("gRPC server could not listen on %s - port may be in use?", gv.server.address)
+				return
+			}
+		}
+		simplelogger.Errorf("gRPC server quit: %v", err)
 	}
 }
 

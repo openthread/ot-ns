@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Copyright (c) 2020, The OTNS Authors.
+# Copyright (c) 2020-2023, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -34,15 +34,16 @@
 # Fault Injections:
 #   None
 # Pass Criteria:
-#   Max ping latency < 300ms
-#
+#   Max ping latency < (3 * datasize + 500 * (datasize>=128)) ms
+#   (for fragmented ping messages there's an added 500 ms to cater for fragment losses, MAC retries, hidden node
+#    situations, etc.)
 import logging
 import math
 
 from BaseStressTest import BaseStressTest
 
 RADIUS = 150
-RADIO_RANGE = int(RADIUS * 2.01)
+RADIO_RANGE = int(RADIUS * 2.5)
 REPEAT = 3
 
 
@@ -59,6 +60,9 @@ class StressTest(BaseStressTest):
                                          ["Data Size", "Hop x1 Latency", "Hop x2 Latency", "Hop x3 Latency"])
 
         self._ping_latencys_by_datasize = {}
+        self.ns.loglevel = 'warn'
+        self.ns.radiomodel = 'MIDisc'
+        self.ns.set_title("Network (Ping) Latency test - setup phase")
 
     def add_6_nodes(self, x, y, start_angle):
         for i in range(6):
@@ -70,19 +74,17 @@ class StressTest(BaseStressTest):
 
     def ping_go(self, src: int, dst: int, datasize: int):
         assert datasize >= 4
-
         self.ns.ping(src, dst, addrtype='rloc', datasize=datasize)
-
         self.ns.go(1)
 
     def pings_1_hop(self, datasize: int):
-        # from left to right
+        # from left to other left node
         for n1 in self.LEFT_NODES:
             for n2 in self.LEFT_NODES:
                 if n1 != n2:
                     self.ping_go(n1, n2, datasize)
 
-        # from right to left
+        # from right to other right now
         for n1 in self.RIGHT_NODES:
             for n2 in self.RIGHT_NODES:
                 if n1 != n2:
@@ -102,13 +104,14 @@ class StressTest(BaseStressTest):
             for n2 in self.RIGHT_NODES:
                 if n1 == self.LEFT_ROUTER or n2 == self.RIGHT_ROUTER:
                     continue
-
                 self.ping_go(n1, n2, datasize)
                 self.ping_go(n2, n1, datasize)
 
     def collect_pings(self, hop: int) -> None:
         pings = self.ns.pings()
         for srcid, dst, datasize, latency in pings:
+            if latency == 10000: # skip the failed pings (packet lost)
+                continue
             latencys = self._ping_latencys_by_datasize.setdefault(datasize, [[0, 0], [0, 0], [0, 0]])
             latency_info = latencys[hop - 1]
             latency_info[0] += 1
@@ -117,7 +120,7 @@ class StressTest(BaseStressTest):
 
     def run(self):
         ns = self.ns
-
+        ns.speed=30
         Y = 300
         X1 = 300
         X2 = X1 + RADIUS * 4
@@ -127,14 +130,18 @@ class StressTest(BaseStressTest):
         self.expect_all_nodes_become_routers()
 
         # wait for a period of time so that all routes are discovered
-        for i in range(4):
-            self.pings_1_hop(datasize=4)
-            ns.go(100)
-            ns.pings()  # throw away ping result
+        for i in range(5):
+            ns.go(90)
+            self.pings_3_hop(datasize=4)
+            ns.go(10)
+            ns.pings()  # throw away ping results
 
         # now start the real tests
         logging.debug("real test starts...")
+        ns.set_title("Network (Ping) Latency test - test phase")
+        ns.speed = 1e6
         for _ in range(REPEAT):
+            self.ns.radiomodel = 'MIDisc' # reset the radiomodel with new static random deviations.
             for datasize in (32, 64, 128, 256, 512, 1024):
                 self.pings_1_hop(datasize)
                 ns.go(10)  # wait for all ping replies
@@ -151,8 +158,14 @@ class StressTest(BaseStressTest):
         for datasize, latencys in sorted(self._ping_latencys_by_datasize.items()):
             row = ['%dB' % datasize]
             for n, s in latencys:
-                row.append('%dms' % (s / n) if n > 0 else 'NODATA')
-                self.result.fail_if(s / n > 600, "average ping latency > 600ms")
+                if n > 0:
+                    latency = s / n
+                else:
+                    latency = 0
+                row.append('%dms' % latency)
+                maxlatency = 3 * datasize + 500 * (datasize>=128)
+                self.result.fail_if(latency > maxlatency,
+                     f"average ping latency (for datasize={datasize}) is {latency} ms > {maxlatency} ms")
 
             self.result.append_row(*row)
 

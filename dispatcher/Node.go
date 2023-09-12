@@ -76,6 +76,7 @@ type Node struct {
 	CurTime       uint64
 	Role          OtDeviceRole
 	conn          net.Conn
+	msgId         uint64
 	err           error
 	failureCtrl   *FailureCtrl
 	isFailed      bool
@@ -92,9 +93,9 @@ func newNode(d *Dispatcher, nodeid NodeId, cfg *NodeConfig) *Node {
 	simplelogger.AssertTrue(cfg.RadioRange >= 0)
 
 	radioCfg := &radiomodel.RadioNodeConfig{
-		X:          float64(cfg.X),
-		Y:          float64(cfg.Y),
-		RadioRange: float64(cfg.RadioRange),
+		X:          cfg.X,
+		Y:          cfg.Y,
+		RadioRange: cfg.RadioRange,
 	}
 
 	nc := &Node{
@@ -122,51 +123,49 @@ func (node *Node) String() string {
 	return GetNodeName(node.Id)
 }
 
-// SendEvent sends Event evt serialized to the node, over socket. If evt.Timestamp != InvalidTimestamp,
-// it uses the valid timestamp and modifies the evt.Delay value based on the target node's CurTime,
-// and may update other Event fields too for bookkeeping purposes.
+// SendEvent sends Event evt serialized to the node, over socket. It uses evt.Timestamp
+// to calculate the evt.Delay value based on the target node's CurTime; and
+// it sets evt.nodeId to the Id of the current node.
+// Any send-errors are stored in node.err.
 func (node *Node) sendEvent(evt *Event) {
+	node.msgId += 1
 	evt.NodeId = node.Id
+	evt.MsgId = node.msgId
 	oldTime := node.CurTime
-	if evt.Timestamp == InvalidTimestamp {
-		evt.Timestamp = node.D.CurTime
-	}
 	simplelogger.AssertTrue(evt.Timestamp == node.D.CurTime)
-	if evt.Timestamp >= oldTime {
-		evt.Delay = evt.Timestamp - oldTime // compute Delay value for this target node.
-	} else {
-		evt.Delay = 0 // node can't go back in time.
-	}
+	evt.Delay = evt.Timestamp - oldTime
 
 	// time keeping - move node's time to the current send-event's time.
 	node.D.alarmMgr.SetNotified(node.Id)
 	node.D.setAlive(node.Id)
 	node.CurTime += evt.Delay
-	simplelogger.AssertTrue(evt.Delay == 0 || node.CurTime == node.D.CurTime)
+	simplelogger.AssertTrue(node.CurTime == node.D.CurTime)
 
 	// re-evaluate the FailutreCtrl when node time advances.
 	if evt.Timestamp > oldTime {
 		reEvaluateTime, isUpdated := node.failureCtrl.OnTimeAdvanced(oldTime)
 		if isUpdated {
-			failureCtrlEvent := &Event{
-				Type:         EventTypeFailureControl,
-				NodeId:       node.Id,
-				Timestamp:    reEvaluateTime,
-				MustDispatch: false,
+			wakeEvt := &Event{
+				Type:      EventTypeAlarmFired,
+				NodeId:    node.Id,
+				Timestamp: reEvaluateTime,
 			}
-			node.D.eventQueue.Add(failureCtrlEvent)
+			node.D.eventQueue.Add(wakeEvt)
 		}
 	}
 
 	err := node.sendRawData(evt.Serialize())
-	if err != nil && node.err == nil {
+	if err != nil {
+		node.log(WatchCritLevel, err.Error())
 		node.err = err
 	}
 }
 
 // sendRawData is INTERNAL to send bytes to socket of node
 func (node *Node) sendRawData(msg []byte) error {
-	simplelogger.AssertNotNil(node.conn)
+	if node.conn == nil {
+		return fmt.Errorf("sendRawData(): node connection is closed")
+	}
 	n, err := node.conn.Write(msg)
 	if err != nil {
 		return err
@@ -176,8 +175,17 @@ func (node *Node) sendRawData(msg []byte) error {
 	return err
 }
 
-func (node *Node) log(level WatchLogLevel, msg string) {
-	node.D.cbHandler.OnLogMessage(node.Id, level, false, msg)
+func (node *Node) log(level WatchLogLevel, msg string, args ...any) {
+	if len(args) > 0 {
+		msg = fmt.Sprintf(msg, args...)
+	}
+	logEntry := LogEntry{
+		NodeId:  node.Id,
+		Level:   level,
+		Msg:     msg,
+		IsWatch: level >= WatchTraceLevel,
+	}
+	node.D.cbHandler.OnLogMessage(logEntry)
 }
 
 func (node *Node) IsFailed() bool {

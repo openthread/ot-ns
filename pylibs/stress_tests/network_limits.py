@@ -34,8 +34,7 @@ from BaseStressTest import BaseStressTest
 
 PARENT_X = 500
 PARENT_Y = 500
-MAX_DISTANCE = 400
-RADIO_RANGE = int(MAX_DISTANCE * 1.2)
+MAX_DISTANCE = 250
 CHILDREN_N = 10
 
 
@@ -54,15 +53,16 @@ class StressTest(BaseStressTest):
 
     def run(self):
         self.ns.speed = 30 # speed is lowered to see the visualization, when run locally.
-        self.ns.radiomodel = 'MutualInterference'
         self.test('fed')
         self.test('med')
         self.test('sed')
+        self.test('med')
+        self.test('fed')
 
     def test(self, child_type: str):
         self.reset()
-        self.ns.add("router", PARENT_X, PARENT_Y, radio_range=RADIO_RANGE)
-        self.ns.go(5)
+        self.ns.add("router", PARENT_X, PARENT_Y)
+        self.ns.go(7)
 
         time_limit = StressTest.TIME_LIMIT[child_type]
         all_children = []
@@ -72,22 +72,25 @@ class StressTest(BaseStressTest):
             d = random.randint(0, MAX_DISTANCE * MAX_DISTANCE) ** 0.5
             child_x = int(PARENT_X + d * math.cos(angle))
             child_y = int(PARENT_Y + d * math.sin(angle))
-            child = self.ns.add(child_type, child_x, child_y, radio_range=RADIO_RANGE)
+            child = self.ns.add(child_type, child_x, child_y)
             all_children.append(child)
-            self.ns.go(random.uniform(0.01, 1))
+            self.ns.go(random.uniform(0.001, 0.1))
 
         for i in range(time_limit):
             self.ns.go(60)
+            n_children=0
             for child in all_children:
-                if self.ns.get_state(child) != 'child':
-                    break
-            else:
-                # all children has attached successfully
+                if self.ns.get_state(child) == 'child':
+                    n_children += 1
+            if n_children == CHILDREN_N:
                 logging.info("All %s children has attached successfully within %d minutes.", child_type, i + 1)
-                return
-        else:
-            raise Exception("Not all %s children attached within time limit of %d minutes." % (child_type, time_limit))
+                break
 
+        self.ns.speed = 0.01
+        self.ns.go(0.01) # trick to ensure final topology is briefly shown in web UI
+
+        if n_children < CHILDREN_N:
+            raise Exception("Not all %s children attached within time limit of %d minutes." % (child_type, time_limit))
 
 if __name__ == '__main__':
     StressTest().run()

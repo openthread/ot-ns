@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2020, The OTNS Authors.
+# Copyright (c) 2020-2023, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -31,15 +31,13 @@ from otns.cli import OTNS
 
 from otns.cli.errors import OTNSExitedError
 
-XGAP = 100
+XGAP = 150
 YGAP = 100
-RADIO_RANGE = 150
 
 
 def main():
-    ns = OTNS(otns_args=["-log", "debug"])
+    ns = OTNS(otns_args=["-log", "debug", '-no-logfile'])
     ns.set_title("Form Partition Example")
-    ns.set_network_info(version="Latest", commit="main", real=False)
     ns.web()
     ns.speed = float('inf')
 
@@ -57,7 +55,7 @@ def test_nxn(ns, n):
 
     for r in range(n):
         for c in range(n):
-            ns.add("router", 100 + XGAP * c, 100 + YGAP * r, radio_range=RADIO_RANGE)
+            ns.add("router", 100 + XGAP * c, 100 + YGAP * r)
 
     secs = 0
     while True:

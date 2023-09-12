@@ -30,6 +30,8 @@ import (
 	"context"
 	"os"
 
+	"github.com/simonlingoogle/go-simplelogger"
+
 	"github.com/openthread/ot-ns/otns_main"
 	"github.com/openthread/ot-ns/progctx"
 	"github.com/openthread/ot-ns/visualize"
@@ -40,5 +42,6 @@ func main() {
 	otns_main.Main(ctx, func(ctx *progctx.ProgCtx, args *otns_main.MainArgs) visualize.Visualizer {
 		return nil
 	}, nil)
+	simplelogger.Debugf("OTNS exit.")
 	os.Exit(0)
 }

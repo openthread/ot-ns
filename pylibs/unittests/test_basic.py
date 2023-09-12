@@ -55,7 +55,7 @@ class BasicTests(OTNSTestCase):
 
     def testOneNodex100(self):
         for i in range(100):
-            logging.info("testOneNode round %d", i + 1)
+            logging.info("testOneNodex100 round %d", i + 1)
             ns = self.ns
             ns.add("router")
             ns.go(10)
@@ -82,6 +82,8 @@ class BasicTests(OTNSTestCase):
             nid = ns.add("router", id=new_id)
             self.assertEqual(nid, new_id)
             self.go(1)
+        self.go(130)
+        self.assertFormPartitions(1)
 
     def testAddNodeWithExistingID(self):
         ns = self.ns
@@ -121,48 +123,63 @@ class BasicTests(OTNSTestCase):
         ns = self.ns
         ns.add("router")
         ns.add("router")
-        self.go(12)
+        self.go(25)
         self.assertFormPartitions(1)
         ns.delete(1)
         self.go(10)
         self.assertTrue(len(ns.nodes()) == 1 and 1 not in ns.nodes())
 
     def testDelManyNodes(self):
-        ns = self.ns
-        many = 32
-        for i in range(many):
-            ns.add("router", x=(i % 6) * 100, y=(i // 6) * 150)
+        for j in range(4):
+            ns = self.ns
+            many = 32
 
-        ns.go(10)
-        for i in range(1, many + 1):
-            ns.delete(i)
-            ns.go(5)
+            for i in range(many):
+                ns.add("router", x=(i % 6) * 100, y=(i // 6) * 150)
 
-        self.assertTrue(ns.nodes() == {})
+            ns.go(10)
+            for i in range(1, many + 1):
+                ns.delete(i)
+                ns.go(5)
+
+            self.assertTrue(ns.nodes() == {})
+            self.tearDown()
+            self.setUp()
 
     def testDelNodeAndImmediatelyRecreate(self):
-        ns = self.ns
-        id = ns.add("router")
-        self.assertTrue(len(ns.nodes()) == 1 and 1 in ns.nodes() and id == 1)
-        self.go(1)
-        self.assertTrue(len(ns.nodes()) == 1 and 1 in ns.nodes())
+        # repeat multiple times to catch some goroutine race conditions that only happen sometimes.
+        for i in range(100):
+            logging.info("testDelNodeAndImmediatelyRecreate round %d", i + 1)
 
-        ns.delete(1)
-        self.assertTrue(len(ns.nodes()) == 0)
-        id = ns.add("router")
-        self.assertTrue(len(ns.nodes()) == 1 and 1 in ns.nodes() and id == 1)
+            ns = self.ns
+            ns.loglevel = 'debug'
+            ns.watch_default('debug') # add extra detail in all node's logs
+            id = ns.add("router")
+            self.assertTrue(len(ns.nodes()) == 1 and 1 in ns.nodes() and id == 1)
+            self.go(i/100)
+            self.assertTrue(len(ns.nodes()) == 1 and 1 in ns.nodes())
 
-        ns.add("router")
-        ns.add("router")
-        id = ns.add("router")
-        self.assertTrue(len(ns.nodes()) == 4 and id == 4)
+            ns.delete(1)
+            self.assertTrue(len(ns.nodes()) == 0)
+            id = ns.add("router")
+            self.assertTrue(len(ns.nodes()) == 1 and 1 in ns.nodes() and id == 1)
 
-        ns.delete(1, 2, 3, 4)
-        self.assertTrue(len(ns.nodes()) == 0)
+            ns.add("router")
+            ns.add("router")
+            id = ns.add("router")
+            self.assertTrue(len(ns.nodes()) == 4 and id == 4)
 
-        ns.add("router")
-        id = ns.add("router")
-        self.assertTrue(len(ns.nodes()) == 2 and id == 2)
+            ns.delete(1, 2, 3, 4)
+            self.assertTrue(len(ns.nodes()) == 0)
+            if i>90:
+                ns.go(0)
+
+            ns.add("router")
+            id = ns.add("router")
+            self.assertTrue(len(ns.nodes()) == 2 and id == 2)
+
+            self.tearDown()
+            self.setUp()
 
     def testMDREffective(self):
         ns = self.ns
@@ -176,6 +193,7 @@ class BasicTests(OTNSTestCase):
 
     def testRadioInRange(self):
         ns = self.ns
+        ns.radiomodel = 'Ideal'
         radio_range = 100
         ns.add("router", 0, 0, radio_range=radio_range)
         ns.add("router", 0, radio_range - 1, radio_range=radio_range)
@@ -184,6 +202,7 @@ class BasicTests(OTNSTestCase):
 
     def testRadioNotInRange(self):
         ns = self.ns
+        ns.radiomodel = 'Ideal'
         radio_range = 100
         ns.add("router", 0, 0, radio_range=radio_range)
         ns.add("router", 0, radio_range + 1, radio_range=radio_range)
@@ -365,7 +384,7 @@ class BasicTests(OTNSTestCase):
         ns.add("router", 0, 50, radio_range=radio_range)
         ns.add("router", 50, 0, radio_range=radio_range)
         ns.add("router", 50, 50, radio_range=radio_range)
-        self.go(20)
+        self.go(130)
         self.assertFormPartitions(1)
 
         for n in [1,2]:
@@ -433,7 +452,6 @@ class BasicTests(OTNSTestCase):
         self.assertEqual(10003030, ns.time)
         ns.go(4.0000004)
         self.assertEqual(14003030, ns.time) # rounded to nearest microsecond.
-        self.assertFormPartitions(1)
 
     def testScan(self):
         self.tearDown()

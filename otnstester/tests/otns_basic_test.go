@@ -83,3 +83,31 @@ func testAddNodes(test *otnstester.OtnsTest) {
 	test.ExpectTrue(sedInfo.X == 30)
 	test.ExpectTrue(sedInfo.Y == 40)
 }
+
+func TestDelManyNodes(t *testing.T) {
+	ot := otnstester.Instance(t)
+	testDelManyNodes(ot)
+	ot.Reset()
+}
+
+func testDelManyNodes(test *otnstester.OtnsTest) {
+	test.Start("testDelManyNodes")
+
+	for i := 0; i < 32; i++ {
+		test.AddNode("router", (i%6)*100, (i/6)*150)
+	}
+
+	test.Go(time.Second * 10)
+	list := test.ListNodes()
+	test.ExpectTrue(len(list) == 32)
+
+	for i := 0; i < 32; i++ {
+		test.DeleteNode(i + 1)
+		list = test.ListNodes()
+		test.ExpectTrue(len(list) == 31-i)
+		test.Go(time.Second * 5)
+	}
+
+	list = test.ListNodes()
+	test.ExpectTrue(len(list) == 0)
+}

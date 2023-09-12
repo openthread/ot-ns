@@ -27,6 +27,7 @@
 #
 import unittest
 
+from OTNSTestCase import OTNSTestCase
 from test_basic import BasicTests
 from test_commissioning import CommissioningTests
 from test_ping import PingTests
@@ -34,32 +35,27 @@ from test_csl import CslTests
 from otns.cli import errors, OTNS
 
 
-class BasicTests_MutualInterference(BasicTests):
+class RadioModelTests(OTNSTestCase):
 
     # override
     def setUp(self):
         super().setUp()
         self.ns.radiomodel = 'MutualInterference'
 
-    # override: need to adjust for longer range of MutualInterference model.
-    def testRadioNotInRange(self):
-        ns = self.ns
-        radio_range = 100
-        ns.add("router", 0, 0, radio_range=radio_range)
-        if self.ns.radiomodel  == 'MutualInterference':
-            ns.add("router", 0, radio_range + 50, radio_range=radio_range)
-        else:
-            ns.add("router", 0, radio_range + 1, radio_range=radio_range)
-        self.go(10)
-        self.assertFormPartitions(2)
-
     def testRadioModelSwitching(self):
         ns = self.ns
         ns.radiomodel = 'Ideal'
         radio_range = 100
+
         ns.add("router",0, 0, radio_range=radio_range)
         ns.add("router",0, radio_range+1, radio_range=radio_range)
         ns.add("router",radio_range+1, radio_range+1, radio_range=radio_range)
+        # Reason to raise TxPower is that near the range limit, in MI radio model, there may be a
+        # valid link but there also may be not (Shadow Fading effects). For the Ideal model, the
+        # Tx power does not influence the range.
+        ns.node_cmd(1,'txpower 20')
+        ns.node_cmd(2,'txpower 20')
+        ns.node_cmd(3,'txpower 20')
         ns.go(20)
         self.assertFormPartitions(3)
 
@@ -80,6 +76,29 @@ class BasicTests_MutualInterference(BasicTests):
 
         with self.assertRaises(errors.OTNSCliError):
             ns.radiomodel = 'NotExistingName'
+        self.assertEqual('MIDisc', ns.radiomodel)
+
+        ns.node_cmd(1,'txpower -60')
+        ns.node_cmd(2,'txpower -60')
+        ns.node_cmd(3,'txpower -60')
+        ns.radiomodel = 'MutualInterference'
+        self.assertEqual('MutualInterference', ns.radiomodel)
+        ns.go(200)
+        self.assertFormPartitions(3)
+
+        ns.node_cmd(1,'txpower 20')
+        ns.node_cmd(2,'txpower 20')
+        ns.node_cmd(3,'txpower 20')
+        ns.go(200)
+        self.assertFormPartitions(1)
+
+
+class BasicTests_Ideal(BasicTests):
+
+    # override
+    def setUp(self):
+        super().setUp()
+        self.ns.radiomodel = 'Ideal'
 
 
 class BasicTests_IdealRssi(BasicTests):
@@ -98,12 +117,12 @@ class BasicTests_MIDisc(BasicTests):
         self.ns.radiomodel = 'MIDisc'
 
 
-class CommissioningTests_MutualInterference(CommissioningTests):
+class CommissioningTests_Ideal(CommissioningTests):
 
     # override
     def setUp(self):
         super().setUp()
-        self.ns.radiomodel = 'MutualInterference'
+        self.ns.radiomodel = 'Ideal'
 
 
 class CommissioningTests_IdealRssi(CommissioningTests):
@@ -122,12 +141,12 @@ class CommissioningTests_MIDisc(CommissioningTests):
         self.ns.radiomodel = 'MIDisc'
 
 
-class PingTests_MutualInterference(PingTests):
+class PingTests_IdealRssi(PingTests):
 
     # override
     def setUp(self):
         super().setUp()
-        self.ns.radiomodel = 'MutualInterference'
+        self.ns.radiomodel = 'Ideal_Rssi'
 
 
 class PingTests_MIDisc(PingTests):
@@ -138,23 +157,24 @@ class PingTests_MIDisc(PingTests):
         self.ns.radiomodel = 'MIDisc'
 
 
-class CslTests_MutualInterference(CslTests):
+class CslTests_IdealRssi(CslTests):
 
     # override
     def setUp(self):
         super().setUp()
-        self.ns.radiomodel = 'MutualInterference'
+        self.ns.radiomodel = 'Ideal_Rssi'
 
 
 if __name__ == '__main__':
     loader = unittest.defaultTestLoader
-    suite = loader.loadTestsFromTestCase(BasicTests_MutualInterference)
+    suite = loader.loadTestsFromTestCase(RadioModelTests)
+    suite.addTest(loader.loadTestsFromTestCase(BasicTests_Ideal))
     suite.addTest(loader.loadTestsFromTestCase(BasicTests_IdealRssi))
     suite.addTest(loader.loadTestsFromTestCase(BasicTests_MIDisc))
-    suite.addTest(loader.loadTestsFromTestCase(CommissioningTests_MutualInterference))
+    suite.addTest(loader.loadTestsFromTestCase(CommissioningTests_Ideal))
     suite.addTest(loader.loadTestsFromTestCase(CommissioningTests_IdealRssi))
     suite.addTest(loader.loadTestsFromTestCase(CommissioningTests_MIDisc))
-    suite.addTest(loader.loadTestsFromTestCase(PingTests_MutualInterference))
+    suite.addTest(loader.loadTestsFromTestCase(PingTests_IdealRssi))
     suite.addTest(loader.loadTestsFromTestCase(PingTests_MIDisc))
-    suite.addTest(loader.loadTestsFromTestCase(CslTests_MutualInterference))
+    suite.addTest(loader.loadTestsFromTestCase(CslTests_IdealRssi))
     unittest.TextTestRunner().run(suite)

@@ -459,8 +459,8 @@ type RadioModelCmd struct {
 }
 
 type LogLevelCmd struct {
-	Cmd   struct{} `"log"`                                //nolint
-	Level string   `[@( "debug"|"info"|"warn"|"error" )]` //nolint
+	Cmd   struct{} `"log"`                                                                        //nolint
+	Level string   `[@( "micro"|"trace"|"debug"|"info"|"warn"|"error"|"D"|"I"|"N"|"W"|"C"|"E" )]` //nolint
 }
 
 type WatchCmd struct {

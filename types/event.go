@@ -54,8 +54,8 @@ const (
 	EventTypeRadioRxDone        EventType = 10
 	EventTypeExtAddr            EventType = 11
 	EventTypeNodeInfo           EventType = 12
-	EventTypeFailureControl     EventType = 13
-	EventTypeNodeExit           EventType = 14
+	EventTypeNodeDisconnected   EventType = 14
+	EventTypeRadioLog           EventType = 15
 )
 
 const (
@@ -63,10 +63,11 @@ const (
 )
 
 // Event format used by OT nodes.
-const EventMsgHeaderLen = 11 // from OT platform-simulation.h struct Event { }
+const EventMsgHeaderLen = 19 // from OT platform-simulation.h struct Event { }
 type Event struct {
 	Delay uint64
 	Type  EventType
+	MsgId uint64
 	//DataLen uint16
 	Data []byte
 
@@ -77,7 +78,6 @@ type Event struct {
 	Conn         net.Conn
 
 	// supplementary payload data stored in Event.Data, depends on the event type.
-	AlarmData      AlarmEventData
 	RadioCommData  RadioCommEventData
 	RadioStateData RadioStateEventData
 	NodeInfoData   NodeInfoEventData
@@ -85,11 +85,6 @@ type Event struct {
 
 // All ...EventData formats below only used by OT nodes supporting advanced
 // RF simulation.
-const AlarmDataHeaderLen = 8 // from OT-RFSIM platform, otSimSendSleepEvent()
-type AlarmEventData struct {
-	MsgId uint64
-}
-
 const RadioCommEventDataHeaderLen = 11 // from OT-RFSIM platform, event-sim.h struct
 type RadioCommEventData struct {
 	Channel  uint8
@@ -131,9 +126,6 @@ func (e *Event) Serialize() []byte {
 	// Detect composite event types for which struct data is serialized.
 	var extraFields []byte
 	switch e.Type {
-	case EventTypeAlarmFired:
-		extraFields = []byte{0, 0, 0, 0, 0, 0, 0, 0}
-		binary.LittleEndian.PutUint64(extraFields, e.AlarmData.MsgId)
 	case EventTypeRadioChannelSample:
 		fallthrough
 	case EventTypeRadioRxDone:
@@ -152,33 +144,34 @@ func (e *Event) Serialize() []byte {
 	msg := make([]byte, EventMsgHeaderLen+len(payload))
 	binary.LittleEndian.PutUint64(msg[:8], e.Delay) // e.Timestamp is not sent, only e.Delay.
 	msg[8] = e.Type
-	binary.LittleEndian.PutUint16(msg[9:11], uint16(len(payload)))
+	binary.LittleEndian.PutUint64(msg[9:17], e.MsgId)
+	binary.LittleEndian.PutUint16(msg[17:19], uint16(len(payload)))
 	n := copy(msg[EventMsgHeaderLen:], payload)
 	simplelogger.AssertTrue(n == len(payload))
 
 	return msg
 }
 
-// Deserialize deserializes []byte Event fields (as received from OpenThread node) into Event object e.
+// Deserialize deserializes []byte Event fields (as received from OpenThread node) into the Event object e.
+// It returns the number of bytes used from `data` for the Deserialize operation, or 0 if the data buffer
+// is incomplete i.e. does not contain one entire serialized Event.
 func (e *Event) Deserialize(data []byte) int {
 	n := len(data)
 	if n < EventMsgHeaderLen {
-		simplelogger.Panicf("event message length too short: %d", n)
+		return 0
 	}
 	e.Delay = binary.LittleEndian.Uint64(data[:8])
 	e.Type = data[8]
-	datalen := binary.LittleEndian.Uint16(data[9:11])
+	e.MsgId = binary.LittleEndian.Uint64(data[9:17])
+	datalen := binary.LittleEndian.Uint16(data[17:19])
 	var payloadOffset uint16 = 0
-	simplelogger.AssertTrue(datalen <= uint16(n-EventMsgHeaderLen))
+	if datalen > uint16(n-EventMsgHeaderLen) {
+		return 0
+	}
 	e.Data = data[EventMsgHeaderLen : EventMsgHeaderLen+datalen]
 
 	// Detect composite event types
 	switch e.Type {
-	case EventTypeAlarmFired:
-		if len(e.Data) >= AlarmDataHeaderLen {
-			e.AlarmData = AlarmEventData{MsgId: binary.LittleEndian.Uint64(e.Data[:AlarmDataHeaderLen])}
-			payloadOffset += AlarmDataHeaderLen
-		}
 	case EventTypeRadioChannelSample:
 		e.RadioCommData = deserializeRadioCommData(e.Data)
 		payloadOffset += RadioCommEventDataHeaderLen
@@ -249,9 +242,9 @@ func (e Event) Copy() Event {
 func (e *Event) String() string {
 	paylStr := ""
 	if len(e.Data) > 0 {
-		paylStr = fmt.Sprintf(",payl=%v", keepPrintableChars(string(e.Data)))
+		paylStr = fmt.Sprintf(",payl=%s", keepPrintableChars(string(e.Data)))
 	}
-	s := fmt.Sprintf("Ev{%2d,dly=%v%v}", e.Type, e.Delay, paylStr)
+	s := fmt.Sprintf("Ev{%2d,nid=%d,mid=%d,dly=%v%s}", e.Type, e.NodeId, e.MsgId, e.Delay, paylStr)
 	return s
 }
 

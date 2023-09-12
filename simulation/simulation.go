@@ -46,7 +46,6 @@ import (
 type Simulation struct {
 	ctx            *progctx.ProgCtx
 	stopped        bool
-	err            error
 	cfg            *Config
 	nodes          map[NodeId]*Node
 	d              *dispatcher.Dispatcher
@@ -71,7 +70,7 @@ func NewSimulation(ctx *progctx.ProgCtx, cfg *Config, dispatcherCfg *dispatcher.
 	s.SetLogLevel(cfg.LogLevel)
 	s.networkInfo.Real = cfg.Real
 
-	// start the event_dispatcher for virtual time
+	// start the dispatcher for virtual time
 	if dispatcherCfg == nil {
 		dispatcherCfg = dispatcher.DefaultConfig()
 	}
@@ -81,7 +80,7 @@ func NewSimulation(ctx *progctx.ProgCtx, cfg *Config, dispatcherCfg *dispatcher.
 	dispatcherCfg.DumpPackets = cfg.DumpPackets
 
 	s.d = dispatcher.NewDispatcher(s.ctx, dispatcherCfg, s)
-	s.d.SetRadioModel(radiomodel.Create(cfg.RadioModel))
+	s.d.SetRadioModel(radiomodel.NewRadioModel(cfg.RadioModel))
 	s.vis = s.d.GetVisualizer()
 	if err := s.createTmpDir(); err != nil {
 		simplelogger.Panicf("creating ./tmp/ directory failed: %+v", err)
@@ -136,8 +135,11 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 	node.uartType = NodeUartTypeVirtualTime
 	simplelogger.AssertTrue(s.d.IsAlive(nodeid))
 	evtCnt := s.d.RecvEvents() // allow new node to connect, and to receive its startup events.
+	ts := s.d.CurTime
+	node.DisplayPendingLogEntries(ts)
 
 	if s.ctx.Err() != nil { // only proceed if we're not exiting the simulation.
+		simplelogger.Debugf("Simulation exiting, stopping AddNode operation.")
 		return node, nil
 	}
 
@@ -147,20 +149,32 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 		s.nodePlacer.ReuseNextNodePosition()
 		return nil, errors.Errorf("simulation AddNode: new node %d did not respond (evtCnt=%d)", nodeid, evtCnt)
 	}
+	simplelogger.Debugf("start setup of new node (mode, init script)")
 	node.setupMode()
+	err = node.err
+
 	if !s.rawMode {
-		err := node.runInitScript(cfg.InitScript)
-		if err == nil {
-			node.onStart()
-		} else {
-			node.logError(fmt.Errorf("simulation init script failed, deleting node - %v", err))
-			_ = s.DeleteNode(node.Id)
-			s.nodePlacer.ReuseNextNodePosition()
-			return nil, err
-		}
+		err = node.runInitScript(cfg.InitScript)
 	}
 
-	return node, nil
+	if s.ctx.Err() != nil { // only proceed if we're not exiting the simulation.
+		simplelogger.Debugf("Simulation exiting, stopping AddNode operation.")
+		node.DisplayPendingLogEntries(ts)
+		return node, nil
+	}
+
+	if err != nil {
+		node.logError(fmt.Errorf("simulation node init failed, deleting node - %v", err))
+		_ = s.DeleteNode(node.Id)
+		s.nodePlacer.ReuseNextNodePosition()
+		node.DisplayPendingLogEntries(ts)
+		return nil, err
+	}
+
+	node.onStart()
+	node.DisplayPendingLogEntries(ts)
+
+	return node, err
 }
 
 func (s *Simulation) genNodeId() NodeId {
@@ -183,11 +197,6 @@ func (s *Simulation) Run() {
 	s.d.Run()
 	s.Stop()   // first exit simulation nodes, then
 	s.d.Stop() // stop dispatcher and close its threads.
-}
-
-// Returns the last error that occurred in the simulation run, or nil if none.
-func (s *Simulation) Error() error {
-	return s.err
 }
 
 func (s *Simulation) Nodes() map[NodeId]*Node {
@@ -261,19 +270,16 @@ func (s *Simulation) OnUartWrite(nodeid NodeId, data []byte) {
 	node.uartReader <- data
 }
 
-// OnLogMessage notifies the simulation of a new node log message. When isWatchTriggered == true,
-// it is watch-message that is requested to be shown to the user based on current node watch-level
-// settings.
-func (s *Simulation) OnLogMessage(nodeid NodeId, level WatchLogLevel, isWatchTriggered bool, msg string) {
-	node := s.nodes[nodeid]
+// OnLogMessage notifies the simulation of a new node-related log message from Dispatcher.
+func (s *Simulation) OnLogMessage(logEntry LogEntry) {
+	node := s.nodes[logEntry.NodeId]
 	if node == nil {
-		PrintLog(level, fmt.Sprintf("Unknown %s: %s", GetNodeName(nodeid), msg))
+		PrintLog(logEntry.Level, fmt.Sprintf("(Unknown Node %d) %s", logEntry.NodeId, logEntry.Msg))
 		return
 	}
-	node.logEntries <- logEntry{
-		level:   level,
-		msg:     msg,
-		isWatch: isWatchTriggered,
+	node.logEntries <- logEntry
+	if logEntry.Level <= WatchCritLevel {
+		node.err = fmt.Errorf(logEntry.Msg)
 	}
 }
 
@@ -281,25 +287,15 @@ func (s *Simulation) OnNextEventTime(ts uint64, nextTs uint64) {
 	// display the pending log messages of nodes. Nodes are sorted by id.
 	s.VisitNodesInOrder(func(node *Node) {
 		node.processUartData()
-		node.handlePendingLogEntries(ts)
+		node.DisplayPendingLogEntries(ts)
 	})
 	s.VisitNodesInOrder(func(node *Node) {
 		simplelogger.AssertEqual(0, len(node.logEntries))
 	})
 }
 
-func (s *Simulation) onNodeProcessFailure(node *Node, err error) {
-	if s.ctx.Err() != nil { // ignore any node errors when simulation is closing up.
-		return
-	}
-	s.err = err
-	node.log(WatchCritLevel, "Node process failed.")
-	s.PostAsync(false, func() {
-		if s.ctx.Err() == nil {
-			simplelogger.Infof("Deleting node %v due to process failure.", node.Id)
-			_ = s.DeleteNode(node.Id)
-		}
-	})
+func (s *Simulation) OnStop() {
+	//
 }
 
 func (s *Simulation) PostAsync(trivial bool, f func()) {
@@ -338,11 +334,13 @@ func (s *Simulation) DeleteNode(nodeid NodeId) error {
 		err := fmt.Errorf("delete node not found: %d", nodeid)
 		return err
 	}
-
-	delete(s.nodes, nodeid)
+	simplelogger.AssertFalse(s.Dispatcher().IsAlive(nodeid))
+	s.d.NotifyCommand(nodeid) // sets node alive, as we expect a NodeExit event as final one in queue.
 	err := node.Exit()
 	s.d.RecvEvents()
 	s.d.DeleteNode(nodeid)
+	node.DisplayPendingLogEntries(s.d.CurTime)
+	delete(s.nodes, nodeid)
 	return err
 }
 
@@ -367,14 +365,14 @@ func (s *Simulation) CountDown(duration time.Duration, text string) {
 }
 
 // Go runs the simulation for duration at Dispatcher's set speed.
-func (s *Simulation) Go(duration time.Duration) <-chan struct{} {
+func (s *Simulation) Go(duration time.Duration) <-chan error {
 	return s.d.Go(duration)
 }
 
 // GoAtSpeed stops any ongoing (previous) 'go' period and then runs simulation for duration at given speed.
-func (s *Simulation) GoAtSpeed(duration time.Duration, speed float64) <-chan struct{} {
+func (s *Simulation) GoAtSpeed(duration time.Duration, speed float64) <-chan error {
 	simplelogger.AssertTrue(speed > 0)
-	_ = s.d.GoCancel()
+	s.d.GoCancel()
 	return s.d.GoAtSpeed(duration, speed)
 }
 
