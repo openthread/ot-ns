@@ -25,27 +25,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-# This script packs web related files into go binary data using [go-bindata](https://github.com/jteeuwen/go-bindata)
+# Runs the pack-web script via a Docker with the right tools environment.
+# Only used during OTNS-web development.
 
-# shellcheck source=script/common.sh
-. "$(dirname "$0")"/common.sh
-
-main()
-{
-    readonly sitedir="$OTNSDIR"/web/site
-    cd "$sitedir" || return 1
-    npm install
-    npm version
-    npx webpack ./js/visualize.js -o ./static/js/visualize.js
-    npx webpack ./js/energyViewer.js -o ./static/js/energyViewer.js
-
-        go-bindata -pkg web_site -o _bindata.go templates/... static/...
-        head -26 bindata.go >_merge_bindata.go
-        cat _bindata.go >>_merge_bindata.go
-        mv _merge_bindata.go bindata.go
-        rm -f _bindata.go
-    )
-}
-
-./script/compile-proto
-main
+docker run -t -v"$PWD":/otns openthread/otns2:environment -c "./script/pack-web"
