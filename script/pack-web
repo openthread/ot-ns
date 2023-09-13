@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright (c) 2020, The OTNS Authors.
+# Copyright (c) 2020-2023, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -35,7 +35,9 @@ main()
     readonly sitedir="$OTNSDIR"/web/site
     cd "$sitedir" || return 1
     npm install
+    npm version
     npx webpack ./js/visualize.js -o ./static/js/visualize.js
+    npx webpack ./js/energyViewer.js -o ./static/js/energyViewer.js
 
     go-bindata -pkg web_site -o _bindata.go templates/... static/...
     head -26 bindata.go >_merge_bindata.go
