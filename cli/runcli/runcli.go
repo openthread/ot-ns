@@ -58,7 +58,9 @@ var (
 )
 
 func RestorePrompt() {
-	readlineInstance.Refresh()
+	if readlineInstance != nil {
+		readlineInstance.Refresh()
+	}
 }
 
 func RunCli(handler CliHandler, options *CliOptions) error {
@@ -82,7 +84,6 @@ func RunCli(handler CliHandler, options *CliOptions) error {
 		if err != nil {
 			return err
 		}
-
 		defer func() {
 			_ = readline.Restore(int(stdin.Fd()), stdinState)
 		}()
@@ -124,19 +125,19 @@ func RunCli(handler CliHandler, options *CliOptions) error {
 	}
 
 	l, err := readline.NewEx(readlineConfig)
-	readlineInstance = l
 
 	if err != nil {
 		return err
 	}
+
 	defer func() {
 		_ = l.Close()
 	}()
+	readlineInstance = l
 
 	for {
-		// update the prompt
+		// update the prompt and read a line
 		l.SetPrompt(handler.GetPrompt())
-
 		line, err := l.Readline()
 
 		if err == readline.ErrInterrupt {
