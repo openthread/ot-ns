@@ -140,13 +140,13 @@ func parseListenAddr() {
 func Main(ctx *progctx.ProgCtx, visualizerCreator func(ctx *progctx.ProgCtx, args *MainArgs) visualize.Visualizer, cliOptions *runcli.CliOptions) {
 	handleSignals(ctx)
 
-	// run console in the main goroutine
+	// run console in the main goroutine. Deferred funcs are called when context moves into 'Done' state
 	ctx.Defer(func() {
-		_ = os.Stdin.Close()
+		_ = os.Stdin.Close() // also needed for PyOTNS to exit ok.
 	})
 
 	parseArgs()
-	//simplelogger.SetOutput([]string{"stdout", "otns.log"}) // for debug: generate a log output file.
+	//simplelogger.SetOutput([]string{"stdout", "otns.log"}) // for @DEBUG: generate a log output file.
 	simplelogger.SetLevel(GetSimpleloggerLevel(ParseWatchLogLevel(args.LogLevel)))
 	parseListenAddr()
 
@@ -197,7 +197,9 @@ func Main(ctx *progctx.ProgCtx, visualizerCreator func(ctx *progctx.ProgCtx, arg
 		go autoGo(ctx, sim)
 	}
 
+	ctx.WaitAdd("cli", 1)
 	go func() {
+		defer ctx.WaitDone("cli")
 		err := cli.Run(rt, cliOptions)
 		ctx.Cancel(errors.Wrapf(err, "console-exit"))
 	}()
