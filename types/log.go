@@ -51,6 +51,12 @@ const (
 	WatchDefaultLevel               = WatchInfoLevel
 )
 
+const (
+	WatchOffLevelString     = "off"
+	WatchNoneLevelString    = "none"
+	WatchDefaultLevelString = "default"
+)
+
 type LogEntry struct {
 	NodeId  NodeId
 	Level   WatchLogLevel

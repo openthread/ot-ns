@@ -71,7 +71,7 @@ type Node struct {
 	cfg     *NodeConfig
 	cmd     *exec.Cmd
 	logFile *os.File
-	err     error // store the last error related to this node; nil if none.
+	cmdErr  error // store the last CLI command error; nil if none.
 
 	pendingLines chan string   // OT node CLI output lines, pending processing.
 	logEntries   chan LogEntry // OT node log entries, pending display on OTNS CLI or other viewers.
@@ -114,7 +114,7 @@ func newNode(s *Simulation, nodeid NodeId, cfg *NodeConfig) (*Node, error) {
 		uartType:     NodeUartTypeUndefined,
 		uartReader:   make(chan []byte, 10000),
 		logFile:      nil,
-		err:          nil,
+		cmdErr:       nil,
 	}
 
 	if node.pipeIn, err = cmd.StdinPipe(); err != nil {
@@ -164,15 +164,15 @@ func (node *Node) String() string {
 func (node *Node) runInitScript(cfg []string) error {
 	simplelogger.AssertNotNil(cfg)
 	for _, cmd := range cfg {
-		if node.err != nil {
-			return node.err
+		if node.CommandResult() != nil {
+			return node.CommandResult()
 		}
 		if node.S.ctx.Err() != nil {
 			return nil
 		}
 		node.Command(cmd, DefaultCommandTimeout)
 	}
-	return node.err
+	return node.CommandResult()
 }
 
 func (node *Node) onStart() {
@@ -250,6 +250,7 @@ func (node *Node) AssurePrompt() {
 func (node *Node) inputCommand(cmd string) error {
 	simplelogger.AssertTrue(node.uartType != NodeUartTypeUndefined)
 	var err error
+	node.cmdErr = nil
 
 	if node.uartType == NodeUartTypeRealTime {
 		_, err = node.pipeIn.Write([]byte(cmd + "\n"))
@@ -264,10 +265,12 @@ func (node *Node) CommandExpectNone(cmd string, timeout time.Duration) {
 	err := node.inputCommand(cmd)
 	if err != nil {
 		node.logError(err)
+		node.cmdErr = err
 	} else {
 		_, err = node.expectLine(cmd, timeout)
 		if err != nil {
 			node.logError(err)
+			node.cmdErr = err
 		}
 	}
 }
@@ -278,31 +281,41 @@ func (node *Node) Command(cmd string, timeout time.Duration) []string {
 		_, err1 := node.expectLine(cmd, timeout)
 		if err1 != nil {
 			node.logError(err1)
+			node.cmdErr = err1
 			return []string{}
 		}
 	} else {
 		node.logError(err2)
+		node.cmdErr = err2
 		return []string{}
 	}
 
 	output, err := node.expectLine(DoneOrErrorRegexp, timeout)
 	if err != nil {
 		node.logError(err)
+		node.cmdErr = err
 		return []string{}
 	}
 	if len(output) == 0 {
-		err = fmt.Errorf("%v - Command() response empty for cmd '%s'", node, cmd)
+		err = fmt.Errorf("Command() response empty for cmd '%s'", cmd)
 		node.logError(err)
+		node.cmdErr = err
 		return []string{}
 	}
 
 	var result string
 	output, result = output[:len(output)-1], output[len(output)-1]
 	if result != "Done" {
-		err = fmt.Errorf("%v - Unexpected cmd result for cmd '%s': %s", node, cmd, result)
+		err = fmt.Errorf("unexpected result for cmd '%s': %s", cmd, result)
 		node.logError(err)
+		node.cmdErr = fmt.Errorf(result)
 	}
 	return output
+}
+
+// CommandResult gets the last result of any Command...() call, either nil or an Error.
+func (node *Node) CommandResult() error {
+	return node.cmdErr
 }
 
 func (node *Node) CommandExpectString(cmd string, timeout time.Duration) string {
@@ -593,6 +606,7 @@ func (node *Node) FactoryReset() {
 	err := node.inputCommand("factoryreset")
 	if err != nil {
 		node.logError(err)
+		node.cmdErr = err
 		return
 	}
 	node.AssurePrompt()
@@ -604,6 +618,7 @@ func (node *Node) Reset() {
 	err := node.inputCommand("reset")
 	if err != nil {
 		node.logError(err)
+		node.cmdErr = err
 		return
 	}
 	node.AssurePrompt()
@@ -804,9 +819,9 @@ func (node *Node) expectLine(line interface{}, timeout time.Duration) ([]string,
 	for {
 		select {
 		case <-deadline:
-			//_ = pprof.Lookup("goroutine").WriteTo(os.Stdout, 2) // useful for debug when node stuck
+			//_ = pprof.Lookup("goroutine").WriteTo(os.Stdout, 2) // @DEBUG: useful log info when node stuck
 			outputLines = append(outputLines, "Done")
-			err := fmt.Errorf("%v - expectLine timeout: %#v", node, line)
+			err := fmt.Errorf("expectLine timeout: expected %v", line)
 			return outputLines, err
 		case readLine := <-node.pendingLines:
 			if len(readLine) > 0 {
@@ -818,12 +833,6 @@ func (node *Node) expectLine(line interface{}, timeout time.Duration) ([]string,
 				// found the exact line
 				node.S.Dispatcher().RecvEvents() // this blocks until node is asleep.
 				return outputLines, nil
-			} else {
-				// TODO hack: output scan result here, should have better implementation
-				//| J | Network Name     | Extended PAN     | PAN  | MAC Address      | Ch | dBm | LQI |
-				if strings.HasPrefix(readLine, "|") || strings.HasPrefix(readLine, "+") {
-					PrintConsole(readLine)
-				}
 			}
 		default:
 			if !node.S.Dispatcher().IsAlive(node.Id) {
@@ -855,6 +864,7 @@ func (node *Node) Ping(addr string, payloadSize int, count int, interval int, ho
 	err := node.inputCommand(cmd)
 	if err != nil {
 		node.logError(err)
+		node.cmdErr = err
 		return
 	}
 	_, err = node.expectLine(cmd, DefaultCommandTimeout)
@@ -927,7 +937,18 @@ func (node *Node) logError(err error) {
 		Level:  WatchCritLevel,
 		Msg:    err.Error(),
 	}
-	node.err = err
+}
+
+func (node *Node) DisplayPendingLines(ts uint64) {
+loop:
+	for {
+		select {
+		case line := <-node.pendingLines:
+			PrintConsole(line)
+		default:
+			break loop
+		}
+	}
 }
 
 func (node *Node) DisplayPendingLogEntries(ts uint64) {
@@ -958,9 +979,6 @@ loop:
 			break loop
 		}
 	}
-
-	// clear the latest node error again to nil, so that next commands can start afresh.
-	node.err = nil
 }
 
 func (node *Node) writeToLogFile(line string) error {

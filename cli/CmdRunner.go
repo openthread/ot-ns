@@ -47,17 +47,16 @@ import (
 )
 
 const (
-	Prompt         = "> "
-	WatchLevelOff  = "off"
-	WatchLevelNone = "none"
+	Prompt = "> "
 )
 
 type CommandContext struct {
 	context.Context
 	*Command
-	rt     *CmdRunner
-	err    error
-	output io.Writer
+	rt              *CmdRunner
+	err             error
+	output          io.Writer
+	isBackgroundCmd bool
 }
 
 func (cc *CommandContext) outputf(format string, args ...interface{}) {
@@ -149,16 +148,19 @@ func (rt *CmdRunner) GetContextNodeId() NodeId {
 
 func (rt *CmdRunner) execute(cmd *Command, output io.Writer) {
 	cc := &CommandContext{
-		Command: cmd,
-		rt:      rt,
-		output:  output,
+		Command:         cmd,
+		rt:              rt,
+		output:          output,
+		isBackgroundCmd: isBackgroundCommand(cmd),
 	}
 
 	defer func() {
 		if cc.Err() != nil {
 			cc.outputf("Error: %v\n", cc.Err())
-		} else {
+		} else if !cc.isBackgroundCmd {
 			cc.outputf("Done\n")
+		} else {
+			cc.outputf("Started\n")
 		}
 	}()
 
@@ -524,11 +526,20 @@ func (rt *CmdRunner) executeNode(cc *CommandContext, cmd *NodeCmd) {
 		}()
 
 		if cmd.Command != nil {
-			output := node.Command(*cmd.Command, simulation.DefaultCommandTimeout)
+			var output []string
+			if cc.isBackgroundCmd {
+				node.CommandExpectNone(*cmd.Command, simulation.DefaultCommandTimeout)
+			} else {
+				output = node.Command(*cmd.Command, simulation.DefaultCommandTimeout)
+			}
+			node.DisplayPendingLogEntries(sim.Dispatcher().CurTime)
 			for _, line := range output {
 				cc.outputf("%s\n", line)
 			}
-			node.DisplayPendingLogEntries(sim.Dispatcher().CurTime)
+			err := node.CommandResult()
+			if err != nil {
+				cc.error(err)
+			}
 		} else {
 			contextNodeId = node.Id
 		}
@@ -736,12 +747,12 @@ func (rt *CmdRunner) executeWatch(cc *CommandContext, cmd *WatchCmd) {
 			return
 		} else if len(cmd.Nodes) == 0 && len(cmd.All) == 0 && len(cmd.Default) > 0 && len(cmd.Level) > 0 {
 			// variant: 'watch default <level>'
-			sim.Dispatcher().GetConfig().DefaultWatchOn = cmd.Level != WatchLevelOff && cmd.Level != WatchLevelNone
+			sim.Dispatcher().GetConfig().DefaultWatchOn = cmd.Level != WatchOffLevelString && cmd.Level != WatchNoneLevelString
 			sim.Dispatcher().GetConfig().DefaultWatchLevel = cmd.Level
 			return
 		} else if len(cmd.Nodes) == 0 && len(cmd.All) == 0 && len(cmd.Default) > 0 && len(cmd.Level) == 0 {
 			// variant: 'watch default'
-			watchLevelDefault := WatchLevelOff
+			watchLevelDefault := WatchDefaultLevelString
 			if sim.Dispatcher().GetConfig().DefaultWatchOn {
 				watchLevelDefault = sim.Dispatcher().GetConfig().DefaultWatchLevel
 			}

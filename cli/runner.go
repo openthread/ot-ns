@@ -35,6 +35,7 @@ import (
 
 var (
 	contextLessCommandsPat = regexp.MustCompile(`(exit|node|\!.+)\b`)
+	backgroundCommandsPat  = regexp.MustCompile(`(discover|dns resolve|dns browse|dns service|scan)\b`)
 )
 
 func Run(cr *CmdRunner, cliOptions *runcli.CliOptions) error {
@@ -45,4 +46,14 @@ func Run(cr *CmdRunner, cliOptions *runcli.CliOptions) error {
 
 func isContextlessCommand(line string) bool {
 	return contextLessCommandsPat.MatchString(line)
+}
+
+func isBackgroundCommand(cmd *Command) bool {
+	if cmd.Node != nil && cmd.Node.Command != nil {
+		return backgroundCommandsPat.MatchString(*cmd.Node.Command)
+	}
+	if cmd.Scan != nil {
+		return true
+	}
+	return false
 }

@@ -151,7 +151,7 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 	}
 	simplelogger.Debugf("start setup of new node (mode, init script)")
 	node.setupMode()
-	err = node.err
+	err = node.CommandResult()
 
 	if !s.rawMode {
 		err = node.runInitScript(cfg.InitScript)
@@ -278,9 +278,6 @@ func (s *Simulation) OnLogMessage(logEntry LogEntry) {
 		return
 	}
 	node.logEntries <- logEntry
-	if logEntry.Level <= WatchCritLevel {
-		node.err = fmt.Errorf(logEntry.Msg)
-	}
 }
 
 func (s *Simulation) OnNextEventTime(ts uint64, nextTs uint64) {
@@ -288,6 +285,7 @@ func (s *Simulation) OnNextEventTime(ts uint64, nextTs uint64) {
 	s.VisitNodesInOrder(func(node *Node) {
 		node.processUartData()
 		node.DisplayPendingLogEntries(ts)
+		node.DisplayPendingLines(ts)
 	})
 	s.VisitNodesInOrder(func(node *Node) {
 		simplelogger.AssertEqual(0, len(node.logEntries))
@@ -331,7 +329,7 @@ func (s *Simulation) MoveNodeTo(nodeid NodeId, x, y int) error {
 func (s *Simulation) DeleteNode(nodeid NodeId) error {
 	node := s.nodes[nodeid]
 	if node == nil {
-		err := fmt.Errorf("delete node not found: %d", nodeid)
+		err := fmt.Errorf("node not found: %d", nodeid)
 		return err
 	}
 	simplelogger.AssertFalse(s.Dispatcher().IsAlive(nodeid))

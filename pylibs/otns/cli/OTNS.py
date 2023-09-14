@@ -241,6 +241,8 @@ class OTNS(object):
                     return output
                 elif line.startswith('Error: '):
                     raise OTNSCliError(line[7:])
+                elif line == 'Started':
+                    return output
 
                 output.append(line)
 
