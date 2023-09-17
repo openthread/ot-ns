@@ -27,6 +27,7 @@
 package runcli
 
 import (
+	"errors"
 	"io"
 	"os"
 	"strings"
@@ -60,6 +61,12 @@ var (
 func RestorePrompt() {
 	if readlineInstance != nil {
 		readlineInstance.Refresh()
+	}
+}
+
+func StopCli() {
+	if readlineInstance != nil {
+		_ = readlineInstance.Close()
 	}
 }
 
@@ -140,7 +147,7 @@ func RunCli(handler CliHandler, options *CliOptions) error {
 		l.SetPrompt(handler.GetPrompt())
 		line, err := l.Readline()
 
-		if err == readline.ErrInterrupt {
+		if errors.Is(err, readline.ErrInterrupt) {
 			if len(line) == 0 {
 				return nil
 			} else {

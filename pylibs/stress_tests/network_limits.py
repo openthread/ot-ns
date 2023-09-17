@@ -34,7 +34,7 @@ from BaseStressTest import BaseStressTest
 
 PARENT_X = 500
 PARENT_Y = 500
-MAX_DISTANCE = 250
+MAX_DISTANCE = 200
 CHILDREN_N = 10
 
 
@@ -61,6 +61,8 @@ class StressTest(BaseStressTest):
 
     def test(self, child_type: str):
         self.reset()
+        self.ns.log = 'debug'
+        self.ns.watch_default('trace')
         self.ns.add("router", PARENT_X, PARENT_Y)
         self.ns.go(7)
 

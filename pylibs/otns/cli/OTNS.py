@@ -36,7 +36,7 @@ import threading
 import time
 from typing import List, Union, Optional, Tuple, Dict, Any, Collection
 import yaml
-from .errors import OTNSCliError, OTNSExitedError
+from .errors import *
 
 
 class OTNS(object):
@@ -192,7 +192,7 @@ class OTNS(object):
         self._do_command(f'log {level}')
 
     @property
-    def time(self) -> str:
+    def time(self) -> int:
         """
         :return: current simulation time in microseconds (us)
         """
@@ -225,12 +225,16 @@ class OTNS(object):
             try:
                 self._otns.stdin.write(cmd.encode('ascii') + b'\n')
                 self._otns.stdin.flush()
-            except BrokenPipeError:
+            except (IOError, BrokenPipeError):
                 self._on_otns_eof()
 
             output = []
             while True:
-                line = self._otns.stdout.readline()
+                try:
+                    line = self._otns.stdout.readline()
+                except (IOError, BrokenPipeError):
+                    self._on_otns_eof()
+
                 if line == b'':
                     self._on_otns_eof()
 
@@ -240,7 +244,7 @@ class OTNS(object):
                 if line == 'Done':
                     return output
                 elif line.startswith('Error: '):
-                    raise OTNSCliError(line[7:])
+                    raise create_otns_cli_error(line)
                 elif line == 'Started':
                     return output
 

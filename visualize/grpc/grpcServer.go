@@ -1,4 +1,4 @@
-// Copyright (c) 2022, The OTNS Authors.
+// Copyright (c) 2022-2023, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -32,10 +32,9 @@ import (
 	"time"
 
 	"github.com/simonlingoogle/go-simplelogger"
-
-	pb "github.com/openthread/ot-ns/visualize/grpc/pb"
-
 	"google.golang.org/grpc"
+
+	"github.com/openthread/ot-ns/visualize/grpc/pb"
 )
 
 type grpcServer struct {
@@ -128,7 +127,7 @@ func (gs *grpcServer) Run() error {
 	if err != nil {
 		return err
 	}
-	simplelogger.Infof("gRPC visualizer serving on %s ...", lis.Addr())
+	simplelogger.Infof("gRPC visualizer server serving on %s ...", lis.Addr())
 	return gs.server.Serve(lis)
 }
 
@@ -145,12 +144,9 @@ func (gs *grpcServer) SendEnergyEvent(event *pb.NetworkEnergyEvent) {
 }
 
 func (gs *grpcServer) stop() {
-	gs.vis.Lock()
 	for stream := range gs.visualizingStreams {
 		stream.close()
 	}
-	gs.vis.Unlock()
-
 	gs.server.Stop()
 }
 
