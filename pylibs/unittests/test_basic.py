@@ -457,7 +457,7 @@ class BasicTests(OTNSTestCase):
 
     def testScan(self):
         self.tearDown()
-        with OTNS(otns_args=['-log', 'warn', '-autogo=true']) as ns:
+        with OTNS(otns_args=['-log', 'trace', '-autogo=true']) as ns:
             ns.radiomodel = 'MutualInterference'
             ns.add('router')
 
@@ -471,14 +471,15 @@ class BasicTests(OTNSTestCase):
             ns.add('router')
 
             ns.go(50)
-            ns.speed = 10
             ns._do_command("scan 1")
-            ns.speed = 50
+            ns.go(5)
             ns._do_command("scan 2")
-            ns.speed = 1e6
+            ns.go(1)
             ns._do_command("scan 3")
-            ns.speed = 1000
+            ns.go(15)
+            ns.speed = 1
             ns._do_command("scan 6")
+            # no go() period at the end to test starting scan and immediately stopping simulation.
 
     def testInvalidNodeCmd(self):
         ns: OTNS = self.ns

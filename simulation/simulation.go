@@ -136,11 +136,10 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 	simplelogger.AssertTrue(s.d.IsAlive(nodeid))
 	evtCnt := s.d.RecvEvents() // allow new node to connect, and to receive its startup events.
 	ts := s.d.CurTime
-	node.DisplayPendingLogEntries(ts)
 
+	node.DisplayPendingLogEntries(ts)
 	if s.ctx.Err() != nil { // only proceed if we're not exiting the simulation.
-		simplelogger.Debugf("Simulation exiting, stopping AddNode operation.")
-		return node, nil
+		return nil, CommandInterruptedError
 	}
 
 	simplelogger.AssertFalse(s.d.IsAlive(nodeid))
@@ -157,10 +156,9 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 		err = node.runInitScript(cfg.InitScript)
 	}
 
+	node.DisplayPendingLogEntries(ts)
 	if s.ctx.Err() != nil { // only proceed if we're not exiting the simulation.
-		simplelogger.Debugf("Simulation exiting, stopping AddNode operation.")
-		node.DisplayPendingLogEntries(ts)
-		return node, nil
+		return nil, CommandInterruptedError
 	}
 
 	if err != nil {
@@ -186,17 +184,12 @@ func (s *Simulation) genNodeId() NodeId {
 }
 
 func (s *Simulation) Run() {
-	s.ctx.WaitAdd("simulation", 1)
-	defer s.ctx.WaitDone("simulation")
-	defer simplelogger.Debugf("simulation exit.")
-	defer s.d.Stop() // backup dispatcher stopper.
-	defer s.Stop()   // backup simulation stopper.
+	defer s.d.Stop()
+	defer s.Stop()
 
 	// run dispatcher in current thread, until exit.
 	s.ctx.WaitAdd("dispatcher", 1)
 	s.d.Run()
-	s.Stop()   // first exit simulation nodes, then
-	s.d.Stop() // stop dispatcher and close its threads.
 }
 
 func (s *Simulation) Nodes() map[NodeId]*Node {

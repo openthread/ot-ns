@@ -49,6 +49,7 @@ jobs:
         go-version: [1.18]
         suite: ["network-forming", "commissioning", "connectivity", "network-latency", "multicast-performance", "otns-performance", "network-limits"]
     runs-on: ubuntu-22.04
+    timeout-minutes: 120
     env:
       HOMEBREW_NO_AUTO_UPDATE: 1
     steps:

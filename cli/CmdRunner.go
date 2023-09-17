@@ -104,6 +104,9 @@ type CmdRunner struct {
 }
 
 func (rt *CmdRunner) RunCommand(cmdline string, output io.Writer) error {
+	if rt.ctx.Err() != nil {
+		return nil
+	}
 	// if character '!' is used to invoke no-node (global) context, remove it.
 	if len(cmdline) > 1 && cmdline[0] == '!' {
 		cmdline = cmdline[1:]
@@ -123,7 +126,9 @@ func (rt *CmdRunner) RunCommand(cmdline string, output io.Writer) error {
 }
 
 func (rt *CmdRunner) HandleCommand(cmdline string, output io.Writer) error {
-	if rt.contextNodeId != InvalidNodeId && !isContextlessCommand(cmdline) {
+	if rt.ctx.Err() != nil {
+		return nil
+	} else if rt.contextNodeId != InvalidNodeId && !isContextlessCommand(cmdline) {
 		// run the command in node context
 		cmd := Command{
 			Node: &NodeCmd{
@@ -134,6 +139,7 @@ func (rt *CmdRunner) HandleCommand(cmdline string, output io.Writer) error {
 		rt.execute(&cmd, output)
 		return nil
 	} else {
+		// run the command without node-specific context
 		return rt.RunCommand(cmdline, output)
 	}
 }
@@ -161,6 +167,8 @@ func (rt *CmdRunner) execute(cmd *Command, output io.Writer) {
 	defer func() {
 		if cc.Err() != nil {
 			cc.outputf("Error: %v\n", cc.Err())
+		} else if rt.ctx.Err() != nil {
+			cc.outputf("Error: %s\n", simulation.CommandInterruptedError)
 		} else if !cc.isBackgroundCmd {
 			cc.outputf("Done\n")
 		} else {
@@ -310,7 +318,12 @@ func (rt *CmdRunner) postAsyncWait(f func(sim *simulation.Simulation)) {
 		f(rt.sim)
 		close(done)
 	})
-	<-done
+	select {
+	case <-done:
+		break
+	case <-rt.ctx.Done():
+		break
+	}
 }
 
 func (rt *CmdRunner) executeAddNode(cc *CommandContext, cmd *AddCmd) {
@@ -395,14 +408,12 @@ func (rt *CmdRunner) executeDelNode(cc *CommandContext, cmd *DelCmd) {
 }
 
 func (rt *CmdRunner) executeExit(cc *CommandContext, cmd *ExitCmd) {
-	if rt.enterNodeContext(InvalidNodeId) {
-		return
-	}
-
 	rt.postAsyncWait(func(sim *simulation.Simulation) {
+		if rt.enterNodeContext(InvalidNodeId) {
+			return
+		}
 		sim.Stop()
 	})
-	rt.ctx.Cancel("exit")
 }
 
 func (rt *CmdRunner) executePing(cc *CommandContext, cmd *PingCmd) {
@@ -547,12 +558,12 @@ func (rt *CmdRunner) executeNode(cc *CommandContext, cmd *NodeCmd) {
 		} else {
 			contextNodeId = node.Id
 		}
-	})
 
-	if contextNodeId != InvalidNodeId {
-		// enter node context
-		rt.enterNodeContext(contextNodeId)
-	}
+		if contextNodeId != InvalidNodeId {
+			// enter node context
+			rt.enterNodeContext(contextNodeId)
+		}
+	})
 }
 
 func (rt *CmdRunner) executeDemoLegend(cc *CommandContext, cmd *DemoLegendCmd) {
@@ -836,41 +847,14 @@ func (rt *CmdRunner) executePlr(cc *CommandContext, cmd *PlrCmd) {
 }
 
 func (rt *CmdRunner) executeScan(cc *CommandContext, cmd *ScanCmd) {
-	var scanStartTs uint64
-	var simTime uint64
-	ok := true
-
 	rt.postAsyncWait(func(sim *simulation.Simulation) {
 		node, _ := rt.getNode(sim, cmd.Node)
 		if node == nil {
 			cc.errorf("node not found")
-			ok = false
 			return
 		}
-
 		node.CommandExpectNone("scan", simulation.DefaultCommandTimeout)
-		scanStartTs = node.S.Dispatcher().CurTime
-		simTime = scanStartTs
 	})
-	if !ok {
-		return
-	}
-
-	var scanTimeUs uint64 = 5000000 // TODO: verify if time ok - scan is about 5 seconds of simulation time.
-	for simTime < scanStartTs+scanTimeUs && ok {
-		rt.postAsyncWait(func(sim *simulation.Simulation) {
-			node, _ := rt.getNode(sim, cmd.Node)
-			if node == nil {
-				ok = false
-				return
-			}
-			node.AssurePrompt()
-			simTime = node.S.Dispatcher().CurTime
-		})
-		if ok {
-			time.Sleep(time.Millisecond * 200)
-		}
-	}
 }
 
 func (rt *CmdRunner) executeConfigVisualization(cc *CommandContext, cmd *ConfigVisualizationCmd) {

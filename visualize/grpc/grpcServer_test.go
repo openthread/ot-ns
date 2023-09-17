@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2023, The OTNS Authors.
+// Copyright (c) 2023, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -24,42 +24,53 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-package simulation
+package visualize_grpc
 
 import (
-	"fmt"
-	"io"
-	"os"
-	"path/filepath"
+	"testing"
+	"time"
 
-	. "github.com/openthread/ot-ns/types"
+	"github.com/simonlingoogle/go-simplelogger"
+	"github.com/stretchr/testify/assert"
 )
 
-var (
-	CommandInterruptedError = fmt.Errorf("command interrupted due to simulation exit")
-)
+func TestStartStopServer(t *testing.T) {
+	vis := &grpcVisualizer{
+		simctrl: nil,
+		f:       newGrpcField(),
+	}
+	srv := newGrpcServer(vis, "localhost:8997")
 
-type CmdRunner interface {
-	RunCommand(cmd string, output io.Writer) error
+	var err error
+	done := make(chan bool)
+	go func() {
+		err = srv.Run()
+		done <- true
+	}()
+	time.Sleep(time.Second * 1)
+	srv.stop()
 
-	// GetContextNodeId gets the user's current selected node ID context for running commands, or
-	// types.InvalidNodeId if no node context selected.
-	GetContextNodeId() NodeId
+	<-done
+	assert.Nil(t, err, "expected nil Run() error but got %v", err)
 }
 
-func getTimestampedLogMessage(ts uint64, logMsg string) string {
-	return fmt.Sprintf("%11d %s", ts, logMsg)
-}
+func TestStopBeforeStart(t *testing.T) {
+	vis := &grpcVisualizer{
+		simctrl: nil,
+		f:       newGrpcField(),
+	}
+	srv := newGrpcServer(vis, "localhost:8997")
 
-func removeAllFiles(globPath string) error {
-	files, err := filepath.Glob(globPath)
-	if err != nil {
-		return err
-	}
-	for _, f := range files {
-		if err := os.Remove(f); err != nil {
-			return err
-		}
-	}
-	return nil
+	var err error
+	done := make(chan bool)
+	go func() {
+		time.Sleep(time.Second * 1)
+		err = srv.Run()
+		done <- true
+	}()
+	srv.stop()
+
+	<-done
+	assert.NotNil(t, err, "expected Run() error but got nil")
+	simplelogger.Infof("Run() err returned: %v", err)
 }

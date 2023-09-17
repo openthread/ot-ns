@@ -721,9 +721,13 @@ func (node *Node) GetSingleton() bool {
 
 func (node *Node) processUartData() {
 	var deadline <-chan time.Time
+	done := node.S.ctx.Done()
+
 loop:
 	for {
 		select {
+		case <-done:
+			break loop
 		case data := <-node.uartReader:
 			line := string(data)
 			if line == "> " { // filter out the prompt.
@@ -742,8 +746,7 @@ loop:
 				}
 			} else if idxNewLine == -1 { // if no newline, get more items until a line can be formed.
 				deadline = time.After(dispatcher.DefaultReadTimeout)
-				done := node.S.ctx.Done()
-				isExiting := false
+
 			loop2:
 				for {
 					select {
@@ -756,17 +759,10 @@ loop:
 							break loop2
 						}
 					case <-done:
-						if !isExiting {
-							isExiting = true
-							deadline = time.After(time.Millisecond * 200)
-						}
-						time.Sleep(time.Millisecond * 10)
+						break loop
 					case <-deadline:
 						line = strings.TrimSpace(line)
-						if !isExiting {
-							simplelogger.Panicf("%s processUart deadline: line=%s", node, line)
-						}
-						node.pendingLines <- line
+						simplelogger.Panicf("%s processUart deadline: line=%s", node, line)
 						break loop2
 					}
 				}
@@ -814,13 +810,15 @@ func (node *Node) lineReaderStdErr(reader io.Reader) {
 
 func (node *Node) expectLine(line interface{}, timeout time.Duration) ([]string, error) {
 	var outputLines []string
-
+	done := node.S.ctx.Done()
 	deadline := time.After(timeout)
+
 	for {
 		select {
+		case <-done:
+			return []string{}, CommandInterruptedError
 		case <-deadline:
 			//_ = pprof.Lookup("goroutine").WriteTo(os.Stdout, 2) // @DEBUG: useful log info when node stuck
-			outputLines = append(outputLines, "Done")
 			err := fmt.Errorf("expectLine timeout: expected %v", line)
 			return outputLines, err
 		case readLine := <-node.pendingLines:

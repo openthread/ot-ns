@@ -43,6 +43,7 @@ jobs:
   go-tests:
     name: Go Tests on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
@@ -63,6 +64,7 @@ jobs:
   py-unittests:
     name: Unittests (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
@@ -86,6 +88,7 @@ jobs:
   py-examples:
     name: Examples (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:

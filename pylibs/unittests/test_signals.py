@@ -76,13 +76,13 @@ class SignalsTest(OTNSTestCase):
 
     def testCommandHandleSignalOkx100(self):
         for i in range(100):
-            self._testCommandHandleSignalOk()
+            self._testCommandHandleSignalOk(duration=random.random() * 0.04)
 
             self.tearDown()
             self.setUp()
 
-    def _testCommandHandleSignalOk(self):
-        t = threading.Thread(target=self._send_signal, args=(0.02, signal.SIGTERM))
+    def _testCommandHandleSignalOk(self, duration: float = 1):
+        t = threading.Thread(target=self._send_signal, args=(duration, signal.SIGTERM))
         t.start()
         try:
             self.ns.speed = float('inf')
@@ -95,6 +95,17 @@ class SignalsTest(OTNSTestCase):
             self.assertTrue(ex.exit_code == 0 or ex.exit_code == -signal.SIGTERM)
 
         t.join()
+        exit_code = 9999
+        try:
+            exit_code = self.ns._otns.wait(timeout=WAIT_OTNS_TIMEOUT)
+        except TimeoutExpired:
+            logging.error('OTNS exit-signal handling took too long. Debug info follows below.')
+            logging.error('OTNS error code: %s', self.ns._otns.returncode)
+            os.system(f"curl http://localhost:8997/debug/pprof/goroutine?debug=2")
+            raise
+
+        self.assertTrue(exit_code == 0 or exit_code == -signal.SIGTERM)
+
 
     def _test_signal_ignore(self, sig: int):
         t = threading.Thread(target=self._send_signal, args=(1, sig))
