@@ -392,7 +392,7 @@ func NewOtnsTest(t *testing.T) *OtnsTest {
 
 	go func() {
 		defer func() {
-			simplelogger.Infof("OTNS exit.")
+			simplelogger.Infof("OTNS Main() exit.")
 			close(ot.otnsDone)
 		}()
 

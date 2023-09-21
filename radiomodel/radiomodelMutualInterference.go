@@ -115,7 +115,7 @@ func (rm *RadioModelMutualInterference) OnEventDispatch(src *RadioNode, dst *Rad
 				src.rssiSampleMax = r
 			}
 			// store the final sampled RSSI in the event
-			evt.RadioCommData.PowerDbm = int8(math.Ceil(src.rssiSampleMax))
+			evt.RadioCommData.PowerDbm = clipRssi(src.rssiSampleMax)
 		} else {
 			evt.RadioCommData.PowerDbm = int8(RssiInvalid)
 		}

@@ -499,6 +499,19 @@ class BasicTests(OTNSTestCase):
         with self.assertRaises(errors.OTNSCliError):
             ns.node_cmd(1,'dns resolvea b c d e f')
 
+    def testExitCmd(self):
+        ns: OTNS = self.ns
+        # Tested here that the exit command itself does not raise errors.OTNSExitedError.
+        # That error is only raised for unexpected exits of OTNS, or when performing an
+        # action while OTNS has already exited.
+        ns._do_command('exit')
+
+        with self.assertRaises(errors.OTNSExitedError):
+            ns.go(1)
+        with self.assertRaises(errors.OTNSExitedError):
+            ns.add('router')
+        with self.assertRaises(errors.OTNSExitedError):
+            ns._do_command('exit')
 
 if __name__ == '__main__':
     unittest.main()

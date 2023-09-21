@@ -80,7 +80,7 @@ func DefaultConfig() *Config {
 		Speed:          1,
 		Real:           false,
 		DumpPackets:    false,
-		PcapChannels:   make(map[ChannelId]struct{}, 0),
+		PcapChannels:   make(map[ChannelId]struct{}, 1),
 		DefaultWatchOn: false,
 		VizUpdateTime:  125 * time.Millisecond,
 		SimulationId:   0,
@@ -102,9 +102,6 @@ type CallbackHandler interface {
 
 	// OnNextEventTime Notifies that the Dispatcher simulation moves to the next event time.
 	OnNextEventTime(curTimeUs uint64, nextTimeUs uint64)
-
-	// OnStop Notifies the Dispatcher needs to stop the simulation and requests nodes to be closed.
-	OnStop()
 }
 
 // goDuration represents a particular duration of the simulation at a given speed.
@@ -231,7 +228,9 @@ func (d *Dispatcher) Stop() {
 	if d.stopped {
 		return
 	}
+
 	d.stopped = true
+	defer simplelogger.Debugf("dispatcher exit.")
 	simplelogger.Debugf("stopping dispatcher ...")
 	d.ctx.Cancel("dispatcher-stop")
 	d.GoCancel()        // cancel current simulation period
@@ -241,7 +240,6 @@ func (d *Dispatcher) Stop() {
 	close(d.pcapFrameChan)
 	simplelogger.Debugf("waiting for dispatcher threads to stop ...")
 	d.waitGroup.Wait()
-	simplelogger.Debugf("dispatcher exit.")
 }
 
 func (d *Dispatcher) IsStopped() bool {
@@ -321,6 +319,17 @@ loop:
 			close(duration.done)
 		case <-done:
 			break loop
+		}
+	}
+
+	// complete any remaining tasks: other goroutines may be waiting on completion.
+loop2:
+	for {
+		select {
+		case f := <-d.taskChan:
+			f()
+		default:
+			break loop2
 		}
 	}
 }
@@ -460,7 +469,6 @@ loop:
 				break loop
 			case <-done:
 				if !isExiting {
-					d.cbHandler.OnStop()
 					blockTimeout = time.After(time.Millisecond * 250)
 					isExiting = true
 				}
@@ -715,7 +723,7 @@ func (d *Dispatcher) SendToUART(id NodeId, data []byte) error {
 	dstnode := d.nodes[id]
 	if dstnode != nil {
 		if dstnode.conn == nil {
-			err = fmt.Errorf("SendToUart() cannot send to node %d: connection closed.", id)
+			err = fmt.Errorf("cannot send to node %d UART: connection closed", id)
 		} else {
 			if dstnode.watchLogLevel >= WatchTraceLevel {
 				simplelogger.Debugf("%s UART-write: %s", GetNodeName(id), string(data))
@@ -726,7 +734,7 @@ func (d *Dispatcher) SendToUART(id NodeId, data []byte) error {
 			}
 		}
 	} else {
-		err = fmt.Errorf("SendToUART() cannot send to deleted/unknown Dispatcher node: %d", id)
+		err = fmt.Errorf("cannot send to UART of deleted/unknown Dispatcher node: %d", id)
 	}
 	return err
 }
@@ -1176,6 +1184,7 @@ func (d *Dispatcher) visSendFrame(srcid NodeId, dstid NodeId, pktframe *wpan.Mac
 		DstAddrShort:    pktframe.DstAddrShort,
 		DstAddrExtended: pktframe.DstAddrExtended,
 		SendDurationUs:  uint32(commData.Duration),
+		PowerDbm:        commData.PowerDbm,
 	})
 }
 

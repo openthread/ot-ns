@@ -29,11 +29,14 @@ import VObject from "./VObject";
 import ActionBar from "./ActionBar";
 import {Text} from "./wrapper";
 import {
-    FRAME_CONTROL_MASK_FRAME_TYPE, FRAME_TYPE_ACK, LOG_WINDOW_FONT_COLOR, MAX_SPEED, PAUSE_SPEED
+    FRAME_CONTROL_MASK_FRAME_TYPE, FRAME_TYPE_ACK, LOG_WINDOW_FONT_COLOR, MAX_SPEED, PAUSE_SPEED, STATUS_MSG_FONT_FAMILY,
+    STATUS_MSG_FONT_SIZE
 } from "./consts";
 import Node from "./Node"
 import {AckMessage, BroadcastMessage, UnicastMessage} from "./message";
 import LogWindow, {LOG_WINDOW_WIDTH} from "./LogWindow";
+import * as fmt from "./format_text"
+import NodeWindow from "./NodeWindow";
 
 const {
     OtDeviceRole, CommandRequest
@@ -89,8 +92,8 @@ export default class PixiVisualizer extends VObject {
         this.addChild(this._unicastMessagesStage);
 
         this.statusMsg = new PIXI.Text("", {
-            fontFamily: "Consolas, monaco, monospace",
-            fontSize: 13,
+            fontFamily: STATUS_MSG_FONT_FAMILY,
+            fontSize: STATUS_MSG_FONT_SIZE,
             fontWeight: "bold"
         });
         this.statusMsg.position.set(0, -this.statusMsg.height);
@@ -101,6 +104,9 @@ export default class PixiVisualizer extends VObject {
         this.actionBar.position.set(10, 1000);
         this.actionBar.setDraggable();
         this.updateStatusMsg();
+
+        this.nodeWindow = new NodeWindow();
+        this.addChild(this.nodeWindow);
 
         this.otVersion = "";
         this.otCommit = "";
@@ -265,56 +271,6 @@ export default class PixiVisualizer extends VObject {
         }
     }
 
-    formatRloc16(rloc16) {
-        return ('0000' + rloc16.toString(16).toUpperCase()).slice(-4);
-    }
-
-    formatExtAddr(extAddr) {
-        return ('0000000000000000' + extAddr.toString(16).toUpperCase()).slice(-16);
-    }
-
-    formatExtAddrPretty(extAddr) {
-        let node = this.findNodeByExtAddr(extAddr);
-        if (node) {
-            return `Node ${node.id}(${this.formatExtAddr(extAddr)})`
-        } else {
-            return this.formatExtAddr(extAddr);
-        }
-    }
-
-    formatPartitionId(parid) {
-        return ('00000000' + parid.toString(16).toUpperCase()).slice(-8);
-    }
-
-    roleToString(role) {
-        switch (role) {
-            case OtDeviceRole.OT_DEVICE_ROLE_DISABLED:
-                return "Disabled";
-            case OtDeviceRole.OT_DEVICE_ROLE_DETACHED:
-                return "Detached";
-            case OtDeviceRole.OT_DEVICE_ROLE_CHILD:
-                return "Child";
-            case OtDeviceRole.OT_DEVICE_ROLE_ROUTER:
-                return "Router";
-            case OtDeviceRole.OT_DEVICE_ROLE_LEADER:
-                return "Leader";
-        }
-    }
-
-    modeToString(mode) {
-        let s = "";
-        if (mode.getRxOnWhenIdle()) {
-            s += "r";
-        }
-        if (mode.getFullThreadDevice()) {
-            s += "d";
-        }
-        if (mode.getFullNetworkData()) {
-            s += "n";
-        }
-        return s;
-    }
-
     visAddNode(nodeId, x, y, radioRange) {
         let node = new Node(nodeId, x, y, radioRange);
         this.nodes[nodeId] = node;
@@ -326,6 +282,7 @@ export default class PixiVisualizer extends VObject {
             msg += `, radio range ${radioRange}`
         }
         this.logNode(nodeId, msg)
+        this.onNodeUpdate(nodeId);
     }
 
     visSetNodeRloc16(nodeId, rloc16) {
@@ -333,7 +290,8 @@ export default class PixiVisualizer extends VObject {
         let oldRloc16 = node.rloc16;
         node.setRloc16(rloc16);
         if (oldRloc16 != rloc16) {
-            this.logNode(nodeId, `RLOC16 changed from ${this.formatRloc16(oldRloc16)} to ${this.formatRloc16(rloc16)}`)
+            this.logNode(nodeId, `RLOC16 changed from ${fmt.formatRloc16(oldRloc16)} to ${fmt.formatRloc16(rloc16)}`)
+            this.onNodeUpdate(nodeId);
         }
     }
 
@@ -341,14 +299,16 @@ export default class PixiVisualizer extends VObject {
         let oldRole = this.nodes[nodeId].role;
         this.nodes[nodeId].setRole(role);
         if (oldRole != role) {
-            this.logNode(nodeId, `Role changed from ${this.roleToString(oldRole)} to ${this.roleToString(role)}`)
+            this.logNode(nodeId, `Role changed from ${fmt.roleToString(oldRole)} to ${fmt.roleToString(role)}`)
+            this.onNodeUpdate(nodeId);
         }
     }
 
     visSetNodeMode(nodeId, mode) {
         let oldMode = this.nodes[nodeId].nodeMode;
         this.nodes[nodeId].setMode(mode);
-        this.logNode(nodeId, `Mode changed from ${this.modeToString(oldMode)} to ${this.modeToString(mode)}`);
+        this.logNode(nodeId, `Mode changed from ${fmt.modeToString(oldMode)} to ${fmt.modeToString(mode)}`);
+        this.onNodeUpdate(nodeId);
     }
 
     visSetNetworkInfo(version, commit, real) {
@@ -373,6 +333,7 @@ export default class PixiVisualizer extends VObject {
             this.setSelectedNode(0);
         }
         this.logNode(nodeId, "Deleted")
+        this.onNodeUpdate(nodeId);
     }
 
     visSetSpeed(speed) {
@@ -393,26 +354,37 @@ export default class PixiVisualizer extends VObject {
     visSetNodePos(nodeId, x, y) {
         this.nodes[nodeId].setPosition(x, y);
         this.logNode(nodeId, `Moved to (${x},${y})`)
+        this.onNodeUpdate(nodeId);
     }
 
     visOnExtAddrChange(nodeId, extAddr) {
         this.nodes[nodeId].extAddr = extAddr;
-        this.logNode(nodeId, `Extended Address set to ${this.formatExtAddr(extAddr)}`)
+        this.logNode(nodeId, `Extended Address set to ${fmt.formatExtAddr(extAddr)}`)
+        this.onNodeUpdate(nodeId);
     }
 
     visOnNodeFail(nodeId) {
         this.nodes[nodeId].failed = true;
         this.logNode(nodeId, "Radio is OFF")
+        this.onNodeUpdate(nodeId);
     }
 
     visOnNodeRecover(nodeId) {
         this.nodes[nodeId].failed = false;
         this.logNode(nodeId, "Radio is ON")
+        this.onNodeUpdate(nodeId);
     }
 
     visSetParent(nodeId, extAddr) {
+        let parent = this.findNodeByExtAddr(extAddr);
         this.nodes[nodeId].parent = extAddr;
+        if (parent) {
+            this.nodes[nodeId].parentId = parent.id;
+        }else {
+            this.nodes[nodeId].parentId = NODE_ID_INVALID;
+        }
         this.logNode(nodeId, `Parent set to ${this.formatExtAddrPretty(extAddr)}`)
+        this.onNodeUpdate(nodeId);
     }
 
     visSetTitle(title, x, y, fontSize) {
@@ -446,12 +418,16 @@ export default class PixiVisualizer extends VObject {
             let dst = this.nodes[dstId];
             this.createUnicastMessage(src, dst, mvInfo);
         }
+
+        src.txPowerLast = mvInfo.getPowerDbm();
+        src.channelLast = mvInfo.getChannel();
     }
 
     visSetNodePartitionId(nodeId, partitionId) {
         let oldPartitionId = this.nodes[nodeId].partition;
         this.nodes[nodeId].partition = partitionId;
-        this.logNode(nodeId, `Partition changed from ${this.formatPartitionId(oldPartitionId)} to ${this.formatPartitionId(partitionId)}`)
+        this.logNode(nodeId, `Partition changed from ${fmt.formatPartitionId(oldPartitionId)} to ${fmt.formatPartitionId(partitionId)}`)
+        this.onNodeUpdate(nodeId);
     }
 
     visShowDemoLegend(x, y, title) {
@@ -540,22 +516,24 @@ export default class PixiVisualizer extends VObject {
 
     setSelectedNode(id) {
         if (id === this._selectedNodeId) {
-            return
+            return;
         }
 
         let old_sel = this.nodes[this._selectedNodeId];
         if (old_sel) {
-            old_sel.onUnselected()
+            old_sel.onUnselected();
         }
         delete this._selectedNodeId;
 
         let new_sel = this.nodes[id];
         if (new_sel) {
             this._selectedNodeId = id;
-            new_sel.onSelected()
+            new_sel.onSelected();
         }
 
-        this.actionBar.setContext(new_sel || "any")
+        this.nodeWindow.showNode(new_sel);
+
+        this.actionBar.setContext(new_sel || "any");
     }
 
     setSpeed(speed) {
@@ -640,6 +618,11 @@ export default class PixiVisualizer extends VObject {
         this._bgStage.addChild(graphics)
     }
 
+    /**
+     * find a Node by extended address
+     * @param extaddr
+     * @returns Node
+     */
     findNodeByExtAddr(extaddr) {
         for (let nodeid in this.nodes) {
             let node = this.nodes[nodeid];
@@ -653,21 +636,30 @@ export default class PixiVisualizer extends VObject {
     visAddRouterTable(nodeId, extaddr) {
         this.nodes[nodeId].addRouterTable(extaddr);
         this.logNode(nodeId, `Router table added: ${this.formatExtAddrPretty(extaddr)}`)
+        this.onNodeUpdate(nodeId);
     }
 
     visRemoveRouterTable(nodeId, extaddr) {
         this.nodes[nodeId].removeRouterTable(extaddr);
         this.logNode(nodeId, `Router table removed: ${this.formatExtAddrPretty(extaddr)}`)
+        this.onNodeUpdate(nodeId);
     }
 
     visAddChildTable(nodeId, extaddr) {
         this.nodes[nodeId].addChildTable(extaddr);
         this.logNode(nodeId, `Child table added: ${this.formatExtAddrPretty(extaddr)}`)
+        let child = this.findNodeByExtAddr(extaddr);
+        if (child && this.nodes[child.id]) {
+            let extAddrParent = this.nodes[nodeId].extAddr;
+            this.visSetParent(child.id,extAddrParent); // call from here because 'parent' push event is not emitted by OT.
+        }
+        this.onNodeUpdate(nodeId);
     }
 
     visRemoveChildTable(nodeId, extaddr) {
         this.nodes[nodeId].removeChildTable(extaddr);
         this.logNode(nodeId, `Child table removed: ${this.formatExtAddrPretty(extaddr)}`)
+        this.onNodeUpdate(nodeId);
     }
 
     logNode(nodeId, msg) {
@@ -680,10 +672,25 @@ export default class PixiVisualizer extends VObject {
         this.log(`Node ${nodeId}: ${msg}`, color)
     }
 
+    onNodeUpdate(nodeId) {
+        if(this._selectedNodeId==nodeId && nodeId > 0){
+            this.nodeWindow.showNode(this.nodes[nodeId])
+        }
+    }
+
     randomColor() {
         let hue = Math.floor(Math.random() * 360);
         let color = `hsl(${hue}deg, 92%, 23%)`;
         return color;
+    }
+
+    formatExtAddrPretty(extAddr) {
+        let node = this.findNodeByExtAddr(extAddr);
+        if (node) {
+            return `Node ${node.id}(${fmt.formatExtAddr(extAddr)})`
+        } else {
+            return fmt.formatExtAddr(extAddr);
+        }
     }
 
     formatTime() {

@@ -297,7 +297,7 @@ func (node *Node) Command(cmd string, timeout time.Duration) []string {
 		return []string{}
 	}
 	if len(output) == 0 {
-		err = fmt.Errorf("Command() response empty for cmd '%s'", cmd)
+		err = fmt.Errorf("node responds empty line to cmd '%s'", cmd)
 		node.logError(err)
 		node.cmdErr = err
 		return []string{}

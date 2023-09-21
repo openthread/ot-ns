@@ -55,9 +55,6 @@ func (m mockDispatcherCallback) OnLogMessage(logEntry LogEntry) {
 func (m mockDispatcherCallback) OnNextEventTime(curTimeUs uint64, nextTimeUs uint64) {
 }
 
-func (m mockDispatcherCallback) OnStop() {
-}
-
 func TestFailureCtrlNonFailure(t *testing.T) {
 	node1 := &Node{
 		Id: 0x1,

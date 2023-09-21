@@ -30,11 +30,11 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/simonlingoogle/go-simplelogger"
+
 	"github.com/openthread/ot-ns/radiomodel"
 	"github.com/openthread/ot-ns/threadconst"
 	. "github.com/openthread/ot-ns/types"
-
-	"github.com/simonlingoogle/go-simplelogger"
 )
 
 const (

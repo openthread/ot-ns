@@ -30,9 +30,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/openthread/ot-ns/cli/runcli"
-
 	"github.com/simonlingoogle/go-simplelogger"
+
+	"github.com/openthread/ot-ns/cli/runcli"
 )
 
 // WatchLogLevel is the log-level for watching what happens in the simulation as a whole, or to watch an
@@ -150,9 +150,9 @@ func GetSimpleloggerLevel(lev WatchLogLevel) simplelogger.Level {
 // PrintConsole prints a message for the user at the current console/CLI.
 func PrintConsole(msg string) {
 	if isLogToTerminal {
-		fmt.Fprint(os.Stdout, "\033[2K\r") // ANSI sequence to clear the CLI line
+		_, _ = fmt.Fprint(os.Stdout, "\033[2K\r") // ANSI sequence to clear the CLI line
 	}
-	fmt.Fprint(os.Stdout, msg+"\n")
+	_, _ = fmt.Fprint(os.Stdout, msg+"\n")
 	if isLogToTerminal {
 		runcli.RestorePrompt()
 	}
@@ -161,7 +161,7 @@ func PrintConsole(msg string) {
 // PrintLog prints the log msg at specified level using simplelogger.
 func PrintLog(lev WatchLogLevel, msg string) {
 	if isLogToTerminal {
-		fmt.Fprint(os.Stdout, "\033[2K\r") // ANSI sequence to clear the CLI line
+		_, _ = fmt.Fprint(os.Stdout, "\033[2K\r") // ANSI sequence to clear the CLI line
 	}
 	switch GetSimpleloggerLevel(lev) {
 	case simplelogger.DebugLevel:

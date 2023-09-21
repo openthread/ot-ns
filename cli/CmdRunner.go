@@ -34,6 +34,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pkg/errors"
+	"github.com/simonlingoogle/go-simplelogger"
+	"gopkg.in/yaml.v3"
+
 	"github.com/openthread/ot-ns/dispatcher"
 	"github.com/openthread/ot-ns/progctx"
 	"github.com/openthread/ot-ns/radiomodel"
@@ -41,9 +45,6 @@ import (
 	. "github.com/openthread/ot-ns/types"
 	"github.com/openthread/ot-ns/visualize"
 	"github.com/openthread/ot-ns/web"
-	"github.com/pkg/errors"
-	"github.com/simonlingoogle/go-simplelogger"
-	"gopkg.in/yaml.v3"
 )
 
 const (
@@ -103,45 +104,54 @@ type CmdRunner struct {
 	help          Help
 }
 
+func NewCmdRunner(ctx *progctx.ProgCtx, sim *simulation.Simulation) *CmdRunner {
+	cr := &CmdRunner{
+		ctx:           ctx,
+		sim:           sim,
+		contextNodeId: InvalidNodeId,
+		help:          newHelp(),
+	}
+	sim.SetCmdRunner(cr)
+	return cr
+}
+
 func (rt *CmdRunner) RunCommand(cmdline string, output io.Writer) error {
-	if rt.ctx.Err() != nil {
-		return nil
-	}
-	// if character '!' is used to invoke no-node (global) context, remove it.
-	if len(cmdline) > 1 && cmdline[0] == '!' {
-		cmdline = cmdline[1:]
-	}
-	// run the OTNS-CLI command without node contexts
-	cmd := Command{}
-
-	if err := ParseBytes([]byte(cmdline), &cmd); err != nil {
-		if _, err := fmt.Fprintf(output, "Error: %v\n", err); err != nil {
-			return err
+	if rt.ctx.Err() == nil {
+		// if character '!' is used to invoke no-node (global) context, remove it.
+		if len(cmdline) > 1 && cmdline[0] == '!' {
+			cmdline = cmdline[1:]
 		}
-	} else {
-		rt.execute(&cmd, output)
-	}
+		// run the OTNS-CLI command without node context
+		cmd := Command{}
 
-	return nil
+		if err := ParseBytes([]byte(cmdline), &cmd); err != nil {
+			if _, err := fmt.Fprintf(output, "Error: %v\n", err); err != nil {
+				return err
+			}
+		} else {
+			rt.execute(&cmd, output)
+		}
+	}
+	return rt.ctx.Err()
 }
 
 func (rt *CmdRunner) HandleCommand(cmdline string, output io.Writer) error {
-	if rt.ctx.Err() != nil {
-		return nil
-	} else if rt.contextNodeId != InvalidNodeId && !isContextlessCommand(cmdline) {
-		// run the command in node context
-		cmd := Command{
-			Node: &NodeCmd{
-				Node:    NodeSelector{Id: rt.contextNodeId},
-				Command: &cmdline,
-			},
+	if rt.ctx.Err() == nil {
+		if rt.contextNodeId != InvalidNodeId && !isContextlessCommand(cmdline) {
+			// run the command in node context
+			cmd := Command{
+				Node: &NodeCmd{
+					Node:    NodeSelector{Id: rt.contextNodeId},
+					Command: &cmdline,
+				},
+			}
+			rt.execute(&cmd, output)
+		} else {
+			// run the command without node-specific context
+			return rt.RunCommand(cmdline, output)
 		}
-		rt.execute(&cmd, output)
-		return nil
-	} else {
-		// run the command without node-specific context
-		return rt.RunCommand(cmdline, output)
 	}
+	return rt.ctx.Err()
 }
 
 func (rt *CmdRunner) GetPrompt() string {
@@ -167,8 +177,6 @@ func (rt *CmdRunner) execute(cmd *Command, output io.Writer) {
 	defer func() {
 		if cc.Err() != nil {
 			cc.outputf("Error: %v\n", cc.Err())
-		} else if rt.ctx.Err() != nil {
-			cc.outputf("Error: %s\n", simulation.CommandInterruptedError)
 		} else if !cc.isBackgroundCmd {
 			cc.outputf("Done\n")
 		} else {
@@ -293,7 +301,7 @@ func (rt *CmdRunner) executeGo(cc *CommandContext, cmd *GoCmd) {
 			})
 			cc.err = <-done
 
-			if rt.ctx.Err() != nil {
+			if rt.ctx.Err() != nil || cc.err != nil {
 				break
 			}
 		}
@@ -318,12 +326,7 @@ func (rt *CmdRunner) postAsyncWait(f func(sim *simulation.Simulation)) {
 		f(rt.sim)
 		close(done)
 	})
-	select {
-	case <-done:
-		break
-	case <-rt.ctx.Done():
-		break
-	}
+	<-done
 }
 
 func (rt *CmdRunner) executeAddNode(cc *CommandContext, cmd *AddCmd) {
@@ -1035,15 +1038,4 @@ func (rt *CmdRunner) executeHelp(cc *CommandContext, cmd *HelpCmd) {
 	} else {
 		cc.outputStr(rt.help.outputGeneralHelp())
 	}
-}
-
-func NewCmdRunner(ctx *progctx.ProgCtx, sim *simulation.Simulation) *CmdRunner {
-	cr := &CmdRunner{
-		ctx:           ctx,
-		sim:           sim,
-		contextNodeId: InvalidNodeId,
-		help:          newHelp(),
-	}
-	sim.SetCmdRunner(cr)
-	return cr
 }

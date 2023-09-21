@@ -27,8 +27,6 @@
 package radiomodel
 
 import (
-	"math"
-
 	. "github.com/openthread/ot-ns/types"
 )
 
@@ -80,7 +78,7 @@ func (rm *RadioModelIdeal) OnEventDispatch(src *RadioNode, dst *RadioNode, evt *
 		evt.RadioCommData.PowerDbm = clipRssi(rm.GetTxRssi(src, dst))
 	case EventTypeRadioChannelSample:
 		// store the final sampled RSSI in the event
-		evt.RadioCommData.PowerDbm = int8(math.Ceil(src.rssiSampleMax))
+		evt.RadioCommData.PowerDbm = clipRssi(src.rssiSampleMax)
 	}
 	return true
 }

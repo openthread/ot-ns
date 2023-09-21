@@ -33,6 +33,7 @@ import (
 	"strings"
 
 	"github.com/chzyer/readline"
+	"github.com/simonlingoogle/go-simplelogger"
 )
 
 type CliHandler interface {
@@ -54,8 +55,11 @@ func DefaultCliOptions() *CliOptions {
 	}
 }
 
+// TODO convert into a cli object
 var (
-	readlineInstance *readline.Instance
+	readlineInstance *readline.Instance = nil
+	waitCliClosed                       = make(chan struct{})
+	Started                             = make(chan struct{})
 )
 
 func RestorePrompt() {
@@ -64,31 +68,43 @@ func RestorePrompt() {
 	}
 }
 
-func StopCli() {
-	if readlineInstance != nil {
-		_ = readlineInstance.Close()
-	}
-}
-
-func RunCli(handler CliHandler, options *CliOptions) error {
+func getCliOptions(options *CliOptions) *CliOptions {
 	if options == nil {
 		options = DefaultCliOptions()
 	}
+	if options.Stdin == nil {
+		options.Stdin = os.Stdin
+	}
+	if options.Stdout == nil {
+		options.Stdout = os.Stdout
+	}
+
+	return options
+}
+
+func StopCli(options *CliOptions) {
+	// cannot call readlineInstance.Close() here, it can block
+	// (https://github.com/chzyer/readline/issues/217)
+	options = getCliOptions(options)
+	// send ETX(Ctrl-C, 0x03, readline.CharInterrupt) to avoid readline internally blocking on Runes() select.
+	_, _ = options.Stdin.WriteString("\003")
+	_ = options.Stdin.Close()
+	simplelogger.Debugf("Waiting for CLI to stop ...")
+	<-waitCliClosed
+	simplelogger.Debugf("CLI wait-for-stop done.")
+}
+
+func RunCli(handler CliHandler, options *CliOptions) error {
+	defer close(waitCliClosed)
+
+	options = getCliOptions(options)
 
 	stdin := options.Stdin
-	if stdin == nil {
-		stdin = os.Stdin
-	}
-
-	stdout := options.Stdout
-	if stdout == nil {
-		stdout = os.Stdout
-	}
-
 	stdinIsTerminal := readline.IsTerminal(int(stdin.Fd()))
 	if stdinIsTerminal {
 		stdinState, err := readline.GetState(int(stdin.Fd()))
 		if err != nil {
+			close(Started)
 			return err
 		}
 		defer func() {
@@ -96,10 +112,12 @@ func RunCli(handler CliHandler, options *CliOptions) error {
 		}()
 	}
 
+	stdout := options.Stdout
 	stdoutIsTerminal := readline.IsTerminal(int(stdout.Fd()))
 	if stdoutIsTerminal {
 		stdoutState, err := readline.GetState(int(stdout.Fd()))
 		if err != nil {
+			close(Started)
 			return err
 		}
 		defer func() {
@@ -134,6 +152,7 @@ func RunCli(handler CliHandler, options *CliOptions) error {
 	l, err := readline.NewEx(readlineConfig)
 
 	if err != nil {
+		close(Started)
 		return err
 	}
 
@@ -141,17 +160,20 @@ func RunCli(handler CliHandler, options *CliOptions) error {
 		_ = l.Close()
 	}()
 	readlineInstance = l
+	close(Started)
 
 	for {
 		// update the prompt and read a line
 		l.SetPrompt(handler.GetPrompt())
 		line, err := l.Readline()
 
-		if errors.Is(err, readline.ErrInterrupt) {
+		if len(line) > 0 && line[0] == readline.CharInterrupt {
+			return nil
+		} else if errors.Is(err, readline.ErrInterrupt) {
 			if len(line) == 0 {
 				return nil
 			} else {
-				continue
+				continue // Ctrl-C in midline edit only cancels the present cmd line.
 			}
 		} else if err == io.EOF {
 			return nil

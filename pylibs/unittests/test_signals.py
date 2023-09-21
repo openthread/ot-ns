@@ -76,7 +76,8 @@ class SignalsTest(OTNSTestCase):
 
     def testCommandHandleSignalOkx100(self):
         for i in range(100):
-            self._testCommandHandleSignalOk(duration=random.random() * 0.04)
+            logging.debug(f"testCommandHandleSignalOkx100 round {i}")
+            self._testCommandHandleSignalOk(duration=(random.random() * 0.120 + 0.010))
 
             self.tearDown()
             self.setUp()

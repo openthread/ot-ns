@@ -75,6 +75,7 @@ type MsgVisualizeInfo struct {
 	DstAddrShort    uint16
 	DstAddrExtended uint64
 	SendDurationUs  uint32
+	PowerDbm        int8
 }
 
 func (info *MsgVisualizeInfo) Label() string {
