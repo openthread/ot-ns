@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2020-2023, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -42,6 +42,6 @@ func main() {
 	otns_main.Main(ctx, func(ctx *progctx.ProgCtx, args *otns_main.MainArgs) visualize.Visualizer {
 		return nil
 	}, nil)
-	simplelogger.Debugf("OTNS exit.")
+	simplelogger.Debugf("OTNS main() exit.")
 	os.Exit(0)
 }

@@ -24,40 +24,45 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-package main
+const {OtDeviceRole} = require("../proto/visualize_grpc_pb");
 
-import (
-	"io"
-	"os"
-
-	"github.com/openthread/ot-ns/cli/runcli"
-	"github.com/simonlingoogle/go-simplelogger"
-)
-
-type cliHandler struct{}
-
-func (c cliHandler) GetPrompt() string {
-	return "> "
+export function formatRloc16(rloc16) {
+    return ('0000' + rloc16.toString(16).toUpperCase()).slice(-4);
 }
 
-func (c cliHandler) HandleCommand(cmd string, output io.Writer) error {
-	if _, err := output.Write([]byte("Done\n")); err != nil {
-		return err
-	}
-
-	if cmd == "exit" {
-		os.Exit(0)
-	}
-
-	return nil
+export function formatExtAddr(extAddr) {
+    return ('0000000000000000' + extAddr.toString(16).toUpperCase()).slice(-16);
 }
 
-func main() {
-	err := runcli.RunCli(&cliHandler{}, &runcli.CliOptions{
-		EchoInput: true,
-	})
+export function formatPartitionId(parid) {
+    return ('00000000' + parid.toString(16).toUpperCase()).slice(-8);
+}
 
-	if err != nil {
-		simplelogger.Error(err)
-	}
+export function roleToString(role) {
+    switch (role) {
+        case OtDeviceRole.OT_DEVICE_ROLE_DISABLED:
+            return "Disabled";
+        case OtDeviceRole.OT_DEVICE_ROLE_DETACHED:
+            return "Detached";
+        case OtDeviceRole.OT_DEVICE_ROLE_CHILD:
+            return "Child";
+        case OtDeviceRole.OT_DEVICE_ROLE_ROUTER:
+            return "Router";
+        case OtDeviceRole.OT_DEVICE_ROLE_LEADER:
+            return "Leader";
+    }
+}
+
+export function modeToString(mode) {
+    let s = "";
+    if (mode.getRxOnWhenIdle()) {
+        s += "r";
+    }
+    if (mode.getFullThreadDevice()) {
+        s += "d";
+    }
+    if (mode.getFullNetworkData()) {
+        s += "n";
+    }
+    return s;
 }

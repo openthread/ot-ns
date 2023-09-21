@@ -44,6 +44,7 @@ import (
 )
 
 type Simulation struct {
+	Started        chan struct{}
 	ctx            *progctx.ProgCtx
 	stopped        bool
 	cfg            *Config
@@ -60,6 +61,7 @@ type Simulation struct {
 
 func NewSimulation(ctx *progctx.ProgCtx, cfg *Config, dispatcherCfg *dispatcher.Config) (*Simulation, error) {
 	s := &Simulation{
+		Started:     make(chan struct{}),
 		ctx:         ctx,
 		cfg:         cfg,
 		nodes:       map[NodeId]*Node{},
@@ -138,7 +140,7 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 	ts := s.d.CurTime
 
 	node.DisplayPendingLogEntries(ts)
-	if s.ctx.Err() != nil { // only proceed if we're not exiting the simulation.
+	if s.ctx.Err() != nil { // stop early when exiting the simulation.
 		return nil, CommandInterruptedError
 	}
 
@@ -146,18 +148,19 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 	if !dnode.IsConnected() {
 		_ = s.DeleteNode(nodeid)
 		s.nodePlacer.ReuseNextNodePosition()
+		node.DisplayPendingLogEntries(ts)
 		return nil, errors.Errorf("simulation AddNode: new node %d did not respond (evtCnt=%d)", nodeid, evtCnt)
 	}
 	simplelogger.Debugf("start setup of new node (mode, init script)")
 	node.setupMode()
 	err = node.CommandResult()
 
-	if !s.rawMode {
+	if !s.rawMode && err == nil {
 		err = node.runInitScript(cfg.InitScript)
 	}
 
 	node.DisplayPendingLogEntries(ts)
-	if s.ctx.Err() != nil { // only proceed if we're not exiting the simulation.
+	if s.ctx.Err() != nil { // stop early when exiting the simulation.
 		return nil, CommandInterruptedError
 	}
 
@@ -171,7 +174,6 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 
 	node.onStart()
 	node.DisplayPendingLogEntries(ts)
-
 	return node, err
 }
 
@@ -184,11 +186,13 @@ func (s *Simulation) genNodeId() NodeId {
 }
 
 func (s *Simulation) Run() {
+	defer simplelogger.Debugf("simulation exit.")
 	defer s.d.Stop()
 	defer s.Stop()
 
 	// run dispatcher in current thread, until exit.
 	s.ctx.WaitAdd("dispatcher", 1)
+	close(s.Started)
 	s.d.Run()
 }
 
@@ -283,10 +287,6 @@ func (s *Simulation) OnNextEventTime(ts uint64, nextTs uint64) {
 	s.VisitNodesInOrder(func(node *Node) {
 		simplelogger.AssertEqual(0, len(node.logEntries))
 	})
-}
-
-func (s *Simulation) OnStop() {
-	//
 }
 
 func (s *Simulation) PostAsync(trivial bool, f func()) {

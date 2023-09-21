@@ -1,4 +1,4 @@
-// Copyright (c) 2022, The OTNS Authors.
+// Copyright (c) 2020-2023, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -32,10 +32,11 @@ import (
 	"os"
 	"time"
 
-	pb "github.com/openthread/ot-ns/visualize/grpc/pb"
 	"github.com/pkg/errors"
 	"github.com/simonlingoogle/go-simplelogger"
 	"google.golang.org/protobuf/encoding/prototext"
+
+	pb "github.com/openthread/ot-ns/visualize/grpc/pb"
 )
 
 var (

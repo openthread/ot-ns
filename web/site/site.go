@@ -41,8 +41,11 @@ import (
 var httpServer *http.Server = nil
 var canServe bool = true
 var httpServerMutex sync.Mutex
+var Started = make(chan struct{})
 
 func Serve(listenAddr string) error {
+	defer simplelogger.Debugf("webserver exit.")
+
 	assetDir := os.Getenv("HOME")
 	if assetDir == "" {
 		assetDir = "/tmp"
@@ -104,12 +107,14 @@ func Serve(listenAddr string) error {
 	if !canServe {
 		httpServer = nil
 		httpServerMutex.Unlock()
+		close(Started)
 		return http.ErrServerClosed
 	}
 	httpServer = &http.Server{Addr: listenAddr, Handler: nil}
 	simplelogger.Infof("OTNS webserver now serving on %s ...", listenAddr)
-	defer simplelogger.Debugf("webserver exit.")
+	defer simplelogger.Debugf("webserver: httpServer.ListenAndServe() done")
 	httpServerMutex.Unlock()
+	close(Started)
 	return httpServer.ListenAndServe()
 }
 

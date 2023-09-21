@@ -1,15 +1,30 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>OTNS - OpenThread Network Simulator</title>
+<meta charset="UTF-8">
+<title>OTNS2 - OpenThread Network Simulator 2</title>
+
+<style>
+.nodeWindowStyle{
+    position: absolute;
+    top: 0px;
+    right: 0px;
+    resize: none;
+}
+</style>
 
 </head>
 <body>
+
+<div class="nodeWindowStyle">
+    <textarea readonly id="nodeWindow" rows="16" cols="32">
+    </textarea>
+</div>
 
 <script language="javascript">
     let server = "http://{{index . "addr"}}";
 </script>
 <script src="/static/js/visualize.js"></script>
+
 </body>
 </html>

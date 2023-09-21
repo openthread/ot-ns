@@ -1,4 +1,4 @@
-// Copyright (c) 2022, The OTNS Authors.
+// Copyright (c) 2020-2023, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -76,6 +76,7 @@ message MsgVisualizeInfo {
     uint64 dst_addr_extended = 5;
     uint32 send_duration_us = 6;
     bool vis_true_duration = 7;
+    int32 power_dbm = 8;
 }
 
 message AddRouterTableEvent {
