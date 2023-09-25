@@ -29,8 +29,8 @@ package dispatcher
 import (
 	"container/heap"
 
+	"github.com/openthread/ot-ns/logger"
 	. "github.com/openthread/ot-ns/types"
-	"github.com/simonlingoogle/go-simplelogger"
 )
 
 type alarmEvent struct {
@@ -53,7 +53,7 @@ func (aq alarmQueue) Less(i, j int) bool {
 func (aq alarmQueue) Swap(i, j int) {
 	a, b := aq[i], aq[j]
 	if a.index != i && b.index != j {
-		simplelogger.Panicf("wrong index")
+		logger.Panicf("wrong index")
 	}
 
 	aq[i], aq[j] = b, a             // swap the elements
@@ -90,7 +90,7 @@ func newAlarmMgr() *alarmMgr {
 
 func (am *alarmMgr) AddNode(nodeid NodeId) {
 	e := am.events[nodeid]
-	simplelogger.AssertNil(e)
+	logger.AssertNil(e)
 
 	e = &alarmEvent{
 		NodeId:    nodeid,
@@ -106,7 +106,7 @@ func (am *alarmMgr) SetNotified(nodeid NodeId) {
 
 func (am *alarmMgr) SetTimestamp(nodeid int, timestamp uint64) {
 	e := am.events[nodeid]
-	simplelogger.AssertNotNil(e)
+	logger.AssertNotNil(e)
 
 	if e.Timestamp != timestamp {
 		e.Timestamp = timestamp
@@ -116,7 +116,7 @@ func (am *alarmMgr) SetTimestamp(nodeid int, timestamp uint64) {
 
 func (am *alarmMgr) GetTimestamp(nodeid int) uint64 {
 	e := am.events[nodeid]
-	simplelogger.AssertNotNil(e)
+	logger.AssertNotNil(e)
 
 	return e.Timestamp
 }
@@ -139,7 +139,7 @@ func (am *alarmMgr) NextTimestamp() uint64 {
 
 func (am *alarmMgr) DeleteNode(id NodeId) {
 	e := am.events[id]
-	simplelogger.AssertNotNil(e)
+	logger.AssertNotNil(e)
 	heap.Remove(&am.q, e.index)
 	delete(am.events, id)
 }

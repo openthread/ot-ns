@@ -31,8 +31,8 @@ import (
 	"os"
 	"sort"
 
+	"github.com/openthread/ot-ns/logger"
 	pb "github.com/openthread/ot-ns/visualize/grpc/pb"
-	"github.com/simonlingoogle/go-simplelogger"
 )
 
 type EnergyAnalyser struct {
@@ -118,7 +118,7 @@ func (e *EnergyAnalyser) SaveEnergyDataToFile(name string, timestamp uint64) {
 	if _, err := os.Stat(dir + "/energy_results"); os.IsNotExist(err) {
 		err := os.Mkdir(dir+"/energy_results", 0777)
 		if err != nil {
-			simplelogger.Error("Failed to create energy_results directory")
+			logger.Error("Failed to create energy_results directory")
 			return
 		}
 	}
@@ -126,14 +126,14 @@ func (e *EnergyAnalyser) SaveEnergyDataToFile(name string, timestamp uint64) {
 	path := fmt.Sprintf("%s/energy_results/%s", dir, name)
 	fileNodes, err := os.Create(path + "_nodes.txt")
 	if err != nil {
-		simplelogger.Error("Error creating file: %s", err)
+		logger.Errorf("Error creating file: %v", err)
 		return
 	}
 	defer fileNodes.Close()
 
 	fileNetwork, err := os.Create(path + ".txt")
 	if err != nil {
-		simplelogger.Error("Error creating file: %s", err)
+		logger.Errorf("Error creating file: %v", err)
 		return
 	}
 	defer fileNetwork.Close()
@@ -182,7 +182,7 @@ func (e *EnergyAnalyser) writeNetworkEnergy(fileNetwork *os.File, timestamp uint
 }
 
 func (e *EnergyAnalyser) ClearEnergyData() {
-	simplelogger.Debugf("Node's energy data cleared")
+	logger.Debugf("Node's energy data cleared")
 	e.networkHistory = make([]NetworkConsumption, 0, 3600)
 	e.energyHistoryByNodes = make([][]*pb.NodeEnergy, 0, 3600)
 }

@@ -5,8 +5,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/openthread/ot-ns/logger"
 	visualize_grpc_pb "github.com/openthread/ot-ns/visualize/grpc/pb"
-	"github.com/simonlingoogle/go-simplelogger"
 	"google.golang.org/protobuf/encoding/prototext"
 )
 
@@ -38,7 +38,7 @@ func (rep *Replay) Append(event *visualize_grpc_pb.VisualizeEvent, trivial bool)
 		case rep.pendingChan <- entry:
 			break
 		default:
-			simplelogger.Warnf("replay generation routine is busy, dropping trivial events ...")
+			logger.Warnf("replay generation routine is busy, dropping trivial events ...")
 			break
 		}
 	}
@@ -56,7 +56,7 @@ func (rep *Replay) fileWriterRoutine() {
 		close(rep.fileWriterDone)
 
 		if err != nil {
-			simplelogger.Errorf("replay write routine quit unexpectedly: %v", err)
+			logger.Errorf("replay write routine quit unexpectedly: %v", err)
 		}
 	}()
 
@@ -83,7 +83,7 @@ func (rep *Replay) fileWriterRoutine() {
 
 func NewReplay(filename string) *Replay {
 	f, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
-	simplelogger.PanicIfError(err)
+	logger.PanicIfError(err)
 
 	rep := &Replay{
 		f:              f,

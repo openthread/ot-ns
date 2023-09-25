@@ -27,11 +27,15 @@
 package cli
 
 import (
+	"fmt"
+	"io"
+	"os"
 	"testing"
 	"time"
 
-	. "github.com/openthread/ot-ns/types"
 	"github.com/stretchr/testify/assert"
+
+	. "github.com/openthread/ot-ns/types"
 )
 
 func TestParseBytes(t *testing.T) {
@@ -163,4 +167,70 @@ func TestContextlessCommandPat(t *testing.T) {
 	assert.True(t, contextLessCommandsPat.MatchString("node 1"))
 	assert.True(t, contextLessCommandsPat.MatchString("!nodes"))
 	assert.True(t, contextLessCommandsPat.MatchString("!ping 23 24"))
+}
+
+type mockCliHandler struct {
+	expectedCmd string
+	handleError error
+	handleCount int
+	t           *testing.T
+}
+
+func (hnd *mockCliHandler) HandleCommand(cmd string, output io.Writer) error {
+	assert.Equal(hnd.t, hnd.expectedCmd, cmd)
+	hnd.handleCount += 1
+	return hnd.handleError
+}
+
+func (hnd *mockCliHandler) GetPrompt() string {
+	return "> "
+}
+
+func TestCliStartStop(t *testing.T) {
+	Cli = newCliInstance()
+	handler := mockCliHandler{
+		expectedCmd: "help",
+		handleError: nil,
+		t:           t,
+	}
+
+	opt := DefaultCliOptions()
+	r, w, _ := os.Pipe()
+	opt.Stdin = r
+	err := make(chan error, 1)
+	go func() {
+		err <- Cli.Run(&handler, opt)
+	}()
+	<-Cli.Started
+	fmt.Fprint(w, "help\n")
+	time.Sleep(time.Millisecond * 500)
+	_ = w.Close()
+	Cli.Stop()
+
+	assert.Nil(t, <-err)
+	assert.Equal(t, 1, handler.handleCount)
+}
+
+func TestCliCommandNotDefined(t *testing.T) {
+	Cli = newCliInstance()
+	handler := mockCliHandler{
+		expectedCmd: "xyz",
+		handleError: fmt.Errorf("undefined command"),
+		t:           t,
+	}
+
+	opt := DefaultCliOptions()
+	r, w, _ := os.Pipe()
+	opt.Stdin = r
+	err := make(chan error, 1)
+	go func() {
+		err <- Cli.Run(&handler, opt)
+	}()
+	<-Cli.Started
+	fmt.Fprint(w, "xyz\n") // unknown command triggers handle-error, which causes CLI exit.
+
+	assert.NotNil(t, <-err)
+	assert.Equal(t, 1, handler.handleCount)
+
+	Cli.Stop() // calling Stop() after CLI has already exited.
 }

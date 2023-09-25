@@ -29,6 +29,7 @@ package simulation
 import (
 	"fmt"
 
+	"github.com/openthread/ot-ns/logger"
 	. "github.com/openthread/ot-ns/types"
 )
 
@@ -66,7 +67,7 @@ type Config struct {
 	RadioModel       string
 	Id               int
 	Channel          ChannelId
-	LogLevel         WatchLogLevel
+	LogLevel         logger.Level
 }
 
 func DefaultConfig() *Config {
@@ -86,5 +87,6 @@ func DefaultConfig() *Config {
 		RadioModel:       "MutualInterference",
 		Id:               0,
 		Channel:          DefaultChannel,
+		LogLevel:         logger.WarnLevel,
 	}
 }

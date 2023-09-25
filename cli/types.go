@@ -28,21 +28,12 @@ package cli
 
 import (
 	"regexp"
-
-	"github.com/openthread/ot-ns/cli/runcli"
-	"github.com/simonlingoogle/go-simplelogger"
 )
 
 var (
-	contextLessCommandsPat = regexp.MustCompile(`(exit|node|\!.+)\b`)
+	contextLessCommandsPat = regexp.MustCompile(`(exit|node|!.+)\b`)
 	backgroundCommandsPat  = regexp.MustCompile(`(discover|dns resolve|dns browse|dns service|scan)\b`)
 )
-
-func Run(cr *CmdRunner, cliOptions *runcli.CliOptions) error {
-	defer simplelogger.Debugf("CLI exit.")
-
-	return runcli.RunCli(cr, cliOptions)
-}
 
 func isContextlessCommand(line string) bool {
 	return contextLessCommandsPat.MatchString(line)

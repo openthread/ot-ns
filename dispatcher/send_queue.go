@@ -29,6 +29,7 @@ package dispatcher
 import (
 	"container/heap"
 
+	. "github.com/openthread/ot-ns/event"
 	. "github.com/openthread/ot-ns/types"
 )
 

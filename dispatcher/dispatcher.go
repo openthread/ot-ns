@@ -44,13 +44,14 @@ import (
 	"github.com/openthread/ot-ns/dissectpkt"
 	"github.com/openthread/ot-ns/dissectpkt/wpan"
 	"github.com/openthread/ot-ns/energy"
+	. "github.com/openthread/ot-ns/event"
+	"github.com/openthread/ot-ns/logger"
 	"github.com/openthread/ot-ns/pcap"
 	"github.com/openthread/ot-ns/progctx"
 	"github.com/openthread/ot-ns/radiomodel"
 	"github.com/openthread/ot-ns/threadconst"
 	. "github.com/openthread/ot-ns/types"
 	"github.com/openthread/ot-ns/visualize"
-	"github.com/simonlingoogle/go-simplelogger"
 )
 
 const (
@@ -96,9 +97,6 @@ type CallbackHandler interface {
 
 	// OnUartWrite Notifies that the node's UART was written with data.
 	OnUartWrite(nodeid NodeId, data []byte)
-
-	// OnLogMessage Notifies that a log message from Dispatcher can be added to the node's log.
-	OnLogMessage(logEntry LogEntry)
 
 	// OnNextEventTime Notifies that the Dispatcher simulation moves to the next event time.
 	OnNextEventTime(curTimeUs uint64, nextTimeUs uint64)
@@ -166,7 +164,7 @@ type Dispatcher struct {
 }
 
 func NewDispatcher(ctx *progctx.ProgCtx, cfg *Config, cbHandler CallbackHandler) *Dispatcher {
-	simplelogger.AssertTrue(!cfg.Real || cfg.Speed == 1)
+	logger.AssertTrue(!cfg.Real || cfg.Speed == 1)
 	var err error
 	ln, unixSocketFile := NewUnixSocket(cfg.SimulationId)
 	vis := visualize.NewNopVisualizer()
@@ -199,7 +197,7 @@ func NewDispatcher(ctx *progctx.ProgCtx, cfg *Config, cbHandler CallbackHandler)
 	d.speed = d.normalizeSpeed(d.speed)
 	if len(d.cfg.PcapChannels) > 0 {
 		d.pcap, err = pcap.NewFile("current.pcap")
-		simplelogger.PanicIfError(err)
+		logger.PanicIfError(err)
 		d.waitGroup.Add(1)
 		go d.pcapFrameWriter()
 	}
@@ -208,19 +206,19 @@ func NewDispatcher(ctx *progctx.ProgCtx, cfg *Config, cbHandler CallbackHandler)
 	go d.eventsReader()
 
 	d.vis.SetSpeed(d.speed)
-	simplelogger.Infof("dispatcher started: cfg=%+v", *cfg)
+	logger.Infof("dispatcher started: cfg=%+v", *cfg)
 
 	return d
 }
 
 func NewUnixSocket(socketId int) (net.Listener, string) {
 	err := os.MkdirAll("/tmp/otns", 0777)
-	simplelogger.FatalIfError(err, err)
+	logger.FatalIfError(err, err)
 	unixSocketFile := fmt.Sprintf("/tmp/otns/socket_dispatcher_%d", socketId) // remove old one
 	err = os.RemoveAll(unixSocketFile)
-	simplelogger.FatalIfError(err, err)
+	logger.FatalIfError(err, err)
 	ln, err := net.Listen("unix", unixSocketFile)
-	simplelogger.FatalIfError(err, err)
+	logger.FatalIfError(err, err)
 	return ln, unixSocketFile
 }
 
@@ -230,19 +228,19 @@ func (d *Dispatcher) Stop() {
 	}
 
 	d.stopped = true
-	defer simplelogger.Debugf("dispatcher exit.")
-	simplelogger.Debugf("stopping dispatcher ...")
+	defer logger.Debugf("dispatcher exit.")
+	logger.Debugf("stopping dispatcher ...")
 	d.ctx.Cancel("dispatcher-stop")
 	d.GoCancel()        // cancel current simulation period
 	_ = d.udpln.Close() // close socket to stop d.eventsReader accepting new clients.
 
 	d.vis.Stop()
 	close(d.pcapFrameChan)
-	simplelogger.Debugf("waiting for dispatcher threads to stop ...")
+	logger.Tracef("waiting for dispatcher threads to stop ...")
 	d.waitGroup.Wait()
 }
 
-func (d *Dispatcher) IsStopped() bool {
+func (d *Dispatcher) isStopping() bool {
 	select {
 	case <-d.ctx.Done():
 		return true
@@ -264,7 +262,7 @@ func (d *Dispatcher) Nodes() map[NodeId]*Node {
 }
 
 func (d *Dispatcher) Go(duration time.Duration) <-chan error {
-	simplelogger.AssertTrue(duration >= 0)
+	logger.AssertTrue(duration >= 0)
 	done := make(chan error, 1)
 	d.goDurationChan <- goDuration{
 		duration: duration,
@@ -275,7 +273,7 @@ func (d *Dispatcher) Go(duration time.Duration) <-chan error {
 }
 
 func (d *Dispatcher) GoAtSpeed(duration time.Duration, speed float64) <-chan error {
-	simplelogger.AssertTrue(speed >= 0.0 && duration >= 0)
+	logger.AssertTrue(speed >= 0.0 && duration >= 0)
 	done := make(chan error, 1)
 	d.goDurationChan <- goDuration{
 		duration: duration,
@@ -298,8 +296,8 @@ func (d *Dispatcher) Run() {
 loop:
 	for {
 		select {
-		case f := <-d.taskChan:
-			f()
+		case t := <-d.taskChan:
+			t()
 		case duration := <-d.goDurationChan:
 			d.currentGoDuration = duration
 			if len(d.nodes) == 0 || duration.duration < 0 {
@@ -307,9 +305,9 @@ loop:
 				d.RecvEvents()
 				time.Sleep(time.Millisecond * 10)
 			} else {
-				simplelogger.AssertTrue(d.CurTime == d.pauseTime)
+				logger.AssertTrue(d.CurTime == d.pauseTime)
 				d.goSimulateForDuration(duration)
-				simplelogger.AssertTrue(d.CurTime == d.pauseTime)
+				logger.AssertTrue(d.CurTime == d.pauseTime)
 
 				d.syncAllNodes()
 				if d.pcap != nil {
@@ -322,16 +320,8 @@ loop:
 		}
 	}
 
-	// complete any remaining tasks: other goroutines may be waiting on completion.
-loop2:
-	for {
-		select {
-		case f := <-d.taskChan:
-			f()
-		default:
-			break loop2
-		}
-	}
+	// handle all remaining tasks - other goroutines may be blocking on task completion.
+	d.handleTasks()
 }
 
 func (d *Dispatcher) goSimulateForDuration(duration goDuration) {
@@ -352,12 +342,12 @@ func (d *Dispatcher) goSimulateForDuration(duration goDuration) {
 		d.pauseTime = Ever
 	}
 
-	simplelogger.AssertTrue(d.CurTime <= d.pauseTime)
+	logger.AssertTrue(d.CurTime <= d.pauseTime)
 
 	for d.CurTime <= d.pauseTime {
 		d.handleTasks()
 
-		if d.currentGoDuration.cancel || d.IsStopped() {
+		if d.currentGoDuration.cancel || d.isStopping() {
 			break
 		}
 
@@ -368,7 +358,7 @@ func (d *Dispatcher) goSimulateForDuration(duration goDuration) {
 		if len(d.aliveNodes) == 0 {
 			// all are asleep now - process the next Events in queue, either alarm or other type, for a single time.
 			goon := d.processNextEvent(d.speed)
-			simplelogger.AssertTrue(d.CurTime <= d.pauseTime)
+			logger.AssertTrue(d.CurTime <= d.pauseTime)
 
 			if !goon && len(d.aliveNodes) == 0 {
 				d.cbHandler.OnNextEventTime(d.CurTime, d.pauseTime)
@@ -393,7 +383,7 @@ func (d *Dispatcher) handleRecvEvent(evt *Event) {
 	nodeid := evt.NodeId
 	node := d.nodes[nodeid]
 	if node == nil {
-		simplelogger.Warnf("Event (type %v) received from unknown Node %v, discarding.", evt.Type, evt.NodeId)
+		logger.Warnf("Event (type %v) received from unknown Node %v, discarding.", evt.Type, evt.NodeId)
 		return
 	}
 
@@ -410,7 +400,7 @@ func (d *Dispatcher) handleRecvEvent(evt *Event) {
 	if d.cfg.Real && (evt.Type == EventTypeAlarmFired || evt.Type == EventTypeRadioReceived ||
 		evt.Type == EventTypeRadioCommStart || evt.Type == EventTypeRadioChannelSample ||
 		evt.Type == EventTypeRadioState) {
-		simplelogger.Panicf("unexpected event in real mode: %v", evt.Type)
+		logger.Panicf("unexpected event in real mode: %v", evt.Type)
 		return
 	}
 
@@ -442,11 +432,11 @@ func (d *Dispatcher) handleRecvEvent(evt *Event) {
 	case EventTypeNodeInfo:
 		break
 	case EventTypeNodeDisconnected:
-		simplelogger.Debugf("%s socket disconnected.", node)
+		logger.Debugf("%s socket disconnected.", node)
 		d.setSleeping(node.Id)
 		d.alarmMgr.SetTimestamp(node.Id, Ever)
 	default:
-		simplelogger.Panicf("received event type not implemented: %v", evt.Type)
+		logger.Panicf("received event type not implemented: %v", evt.Type)
 	}
 }
 
@@ -491,13 +481,13 @@ loop:
 // processNextEvent processes all next events from the eventQueue for the next time instant.
 // Returns true if the simulation needs to continue, or false if not (e.g. it's time to pause).
 func (d *Dispatcher) processNextEvent(simSpeed float64) bool {
-	simplelogger.AssertTrue(d.CurTime <= d.pauseTime)
-	simplelogger.AssertTrue(simSpeed >= 0)
+	logger.AssertTrue(d.CurTime <= d.pauseTime)
+	logger.AssertTrue(simSpeed >= 0)
 
 	// fetch time of next event
 	nextAlarmTime := d.alarmMgr.NextTimestamp()
 	nextSendTime := d.eventQueue.NextTimestamp()
-	simplelogger.AssertTrue(nextSendTime >= d.CurTime && nextAlarmTime >= d.CurTime)
+	logger.AssertTrue(nextSendTime >= d.CurTime && nextAlarmTime >= d.CurTime)
 
 	nextEventTime := min(nextAlarmTime, nextSendTime)
 
@@ -555,7 +545,7 @@ func (d *Dispatcher) processNextEvent(simSpeed float64) bool {
 		if nextAlarmTime <= nextSendTime {
 			// process next alarm
 			nextAlarm := d.alarmMgr.NextAlarm()
-			simplelogger.AssertNotNil(nextAlarm)
+			logger.AssertNotNil(nextAlarm)
 			node := d.nodes[nextAlarm.NodeId]
 			if node != nil {
 				d.advanceNodeTime(node, nextAlarm.Timestamp, false)
@@ -563,8 +553,8 @@ func (d *Dispatcher) processNextEvent(simSpeed float64) bool {
 		} else {
 			// process next event from the queue
 			evt := d.eventQueue.PopNext()
-			simplelogger.AssertTrue(evt.Timestamp == nextEventTime)
-			simplelogger.AssertTrue(nextAlarmTime == d.CurTime || nextSendTime == d.CurTime)
+			logger.AssertTrue(evt.Timestamp == nextEventTime)
+			logger.AssertTrue(nextAlarmTime == d.CurTime || nextSendTime == d.CurTime)
 			node := d.nodes[evt.NodeId]
 			if node != nil {
 				// execute event - either a msg sent out, or handled by RadioModel.
@@ -573,9 +563,7 @@ func (d *Dispatcher) processNextEvent(simSpeed float64) bool {
 					case EventTypeAlarmFired:
 						d.advanceNodeTime(node, evt.Timestamp, false)
 					case EventTypeRadioLog:
-						if node.watchLogLevel >= WatchTraceLevel {
-							node.log(WatchTraceLevel, string(evt.Data))
-						}
+						node.logger.Trace(evt.Data)
 					default:
 						d.radioModel.HandleEvent(node.radioNode, d.eventQueue, evt)
 					}
@@ -592,7 +580,7 @@ func (d *Dispatcher) processNextEvent(simSpeed float64) bool {
 					}
 				}
 			} else if evt.NodeId > 0 {
-				simplelogger.Warnf("processNextEvent() with deleted/unknown node %v: %v", evt.NodeId, evt)
+				logger.Warnf("processNextEvent() with deleted/unknown node %v: %v", evt.NodeId, evt)
 			}
 		}
 		nextAlarmTime = d.alarmMgr.NextTimestamp()
@@ -605,20 +593,20 @@ func (d *Dispatcher) processNextEvent(simSpeed float64) bool {
 
 func (d *Dispatcher) eventsReader() {
 	defer d.waitGroup.Done()
-	defer simplelogger.Debugf("dispatcher node socket threads stopped.")
+	defer logger.Tracef("dispatcher node socket threads stopped.")
 	defer os.RemoveAll(d.socketName) // delete Unix socket file when done.
 	defer d.udpln.Close()
 
-	simplelogger.Debugf("dispatcher listening on socket %s ...", d.socketName)
+	logger.Debugf("dispatcher listening on socket %s ...", d.socketName)
 	for {
 		// Wait for OT nodes to connect.
 		conn, err := d.udpln.Accept()
-		if err != nil || d.IsStopped() {
+		if err != nil || d.isStopping() {
 			if conn != nil {
 				_ = conn.Close()
 			}
-			if !d.IsStopped() {
-				simplelogger.Panicf("connection Accept() failed: %v", err)
+			if !d.isStopping() {
+				logger.Panicf("connection Accept() failed: %v", err)
 			}
 			break
 		}
@@ -638,11 +626,7 @@ func (d *Dispatcher) eventsReader() {
 				if errors.Is(err, io.EOF) {
 					break
 				} else if err != nil {
-					d.cbHandler.OnLogMessage(LogEntry{
-						NodeId: myNodeId,
-						Level:  WatchCritLevel,
-						Msg:    fmt.Sprintf("closing socket after read error: %+v", err),
-					})
+					logger.NodeLogf(myNodeId, logger.ErrorLevel, "closing socket after read error: %+v", err)
 					break
 				}
 
@@ -651,28 +635,23 @@ func (d *Dispatcher) eventsReader() {
 					evt := &Event{}
 					nextEventOffset := evt.Deserialize(buf[bufIdx:n])
 					if nextEventOffset == 0 { // a complete event wasn't found.
-						simplelogger.Panicf("Node %d - Too many events, or incorrect event data - may increase 'buf' size in Dispatcher.eventsReader()")
+						logger.Panicf("Node %d - Too many events, or incorrect event data - may increase 'buf' size in Dispatcher.eventsReader()", myNodeId)
 					}
 					bufIdx += nextEventOffset
 					// First event received should be NodeInfo type. From this, we learn nodeId.
 					if myNodeId == 0 && evt.Type == EventTypeNodeInfo {
 						myNodeId = evt.NodeInfoData.NodeId
-						simplelogger.AssertTrue(myNodeId > 0)
-						simplelogger.Debugf("Init event received from new Node %d", myNodeId)
+						logger.AssertTrue(myNodeId > 0)
+						logger.Debugf("Init event received from new Node %d", myNodeId)
 					}
 					evt.NodeId = myNodeId
 					evt.Conn = myConn
 					d.eventChan <- evt
 				}
 
-				// increase buf size when needed
-				if n > len(buf)/2 {
+				if n > len(buf)/2 { // increase buf size when needed
 					buf = make([]byte, len(buf)*2)
-					d.cbHandler.OnLogMessage(LogEntry{
-						NodeId: myNodeId,
-						Level:  WatchWarnLevel,
-						Msg:    fmt.Sprintf("increasing eventsReader() buf size to: %d KB", len(buf)/1024),
-					})
+					logger.NodeLogf(myNodeId, logger.WarnLevel, "increasing eventsReader() buf size to: %d KB", len(buf)/1024)
 				}
 			}
 
@@ -686,12 +665,12 @@ func (d *Dispatcher) eventsReader() {
 		}(conn)
 	}
 
-	simplelogger.Debugf("waiting for dispatcher node socket threads to stop ...")
+	logger.Tracef("waiting for dispatcher node socket threads to stop ...")
 	d.waitGroupNodes.Wait() // wait for all node goroutines to stop before closing eventsReader.
 }
 
 func (d *Dispatcher) advanceNodeTime(node *Node, timestamp uint64, force bool) {
-	simplelogger.AssertNotNil(node)
+	logger.AssertNotNil(node)
 
 	if d.cfg.Real {
 		node.CurTime = timestamp
@@ -720,17 +699,15 @@ func (d *Dispatcher) SendToUART(id NodeId, data []byte) error {
 		Data:      data,
 		NodeId:    id,
 	}
-	dstnode := d.nodes[id]
-	if dstnode != nil {
-		if dstnode.conn == nil {
+	node := d.nodes[id]
+	if node != nil {
+		if node.conn == nil {
 			err = fmt.Errorf("cannot send to node %d UART: connection closed", id)
 		} else {
-			if dstnode.watchLogLevel >= WatchTraceLevel {
-				simplelogger.Debugf("%s UART-write: %s", GetNodeName(id), string(data))
-			}
-			dstnode.sendEvent(evt)
-			if dstnode.err != nil {
-				err = dstnode.err
+			node.logger.Tracef("UART-write: %s", data)
+			node.sendEvent(evt)
+			if node.err != nil {
+				err = node.err
 			}
 		}
 	} else {
@@ -742,7 +719,7 @@ func (d *Dispatcher) SendToUART(id NodeId, data []byte) error {
 // sendRadioCommRxStartEvents dispatches an event to nearby nodes eligible to receiving the frame.
 // It also logs the frame in pcap/dump and visualizes the sending.
 func (d *Dispatcher) sendRadioCommRxStartEvents(srcNode *Node, evt *Event) {
-	simplelogger.AssertTrue(evt.Type == EventTypeRadioCommStart)
+	logger.AssertTrue(evt.Type == EventTypeRadioCommStart)
 	if srcNode.isFailed {
 		return // source node can't send - don't send
 	}
@@ -802,7 +779,7 @@ func (d *Dispatcher) sendRadioCommRxStartEvents(srcNode *Node, evt *Event) {
 // sendRadioCommRxDoneEvents dispatches an event where >=1 nodes may receive a frame that is done
 // being transmitted, determines who receives it, and also does frame logging/pcap and visualization events.
 func (d *Dispatcher) sendRadioCommRxDoneEvents(srcNode *Node, evt *Event) {
-	simplelogger.AssertTrue(evt.Type == EventTypeRadioRxDone)
+	logger.AssertTrue(evt.Type == EventTypeRadioRxDone)
 
 	if srcNode.isFailed {
 		return // source node can't send - don't send, and don't log in pcap.
@@ -866,9 +843,9 @@ func (d *Dispatcher) checkRadioReachable(src *Node, dst *Node) bool {
 
 func (d *Dispatcher) sendOneRadioFrame(evt *Event,
 	srcnode *Node, dstnode *Node) {
-	simplelogger.AssertFalse(d.cfg.Real)
-	simplelogger.AssertTrue(EventTypeRadioCommStart == evt.Type || EventTypeRadioRxDone == evt.Type)
-	simplelogger.AssertTrue(srcnode != dstnode)
+	logger.AssertFalse(d.cfg.Real)
+	logger.AssertTrue(EventTypeRadioCommStart == evt.Type || EventTypeRadioRxDone == evt.Type)
+	logger.AssertTrue(srcnode != dstnode)
 
 	// Tx failure cases below:
 	//   1) 'failed' state of the dest node
@@ -899,8 +876,8 @@ func (d *Dispatcher) sendOneRadioFrame(evt *Event,
 }
 
 func (d *Dispatcher) setAlive(nodeid NodeId) {
-	simplelogger.AssertFalse(d.cfg.Real)
-	simplelogger.AssertFalse(d.isDeleted(nodeid))
+	logger.AssertFalse(d.cfg.Real)
+	logger.AssertFalse(d.isDeleted(nodeid))
 	d.aliveNodes[nodeid] = struct{}{}
 }
 
@@ -919,19 +896,18 @@ func (d *Dispatcher) isDeleted(nodeid NodeId) bool {
 }
 
 func (d *Dispatcher) setSleeping(nodeid NodeId) {
-	simplelogger.AssertFalse(d.cfg.Real)
-	//simplelogger.AssertTrue(d.IsAlive(nodeid))
-	simplelogger.AssertFalse(d.isDeleted(nodeid))
+	logger.AssertFalse(d.cfg.Real)
+	logger.AssertFalse(d.isDeleted(nodeid))
 	delete(d.aliveNodes, nodeid)
 }
 
 // syncAliveNodes advances the node's time of alive nodes only to current dispatcher time.
 func (d *Dispatcher) syncAliveNodes() {
-	if len(d.aliveNodes) == 0 || d.IsStopped() {
+	if len(d.aliveNodes) == 0 || d.isStopping() {
 		return
 	}
 
-	simplelogger.Warnf("syncing %d alive nodes: %v", len(d.aliveNodes), d.aliveNodes)
+	logger.Warnf("syncing %d alive nodes: %v", len(d.aliveNodes), d.aliveNodes)
 	for nodeid := range d.aliveNodes {
 		d.advanceNodeTime(d.nodes[nodeid], d.CurTime, true)
 	}
@@ -951,20 +927,20 @@ func (d *Dispatcher) pcapFrameWriter() {
 	defer func() {
 		err := d.pcap.Close()
 		if err != nil {
-			simplelogger.Errorf("failed to close pcap: %v", err)
+			logger.Errorf("failed to close pcap: %v", err)
 		}
 	}()
 
 	for item := range d.pcapFrameChan {
 		err := d.pcap.AppendFrame(item.Ustime, item.Data)
 		if err != nil {
-			simplelogger.Errorf("write pcap failed:%+v", err)
+			logger.Errorf("write pcap failed:%+v", err)
 		}
 	}
 }
 
 func (d *Dispatcher) SetVisualizer(vis visualize.Visualizer) {
-	simplelogger.AssertNotNil(vis)
+	logger.AssertNotNil(vis)
 	d.vis = vis
 	d.vis.SetSpeed(d.speed)
 	d.vis.SetEnergyAnalyser(d.energyAnalyser)
@@ -975,9 +951,7 @@ func (d *Dispatcher) GetVisualizer() visualize.Visualizer {
 }
 
 func (d *Dispatcher) handleStatusPush(srcnode *Node, data string) {
-	if srcnode.watchLogLevel >= WatchDebugLevel {
-		srcnode.log(WatchDebugLevel, "status push: %#v", data)
-	}
+	srcnode.logger.Tracef("status push: %#v", data)
 	statuses := strings.Split(data, ";")
 	srcid := srcnode.Id
 	for _, status := range statuses {
@@ -989,88 +963,88 @@ func (d *Dispatcher) handleStatusPush(srcnode *Node, data string) {
 			d.visStatusPushTransmit(srcnode, sp[1])
 		} else if sp[0] == "role" {
 			role, err := strconv.Atoi(sp[1])
-			simplelogger.PanicIfError(err)
+			logger.PanicIfError(err)
 			d.setNodeRole(srcnode, OtDeviceRole(role))
 		} else if sp[0] == "rloc16" {
 			rloc16, err := strconv.Atoi(sp[1])
-			simplelogger.PanicIfError(err)
+			logger.PanicIfError(err)
 			d.setNodeRloc16(srcid, uint16(rloc16))
 		} else if sp[0] == "ping_request" {
 			// e.x. ping_request=fdde:ad00:beef:0:556:90c8:ffaf:b7a3$0$4026600960
 			args := strings.Split(sp[1], ",")
 			dstaddr := args[0]
 			datasize, err := strconv.Atoi(args[1])
-			simplelogger.PanicIfError(err)
+			logger.PanicIfError(err)
 			timestamp, err := strconv.ParseUint(args[2], 10, 64)
-			simplelogger.PanicIfError(err)
+			logger.PanicIfError(err)
 			srcnode.onPingRequest(d.convertNodeMilliTime(srcnode, uint32(timestamp)), dstaddr, datasize)
 		} else if sp[0] == "ping_reply" {
 			//e.x.ping_reply=fdde:ad00:beef:0:556:90c8:ffaf:b7a3$0$0$64
 			args := strings.Split(sp[1], ",")
 			dstaddr := args[0]
 			datasize, err := strconv.Atoi(args[1])
-			simplelogger.PanicIfError(err)
+			logger.PanicIfError(err)
 			timestamp, err := strconv.ParseUint(args[2], 10, 64)
-			simplelogger.PanicIfError(err)
+			logger.PanicIfError(err)
 			hoplimit, err := strconv.Atoi(args[3])
-			simplelogger.PanicIfError(err)
+			logger.PanicIfError(err)
 			srcnode.onPingReply(d.convertNodeMilliTime(srcnode, uint32(timestamp)), dstaddr, datasize, hoplimit)
 		} else if sp[0] == "coap" {
 			d.handleCoapEvent(srcnode, sp[1])
 		} else if sp[0] == "parid" {
 			// set partition id
 			parid, err := strconv.ParseUint(sp[1], 16, 32)
-			simplelogger.PanicIfError(err)
+			logger.PanicIfError(err)
 			srcnode.PartitionId = uint32(parid)
 			d.vis.SetNodePartitionId(srcid, uint32(parid))
 		} else if sp[0] == "router_added" {
 			extaddr, err := strconv.ParseUint(sp[1], 16, 64)
-			simplelogger.PanicIfError(err)
+			logger.PanicIfError(err)
 			if d.visOptions.RouterTable {
 				d.vis.AddRouterTable(srcid, extaddr)
 			}
 		} else if sp[0] == "router_removed" {
 			extaddr, err := strconv.ParseUint(sp[1], 16, 64)
-			simplelogger.PanicIfError(err)
+			logger.PanicIfError(err)
 			if d.visOptions.RouterTable {
 				d.vis.RemoveRouterTable(srcid, extaddr)
 			}
 		} else if sp[0] == "child_added" {
 			extaddr, err := strconv.ParseUint(sp[1], 16, 64)
-			simplelogger.PanicIfError(err)
+			logger.PanicIfError(err)
 			if d.visOptions.ChildTable {
 				d.vis.AddChildTable(srcid, extaddr)
 			}
 		} else if sp[0] == "child_removed" {
 			extaddr, err := strconv.ParseUint(sp[1], 16, 64)
-			simplelogger.PanicIfError(err)
+			logger.PanicIfError(err)
 			if d.visOptions.ChildTable {
 				d.vis.RemoveChildTable(srcid, extaddr)
 			}
 		} else if sp[0] == "parent" {
 			extaddr, err := strconv.ParseUint(sp[1], 16, 64)
-			simplelogger.PanicIfError(err)
+			logger.PanicIfError(err)
 			d.vis.SetParent(srcid, extaddr)
 		} else if sp[0] == "joiner_state" {
 			joinerState, err := strconv.Atoi(sp[1])
-			simplelogger.PanicIfError(err)
+			logger.PanicIfError(err)
 			srcnode.onJoinerState(OtJoinerState(joinerState))
 		} else if sp[0] == "extaddr" {
 			extaddr, err := strconv.ParseUint(sp[1], 16, 64)
-			simplelogger.PanicIfError(err)
+			logger.PanicIfError(err)
 			srcnode.onStatusPushExtAddr(extaddr)
 		} else if sp[0] == "mode" {
 			mode := ParseNodeMode(sp[1])
 			d.vis.SetNodeMode(srcid, mode)
 		} else {
-			simplelogger.Warnf("received unknown status push: %s=%s", sp[0], sp[1])
+			logger.Warnf("received unknown status push: %s=%s", sp[0], sp[1])
 		}
 	}
 }
 
 func (d *Dispatcher) AddNode(nodeid NodeId, cfg *NodeConfig) *Node {
-	simplelogger.AssertNil(d.nodes[nodeid])
-	simplelogger.Debugf("dispatcher AddNode id=%d", nodeid)
+	logger.AssertNil(d.nodes[nodeid])
+	logger.Debugf("dispatcher AddNode id=%d", nodeid)
 	delete(d.deletedNodes, nodeid)
 
 	node := newNode(d, nodeid, cfg)
@@ -1082,16 +1056,16 @@ func (d *Dispatcher) AddNode(nodeid NodeId, cfg *NodeConfig) *Node {
 	d.setAlive(nodeid)
 
 	if d.cfg.DefaultWatchOn {
-		d.WatchNode(nodeid, ParseWatchLogLevel(d.cfg.DefaultWatchLevel))
+		d.WatchNode(nodeid, logger.ParseLevelString(d.cfg.DefaultWatchLevel))
 	}
 	return node
 }
 
 func (d *Dispatcher) setNodeRloc16(srcid NodeId, rloc16 uint16) {
 	node := d.nodes[srcid]
-	simplelogger.AssertNotNil(node)
+	logger.AssertNotNil(node)
 
-	node.log(WatchDebugLevel, "set node RLOC16: %x -> %x", node.Rloc16, rloc16)
+	node.logger.Debugf("set node RLOC16: %x -> %x", node.Rloc16, rloc16)
 	oldRloc16 := node.Rloc16
 	if oldRloc16 != threadconst.InvalidRloc16 {
 		// remove node from old rloc map
@@ -1118,17 +1092,17 @@ func (d *Dispatcher) visStatusPushTransmit(srcnode *Node, s string) {
 	parts := strings.Split(s, ",")
 
 	if len(parts) < 3 {
-		simplelogger.Panicf("invalid status push: transmit=%s", s)
+		logger.Panicf("invalid status push: transmit=%s", s)
 	}
 
 	channel, err := strconv.Atoi(parts[0])
-	simplelogger.PanicIfError(err)
+	logger.PanicIfError(err)
 	fcfval, err := strconv.ParseUint(parts[1], 16, 16)
-	simplelogger.PanicIfError(err)
+	logger.PanicIfError(err)
 	fcf = wpan.FrameControl(fcfval)
 
 	seq, err := strconv.Atoi(parts[2])
-	simplelogger.PanicIfError(err)
+	logger.PanicIfError(err)
 
 	dstAddrMode := fcf.DestAddrMode()
 
@@ -1140,7 +1114,7 @@ func (d *Dispatcher) visStatusPushTransmit(srcnode *Node, s string) {
 
 	if dstAddrMode == wpan.AddrModeExtended {
 		dstExtend, err := strconv.ParseUint(parts[3], 16, 64)
-		simplelogger.PanicIfError(err)
+		logger.PanicIfError(err)
 
 		visInfo.DstAddrExtended = dstExtend
 
@@ -1152,7 +1126,7 @@ func (d *Dispatcher) visStatusPushTransmit(srcnode *Node, s string) {
 		}
 	} else if dstAddrMode == wpan.AddrModeShort {
 		dstShortVal, err := strconv.ParseUint(parts[3], 16, 16)
-		simplelogger.PanicIfError(err)
+		logger.PanicIfError(err)
 
 		dstShort := uint16(dstShortVal)
 		visInfo.DstAddrShort = dstShort
@@ -1209,7 +1183,7 @@ func (d *Dispatcher) visSend(srcid NodeId, dstid NodeId, visInfo *visualize.MsgV
 }
 
 func (d *Dispatcher) advanceTime(ts uint64) {
-	simplelogger.AssertTrue(d.CurTime <= ts, "%v > %v", d.CurTime, ts)
+	logger.AssertTrue(d.CurTime <= ts, "%v > %v", d.CurTime, ts)
 	if d.CurTime < ts {
 		d.CurTime = ts
 		if d.cfg.Real {
@@ -1235,24 +1209,15 @@ func (d *Dispatcher) advanceTime(ts uint64) {
 	}
 }
 
-func (d *Dispatcher) PostAsync(trivial bool, task func()) {
-	if trivial {
-		select {
-		case d.taskChan <- task:
-			break
-		default:
-			break
-		}
-	} else {
-		d.taskChan <- task
-	}
+func (d *Dispatcher) PostAsync(task func()) {
+	d.taskChan <- task
 }
 
 func (d *Dispatcher) handleTasks() {
 	defer func() {
 		err := recover()
 		if err != nil {
-			simplelogger.Errorf("dispatcher handle task failed: %+v", err)
+			logger.TraceError("dispatcher handle task failed: %+v", err)
 		}
 	}()
 
@@ -1268,28 +1233,20 @@ loop:
 	}
 }
 
-func (d *Dispatcher) WatchNode(nodeid NodeId, watchLogLevel WatchLogLevel) {
+func (d *Dispatcher) WatchNode(nodeid NodeId, watchLevel logger.Level) {
 	d.watchingNodes[nodeid] = struct{}{}
 	node := d.nodes[nodeid]
 	if node != nil {
-		node.watchLogLevel = watchLogLevel
+		node.logger.CurrentLevel = watchLevel
 	}
 }
 
 func (d *Dispatcher) UnwatchNode(nodeid NodeId) {
 	node := d.nodes[nodeid]
 	if node != nil {
-		node.watchLogLevel = WatchCritLevel
+		node.logger.CurrentLevel = logger.ErrorLevel
 	}
 	delete(d.watchingNodes, nodeid)
-}
-
-func (d *Dispatcher) GetWatchLevel(nodeid NodeId) WatchLogLevel {
-	node := d.nodes[nodeid]
-	if node != nil {
-		return node.watchLogLevel
-	}
-	return WatchOffLevel
 }
 
 func (d *Dispatcher) GetWatchingNodes() []NodeId {
@@ -1319,7 +1276,7 @@ func (d *Dispatcher) GetFailedCount() int {
 
 func (d *Dispatcher) SetNodePos(id NodeId, x, y int) {
 	node := d.nodes[id]
-	simplelogger.AssertNotNil(node)
+	logger.AssertNotNil(node)
 
 	node.X, node.Y = x, y
 	node.radioNode.SetNodePos(x, y)
@@ -1328,7 +1285,7 @@ func (d *Dispatcher) SetNodePos(id NodeId, x, y int) {
 
 func (d *Dispatcher) DeleteNode(id NodeId) {
 	node := d.nodes[id]
-	simplelogger.AssertNotNil(node)
+	logger.AssertNotNil(node)
 
 	delete(d.nodes, id)
 	delete(d.aliveNodes, id)
@@ -1337,7 +1294,7 @@ func (d *Dispatcher) DeleteNode(id NodeId) {
 		d.rloc16Map.Remove(node.Rloc16, node)
 	}
 	if node.ExtAddr != InvalidExtAddr {
-		simplelogger.AssertTrue(d.extaddrMap[node.ExtAddr] == node)
+		logger.AssertTrue(d.extaddrMap[node.ExtAddr] == node)
 		delete(d.extaddrMap, node.ExtAddr)
 	}
 	d.alarmMgr.DeleteNode(id)
@@ -1352,7 +1309,7 @@ func (d *Dispatcher) DeleteNode(id NodeId) {
 // Setting this will disable the automatic failure control (FailureCtrl).
 func (d *Dispatcher) SetNodeFailed(id NodeId, fail bool) {
 	node := d.nodes[id]
-	simplelogger.AssertNotNil(node)
+	logger.AssertNotNil(node)
 
 	// if radio is set to on/off explicitly, failureCtrl should not be used anymore
 	node.SetFailTime(NonFailTime)
@@ -1418,12 +1375,12 @@ func (d *Dispatcher) convertNodeMilliTime(node *Node, milliTime uint32) uint64 {
 
 func (d *Dispatcher) onStatusPushExtAddr(node *Node, oldExtAddr uint64) {
 	if oldExtAddr == InvalidExtAddr {
-		simplelogger.AssertTrue(d.extaddrMap[oldExtAddr] == nil)
+		logger.AssertTrue(d.extaddrMap[oldExtAddr] == nil)
 	} else {
-		simplelogger.AssertTrue(d.extaddrMap[oldExtAddr] == node)
+		logger.AssertTrue(d.extaddrMap[oldExtAddr] == node)
 		delete(d.extaddrMap, oldExtAddr)
 	}
-	simplelogger.AssertNil(d.extaddrMap[node.ExtAddr])
+	logger.AssertNil(d.extaddrMap[node.ExtAddr])
 
 	d.extaddrMap[node.ExtAddr] = node
 	d.vis.OnExtAddrChange(node.Id, node.ExtAddr)
@@ -1434,7 +1391,7 @@ func (d *Dispatcher) GetVisualizationOptions() VisualizationOptions {
 }
 
 func (d *Dispatcher) SetVisualizationOptions(opts VisualizationOptions) {
-	simplelogger.Debugf("dispatcher set visualization options: %+v", opts)
+	logger.Debugf("dispatcher set visualization options: %+v", opts)
 	d.visOptions = opts
 }
 
@@ -1449,7 +1406,7 @@ func (d *Dispatcher) dumpPacket(item *Event) {
 		_, _ = fmt.Fprintf(&sb, "%02X", b)
 	}
 
-	PrintConsole(sb.String())
+	logger.Println(sb.String())
 }
 
 func (d *Dispatcher) setNodeRole(node *Node, role OtDeviceRole) {
@@ -1466,42 +1423,42 @@ func (d *Dispatcher) handleCoapEvent(node *Node, argsStr string) {
 	}
 
 	args := strings.Split(argsStr, ",")
-	simplelogger.AssertTrue(len(args) > 0)
+	logger.AssertTrue(len(args) > 0)
 	action := args[0]
 
 	if action == "send" || action == "recv" || action == "send_error" {
 		var messageId, coapType, coapCode, port int
 
-		simplelogger.AssertTrue(len(args) >= 7)
+		logger.AssertTrue(len(args) >= 7)
 
 		messageId, err = strconv.Atoi(args[1])
-		simplelogger.PanicIfError(err)
+		logger.PanicIfError(err)
 
 		coapType, err = strconv.Atoi(args[2])
-		simplelogger.PanicIfError(err)
+		logger.PanicIfError(err)
 
 		coapCode, err = strconv.Atoi(args[3])
-		simplelogger.PanicIfError(err)
+		logger.PanicIfError(err)
 
 		uri := args[4]
 
 		ip := args[5]
 
 		port, err = strconv.Atoi(args[6])
-		simplelogger.PanicIfError(err)
+		logger.PanicIfError(err)
 
 		if action == "send" {
 			d.coaps.OnSend(d.CurTime, node.Id, messageId, CoapType(coapType), CoapCode(coapCode), uri, ip, port)
 		} else if action == "recv" {
 			d.coaps.OnRecv(d.CurTime, node.Id, messageId, CoapType(coapType), CoapCode(coapCode), uri, ip, port)
 		} else {
-			simplelogger.AssertTrue(len(args) >= 7)
+			logger.AssertTrue(len(args) >= 7)
 			threadError := args[6]
 
 			d.coaps.OnSendError(node.Id, messageId, CoapType(coapType), CoapCode(coapCode), uri, ip, port, threadError)
 		}
 	} else {
-		simplelogger.Warnf("unknown coap event: %+v", args)
+		logger.Warnf("unknown coap event: %+v", args)
 	}
 }
 
@@ -1539,24 +1496,21 @@ func (d *Dispatcher) SetRadioModel(model radiomodel.RadioModel) {
 }
 
 func (d *Dispatcher) handleRadioState(node *Node, evt *Event) {
-	simplelogger.AssertNotNil(node)
+	logger.AssertNotNil(node)
 	subState := evt.RadioStateData.SubState
 	state := evt.RadioStateData.State
 	energyState := evt.RadioStateData.EnergyState
 
-	if node.watchLogLevel >= WatchTraceLevel {
-		const hdr = "(OTNS)       [T] RadioState----:"
-		msg := fmt.Sprintf("%s EnergyState=%s SubState=%s RadioState=%s RadioTime=%d NextStTime=+%d",
-			hdr, energyState, subState, state, evt.RadioStateData.RadioTime, evt.Delay)
-		node.log(WatchTraceLevel, msg)
-	}
+	const hdr = "(OTNS)       [T] RadioState----:"
+	node.logger.Tracef("%s EnergyState=%s SubState=%s RadioState=%s RadioTime=%d NextStTime=+%d",
+		hdr, energyState, subState, state, evt.RadioStateData.RadioTime, evt.Delay)
 
 	node.radioNode.SetRadioState(energyState, subState)
 	node.radioNode.SetChannel(int(evt.RadioStateData.Channel))
 
 	if d.energyAnalyser != nil {
 		radioEnergy := d.energyAnalyser.GetNode(node.Id)
-		simplelogger.AssertNotNil(radioEnergy)
+		logger.AssertNotNil(radioEnergy)
 		radioEnergy.SetRadioState(energyState, d.CurTime)
 	}
 

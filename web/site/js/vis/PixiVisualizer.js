@@ -30,7 +30,7 @@ import ActionBar from "./ActionBar";
 import {Text} from "./wrapper";
 import {
     FRAME_CONTROL_MASK_FRAME_TYPE, FRAME_TYPE_ACK, LOG_WINDOW_FONT_COLOR, MAX_SPEED, PAUSE_SPEED, STATUS_MSG_FONT_FAMILY,
-    STATUS_MSG_FONT_SIZE
+    STATUS_MSG_FONT_SIZE, NODE_ID_INVALID
 } from "./consts";
 import Node from "./Node"
 import {AckMessage, BroadcastMessage, UnicastMessage} from "./message";

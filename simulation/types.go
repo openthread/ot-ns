@@ -47,10 +47,6 @@ type CmdRunner interface {
 	GetContextNodeId() NodeId
 }
 
-func getTimestampedLogMessage(ts uint64, logMsg string) string {
-	return fmt.Sprintf("%11d %s", ts, logMsg)
-}
-
 func removeAllFiles(globPath string) error {
 	files, err := filepath.Glob(globPath)
 	if err != nil {

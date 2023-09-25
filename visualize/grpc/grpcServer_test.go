@@ -30,7 +30,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/simonlingoogle/go-simplelogger"
+	"github.com/openthread/ot-ns/logger"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -72,5 +72,5 @@ func TestStopBeforeStart(t *testing.T) {
 
 	<-done
 	assert.NotNil(t, err, "expected Run() error but got nil")
-	simplelogger.Infof("Run() err returned: %v", err)
+	logger.Infof("Run() err returned: %v", err)
 }

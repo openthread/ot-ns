@@ -34,8 +34,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openthread/ot-ns/logger"
 	"github.com/pkg/errors"
-	"github.com/simonlingoogle/go-simplelogger"
 	"gopkg.in/yaml.v3"
 
 	"github.com/openthread/ot-ns/dispatcher"
@@ -69,13 +69,19 @@ func (cc *CommandContext) outputf(format string, args ...interface{}) {
 }
 
 func (cc *CommandContext) errorf(format string, args ...interface{}) {
-	cc.err = errors.Errorf(format, args...)
+	cc.error(errors.Errorf(format, args...))
 }
 
 func (cc *CommandContext) error(err error) {
-	cc.err = err
+	if err != nil {
+		if cc.err != nil { // if previous error, print it now and keep the last.
+			cc.outputf("Error: %s\n", cc.err)
+		}
+		cc.err = err
+	}
 }
 
+// Err returns the last error that occurred during command execution.
 func (cc *CommandContext) Err() error {
 	return cc.err
 }
@@ -84,17 +90,17 @@ func (cc *CommandContext) outputItemsAsYaml(items interface{}) {
 	var itemsYaml yaml.Node
 
 	err := itemsYaml.Encode(items)
-	simplelogger.PanicIfError(err)
+	logger.PanicIfError(err)
 
 	for _, content := range itemsYaml.Content {
 		content.Style = yaml.FlowStyle
 	}
 
 	data, err := yaml.Marshal(&itemsYaml)
-	simplelogger.PanicIfError(err)
+	logger.PanicIfError(err)
 
 	_, err = cc.output.Write(data)
-	simplelogger.PanicIfError(err)
+	logger.PanicIfError(err)
 }
 
 type CmdRunner struct {
@@ -261,7 +267,7 @@ func (rt *CmdRunner) execute(cmd *Command, output io.Writer) {
 	} else if cmd.Exe != nil {
 		rt.executeExe(cc, cmd.Exe)
 	} else {
-		simplelogger.Panicf("unimplemented command: %#v", cmd)
+		logger.Panicf("unimplemented command: %#v", cmd)
 	}
 }
 
@@ -289,13 +295,13 @@ func (rt *CmdRunner) executeGo(cc *CommandContext, cmd *GoCmd) {
 	// execute the Go
 	var done <-chan error
 	if cmd.Ever == nil {
-		rt.postAsyncWait(func(sim *simulation.Simulation) {
+		rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
 			done = sim.GoAtSpeed(timeDurToGo, speed)
 		})
 		cc.err = <-done // block for the simulation period.
 	} else {
 		for { // run forever but stop if rt.ctx.Err indicates "done"
-			rt.postAsyncWait(func(sim *simulation.Simulation) {
+			rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
 				sim.SetSpeed(speed) // permanent speed update
 				done = sim.Go(time.Hour)
 			})
@@ -309,7 +315,7 @@ func (rt *CmdRunner) executeGo(cc *CommandContext, cmd *GoCmd) {
 }
 
 func (rt *CmdRunner) executeSpeed(cc *CommandContext, cmd *SpeedCmd) {
-	rt.postAsyncWait(func(sim *simulation.Simulation) {
+	rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
 		if cmd.Speed == nil && cmd.Max == nil {
 			cc.outputf("%v\n", sim.GetSpeed())
 		} else if cmd.Max != nil {
@@ -320,17 +326,20 @@ func (rt *CmdRunner) executeSpeed(cc *CommandContext, cmd *SpeedCmd) {
 	})
 }
 
-func (rt *CmdRunner) postAsyncWait(f func(sim *simulation.Simulation)) {
+func (rt *CmdRunner) postAsyncWait(cc *CommandContext, f func(sim *simulation.Simulation)) {
 	done := make(chan struct{})
-	rt.sim.PostAsync(false, func() {
-		f(rt.sim)
-		close(done)
-	})
-	<-done
+	if rt.sim.PostAsync(func() {
+		defer close(done) // even if f() fails execution, 'done' should be closed.
+		f(rt.sim)         // executing task (later) may set cc.err status if error occurs.
+	}) {
+		<-done // only block-wait if task was accepted.
+	} else {
+		cc.error(simulation.CommandInterruptedError) // report cc error if not accepted.
+	}
 }
 
 func (rt *CmdRunner) executeAddNode(cc *CommandContext, cmd *AddCmd) {
-	simplelogger.Debugf("Add: %#v", *cmd)
+	logger.Debugf("Add: %#v", *cmd)
 	simCfg := cc.rt.sim.GetConfig()
 	cfg := simCfg.NewNodeConfig // copy current new-node config for simulation, and modify it.
 
@@ -343,31 +352,7 @@ func (rt *CmdRunner) executeAddNode(cc *CommandContext, cmd *AddCmd) {
 		cfg.IsAutoPlaced = false
 	}
 
-	switch cmd.Type.Val {
-	case ROUTER, REED, FTD:
-		cfg.IsRouter = true
-		cfg.IsMtd = false
-		cfg.RxOffWhenIdle = false
-	case FED:
-		cfg.IsRouter = false
-		cfg.IsMtd = false
-		cfg.RxOffWhenIdle = false
-	case MED, MTD:
-		cfg.IsRouter = false
-		cfg.IsMtd = true
-		cfg.RxOffWhenIdle = false
-	case SED, SSED:
-		cfg.IsRouter = false
-		cfg.IsMtd = true
-		cfg.RxOffWhenIdle = true
-	case BR:
-		cfg.IsRouter = true
-		cfg.IsMtd = false
-		cfg.IsBorderRouter = true
-		cfg.RxOffWhenIdle = false
-	default:
-		simplelogger.Panicf("wrong node type: %s", cmd.Type.Val)
-	}
+	UpdateNodeConfig(&cfg, cmd.Type.Val)
 
 	if cmd.Id != nil {
 		cfg.ID = cmd.Id.Val
@@ -385,7 +370,7 @@ func (rt *CmdRunner) executeAddNode(cc *CommandContext, cmd *AddCmd) {
 
 	cfg.Restore = cmd.Restore != nil
 
-	rt.postAsyncWait(func(sim *simulation.Simulation) {
+	rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
 		node, err := sim.AddNode(&cfg)
 		if err != nil {
 			cc.error(err)
@@ -397,21 +382,24 @@ func (rt *CmdRunner) executeAddNode(cc *CommandContext, cmd *AddCmd) {
 }
 
 func (rt *CmdRunner) executeDelNode(cc *CommandContext, cmd *DelCmd) {
-	rt.postAsyncWait(func(sim *simulation.Simulation) {
+	rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
 		for _, sel := range cmd.Nodes {
 			node, _ := rt.getNode(sim, sel)
 			if node == nil {
-				cc.errorf("node %v not found", sel)
+				cc.outputf("Warn: node %d not found, skipping\n", sel.Id)
 				continue
 			}
 
-			cc.error(sim.DeleteNode(node.Id))
+			err := sim.DeleteNode(node.Id)
+			if err != nil {
+				cc.errorf("node %d, %+v", sel.Id, err)
+			}
 		}
 	})
 }
 
 func (rt *CmdRunner) executeExit(cc *CommandContext, cmd *ExitCmd) {
-	rt.postAsyncWait(func(sim *simulation.Simulation) {
+	rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
 		if rt.enterNodeContext(InvalidNodeId) {
 			return
 		}
@@ -420,8 +408,8 @@ func (rt *CmdRunner) executeExit(cc *CommandContext, cmd *ExitCmd) {
 }
 
 func (rt *CmdRunner) executePing(cc *CommandContext, cmd *PingCmd) {
-	simplelogger.Debugf("ping %#v", cmd)
-	rt.postAsyncWait(func(sim *simulation.Simulation) {
+	logger.Debugf("ping %#v", cmd)
+	rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
 		src, _ := rt.getNode(sim, cmd.Src)
 		if src == nil {
 			cc.errorf("src node not found")
@@ -454,7 +442,7 @@ func (rt *CmdRunner) executePing(cc *CommandContext, cmd *PingCmd) {
 		if cmd.DataSize != nil {
 			datasize = cmd.DataSize.Val
 			if datasize < 4 {
-				simplelogger.Warnf("Ping with datasize < 4 is ignored by OT-NS statistics code.")
+				logger.Warnf("Ping with datasize < 4 is ignored by OT-NS statistics code.")
 			}
 		}
 
@@ -512,7 +500,7 @@ func (rt *CmdRunner) getAddrs(node *simulation.Node, addrType *AddrTypeFlag) []s
 }
 
 func (rt *CmdRunner) executeDebug(cc *CommandContext, cmd *DebugCmd) {
-	simplelogger.Infof("debug %#v", *cmd)
+	logger.Infof("debug %#v", *cmd)
 
 	if cmd.Echo != nil {
 		cc.outputf("%s\n", *cmd.Echo)
@@ -525,14 +513,14 @@ func (rt *CmdRunner) executeDebug(cc *CommandContext, cmd *DebugCmd) {
 
 func (rt *CmdRunner) executeNode(cc *CommandContext, cmd *NodeCmd) {
 	contextNodeId := InvalidNodeId
-	rt.postAsyncWait(func(sim *simulation.Simulation) {
+	rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
 		node, _ := rt.getNode(sim, cmd.Node)
 		if node == nil {
 			if cmd.Node.Id == 0 && rt.contextNodeId != InvalidNodeId && rt.enterNodeContext(InvalidNodeId) {
 				// the 'node 0' command will exit node context, only when inside a node-context.
 				return
 			}
-			cc.errorf("node not found")
+			cc.errorf("node %d not found", cmd.Node.Id)
 			return
 		}
 
@@ -550,7 +538,7 @@ func (rt *CmdRunner) executeNode(cc *CommandContext, cmd *NodeCmd) {
 			} else {
 				output = node.Command(*cmd.Command, simulation.DefaultCommandTimeout)
 			}
-			node.DisplayPendingLogEntries(sim.Dispatcher().CurTime)
+			node.Logger.DisplayPendingLogEntries(sim.Dispatcher().CurTime)
 			for _, line := range output {
 				cc.outputf("%s\n", line)
 			}
@@ -570,7 +558,7 @@ func (rt *CmdRunner) executeNode(cc *CommandContext, cmd *NodeCmd) {
 }
 
 func (rt *CmdRunner) executeDemoLegend(cc *CommandContext, cmd *DemoLegendCmd) {
-	rt.postAsyncWait(func(sim *simulation.Simulation) {
+	rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
 		sim.ShowDemoLegend(cmd.X, cmd.Y, cmd.Title)
 	})
 }
@@ -580,13 +568,13 @@ func (rt *CmdRunner) executeCountDown(cc *CommandContext, cmd *CountDownCmd) {
 	if cmd.Text != nil {
 		title = *cmd.Text
 	}
-	rt.postAsyncWait(func(sim *simulation.Simulation) {
+	rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
 		sim.CountDown(time.Duration(cmd.Seconds)*time.Second, title)
 	})
 }
 
 func (rt *CmdRunner) executeRadio(cc *CommandContext, radio *RadioCmd) {
-	rt.postAsyncWait(func(sim *simulation.Simulation) {
+	rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
 		for _, sel := range radio.Nodes {
 			node, dnode := rt.getNode(sim, sel)
 			if node == nil {
@@ -615,13 +603,13 @@ func (rt *CmdRunner) executeRadio(cc *CommandContext, radio *RadioCmd) {
 }
 
 func (rt *CmdRunner) executeMoveNode(cc *CommandContext, cmd *MoveCmd) {
-	rt.postAsyncWait(func(sim *simulation.Simulation) {
+	rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
 		cc.error(sim.MoveNodeTo(cmd.Target.Id, cmd.X, cmd.Y))
 	})
 }
 
 func (rt *CmdRunner) executeLsNodes(cc *CommandContext, cmd *NodesCmd) {
-	rt.postAsyncWait(func(sim *simulation.Simulation) {
+	rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
 		for _, nodeid := range sim.GetNodes() {
 			snode := sim.Nodes()[nodeid]
 			dnode := sim.Dispatcher().GetNode(nodeid)
@@ -637,7 +625,7 @@ func (rt *CmdRunner) executeLsNodes(cc *CommandContext, cmd *NodesCmd) {
 func (rt *CmdRunner) executeLsPartitions(cc *CommandContext) {
 	pars := map[uint32][]NodeId{}
 
-	rt.postAsyncWait(func(sim *simulation.Simulation) {
+	rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
 		for nodeid, dnode := range sim.Dispatcher().Nodes() {
 			parid := dnode.PartitionId
 			pars[parid] = append(pars[parid], nodeid)
@@ -658,7 +646,7 @@ func (rt *CmdRunner) executeLsPartitions(cc *CommandContext) {
 
 func (rt *CmdRunner) executeCollectPings(cc *CommandContext, pings *PingsCmd) {
 	allPings := make(map[NodeId][]*dispatcher.PingResult)
-	rt.postAsyncWait(func(sim *simulation.Simulation) {
+	rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
 		d := sim.Dispatcher()
 		for nodeid, node := range d.Nodes() {
 			pings := node.CollectPings()
@@ -678,7 +666,7 @@ func (rt *CmdRunner) executeCollectPings(cc *CommandContext, pings *PingsCmd) {
 func (rt *CmdRunner) executeCollectJoins(cc *CommandContext, joins *JoinsCmd) {
 	allJoins := make(map[NodeId][]*dispatcher.JoinResult)
 
-	rt.postAsyncWait(func(sim *simulation.Simulation) {
+	rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
 		d := sim.Dispatcher()
 		for nodeid, node := range d.Nodes() {
 			joins := node.CollectJoins()
@@ -696,7 +684,7 @@ func (rt *CmdRunner) executeCollectJoins(cc *CommandContext, joins *JoinsCmd) {
 }
 
 func (rt *CmdRunner) executeCounters(cc *CommandContext, counters *CountersCmd) {
-	rt.postAsyncWait(func(sim *simulation.Simulation) {
+	rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
 		d := sim.Dispatcher()
 		countersVal := reflect.ValueOf(d.Counters)
 		countersTyp := reflect.TypeOf(d.Counters)
@@ -717,7 +705,7 @@ func (rt *CmdRunner) executeWeb(cc *CommandContext, webcmd *WebCmd) {
 func (rt *CmdRunner) executeRadioModel(cc *CommandContext, cmd *RadioModelCmd) {
 	var name string
 	if len(cmd.Model) == 0 {
-		rt.postAsyncWait(func(sim *simulation.Simulation) {
+		rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
 			name = sim.Dispatcher().GetRadioModel().GetName()
 		})
 		cc.outputf("%v\n", name)
@@ -725,7 +713,7 @@ func (rt *CmdRunner) executeRadioModel(cc *CommandContext, cmd *RadioModelCmd) {
 		name = cmd.Model
 		ok := false
 		var model radiomodel.RadioModel = nil
-		rt.postAsyncWait(func(sim *simulation.Simulation) {
+		rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
 			model = radiomodel.NewRadioModel(name)
 			ok = model != nil
 			if ok {
@@ -742,19 +730,19 @@ func (rt *CmdRunner) executeRadioModel(cc *CommandContext, cmd *RadioModelCmd) {
 
 func (rt *CmdRunner) executeLogLevel(cc *CommandContext, cmd *LogLevelCmd) {
 	if cmd.Level == "" {
-		cc.outputf("%v\n", GetWatchLogLevelString(rt.sim.GetLogLevel()))
+		cc.outputf("%v\n", logger.GetLevelString(rt.sim.GetLogLevel()))
 	} else {
-		rt.sim.SetLogLevel(ParseWatchLogLevel(cmd.Level))
+		rt.sim.SetLogLevel(logger.ParseLevelString(cmd.Level))
 	}
 }
 
 func (rt *CmdRunner) executeWatch(cc *CommandContext, cmd *WatchCmd) {
-	rt.postAsyncWait(func(sim *simulation.Simulation) {
-		watchLogLevelStr := ""
-		var watchLogLevel WatchLogLevel = WatchDefaultLevel
+	rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
+		levelStr := ""
+		var level = logger.DefaultLevel
 		if len(cmd.Level) > 0 {
-			watchLogLevelStr = cmd.Level
-			watchLogLevel = ParseWatchLogLevel(watchLogLevelStr)
+			levelStr = cmd.Level
+			level = logger.ParseLevelString(levelStr)
 		}
 		nodesToWatch := cmd.Nodes
 
@@ -765,12 +753,12 @@ func (rt *CmdRunner) executeWatch(cc *CommandContext, cmd *WatchCmd) {
 			return
 		} else if len(cmd.Nodes) == 0 && len(cmd.All) == 0 && len(cmd.Default) > 0 && len(cmd.Level) > 0 {
 			// variant: 'watch default <level>'
-			sim.Dispatcher().GetConfig().DefaultWatchOn = cmd.Level != WatchOffLevelString && cmd.Level != WatchNoneLevelString
+			sim.Dispatcher().GetConfig().DefaultWatchOn = cmd.Level != logger.OffLevelString && cmd.Level != logger.NoneLevelString
 			sim.Dispatcher().GetConfig().DefaultWatchLevel = cmd.Level
 			return
 		} else if len(cmd.Nodes) == 0 && len(cmd.All) == 0 && len(cmd.Default) > 0 && len(cmd.Level) == 0 {
 			// variant: 'watch default'
-			watchLevelDefault := WatchDefaultLevelString
+			watchLevelDefault := logger.DefaultLevelString
 			if sim.Dispatcher().GetConfig().DefaultWatchOn {
 				watchLevelDefault = sim.Dispatcher().GetConfig().DefaultWatchLevel
 			}
@@ -786,7 +774,7 @@ func (rt *CmdRunner) executeWatch(cc *CommandContext, cmd *WatchCmd) {
 			// Do nothing here. Will iterate over nodes below.
 		} else if len(cmd.Nodes) == 0 && len(cmd.All) == 0 && len(cmd.Default) == 0 && len(cmd.Level) > 0 {
 			// variant: 'watch <level>'
-			// Do nothing here. <level> was processed above as 'watchLogLevel'.
+			// Do nothing here. <level> was processed above already.
 		} else {
 			cc.errorf("watch: unsupported combination of command options")
 			return
@@ -795,22 +783,16 @@ func (rt *CmdRunner) executeWatch(cc *CommandContext, cmd *WatchCmd) {
 		for _, sel := range nodesToWatch {
 			node, _ := rt.getNode(sim, sel)
 			if node == nil {
-				cc.errorf("node %v not found", sel)
+				cc.errorf("node %d not found", sel.Id)
 				continue
 			}
-			sim.Dispatcher().WatchNode(node.Id, watchLogLevel)
-		}
-
-		// adapt simulation's overall logLevel down to 'info', if needed to see watch items.
-		if watchLogLevel > sim.GetLogLevel() && sim.GetLogLevel() < WatchInfoLevel {
-			sim.SetLogLevel(WatchInfoLevel)
-			simplelogger.Infof("Simulation log level lowered to 'info'.")
+			sim.Dispatcher().WatchNode(node.Id, level)
 		}
 	})
 }
 
 func (rt *CmdRunner) executeUnwatch(cc *CommandContext, cmd *UnwatchCmd) {
-	rt.postAsyncWait(func(sim *simulation.Simulation) {
+	rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
 		// if no node-number(s) given, unwatch all.
 		if len(cmd.Nodes) == 0 {
 			for _, n := range sim.Dispatcher().GetWatchingNodes() {
@@ -820,7 +802,7 @@ func (rt *CmdRunner) executeUnwatch(cc *CommandContext, cmd *UnwatchCmd) {
 			for _, sel := range cmd.Nodes {
 				node, _ := rt.getNode(sim, sel)
 				if node == nil {
-					cc.errorf("node %v not found", sel)
+					cc.outputf("Warn: node %d not found, skipping\n", sel.Id)
 					continue
 				}
 				sim.Dispatcher().UnwatchNode(node.Id)
@@ -834,14 +816,14 @@ func (rt *CmdRunner) executePlr(cc *CommandContext, cmd *PlrCmd) {
 		// get PLR
 		var plr float64
 
-		rt.postAsyncWait(func(sim *simulation.Simulation) {
+		rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
 			plr = sim.Dispatcher().GetGlobalMessageDropRatio()
 		})
 
 		cc.outputf("%v\n", plr)
 	} else {
 		// set PLR
-		rt.postAsyncWait(func(sim *simulation.Simulation) {
+		rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
 			sim.Dispatcher().SetGlobalPacketLossRatio(*cmd.Val)
 			*cmd.Val = sim.Dispatcher().GetGlobalMessageDropRatio()
 		})
@@ -850,10 +832,10 @@ func (rt *CmdRunner) executePlr(cc *CommandContext, cmd *PlrCmd) {
 }
 
 func (rt *CmdRunner) executeScan(cc *CommandContext, cmd *ScanCmd) {
-	rt.postAsyncWait(func(sim *simulation.Simulation) {
+	rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
 		node, _ := rt.getNode(sim, cmd.Node)
 		if node == nil {
-			cc.errorf("node not found")
+			cc.errorf("node %d not found", cmd.Node.Id)
 			return
 		}
 		node.CommandExpectNone("scan", simulation.DefaultCommandTimeout)
@@ -862,7 +844,7 @@ func (rt *CmdRunner) executeScan(cc *CommandContext, cmd *ScanCmd) {
 
 func (rt *CmdRunner) executeConfigVisualization(cc *CommandContext, cmd *ConfigVisualizationCmd) {
 	var opts dispatcher.VisualizationOptions
-	rt.postAsyncWait(func(sim *simulation.Simulation) {
+	rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
 		opts = sim.Dispatcher().GetVisualizationOptions()
 
 		if cmd.BroadcastMessage != nil {
@@ -903,7 +885,7 @@ func (rt *CmdRunner) executeConfigVisualization(cc *CommandContext, cmd *ConfigV
 }
 
 func (rt *CmdRunner) enterNodeContext(nodeid NodeId) bool {
-	simplelogger.AssertTrue(nodeid == InvalidNodeId || nodeid > 0)
+	logger.AssertTrue(nodeid == InvalidNodeId || nodeid > 0)
 	if rt.contextNodeId == nodeid {
 		return false
 	}
@@ -913,7 +895,7 @@ func (rt *CmdRunner) enterNodeContext(nodeid NodeId) bool {
 }
 
 func (rt *CmdRunner) executeTitle(cc *CommandContext, cmd *TitleCmd) {
-	rt.postAsyncWait(func(sim *simulation.Simulation) {
+	rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
 		titleInfo := visualize.DefaultTitleInfo()
 
 		titleInfo.Title = cmd.Title
@@ -933,14 +915,14 @@ func (rt *CmdRunner) executeTitle(cc *CommandContext, cmd *TitleCmd) {
 
 func (rt *CmdRunner) executeTime(cc *CommandContext, cmd *TimeCmd) {
 	var dispTime uint64
-	rt.postAsyncWait(func(sim *simulation.Simulation) {
+	rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
 		dispTime = sim.Dispatcher().CurTime
 	})
 	cc.outputf("%d\n", dispTime)
 }
 
 func (rt *CmdRunner) executeNetInfo(cc *CommandContext, cmd *NetInfoCmd) {
-	rt.postAsyncWait(func(sim *simulation.Simulation) {
+	rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
 		netinfo := sim.GetNetworkInfo()
 		if cmd.Version != nil {
 			netinfo.Version = *cmd.Version
@@ -957,12 +939,12 @@ func (rt *CmdRunner) executeNetInfo(cc *CommandContext, cmd *NetInfoCmd) {
 
 func (rt *CmdRunner) executeCoaps(cc *CommandContext, cmd *CoapsCmd) {
 	if cmd.Enable != nil {
-		rt.postAsyncWait(func(sim *simulation.Simulation) {
+		rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
 			sim.Dispatcher().EnableCoaps()
 		})
 	} else {
 		var coapMessages []*dispatcher.CoapMessage
-		rt.postAsyncWait(func(sim *simulation.Simulation) {
+		rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
 			coapMessages = sim.Dispatcher().CollectCoapMessages()
 		})
 
@@ -972,7 +954,7 @@ func (rt *CmdRunner) executeCoaps(cc *CommandContext, cmd *CoapsCmd) {
 
 func (rt *CmdRunner) executeEnergy(cc *CommandContext, energy *EnergyCmd) {
 	if energy.Save != nil {
-		rt.postAsyncWait(func(sim *simulation.Simulation) {
+		rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
 			sim.GetEnergyAnalyser().SaveEnergyDataToFile(energy.Name, sim.Dispatcher().CurTime)
 		})
 	} else {
@@ -982,7 +964,7 @@ func (rt *CmdRunner) executeEnergy(cc *CommandContext, energy *EnergyCmd) {
 }
 
 func (rt *CmdRunner) executeExe(cc *CommandContext, cmd *ExeCmd) {
-	rt.postAsyncWait(func(sim *simulation.Simulation) {
+	rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
 		cfg := sim.GetConfig()
 		isSetDefault := cmd.Default != nil
 		isSetNodeType := len(cmd.NodeType.Val) > 0

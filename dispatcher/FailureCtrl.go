@@ -29,7 +29,7 @@ package dispatcher
 import (
 	"math/rand"
 
-	"github.com/simonlingoogle/go-simplelogger"
+	"github.com/openthread/ot-ns/logger"
 )
 
 type FailTime struct {
@@ -83,11 +83,11 @@ func (fc *FailureCtrl) OnTimeAdvanced(oldTime uint64) (uint64, bool) {
 		return Ever, isUpdated
 	}
 
-	simplelogger.AssertTrue(fc.owner.CurTime > oldTime)
+	logger.AssertTrue(fc.owner.CurTime > oldTime)
 
 	// if node is failed currently
 	if fc.owner.IsFailed() {
-		simplelogger.AssertTrue(fc.failTs == 0)
+		logger.AssertTrue(fc.failTs == 0)
 		if fc.owner.CurTime >= fc.recoverTs {
 			fc.recoverTs = 0
 			fc.calcNextFailTimestamp()
@@ -101,7 +101,7 @@ func (fc *FailureCtrl) OnTimeAdvanced(oldTime uint64) (uint64, bool) {
 	}
 
 	// if node is not failed currently
-	simplelogger.AssertTrue(fc.recoverTs == 0)
+	logger.AssertTrue(fc.recoverTs == 0)
 	if fc.owner.CurTime >= fc.failTs {
 		fc.recoverTs = fc.owner.CurTime + fc.failTime.FailDuration
 		fc.failTs = 0
@@ -118,10 +118,10 @@ func (fc *FailureCtrl) calcNextFailTimestamp() {
 	if !fc.failTime.CanFail() {
 		return
 	}
-	simplelogger.AssertTrue(fc.failTime.FailDuration > 0 && fc.failTime.FailInterval > fc.failTime.FailDuration)
+	logger.AssertTrue(fc.failTime.FailDuration > 0 && fc.failTime.FailInterval > fc.failTime.FailDuration)
 	failStartTimeMax := int(fc.failTime.FailInterval - fc.failTime.FailDuration)
 	failTsRel := uint64(rand.Intn(failStartTimeMax))
 	fc.failTs = failTsRel + fc.owner.CurTime + fc.remainTm
 	fc.remainTm = fc.failTime.FailInterval - fc.failTime.FailDuration - failTsRel
-	simplelogger.AssertTrue(fc.remainTm < fc.failTime.FailInterval)
+	logger.AssertTrue(fc.remainTm < fc.failTime.FailInterval)
 }

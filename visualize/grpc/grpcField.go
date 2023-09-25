@@ -27,9 +27,9 @@
 package visualize_grpc
 
 import (
+	"github.com/openthread/ot-ns/logger"
 	. "github.com/openthread/ot-ns/types"
 	"github.com/openthread/ot-ns/visualize"
-	"github.com/simonlingoogle/go-simplelogger"
 )
 
 type grpcField struct {
@@ -42,7 +42,7 @@ type grpcField struct {
 }
 
 func (f *grpcField) addNode(id NodeId, x int, y int, radioRange int) *grpcNode {
-	simplelogger.AssertNil(f.nodes[id])
+	logger.AssertNil(f.nodes[id])
 	gn := newGprcNode(id, x, y, radioRange)
 	f.nodes[id] = gn
 	return gn

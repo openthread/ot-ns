@@ -24,78 +24,59 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-package main
+package logger
 
-import (
-	"context"
-	"flag"
-	"net"
-	"net/http"
-	"os"
-
-	"github.com/openthread/ot-ns/logger"
-	"github.com/openthread/ot-ns/progctx"
-	"github.com/openthread/ot-ns/visualize/grpc/pb"
-	"github.com/openthread/ot-ns/web"
-	webSite "github.com/openthread/ot-ns/web/site"
-	"google.golang.org/grpc"
+const (
+	OffLevelString     = "off"
+	NoneLevelString    = "none"
+	DefaultLevelString = "default"
 )
 
-var args struct {
-	ReplayFile string
-}
-
-func parseArgs() {
-	flag.Parse()
-
-	if len(flag.Args()) != 1 {
-		flag.Usage()
-		os.Exit(1)
+func ParseLevelString(level string) Level {
+	switch level {
+	case "micro":
+		return MicroLevel
+	case "trace", "T":
+		return TraceLevel
+	case "debug", "D":
+		return DebugLevel
+	case "info", "I":
+		return InfoLevel
+	case "note", "N":
+		return NoteLevel
+	case "warn", "warning", "W":
+		return WarnLevel
+	case "crit", "critical", "error", "err", "C", "E":
+		return ErrorLevel
+	case "off", "none":
+		return OffLevel
+	case "default", "def":
+		fallthrough
+	default:
+		return DefaultLevel
 	}
-
-	args.ReplayFile = flag.Arg(0)
 }
 
-func main() {
-	parseArgs()
-	checkReplayFile(args.ReplayFile)
-	logger.SetLevel(logger.InfoLevel)
-
-	ctx := progctx.New(context.Background())
-
-	server := grpc.NewServer(grpc.ReadBufferSize(1024*8), grpc.WriteBufferSize(1024*1024*1))
-	gs := &grpcService{replayFile: args.ReplayFile}
-	pb.RegisterVisualizeGrpcServiceServer(server, gs)
-
-	lis, err := net.Listen("tcp", ":8999")
-	logger.PanicIfError(err)
-
-	go func() {
-		siteAddr := ":8997"
-		err := webSite.Serve(siteAddr)
-		if err != http.ErrServerClosed {
-			logger.PanicIfError(err)
-		}
-	}()
-
-	go func() {
-		web.ConfigWeb("", 8998, 8999, 8997)
-		_ = web.OpenWeb(ctx)
-	}()
-
-	err = server.Serve(lis)
-	logger.Errorf("server quit: %v", err)
-}
-
-func checkReplayFile(filename string) {
-	f, err := os.Open(filename)
-	logger.PanicIfError(err)
-
-	defer f.Close()
-	fs, err := f.Stat()
-	logger.PanicIfError(err)
-
-	if fs.IsDir() {
-		logger.Panicf("%s is not a valid replay", filename)
+func GetLevelString(level Level) string {
+	switch level {
+	case MicroLevel:
+		return "micro"
+	case TraceLevel:
+		return "trace"
+	case DebugLevel:
+		return "debug"
+	case InfoLevel:
+		return "info"
+	case NoteLevel:
+		return "note"
+	case WarnLevel:
+		return "warn"
+	case ErrorLevel:
+		return "crit"
+	case OffLevel:
+		return "off"
+	default:
+		Panicf("Unknown Level: %d", level)
+		return ""
 	}
 }

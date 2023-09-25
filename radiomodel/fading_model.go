@@ -30,7 +30,7 @@ import (
 	"math"
 	"math/rand"
 
-	"github.com/simonlingoogle/go-simplelogger"
+	"github.com/openthread/ot-ns/logger"
 )
 
 const (
@@ -99,7 +99,7 @@ func (sf *shadowFading) computeShadowFading(src *RadioNode, dst *RadioNode, para
 	// if storage gets too big, purge it - will be recomputed (and thus slow down the simulation a bit)
 	// this normally would only happen with long simulations with moving nodes.
 	if len(sf.fadeMap) > maxFadeMapSize {
-		simplelogger.Debugf("shadowFading model: purging fadeMap cache")
+		logger.Debugf("shadowFading model: purging fadeMap cache")
 		sf.fadeMap = make(map[int64]DbValue, 10000)
 		sf.fadeMap[seed] = v
 	}

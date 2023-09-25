@@ -32,8 +32,9 @@ import (
 	"math"
 	"math/rand"
 
-	"github.com/simonlingoogle/go-simplelogger"
+	"github.com/openthread/ot-ns/logger"
 
+	. "github.com/openthread/ot-ns/event"
 	. "github.com/openthread/ot-ns/types"
 )
 
@@ -80,7 +81,7 @@ func computePacketSuccessRate(sirDb DbValue, frameDurationUs uint64) (float64, i
 
 // interferePsduData simulates bit-error(s) on PSDU data
 func interferePsduData(data []byte) []byte {
-	simplelogger.AssertTrue(len(data) >= 2)
+	logger.AssertTrue(len(data) >= 2)
 
 	// modify MAC frame FCS, as a substitute for interfered frame.
 	// a copy of the slice is made to avoid race conditions with other goroutines that may use the data frame.

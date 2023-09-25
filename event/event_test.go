@@ -24,12 +24,13 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-package types
+package event
 
 import (
 	"encoding/hex"
 	"testing"
 
+	"github.com/openthread/ot-ns/types"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -60,7 +61,7 @@ func TestDeserializeRadioCommEvent(t *testing.T) {
 	assert.Equal(t, uint64(4), ev.MsgId)
 	assert.True(t, 12 == ev.RadioCommData.Channel)
 	assert.True(t, -10 == ev.RadioCommData.PowerDbm)
-	assert.True(t, OT_ERROR_FCS == ev.RadioCommData.Error)
+	assert.True(t, types.OT_ERROR_FCS == ev.RadioCommData.Error)
 	assert.True(t, 42 == ev.RadioCommData.Duration)
 	assert.Equal(t, []byte{12, 0x10, 0x20, 0x30, 0x40, 0x50}, ev.Data)
 	assert.Equal(t, len(data), n)
@@ -75,9 +76,9 @@ func TestDeserializeRadioStateEvent(t *testing.T) {
 	assert.Equal(t, uint64(10), ev.MsgId)
 	assert.Equal(t, uint8(13), ev.RadioStateData.Channel)
 	assert.Equal(t, int8(5), ev.RadioStateData.PowerDbm)
-	assert.Equal(t, RadioTx, ev.RadioStateData.EnergyState)
-	assert.Equal(t, RFSIM_RADIO_SUBSTATE_RX_ACK_TX_ONGOING, ev.RadioStateData.SubState)
-	assert.Equal(t, RadioRx, ev.RadioStateData.State)
+	assert.Equal(t, types.RadioTx, ev.RadioStateData.EnergyState)
+	assert.Equal(t, types.RFSIM_RADIO_SUBSTATE_RX_ACK_TX_ONGOING, ev.RadioStateData.SubState)
+	assert.Equal(t, types.RadioRx, ev.RadioStateData.State)
 	assert.Equal(t, uint64(123456), ev.RadioStateData.RadioTime)
 	assert.Equal(t, len(data), n)
 }
@@ -96,9 +97,9 @@ func TestDeserializeMultiple(t *testing.T) {
 	assert.Equal(t, uint64(10), ev.MsgId)
 	assert.Equal(t, uint8(13), ev.RadioStateData.Channel)
 	assert.Equal(t, int8(5), ev.RadioStateData.PowerDbm)
-	assert.Equal(t, RadioTx, ev.RadioStateData.EnergyState)
-	assert.Equal(t, RFSIM_RADIO_SUBSTATE_RX_ACK_TX_ONGOING, ev.RadioStateData.SubState)
-	assert.Equal(t, RadioRx, ev.RadioStateData.State)
+	assert.Equal(t, types.RadioTx, ev.RadioStateData.EnergyState)
+	assert.Equal(t, types.RFSIM_RADIO_SUBSTATE_RX_ACK_TX_ONGOING, ev.RadioStateData.SubState)
+	assert.Equal(t, types.RadioRx, ev.RadioStateData.State)
 	assert.Equal(t, uint64(123456), ev.RadioStateData.RadioTime)
 	assert.Equal(t, len(data1), n1)
 
@@ -114,7 +115,7 @@ func TestSerializeRadioCommStartEvent(t *testing.T) {
 	dataExpected, _ := hex.DecodeString("0403020100000000060c0d0e0f00000000100002b01140e20100000000000210203040")
 	rxEvtData := RadioCommEventData{
 		Channel:  2,
-		Error:    OT_ERROR_FCS,
+		Error:    types.OT_ERROR_FCS,
 		PowerDbm: -80,
 		Duration: 123456,
 	}
@@ -134,7 +135,7 @@ func TestSerializeRadioCommTxDoneEvent(t *testing.T) {
 	dataExpected, _ := hex.DecodeString("0403020100000000075500000000000000100002b00040e20100000000000210203040")
 	evtData := RadioCommEventData{
 		Channel:  2,
-		Error:    OT_ERROR_NONE,
+		Error:    types.OT_ERROR_NONE,
 		PowerDbm: -80,
 		Duration: 123456,
 	}
@@ -154,7 +155,7 @@ func TestSerializeRadioRxDoneEvent(t *testing.T) {
 	dataExpected, _ := hex.DecodeString("04030201000000000affff0000000000000b000baf0040e2010000000000")
 	evData := RadioCommEventData{
 		Channel:  11,
-		Error:    OT_ERROR_NONE,
+		Error:    types.OT_ERROR_NONE,
 		PowerDbm: -81,
 		Duration: 123456,
 	}
@@ -194,7 +195,7 @@ func TestEventCopy(t *testing.T) {
 		Delay: 123,
 		RadioCommData: RadioCommEventData{
 			Channel: 42,
-			Error:   OT_ERROR_FCS,
+			Error:   types.OT_ERROR_FCS,
 		},
 	}
 	evCopy := ev.Copy()
@@ -203,11 +204,11 @@ func TestEventCopy(t *testing.T) {
 	// modify original
 	ev.Delay += 1
 	ev.RadioCommData.Channel = 11
-	ev.RadioCommData.Error = OT_ERROR_NONE
+	ev.RadioCommData.Error = types.OT_ERROR_NONE
 
 	// check that copy is not modified
 	assert.Equal(t, uint64(123), evCopy.Delay)
 	assert.Equal(t, uint8(42), evCopy.RadioCommData.Channel)
-	assert.Equal(t, uint8(OT_ERROR_FCS), evCopy.RadioCommData.Error)
+	assert.Equal(t, uint8(types.OT_ERROR_FCS), evCopy.RadioCommData.Error)
 	assert.Equal(t, uint64(11234), evCopy.MsgId)
 }

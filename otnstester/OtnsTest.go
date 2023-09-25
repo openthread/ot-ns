@@ -45,13 +45,13 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/chzyer/readline"
-	"github.com/openthread/ot-ns/cli/runcli"
+	"github.com/openthread/ot-ns/cli"
 	"github.com/openthread/ot-ns/dispatcher"
+	"github.com/openthread/ot-ns/logger"
 	"github.com/openthread/ot-ns/otns_main"
 	"github.com/openthread/ot-ns/progctx"
 	. "github.com/openthread/ot-ns/types"
 	"github.com/openthread/ot-ns/visualize"
-	"github.com/simonlingoogle/go-simplelogger"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -99,9 +99,9 @@ func (ot *OtnsTest) AddNodeRr(role string, x int, y int, rr int) NodeId {
 }
 
 func (ot *OtnsTest) sendCommand(cmd string) {
-	simplelogger.Infof("> %s", cmd)
+	logger.Infof("> %s", cmd)
 	_, err := ot.stdin.WriteString(cmd + "\n")
-	simplelogger.PanicIfError(err)
+	logger.PanicIfError(err)
 }
 
 func (ot *OtnsTest) sendCommandf(format string, args ...interface{}) {
@@ -110,13 +110,13 @@ func (ot *OtnsTest) sendCommandf(format string, args ...interface{}) {
 }
 
 func (ot *OtnsTest) stdoutReadRoutine() {
-	simplelogger.Infof("OTNS Stdout reader started.")
+	logger.Infof("OTNS Stdout reader started.")
 
 	scanner := bufio.NewScanner(ot.stdout)
 	scanner.Split(bufio.ScanLines)
 
 	for scanner.Scan() {
-		simplelogger.Infof("read stdout: %#v", scanner.Text())
+		logger.Infof("read stdout: %#v", scanner.Text())
 		ot.pendingOutput <- scanner.Text()
 	}
 }
@@ -133,22 +133,22 @@ loop:
 		if line == "Done" {
 			break loop
 		} else if strings.HasPrefix(line, "Error") {
-			simplelogger.Panicf("%s", line)
+			logger.Panicf("%s", line)
 		} else {
 			output = append(output, line)
 		}
 	}
 
-	simplelogger.Infof("expectCommandResultLines: %#v", output)
+	logger.Infof("expectCommandResultLines: %#v", output)
 	return
 }
 
 func (ot *OtnsTest) expectCommandResultInt() int {
 	lines := ot.expectCommandResultLines()
-	simplelogger.AssertTrue(len(lines) == 1)
+	logger.AssertTrue(len(lines) == 1)
 
 	v, err := strconv.Atoi(lines[0])
-	simplelogger.PanicIfError(err)
+	logger.PanicIfError(err)
 
 	return v
 }
@@ -165,7 +165,7 @@ func (ot *OtnsTest) SetSpeed(speed int) {
 
 func (ot *OtnsTest) Start(testFunc string) {
 	ot.Reset()
-	simplelogger.Infof("Go test Start(): %v", testFunc)
+	logger.Infof("Go test Start(): %v", testFunc)
 }
 
 func (ot *OtnsTest) Reset() {
@@ -182,7 +182,7 @@ func (ot *OtnsTest) SetPacketLossRatio(ratio float32) {
 
 func (ot *OtnsTest) RemoveAllNodes() {
 	nodes := ot.ListNodes()
-	simplelogger.Infof("Remove all nodes: %+v", nodes)
+	logger.Infof("Remove all nodes: %+v", nodes)
 	for nodeid := range nodes {
 		ot.DeleteNode(nodeid)
 	}
@@ -306,7 +306,7 @@ func (ot *OtnsTest) Commandf(format string, args ...interface{}) []string {
 
 func (ot *OtnsTest) visualizeStreamReadRoutine() {
 	if ot.visualizeStream == nil {
-		simplelogger.Errorf("No ot.visualizeStream was created yet (due to timeout)")
+		logger.Errorf("No ot.visualizeStream was created yet (due to timeout)")
 		return
 	}
 	vctx := ot.visualizeStream.Context()
@@ -316,7 +316,7 @@ func (ot *OtnsTest) visualizeStreamReadRoutine() {
 
 		ot.ExpectTrue(err == nil || ot.visualizeStream.Context().Err() != nil)
 		if err == nil {
-			simplelogger.Warnf("Visualize: %+v", evt)
+			logger.Warnf("Visualize: %+v", evt)
 			ot.pendingVisualizeEvents <- evt
 		}
 	}
@@ -376,29 +376,29 @@ func NewOtnsTest(t *testing.T) *OtnsTest {
 	_ = os.Remove(stdoutPipeFile)
 
 	err = syscall.Mkfifo(stdinPipeFile, 0644)
-	simplelogger.PanicIfError(err)
+	logger.PanicIfError(err)
 
 	ot.stdin, err = os.OpenFile(stdinPipeFile, os.O_RDWR, os.ModeNamedPipe)
-	simplelogger.PanicIfError(err)
+	logger.PanicIfError(err)
 	ot.stdinCloser = readline.NewCancelableStdin(ot.stdin)
 
 	err = syscall.Mkfifo(stdoutPipeFile, 0644)
-	simplelogger.PanicIfError(err)
+	logger.PanicIfError(err)
 
 	ot.stdout, err = os.OpenFile(stdoutPipeFile, os.O_RDWR, os.ModeNamedPipe)
-	simplelogger.PanicIfError(err)
+	logger.PanicIfError(err)
 
 	ot.ctx = progctx.New(context.Background())
 
 	go func() {
 		defer func() {
-			simplelogger.Infof("OTNS Main() exit.")
+			logger.Infof("OTNS Main() exit.")
 			close(ot.otnsDone)
 		}()
 
 		otns_main.Main(ot.ctx, func(ctx *progctx.ProgCtx, args *otns_main.MainArgs) visualize.Visualizer {
 			return nil
-		}, &runcli.CliOptions{
+		}, &cli.CliOptions{
 			EchoInput: false,
 			Stdin:     ot.stdin,
 			Stdout:    ot.stdout,

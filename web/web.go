@@ -33,7 +33,7 @@ import (
 
 	"github.com/openthread/ot-ns/progctx"
 
-	"github.com/simonlingoogle/go-simplelogger"
+	"github.com/openthread/ot-ns/logger"
 )
 
 var (
@@ -52,13 +52,13 @@ func ConfigWeb(serverBindAddress string, serverHttpDebugPort int, grpcServicePor
 	grpcWebProxyParams.serverHttpDebugPort = serverHttpDebugPort
 	grpcWebProxyParams.grpcServicePort = grpcServicePort
 	grpcWebProxyParams.webSitePort = webSitePort
-	simplelogger.Debugf("ConfigWeb: %+v", grpcWebProxyParams)
+	logger.Debugf("ConfigWeb: %+v", grpcWebProxyParams)
 }
 
 func OpenWeb(ctx *progctx.ProgCtx) error {
 	if err := assureGrpcWebProxyRunning(ctx); err != nil {
-		simplelogger.Errorf("start grpcwebproxy failed: %v", err)
-		simplelogger.Errorf("Web visualization is unusable. Please make sure grpcwebproxy is installed.")
+		logger.Errorf("start grpcwebproxy failed: %v", err)
+		logger.Errorf("Web visualization is unusable. Please make sure grpcwebproxy is installed.")
 		return err
 	}
 
@@ -104,7 +104,7 @@ func assureGrpcWebProxyRunning(ctx *progctx.ProgCtx) error {
 			return err
 		}
 
-		simplelogger.Infof("grpcwebproxy started.")
+		logger.Infof("grpcwebproxy started.")
 
 		ctx.WaitAdd("grpcwebproxy", 1)
 		go func() {
@@ -112,21 +112,21 @@ func assureGrpcWebProxyRunning(ctx *progctx.ProgCtx) error {
 
 			err := grpcWebProxyProc.Wait()
 			if err != nil && ctx.Err() == nil {
-				simplelogger.Warnf("grpcwebproxy exit unexpectedly: %v, try restarting ...", err)
+				logger.Warnf("grpcwebproxy exit unexpectedly: %v, try restarting ...", err)
 
 				tryKillExistingGrpcWebProxyProcess()
 
 				if err = startGrpcWebProxy(ctx); err != nil {
-					simplelogger.Errorf("grpcwebproxy restart failed: %v", err)
+					logger.Errorf("grpcwebproxy restart failed: %v", err)
 					return
 				}
 
-				simplelogger.Infof("grpcwebproxy restarted.")
+				logger.Infof("grpcwebproxy restarted.")
 				err = grpcWebProxyProc.Wait()
 
 				if err != nil && ctx.Err() == nil {
-					simplelogger.Errorf("grpcwebproxy exit unexpectedly: %v", err)
-					simplelogger.Errorf("Web visualization might not be working properly!")
+					logger.Errorf("grpcwebproxy exit unexpectedly: %v", err)
+					logger.Errorf("Web visualization might not be working properly!")
 				}
 			}
 		}()
@@ -140,18 +140,18 @@ func tryKillExistingGrpcWebProxyProcess() {
 
 	defer func() {
 		if err != nil {
-			simplelogger.Warnf("Kill existing grpcwebproxy process failed: %v", err)
+			logger.Warnf("Kill existing grpcwebproxy process failed: %v", err)
 		}
 	}()
 
 	pattern := fmt.Sprintf("grpcwebproxy.*--server_http_debug_port=%d", grpcWebProxyParams.serverHttpDebugPort)
 	cmd := exec.Command("pkill", "-f", pattern)
 	if err = cmd.Start(); err != nil {
-		simplelogger.Errorf("pkill grpcwebproxy failed: %v", err)
+		logger.Errorf("pkill grpcwebproxy failed: %v", err)
 		return
 	}
 
 	if err = cmd.Wait(); err != nil || !cmd.ProcessState.Success() {
-		simplelogger.Errorf("pkill grpcwebproxy failed: %s", cmd.ProcessState)
+		logger.Errorf("pkill grpcwebproxy failed: %s", cmd.ProcessState)
 	}
 }

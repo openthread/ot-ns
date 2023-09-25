@@ -27,8 +27,8 @@
 package energy
 
 import (
+	"github.com/openthread/ot-ns/logger"
 	. "github.com/openthread/ot-ns/types"
-	"github.com/simonlingoogle/go-simplelogger"
 )
 
 type NodeEnergy struct {
@@ -48,7 +48,7 @@ func (node *NodeEnergy) ComputeRadioState(timestamp uint64) {
 	case RadioRx:
 		node.radio.SpentRx += delta
 	default:
-		simplelogger.Panicf("unknown radio state: %v", node.radio.State)
+		logger.Panicf("unknown radio state: %v", node.radio.State)
 	}
 	node.radio.Timestamp = timestamp
 }
