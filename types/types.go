@@ -29,8 +29,6 @@ package types
 import (
 	"fmt"
 	"math"
-
-	"github.com/simonlingoogle/go-simplelogger"
 )
 
 type NodeId = int
@@ -131,8 +129,7 @@ func (r OtDeviceRole) String() string {
 	case OtDeviceRoleLeader:
 		return "leader"
 	default:
-		simplelogger.Panicf("invalid device role: %v", r)
-		return "invalid"
+		return "INVALID"
 	}
 }
 
@@ -167,8 +164,7 @@ func (s RadioStates) String() string {
 	case RadioTx:
 		return "Tx_"
 	default:
-		simplelogger.Panicf("invalid RadioState: %v", s)
-		return "invalid"
+		return "INVALID"
 	}
 }
 
@@ -228,7 +224,6 @@ func (s RadioSubStates) String() string {
 	case RFSIM_RADIO_SUBSTATE_INVALID:
 		return "Invalid"
 	default:
-		simplelogger.Panicf("invalid RadioSubState: %v", s)
-		return ""
+		return "???????"
 	}
 }

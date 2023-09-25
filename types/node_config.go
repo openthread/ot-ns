@@ -60,3 +60,31 @@ func DefaultNodeConfig() NodeConfig {
 		InitScript:     nil,
 	}
 }
+
+func UpdateNodeConfig(cfg *NodeConfig, nodeType string) {
+	switch nodeType {
+	case ROUTER, REED, FTD:
+		cfg.IsRouter = true
+		cfg.IsMtd = false
+		cfg.RxOffWhenIdle = false
+	case FED:
+		cfg.IsRouter = false
+		cfg.IsMtd = false
+		cfg.RxOffWhenIdle = false
+	case MED, MTD:
+		cfg.IsRouter = false
+		cfg.IsMtd = true
+		cfg.RxOffWhenIdle = false
+	case SED, SSED:
+		cfg.IsRouter = false
+		cfg.IsMtd = true
+		cfg.RxOffWhenIdle = true
+	case BR:
+		cfg.IsRouter = true
+		cfg.IsMtd = false
+		cfg.IsBorderRouter = true
+		cfg.RxOffWhenIdle = false
+	default:
+		panic("unknown nodeType")
+	}
+}

@@ -24,7 +24,7 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-package runcli
+package cli
 
 import (
 	"errors"
@@ -33,7 +33,8 @@ import (
 	"strings"
 
 	"github.com/chzyer/readline"
-	"github.com/simonlingoogle/go-simplelogger"
+
+	"github.com/openthread/ot-ns/logger"
 )
 
 type CliHandler interface {
@@ -55,16 +56,26 @@ func DefaultCliOptions() *CliOptions {
 	}
 }
 
-// TODO convert into a cli object
-var (
-	readlineInstance *readline.Instance = nil
-	waitCliClosed                       = make(chan struct{})
-	Started                             = make(chan struct{})
-)
+// CliInstance is the singleton CLI instance
+type CliInstance struct {
+	Started          chan struct{}
+	Options          *CliOptions
+	readlineInstance *readline.Instance
+	waitCliClosed    chan struct{}
+}
 
-func RestorePrompt() {
-	if readlineInstance != nil {
-		readlineInstance.Refresh()
+var Cli = newCliInstance()
+
+func (cli *CliInstance) RestorePrompt() {
+	if cli.readlineInstance != nil {
+		cli.readlineInstance.Refresh()
+	}
+}
+
+func newCliInstance() *CliInstance {
+	return &CliInstance{
+		Started:       make(chan struct{}),
+		waitCliClosed: make(chan struct{}),
 	}
 }
 
@@ -82,29 +93,31 @@ func getCliOptions(options *CliOptions) *CliOptions {
 	return options
 }
 
-func StopCli(options *CliOptions) {
-	// cannot call readlineInstance.Close() here, it can block
+func (cli *CliInstance) Stop() {
+	<-cli.Started
+	// cannot call readlineInstance.Close() from here, as it can block (RunCli() will call it)
 	// (https://github.com/chzyer/readline/issues/217)
-	options = getCliOptions(options)
 	// send ETX(Ctrl-C, 0x03, readline.CharInterrupt) to avoid readline internally blocking on Runes() select.
-	_, _ = options.Stdin.WriteString("\003")
-	_ = options.Stdin.Close()
-	simplelogger.Debugf("Waiting for CLI to stop ...")
-	<-waitCliClosed
-	simplelogger.Debugf("CLI wait-for-stop done.")
+	_, _ = cli.Options.Stdin.WriteString("\003\n")
+	_ = cli.Options.Stdin.Close() // trigger RunCli() readline call to stop
+	logger.Tracef("Waiting for CLI to stop ...")
+	<-cli.waitCliClosed
+	logger.Tracef("CLI wait-for-stop done.")
 }
 
-func RunCli(handler CliHandler, options *CliOptions) error {
-	defer close(waitCliClosed)
+func (cli *CliInstance) Run(handler CliHandler, options *CliOptions) error {
+	defer logger.Debugf("CLI exit.")
+	defer close(cli.waitCliClosed)
 
 	options = getCliOptions(options)
+	cli.Options = options
 
 	stdin := options.Stdin
 	stdinIsTerminal := readline.IsTerminal(int(stdin.Fd()))
 	if stdinIsTerminal {
 		stdinState, err := readline.GetState(int(stdin.Fd()))
 		if err != nil {
-			close(Started)
+			close(cli.Started)
 			return err
 		}
 		defer func() {
@@ -117,7 +130,7 @@ func RunCli(handler CliHandler, options *CliOptions) error {
 	if stdoutIsTerminal {
 		stdoutState, err := readline.GetState(int(stdout.Fd()))
 		if err != nil {
-			close(Started)
+			close(cli.Started)
 			return err
 		}
 		defer func() {
@@ -152,15 +165,15 @@ func RunCli(handler CliHandler, options *CliOptions) error {
 	l, err := readline.NewEx(readlineConfig)
 
 	if err != nil {
-		close(Started)
+		close(cli.Started)
 		return err
 	}
 
 	defer func() {
 		_ = l.Close()
 	}()
-	readlineInstance = l
-	close(Started)
+	cli.readlineInstance = l
+	close(cli.Started)
 
 	for {
 		// update the prompt and read a line
@@ -175,7 +188,7 @@ func RunCli(handler CliHandler, options *CliOptions) error {
 			} else {
 				continue // Ctrl-C in midline edit only cancels the present cmd line.
 			}
-		} else if err == io.EOF {
+		} else if err == io.EOF { // typical way to close the CLI
 			return nil
 		} else if err != nil {
 			return err
@@ -193,9 +206,15 @@ func RunCli(handler CliHandler, options *CliOptions) error {
 		}
 
 		if err = handler.HandleCommand(cmd, l.Stdout()); err != nil {
+			_ = stdout.Sync()
 			return err
 		}
 
 		_ = stdout.Sync()
 	}
+}
+
+// OnStdout is the handler called when new Stdout/Stderr output occurred.
+func (cli *CliInstance) OnStdout() {
+	cli.RestorePrompt()
 }

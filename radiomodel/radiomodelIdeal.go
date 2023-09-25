@@ -27,6 +27,7 @@
 package radiomodel
 
 import (
+	. "github.com/openthread/ot-ns/event"
 	. "github.com/openthread/ot-ns/types"
 )
 

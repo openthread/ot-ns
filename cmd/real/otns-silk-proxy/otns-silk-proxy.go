@@ -30,8 +30,8 @@ import (
 	"io"
 	"os"
 
-	"github.com/openthread/ot-ns/cli/runcli"
-	"github.com/simonlingoogle/go-simplelogger"
+	"github.com/openthread/ot-ns/cli"
+	"github.com/openthread/ot-ns/logger"
 )
 
 type cliHandler struct{}
@@ -53,11 +53,11 @@ func (c cliHandler) HandleCommand(cmd string, output io.Writer) error {
 }
 
 func main() {
-	err := runcli.RunCli(&cliHandler{}, &runcli.CliOptions{
+	err := cli.Cli.Run(&cliHandler{}, &cli.CliOptions{
 		EchoInput: true,
 	})
 
 	if err != nil {
-		simplelogger.Error(err)
+		logger.Error(err)
 	}
 }

@@ -31,8 +31,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/openthread/ot-ns/logger"
 	. "github.com/openthread/ot-ns/types"
-	"github.com/simonlingoogle/go-simplelogger"
 )
 
 type ExecutableConfig struct {
@@ -61,7 +61,7 @@ var DefaultExecutableConfig ExecutableConfig = ExecutableConfig{
 
 func (cfg *ExecutableConfig) SearchPathsString() string {
 	s := "["
-	simplelogger.AssertTrue(len(cfg.SearchPaths) >= 1)
+	logger.AssertTrue(len(cfg.SearchPaths) >= 1)
 	for _, sp := range cfg.SearchPaths {
 		s += "\"" + sp + "\", "
 	}
@@ -70,7 +70,7 @@ func (cfg *ExecutableConfig) SearchPathsString() string {
 
 // GetExecutableForThreadVersion gets the prebuilt executable for given Thread version string as in cli.ThreadVersion
 func GetExecutableForThreadVersion(version string) string {
-	simplelogger.AssertTrue(strings.HasPrefix(version, "v1") && len(version) == 3)
+	logger.AssertTrue(strings.HasPrefix(version, "v1") && len(version) == 3)
 	return "ot-rfsim/ot-versions/ot-cli-ftd_" + version
 }
 

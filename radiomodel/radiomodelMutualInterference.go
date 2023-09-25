@@ -29,8 +29,9 @@ package radiomodel
 import (
 	"math"
 
+	. "github.com/openthread/ot-ns/event"
+	"github.com/openthread/ot-ns/logger"
 	. "github.com/openthread/ot-ns/types"
-	"github.com/simonlingoogle/go-simplelogger"
 )
 
 // RadioModelMutualInterference is a radio model where a transmission may interfere with another transmission
@@ -198,7 +199,7 @@ func (rm *RadioModelMutualInterference) txStart(node *RadioNode, evt *Event) {
 
 	// mark what this new transmission will interfere with and will be interfered by.
 	for id, interferingTransmitter := range rm.activeTransmitters[ch] {
-		simplelogger.AssertTrue(id != node.Id) // sanity check
+		logger.AssertTrue(id != node.Id) // sanity check
 		rm.interferedBy[node.Id][id] = interferingTransmitter
 		rm.interferedBy[id][node.Id] = node
 	}
@@ -224,7 +225,7 @@ func (rm *RadioModelMutualInterference) txStart(node *RadioNode, evt *Event) {
 func (rm *RadioModelMutualInterference) txStop(node *RadioNode, evt *Event) {
 	ch := int(evt.RadioCommData.Channel)
 	_, nodeTransmits := rm.activeTransmitters[ch][node.Id]
-	simplelogger.AssertTrue(nodeTransmits)
+	logger.AssertTrue(nodeTransmits)
 
 	// stop active transmission
 	delete(rm.activeTransmitters[ch], node.Id)
@@ -269,7 +270,7 @@ func (rm *RadioModelMutualInterference) applyInterference(src *RadioNode, dst *R
 
 // update sample value for all channel-sampling nodes that may detect the new source src.
 func (rm *RadioModelMutualInterference) updateChannelSamplingNodes(src *RadioNode, evt *Event) {
-	simplelogger.AssertTrue(evt.Type == EventTypeRadioCommStart)
+	logger.AssertTrue(evt.Type == EventTypeRadioCommStart)
 	ch := int(evt.RadioCommData.Channel)
 	for _, samplingNode := range rm.activeChannelSamplers[ch] {
 		r := rm.GetTxRssi(src, samplingNode)

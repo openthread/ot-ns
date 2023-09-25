@@ -32,6 +32,7 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/openthread/ot-ns/logger"
 	. "github.com/openthread/ot-ns/types"
 	"github.com/openthread/ot-ns/visualize"
 	"github.com/stretchr/testify/assert"
@@ -49,16 +50,18 @@ func (m mockDispatcherCallback) OnNodeRecover(nodeid NodeId) {
 func (m mockDispatcherCallback) OnUartWrite(nodeid NodeId, data []byte) {
 }
 
-func (m mockDispatcherCallback) OnLogMessage(logEntry LogEntry) {
-}
-
 func (m mockDispatcherCallback) OnNextEventTime(curTimeUs uint64, nextTimeUs uint64) {
 }
 
-func TestFailureCtrlNonFailure(t *testing.T) {
-	node1 := &Node{
-		Id: 0x1,
+func mockNode1() *Node {
+	return &Node{
+		Id:     0x1,
+		logger: logger.GetNodeLogger(1, &NodeConfig{ID: 1, NodeLogFile: false}),
 	}
+}
+
+func TestFailureCtrlNonFailure(t *testing.T) {
+	node1 := mockNode1()
 	node1.failureCtrl = newFailureCtrl(node1, NonFailTime)
 
 	for i := 0; i < 10; i++ {
@@ -88,9 +91,7 @@ func TestFailureCtrlNonFailure(t *testing.T) {
 func TestFailureCtrlFailingHalfOfTheTime(t *testing.T) {
 	rand.Seed(time.Now().UnixNano())
 
-	node1 := &Node{
-		Id: 0x1,
-	}
+	node1 := mockNode1()
 	ft := FailTime{
 		FailDuration: 30 * 1e6,
 		FailInterval: 60 * 1e6,
@@ -126,9 +127,7 @@ func TestFailureCtrlFailingHalfOfTheTime(t *testing.T) {
 func TestFailureCtrlFailingMostOfTheTime(t *testing.T) {
 	rand.Seed(time.Now().UnixNano())
 
-	node1 := &Node{
-		Id: 0x1,
-	}
+	node1 := mockNode1()
 	ft := FailTime{
 		FailDuration: 9 * 1e6,
 		FailInterval: 10 * 1e6,
@@ -162,9 +161,7 @@ func TestFailureCtrlFailingMostOfTheTime(t *testing.T) {
 }
 
 func TestFailureCtrlAddedOnAlreadyFailedNode(t *testing.T) {
-	node1 := &Node{
-		Id: 0x1,
-	}
+	node1 := mockNode1()
 	node1.D = &Dispatcher{
 		cbHandler: &mockDispatcherCallback{},
 		vis:       visualize.NewNopVisualizer(),

@@ -32,8 +32,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/openthread/ot-ns/logger"
 	"github.com/pkg/errors"
-	"github.com/simonlingoogle/go-simplelogger"
 	"google.golang.org/protobuf/encoding/prototext"
 
 	pb "github.com/openthread/ot-ns/visualize/grpc/pb"
@@ -48,7 +48,7 @@ type grpcService struct {
 }
 
 func (gs *grpcService) Visualize(req *pb.VisualizeRequest, stream pb.VisualizeGrpcService_VisualizeServer) error {
-	defer simplelogger.Infof("Visualize finished.")
+	defer logger.Infof("Visualize finished.")
 
 	heartbeatEvent := &pb.VisualizeEvent{
 		Type: &pb.VisualizeEvent_Heartbeat{Heartbeat: &pb.HeartbeatEvent{}},
@@ -92,12 +92,12 @@ func (gs *grpcService) visualizeStream(stream pb.VisualizeGrpcService_VisualizeS
 
 		err := recover()
 		if err != nil && stream.Context().Err() == nil {
-			simplelogger.Errorf("visualization error: %v", err)
+			logger.Errorf("visualization error: %v", err)
 		}
 	}()
 
 	replay, err := os.Open(gs.replayFile)
-	simplelogger.PanicIfError(err)
+	logger.PanicIfError(err)
 
 	scanner := bufio.NewScanner(bufio.NewReader(replay))
 	scanner.Split(bufio.ScanLines)
@@ -107,16 +107,16 @@ func (gs *grpcService) visualizeStream(stream pb.VisualizeGrpcService_VisualizeS
 	for scanner.Scan() {
 		line := scanner.Text()
 
-		simplelogger.Infof("visualize: %#v", line)
+		logger.Infof("visualize: %#v", line)
 
 		var entry pb.ReplayEntry
 		err = unmarshalOptions.Unmarshal([]byte(line), &entry)
-		simplelogger.PanicIfError(err)
+		logger.PanicIfError(err)
 
 		playTime := startTime.Add(time.Duration(entry.Timestamp) * time.Microsecond)
 		time.Sleep(time.Until(playTime))
 
 		err = stream.Send(entry.Event)
-		simplelogger.PanicIfError(err)
+		logger.PanicIfError(err)
 	}
 }

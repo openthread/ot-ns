@@ -32,9 +32,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/simonlingoogle/go-simplelogger"
-
 	"github.com/openthread/ot-ns/energy"
+	"github.com/openthread/ot-ns/logger"
 	. "github.com/openthread/ot-ns/types"
 	"github.com/openthread/ot-ns/visualize"
 	"github.com/openthread/ot-ns/visualize/grpc/pb"
@@ -65,7 +64,7 @@ func (gv *grpcVisualizer) SetNetworkInfo(networkInfo visualize.NetworkInfo) {
 }
 
 func (gv *grpcVisualizer) Run() {
-	defer simplelogger.Debugf("gRPC server exit.")
+	defer logger.Debugf("gRPC server exit.")
 	err := gv.server.Run()
 
 	gv.Lock()
@@ -75,11 +74,11 @@ func (gv *grpcVisualizer) Run() {
 	if err != nil {
 		if opErr, ok := err.(*net.OpError); ok {
 			if opErr.Op == "listen" {
-				simplelogger.Errorf("gRPC server could not listen on %s - port may be in use?", gv.server.address)
+				logger.Errorf("gRPC server could not listen on %s - port may be in use?", gv.server.address)
 				return
 			}
 		}
-		simplelogger.Errorf("gRPC server quit: %v", err)
+		logger.Errorf("gRPC server quit: %v", err)
 	}
 }
 
@@ -110,7 +109,7 @@ func (gv *grpcVisualizer) OnExtAddrChange(nodeid NodeId, extaddr uint64) {
 	gv.Lock()
 	defer gv.Unlock()
 
-	simplelogger.Debugf("extaddr changed: node=%d, extaddr=%016x, old extaddr=%016x", nodeid, extaddr, gv.f.nodes[nodeid].extaddr)
+	logger.Debugf("extaddr changed: node=%d, extaddr=%016x, old extaddr=%016x", nodeid, extaddr, gv.f.nodes[nodeid].extaddr)
 	gv.f.onExtAddrChange(nodeid, extaddr)
 	gv.addVisualizationEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_OnExtAddrChange{OnExtAddrChange: &pb.OnExtAddrChangeEvent{
 		NodeId:  int32(nodeid),
@@ -518,7 +517,7 @@ func (gv *grpcVisualizer) UpdateNodesEnergy(nodes []*pb.NodeEnergy, timestamp ui
 	gv.Lock()
 	defer gv.Unlock()
 
-	//simplelogger.Debugf("Updating Nodes Energy to the charts")
+	//logger.Debugf("Updating Nodes Energy to the charts")
 	gv.server.SendEnergyEvent(&pb.NetworkEnergyEvent{
 		Timestamp:   timestamp / 1000000, // convert to s
 		NodesEnergy: nodes,

@@ -27,24 +27,24 @@
 package dispatcher
 
 import (
+	"github.com/openthread/ot-ns/logger"
 	"github.com/openthread/ot-ns/threadconst"
-	"github.com/simonlingoogle/go-simplelogger"
 )
 
 type rloc16Map map[uint16][]*Node
 
 func (m rloc16Map) Remove(rloc16 uint16, node *Node) {
-	simplelogger.AssertTrue(rloc16 != threadconst.InvalidRloc16)
-	simplelogger.AssertTrue(m.Contains(rloc16, node))
+	logger.AssertTrue(rloc16 != threadconst.InvalidRloc16)
+	logger.AssertTrue(m.Contains(rloc16, node))
 	m[rloc16] = m.removeFromList(m[rloc16], node)
-	simplelogger.AssertFalse(m.Contains(rloc16, node))
+	logger.AssertFalse(m.Contains(rloc16, node))
 }
 
 func (m rloc16Map) Add(rloc16 uint16, node *Node) {
-	simplelogger.AssertTrue(rloc16 != threadconst.InvalidRloc16)
-	simplelogger.AssertFalse(m.Contains(rloc16, node))
+	logger.AssertTrue(rloc16 != threadconst.InvalidRloc16)
+	logger.AssertFalse(m.Contains(rloc16, node))
 	m[rloc16] = append(m[rloc16], node)
-	simplelogger.AssertTrue(m.Contains(rloc16, node))
+	logger.AssertTrue(m.Contains(rloc16, node))
 }
 
 func (m rloc16Map) Contains(rloc16 uint16, node *Node) bool {

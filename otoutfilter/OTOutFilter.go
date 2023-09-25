@@ -32,7 +32,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/simonlingoogle/go-simplelogger"
+	"github.com/openthread/ot-ns/logger"
 )
 
 var (
@@ -93,15 +93,15 @@ func (cc *otOutFilter) readFirstLine(p []byte) int {
 			rn += copy(p, firstline[:])
 		} else {
 			// filter out the log line and send to printLog()
-			simplelogger.AssertTrue(logIdx[1] == len(firstline))
+			logger.AssertTrue(logIdx[1] == len(firstline))
 			logStr := strings.TrimSpace(firstline)
 			logLevelIndicatorStr := firstline[logIdx[2] : logIdx[2]+1]
-			simplelogger.AssertTrue(len(logLevelIndicatorStr) == 1)
+			logger.AssertTrue(len(logLevelIndicatorStr) == 1)
 			cc.printLog(logLevelIndicatorStr, logStr)
 			sn += logIdx[1]
 		}
 
-		simplelogger.AssertTrue(rn+sn > 0) // should always read/skip something
+		logger.AssertTrue(rn+sn > 0) // should always read/skip something
 		cc.linebuf = cc.linebuf[sn+rn:]
 		if rn > 0 {
 			return rn

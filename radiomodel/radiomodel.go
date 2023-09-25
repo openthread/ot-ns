@@ -29,6 +29,7 @@ package radiomodel
 import (
 	"math"
 
+	. "github.com/openthread/ot-ns/event"
 	. "github.com/openthread/ot-ns/types"
 )
 

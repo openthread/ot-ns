@@ -35,7 +35,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/simonlingoogle/go-simplelogger"
+	"github.com/openthread/ot-ns/logger"
 )
 
 var httpServer *http.Server = nil
@@ -44,7 +44,7 @@ var httpServerMutex sync.Mutex
 var Started = make(chan struct{})
 
 func Serve(listenAddr string) error {
-	defer simplelogger.Debugf("webserver exit.")
+	defer logger.Debugf("webserver exit.")
 
 	assetDir := os.Getenv("HOME")
 	if assetDir == "" {
@@ -83,7 +83,7 @@ func Serve(listenAddr string) error {
 
 	http.HandleFunc("/visualize", func(writer http.ResponseWriter, request *http.Request) {
 		addr := html.EscapeString(request.URL.Query()["addr"][0])
-		simplelogger.Debugf("visualizing addr=%+v", addr)
+		logger.Debugf("visualizing addr=%+v", addr)
 		err := templates.ExecuteTemplate(writer, "visualize.html", map[string]interface{}{
 			"addr": addr,
 		})
@@ -94,7 +94,7 @@ func Serve(listenAddr string) error {
 
 	http.HandleFunc("/energyViewer", func(writer http.ResponseWriter, request *http.Request) {
 		addr := html.EscapeString(request.URL.Query()["addr"][0])
-		simplelogger.Debugf("energy charts visualizing addr=%+v", addr)
+		logger.Debugf("energy charts visualizing addr=%+v", addr)
 		err := templates.ExecuteTemplate(writer, "energyViewer.html", map[string]interface{}{
 			"addr": addr,
 		})
@@ -111,15 +111,15 @@ func Serve(listenAddr string) error {
 		return http.ErrServerClosed
 	}
 	httpServer = &http.Server{Addr: listenAddr, Handler: nil}
-	simplelogger.Infof("OTNS webserver now serving on %s ...", listenAddr)
-	defer simplelogger.Debugf("webserver: httpServer.ListenAndServe() done")
+	logger.Infof("OTNS webserver now serving on %s ...", listenAddr)
+	defer logger.Tracef("webserver: httpServer.ListenAndServe() done")
 	httpServerMutex.Unlock()
 	close(Started)
 	return httpServer.ListenAndServe()
 }
 
 func StopServe() {
-	simplelogger.Debugf("requesting webserver to exit ...")
+	logger.Debugf("requesting webserver to exit ...")
 	httpServerMutex.Lock()
 	if httpServer != nil {
 		_ = httpServer.Close()

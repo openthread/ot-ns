@@ -29,6 +29,7 @@ package dispatcher
 import (
 	"testing"
 
+	. "github.com/openthread/ot-ns/event"
 	. "github.com/openthread/ot-ns/types"
 	"github.com/stretchr/testify/assert"
 )

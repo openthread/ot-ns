@@ -31,7 +31,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/simonlingoogle/go-simplelogger"
+	"github.com/openthread/ot-ns/logger"
 	"google.golang.org/grpc"
 
 	"github.com/openthread/ot-ns/visualize/grpc/pb"
@@ -54,7 +54,7 @@ func (gs *grpcServer) Visualize(req *pb.VisualizeRequest, stream pb.VisualizeGrp
 	var heartbeatTicker *time.Ticker
 
 	gstream := newGrpcStream(stream)
-	simplelogger.Debugf("New visualize request got.")
+	logger.Debugf("New visualize request got.")
 
 	gs.vis.Lock()
 	err = gs.prepareStream(gstream)
@@ -85,7 +85,7 @@ func (gs *grpcServer) Visualize(req *pb.VisualizeRequest, stream pb.VisualizeGrp
 	}
 
 exit:
-	simplelogger.Debugf("Visualize stream exit: %v", err)
+	logger.Debugf("Visualize stream exit: %v", err)
 	return err
 }
 
@@ -96,7 +96,7 @@ func (gs *grpcServer) EnergyReport(req *pb.VisualizeRequest, stream pb.Visualize
 	//TODO: do we need a heartbeat and a idle checker here too?
 
 	gstream := newGrpcEnergyStream(stream)
-	simplelogger.Debugf("New energy report request got.")
+	logger.Debugf("New energy report request got.")
 
 	gs.visualizingEnergyStreams[gstream] = struct{}{}
 	defer gs.disposeEnergyStream(gstream)
@@ -111,7 +111,7 @@ func (gs *grpcServer) EnergyReport(req *pb.VisualizeRequest, stream pb.Visualize
 	<-contextDone
 	err = stream.Context().Err()
 
-	simplelogger.Debugf("energy report stream exit: %v", err)
+	logger.Debugf("energy report stream exit: %v", err)
 	return err
 }
 
@@ -127,7 +127,7 @@ func (gs *grpcServer) Run() error {
 	if err != nil {
 		return err
 	}
-	simplelogger.Infof("gRPC visualizer server serving on %s ...", lis.Addr())
+	logger.Infof("gRPC visualizer server serving on %s ...", lis.Addr())
 	return gs.server.Serve(lis)
 }
 

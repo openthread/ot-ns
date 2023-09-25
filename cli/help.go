@@ -35,7 +35,7 @@ import (
 	"strings"
 
 	"github.com/mitchellh/go-wordwrap"
-	"github.com/simonlingoogle/go-simplelogger"
+	"github.com/openthread/ot-ns/logger"
 	"golang.org/x/term"
 )
 
@@ -104,7 +104,7 @@ func (help *Help) update() {
 	fdTerm := int(os.Stdout.Fd()) // Windows platform requires cast to int.
 	if term.IsTerminal(fdTerm) {
 		width, _, err := term.GetSize(fdTerm)
-		simplelogger.PanicIfError(err, "Could not get terminal size.")
+		logger.PanicIfError(err, "Could not get terminal size.")
 		help.termWidth = uint(width)
 	}
 }

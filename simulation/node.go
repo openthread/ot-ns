@@ -41,9 +41,9 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/simonlingoogle/go-simplelogger"
 
 	"github.com/openthread/ot-ns/dispatcher"
+	"github.com/openthread/ot-ns/logger"
 	"github.com/openthread/ot-ns/otoutfilter"
 	. "github.com/openthread/ot-ns/types"
 )
@@ -66,15 +66,14 @@ const (
 )
 
 type Node struct {
-	S       *Simulation
-	Id      int
-	cfg     *NodeConfig
-	cmd     *exec.Cmd
-	logFile *os.File
-	cmdErr  error // store the last CLI command error; nil if none.
+	S      *Simulation
+	Id     int
+	Logger *logger.NodeLogger
+	cfg    *NodeConfig
+	cmd    *exec.Cmd
+	cmdErr error // store the last CLI command error; nil if none.
 
-	pendingLines chan string   // OT node CLI output lines, pending processing.
-	logEntries   chan LogEntry // OT node log entries, pending display on OTNS CLI or other viewers.
+	pendingLines chan string // OT node CLI output lines, pending processing.
 	pipeIn       io.WriteCloser
 	pipeOut      io.ReadCloser
 	pipeErr      io.ReadCloser
@@ -84,38 +83,31 @@ type Node struct {
 
 func newNode(s *Simulation, nodeid NodeId, cfg *NodeConfig) (*Node, error) {
 	var err error
-	logFileName := fmt.Sprintf("tmp/%d_%d.log", s.cfg.Id, nodeid)
-	var logFile *os.File
 
 	if !cfg.Restore {
 		flashFile := fmt.Sprintf("tmp/%d_%d.flash", s.cfg.Id, nodeid)
 		if err = os.RemoveAll(flashFile); err != nil {
-			simplelogger.Errorf("Remove flash file %s failed: %+v", flashFile, err)
+			logger.Errorf("Remove flash file %s failed: %+v", flashFile, err)
 			return nil, err
-		}
-		if cfg.NodeLogFile {
-			if err = os.RemoveAll(logFileName); err != nil {
-				simplelogger.Errorf("Remove node log file %s failed: %+v", logFileName, err)
-				return nil, err
-			}
 		}
 	}
 
-	simplelogger.Debugf("node exe path: %s", cfg.ExecutablePath)
 	cmd := exec.CommandContext(context.Background(), cfg.ExecutablePath, strconv.Itoa(nodeid), s.d.GetUnixSocketName())
 
 	node := &Node{
 		S:            s,
 		Id:           nodeid,
+		Logger:       logger.GetNodeLogger(s.cfg.Id, cfg),
 		cfg:          cfg,
 		cmd:          cmd,
 		pendingLines: make(chan string, 10000),
-		logEntries:   make(chan LogEntry, 10000),
 		uartType:     NodeUartTypeUndefined,
 		uartReader:   make(chan []byte, 10000),
-		logFile:      nil,
-		cmdErr:       nil,
 	}
+	node.Logger.Debugf("Node config: IsMtd=%t IsRouter=%t IsBR=%t RxOffWhenIdle=%t", cfg.IsMtd, cfg.IsRouter,
+		cfg.IsBorderRouter, cfg.RxOffWhenIdle)
+	node.Logger.Debugf("  exe path: %s", cfg.ExecutablePath)
+	node.Logger.Debugf("  position: (%d,%d)", cfg.X, cfg.Y)
 
 	if node.pipeIn, err = cmd.StdinPipe(); err != nil {
 		return nil, err
@@ -129,26 +121,7 @@ func newNode(s *Simulation, nodeid NodeId, cfg *NodeConfig) (*Node, error) {
 		return nil, err
 	}
 
-	// open log file for node's OT output
-	if cfg.NodeLogFile {
-		logFile, err = os.OpenFile(logFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0664)
-		if err != nil {
-			simplelogger.Errorf("Opening node log file %s failed: %+v", logFileName, err)
-			return nil, err
-		}
-		node.logFile = logFile
-		header := fmt.Sprintf("# OpenThread node log for %s Created %s\n", GetNodeName(nodeid),
-			time.Now().Format(time.RFC3339)) +
-			fmt.Sprintf("# Executable: %s\n", cfg.ExecutablePath) +
-			"# SimTimeUs NodeTime     Lev LogModule       Message"
-		_ = node.writeToLogFile(header)
-		simplelogger.Debugf("Node log file '%s' opened.", logFileName)
-	}
-
 	if err = cmd.Start(); err != nil {
-		if logFile != nil {
-			_ = logFile.Close()
-		}
 		return nil, err
 	}
 
@@ -162,7 +135,7 @@ func (node *Node) String() string {
 }
 
 func (node *Node) runInitScript(cfg []string) error {
-	simplelogger.AssertNotNil(cfg)
+	logger.AssertNotNil(cfg)
 	for _, cmd := range cfg {
 		if node.CommandResult() != nil {
 			return node.CommandResult()
@@ -176,9 +149,9 @@ func (node *Node) runInitScript(cfg []string) error {
 }
 
 func (node *Node) onStart() {
-	node.log(WatchInfoLevel, fmt.Sprintf("started, panid=0x%04x, chan=%d, eui64=%#v, extaddr=%#v, state=%s, key=%#v, mode=%v",
+	node.Logger.Infof("started, panid=0x%04x, chan=%d, eui64=%#v, extaddr=%#v, state=%s, key=%#v, mode=%v",
 		node.GetPanid(), node.GetChannel(), node.GetEui64(), node.GetExtAddr(), node.GetState(),
-		node.GetNetworkKey(), node.GetMode()))
+		node.GetNetworkKey(), node.GetMode())
 }
 
 func (node *Node) IsFED() bool {
@@ -199,21 +172,21 @@ func (node *Node) Exit() error {
 
 	processDone := make(chan bool)
 	isKilled := false
-	simplelogger.Debugf("%s Waiting for process to exit ...", node.String())
+	node.Logger.Trace("Waiting for process to exit ...")
 	timeout := time.After(NodeExitTimeout)
 	go func() {
 		select {
 		case processDone <- true:
 			break
 		case <-timeout:
-			simplelogger.Warnf("%s did not exit in time, sending SIGKILL.", node.String())
+			node.Logger.Warn("Node did not exit in time, sending SIGKILL.")
 			isKilled = true
 			_ = node.cmd.Process.Kill()
 			processDone <- true
 		}
 	}()
 	err := node.cmd.Wait() // wait for process end
-	simplelogger.Debugf("%s process exited. Wait().err=%v", node.String(), err)
+	node.Logger.Tracef("Node process exited. Wait().err=%v", err)
 	<-processDone
 
 	if isKilled { // when killed, a "signal: killed" error is always given by Wait(). Suppress this.
@@ -242,13 +215,13 @@ func (node *Node) AssurePrompt() {
 	if err == nil {
 		_, err := node.expectLine("", DefaultCommandTimeout)
 		if err != nil {
-			node.logError(err)
+			node.Logger.Error(err)
 		}
 	}
 }
 
 func (node *Node) inputCommand(cmd string) error {
-	simplelogger.AssertTrue(node.uartType != NodeUartTypeUndefined)
+	logger.AssertTrue(node.uartType != NodeUartTypeUndefined)
 	var err error
 	node.cmdErr = nil
 
@@ -264,12 +237,12 @@ func (node *Node) inputCommand(cmd string) error {
 func (node *Node) CommandExpectNone(cmd string, timeout time.Duration) {
 	err := node.inputCommand(cmd)
 	if err != nil {
-		node.logError(err)
+		node.Logger.Error(err)
 		node.cmdErr = err
 	} else {
 		_, err = node.expectLine(cmd, timeout)
 		if err != nil {
-			node.logError(err)
+			node.Logger.Error(err)
 			node.cmdErr = err
 		}
 	}
@@ -280,25 +253,25 @@ func (node *Node) Command(cmd string, timeout time.Duration) []string {
 	if err2 == nil {
 		_, err1 := node.expectLine(cmd, timeout)
 		if err1 != nil {
-			node.logError(err1)
+			node.Logger.Error(err1)
 			node.cmdErr = err1
 			return []string{}
 		}
 	} else {
-		node.logError(err2)
+		node.Logger.Error(err2)
 		node.cmdErr = err2
 		return []string{}
 	}
 
 	output, err := node.expectLine(DoneOrErrorRegexp, timeout)
 	if err != nil {
-		node.logError(err)
+		node.Logger.Error(err)
 		node.cmdErr = err
 		return []string{}
 	}
 	if len(output) == 0 {
 		err = fmt.Errorf("node responds empty line to cmd '%s'", cmd)
-		node.logError(err)
+		node.Logger.Error(err)
 		node.cmdErr = err
 		return []string{}
 	}
@@ -307,7 +280,7 @@ func (node *Node) Command(cmd string, timeout time.Duration) []string {
 	output, result = output[:len(output)-1], output[len(output)-1]
 	if result != "Done" {
 		err = fmt.Errorf("unexpected result for cmd '%s': %s", cmd, result)
-		node.logError(err)
+		node.Logger.Error(err)
 		node.cmdErr = fmt.Errorf(result)
 	}
 	return output
@@ -322,7 +295,7 @@ func (node *Node) CommandExpectString(cmd string, timeout time.Duration) string 
 	output := node.Command(cmd, timeout)
 	if len(output) != 1 {
 		err := fmt.Errorf("%v - expected 1 line, but received %d: %#v", node, len(output), output)
-		node.logError(err)
+		node.Logger.Error(err)
 		return ""
 	}
 	return output[0]
@@ -340,7 +313,7 @@ func (node *Node) CommandExpectInt(cmd string, timeout time.Duration) int {
 	}
 
 	if err != nil {
-		node.logError(fmt.Errorf("parsing unexpected Int number: '%#v'", s))
+		node.Logger.Errorf("parsing unexpected Int number: '%#v'", s)
 		return 0
 	}
 	return int(iv)
@@ -354,7 +327,7 @@ func (node *Node) CommandExpectHex(cmd string, timeout time.Duration) int {
 	iv, err = strconv.ParseInt(s[2:], 16, 0)
 
 	if err != nil {
-		node.logError(fmt.Errorf("hex parsing unexpected number: '%#v'", s))
+		node.Logger.Errorf("hex parsing unexpected number: '%#v'", s)
 		return 0
 	}
 	return int(iv)
@@ -375,7 +348,7 @@ func (node *Node) GetChildList() (childlist []int) {
 	for _, ids := range ss {
 		id, err := strconv.Atoi(ids)
 		if err != nil {
-			node.logError(fmt.Errorf("unexpected child list: '%#v'", s))
+			node.Logger.Errorf("unexpected child list: '%#v'", s)
 		}
 		childlist = append(childlist, id)
 	}
@@ -423,9 +396,9 @@ func (node *Node) GetExtAddr() uint64 {
 	v, err := strconv.ParseUint(s, 16, 64)
 	if err != nil {
 		if len(s) > 0 {
-			node.logError(fmt.Errorf("GetExtAddr() unknown address format: %s", s))
+			node.Logger.Errorf("GetExtAddr() unknown address format: %s", s)
 		} else {
-			node.logError(fmt.Errorf("GetExtAddr() address not received"))
+			node.Logger.Errorf("GetExtAddr() address not received")
 		}
 		return InvalidExtAddr
 	}
@@ -559,27 +532,27 @@ func (node *Node) GetLeaderData() (leaderData LeaderData) {
 	for _, line := range output {
 		if strings.HasPrefix(line, "Partition ID:") {
 			leaderData.PartitionID, err = strconv.Atoi(line[14:])
-			node.logError(err)
+			node.Logger.Error(err)
 		}
 
 		if strings.HasPrefix(line, "Weighting:") {
 			leaderData.Weighting, err = strconv.Atoi(line[11:])
-			node.logError(err)
+			node.Logger.Error(err)
 		}
 
 		if strings.HasPrefix(line, "Data Version:") {
 			leaderData.DataVersion, err = strconv.Atoi(line[14:])
-			node.logError(err)
+			node.Logger.Error(err)
 		}
 
 		if strings.HasPrefix(line, "Stable Data Version:") {
 			leaderData.StableDataVersion, err = strconv.Atoi(line[21:])
-			node.logError(err)
+			node.Logger.Error(err)
 		}
 
 		if strings.HasPrefix(line, "Leader Router ID:") {
 			leaderData.LeaderRouterID, err = strconv.Atoi(line[18:])
-			node.logError(err)
+			node.Logger.Error(err)
 		}
 	}
 	return
@@ -602,27 +575,27 @@ func (node *Node) SetLeaderWeight(weight int) {
 }
 
 func (node *Node) FactoryReset() {
-	node.log(WatchWarnLevel, "node factoryreset")
+	node.Logger.Warn("node factoryreset")
 	err := node.inputCommand("factoryreset")
 	if err != nil {
-		node.logError(err)
+		node.Logger.Error(err)
 		node.cmdErr = err
 		return
 	}
 	node.AssurePrompt()
-	node.log(WatchInfoLevel, "factoryreset complete")
+	node.Logger.Info("factoryreset complete")
 }
 
 func (node *Node) Reset() {
-	node.log(WatchWarnLevel, "node reset")
+	node.Logger.Warn("node reset")
 	err := node.inputCommand("reset")
 	if err != nil {
-		node.logError(err)
+		node.Logger.Error(err)
 		node.cmdErr = err
 		return
 	}
 	node.AssurePrompt()
-	node.log(WatchInfoLevel, "reset complete")
+	node.Logger.Warn("reset complete")
 }
 
 func (node *Node) GetNetworkKey() string {
@@ -711,10 +684,10 @@ func (node *Node) GetSingleton() bool {
 	} else if s == "false" {
 		return false
 	} else if len(s) == 0 {
-		node.logError(fmt.Errorf("GetSingleton(): no data received"))
+		node.Logger.Errorf("GetSingleton(): no data received")
 		return false
 	} else {
-		node.logError(fmt.Errorf("expected true/false, but read: '%#v'", s))
+		node.Logger.Errorf("expected true/false, but read: '%#v'", s)
 		return false
 	}
 }
@@ -737,13 +710,8 @@ loop:
 			lineTrim := strings.TrimSpace(line)
 			isLogLine, otLevelChar := otoutfilter.DetectLogLine(line)
 			if isLogLine {
-				lev := ParseWatchLogLevel(otLevelChar)
-				node.logEntries <- LogEntry{
-					NodeId:  node.Id,
-					Level:   lev,
-					Msg:     lineTrim,
-					IsWatch: true,
-				}
+				lev := logger.ParseLevelString(otLevelChar)
+				node.Logger.Log(lev, lineTrim)
 			} else if idxNewLine == -1 { // if no newline, get more items until a line can be formed.
 				deadline = time.After(dispatcher.DefaultReadTimeout)
 
@@ -762,7 +730,7 @@ loop:
 						break loop
 					case <-deadline:
 						line = strings.TrimSpace(line)
-						simplelogger.Panicf("%s processUart deadline: line=%s", node, line)
+						node.Logger.Panicf("processUart deadline: line=%s", line)
 						break loop2
 					}
 				}
@@ -777,10 +745,10 @@ loop:
 }
 
 func (node *Node) onProcessFailure(err error) {
-	node.log(WatchCritLevel, "Node process failed.")
-	node.S.PostAsync(false, func() {
+	node.Logger.Errorf("node process failed")
+	node.S.PostAsync(func() {
 		if node.S.ctx.Err() == nil {
-			simplelogger.Warnf("Deleting node %v due to process failure.", node.Id)
+			logger.Warnf("Deleting node %v due to process failure.", node.Id)
 			_ = node.S.DeleteNode(node.Id)
 		}
 	})
@@ -799,7 +767,7 @@ func (node *Node) lineReaderStdErr(reader io.Reader) {
 		if errProc == nil {
 			errProc = errors.New(stderrLine)
 		}
-		node.log(WatchCritLevel, stderrLine)
+		node.Logger.Error(errProc)
 	}
 
 	// when the stderr of the node closes and any error was raised, inform simulation of node's failure.
@@ -823,7 +791,7 @@ func (node *Node) expectLine(line interface{}, timeout time.Duration) ([]string,
 			return outputLines, err
 		case readLine := <-node.pendingLines:
 			if len(readLine) > 0 {
-				node.log(WatchTraceLevel, "UART: "+readLine)
+				node.Logger.Tracef("UART: %s", readLine)
 			}
 
 			outputLines = append(outputLines, readLine)
@@ -849,10 +817,10 @@ func (node *Node) CommandExpectEnabledOrDisabled(cmd string, timeout time.Durati
 	} else if output == "Disabled" {
 		return false
 	} else if len(output) == 0 {
-		node.logError(fmt.Errorf("CommandExpectEnabledOrDisabled() did not get data from node"))
+		node.Logger.Errorf("CommandExpectEnabledOrDisabled() did not get data from node")
 		return false
 	} else {
-		node.logError(fmt.Errorf("expect Enabled/Disabled, but read: '%#v'", output))
+		node.Logger.Errorf("expect Enabled/Disabled, but read: '%#v'", output)
 	}
 	return false
 }
@@ -861,12 +829,12 @@ func (node *Node) Ping(addr string, payloadSize int, count int, interval int, ho
 	cmd := fmt.Sprintf("ping async %s %d %d %d %d", addr, payloadSize, count, interval, hopLimit)
 	err := node.inputCommand(cmd)
 	if err != nil {
-		node.logError(err)
+		node.Logger.Error(err)
 		node.cmdErr = err
 		return
 	}
 	_, err = node.expectLine(cmd, DefaultCommandTimeout)
-	node.logError(err)
+	node.Logger.Error(err)
 	node.AssurePrompt()
 }
 
@@ -883,7 +851,7 @@ func (node *Node) isLineMatch(line string, _expectedLine interface{}) bool {
 			}
 		}
 	default:
-		simplelogger.Panicf("unknown data type %v, expected string, Regexp or []string", expectedLine)
+		node.Logger.Panicf("unknown data type %v, expected string, Regexp or []string", expectedLine)
 	}
 	return false
 }
@@ -895,12 +863,12 @@ func (node *Node) DumpStat() string {
 func (node *Node) setupMode() {
 	if node.cfg.IsRouter {
 		// routers should be full functional and rx always on
-		simplelogger.AssertFalse(node.cfg.IsMtd)
-		simplelogger.AssertFalse(node.cfg.RxOffWhenIdle)
+		logger.AssertFalse(node.cfg.IsMtd)
+		logger.AssertFalse(node.cfg.RxOffWhenIdle)
 	}
 
 	// only MED can use RxOffWhenIdle
-	simplelogger.AssertTrue(!node.cfg.RxOffWhenIdle || node.cfg.IsMtd)
+	logger.AssertTrue(!node.cfg.RxOffWhenIdle || node.cfg.IsMtd)
 
 	mode := ""
 	if !node.cfg.RxOffWhenIdle {
@@ -918,76 +886,14 @@ func (node *Node) setupMode() {
 	}
 }
 
-func (node *Node) log(level WatchLogLevel, msg string) {
-	node.logEntries <- LogEntry{
-		NodeId: node.Id,
-		Level:  level,
-		Msg:    msg,
-	}
-}
-
-func (node *Node) logError(err error) {
-	if err == nil {
-		return
-	}
-	node.logEntries <- LogEntry{
-		NodeId: node.Id,
-		Level:  WatchCritLevel,
-		Msg:    err.Error(),
-	}
-}
-
 func (node *Node) DisplayPendingLines(ts uint64) {
 loop:
 	for {
 		select {
 		case line := <-node.pendingLines:
-			PrintConsole(line)
+			logger.Println(line)
 		default:
 			break loop
 		}
 	}
-}
-
-func (node *Node) DisplayPendingLogEntries(ts uint64) {
-	isExiting := node.S.ctx.Err() != nil
-loop:
-	for {
-		select {
-		case e := <-node.logEntries:
-			line := getTimestampedLogMessage(ts, e.Msg)
-			_ = node.writeToLogFile(line)
-
-			s := node.S
-			if isExiting && e.Level <= WatchCritLevel {
-				e.Level = WatchInfoLevel // avoid error display while exiting - it's normal to lose connectivity to nodes.
-			}
-			if e.IsWatch {
-				// watch messages may get increased level/visibility
-				if e.Level <= s.Dispatcher().GetWatchLevel(node.Id) { // IF it must be shown
-					if s.logLevel < e.Level && s.logLevel >= WatchInfoLevel { // HOW it can be shown
-						e.Level = s.logLevel
-					}
-					PrintLog(e.Level, node.String()+line)
-				}
-			} else if e.Level <= s.logLevel {
-				PrintLog(e.Level, node.String()+line)
-			}
-		default:
-			break loop
-		}
-	}
-}
-
-func (node *Node) writeToLogFile(line string) error {
-	if node.logFile == nil {
-		return nil
-	}
-	_, err := node.logFile.WriteString(line + "\n")
-	if err != nil {
-		_ = node.logFile.Close()
-		node.logFile = nil
-		node.logError(fmt.Errorf("couldn't write to node log file, closing it (%s)", node.logFile.Name()))
-	}
-	return err
 }

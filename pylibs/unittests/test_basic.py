@@ -181,6 +181,16 @@ class BasicTests(OTNSTestCase):
             self.tearDown()
             self.setUp()
 
+    def testDelNonExistingNodes(self):
+        ns = self.ns
+        ns.add("router")
+        ns.add("router")
+        self.go(25)
+        self.assertFormPartitions(1)
+        ns.delete(1,3,4,5)
+        self.go(10)
+        self.assertTrue(len(ns.nodes()) == 1 and 1 not in ns.nodes())
+
     def testMDREffective(self):
         ns = self.ns
         ns.packet_loss_ratio = 1
@@ -422,8 +432,39 @@ class BasicTests(OTNSTestCase):
         self.assertEqual([3, 4, 8], ns.watched())
         ns.unwatchAll()
         self.assertEqual([], ns.watched())
+        ns.watch_all('debug')
+        self.assertEqual([1,2,3,4,5,6,7,8,9,10], ns.watched())
+        ns.watch_all('warn')
+        self.assertEqual([1,2,3,4,5,6,7,8,9,10], ns.watched())
 
-        ns.watch
+    def testWatchDefault(self):
+        ns: OTNS = self.ns
+        ns.add('router')
+        ns.watch_default('trace')
+        for i in range(9):
+            ns.add('router')
+            ns.go(2)
+        self.assertEqual([2,3,4,5,6,7,8,9,10], ns.watched())
+        ns.watch_default('off')
+        ns.add('router')
+        self.assertEqual([2,3,4,5,6,7,8,9,10], ns.watched())
+        ns.watch_default('info')
+        ns.add('router')
+        self.assertEqual([2,3,4,5,6,7,8,9,10, 12], ns.watched())
+
+    def testWatchNonExistingNodes(self):
+        ns: OTNS = self.ns
+        for i in range(10):
+            ns.add('router')
+            ns.go(2)
+        with self.assertRaises(errors.OTNSCliError):
+            ns.watch(3, 4, 11) # node 11 does not exist
+        ns.go(5)
+        self.assertEqual([3, 4], ns.watched())
+        ns.unwatch(5, 6) # nodes not being watched, but no error.
+        self.assertEqual([3, 4], ns.watched())
+        ns.unwatch(3, 5, 66) # 3 is watched but 5 not, 66 non-existing, but no error.
+        self.assertEqual([4], ns.watched())
 
     def testHelp(self):
         ns: OTNS = self.ns
@@ -512,6 +553,7 @@ class BasicTests(OTNSTestCase):
             ns.add('router')
         with self.assertRaises(errors.OTNSExitedError):
             ns._do_command('exit')
+
 
 if __name__ == '__main__':
     unittest.main()

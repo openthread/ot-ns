@@ -24,7 +24,7 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-package types
+package event
 
 import (
 	"encoding/binary"
@@ -34,7 +34,8 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/simonlingoogle/go-simplelogger"
+	"github.com/openthread/ot-ns/logger"
+	"github.com/openthread/ot-ns/types"
 )
 
 type EventType = uint8
@@ -72,7 +73,7 @@ type Event struct {
 	Data []byte
 
 	// metadata kept locally for this Event.
-	NodeId       NodeId
+	NodeId       types.NodeId
 	Timestamp    uint64
 	MustDispatch bool
 	Conn         net.Conn
@@ -97,15 +98,15 @@ const RadioStateEventDataHeaderLen = 13 // from OT-RFSIM platform, event-sim.h s
 type RadioStateEventData struct {
 	Channel     uint8
 	PowerDbm    int8
-	EnergyState RadioStates
-	SubState    RadioSubStates
-	State       RadioStates
+	EnergyState types.RadioStates
+	SubState    types.RadioSubStates
+	State       types.RadioStates
 	RadioTime   uint64
 }
 
 const NodeInfoEventDataHeaderLen = 4 // from OT-RFSIM platform, otSimSendNodeInfoEvent()
 type NodeInfoEventData struct {
-	NodeId NodeId
+	NodeId types.NodeId
 }
 
 /*
@@ -147,7 +148,7 @@ func (e *Event) Serialize() []byte {
 	binary.LittleEndian.PutUint64(msg[9:17], e.MsgId)
 	binary.LittleEndian.PutUint16(msg[17:19], uint16(len(payload)))
 	n := copy(msg[EventMsgHeaderLen:], payload)
-	simplelogger.AssertTrue(n == len(payload))
+	logger.AssertTrue(n == len(payload))
 
 	return msg
 }
@@ -180,7 +181,7 @@ func (e *Event) Deserialize(data []byte) int {
 	case EventTypeRadioCommStart:
 		e.RadioCommData = deserializeRadioCommData(e.Data)
 		payloadOffset += RadioCommEventDataHeaderLen
-		simplelogger.AssertEqual(e.RadioCommData.Channel, e.Data[payloadOffset]) // channel is stored twice.
+		logger.AssertEqual(e.RadioCommData.Channel, e.Data[payloadOffset]) // channel is stored twice.
 	case EventTypeRadioState:
 		e.RadioStateData = deserializeRadioStateData(e.Data)
 		payloadOffset += RadioStateEventDataHeaderLen
@@ -202,7 +203,7 @@ func (e *Event) Deserialize(data []byte) int {
 }
 
 func deserializeRadioCommData(data []byte) RadioCommEventData {
-	simplelogger.AssertTrue(len(data) >= RadioCommEventDataHeaderLen)
+	logger.AssertTrue(len(data) >= RadioCommEventDataHeaderLen)
 	s := RadioCommEventData{
 		Channel:  data[0],
 		PowerDbm: int8(data[1]),
@@ -213,22 +214,22 @@ func deserializeRadioCommData(data []byte) RadioCommEventData {
 }
 
 func deserializeRadioStateData(data []byte) RadioStateEventData {
-	simplelogger.AssertTrue(len(data) >= RadioStateEventDataHeaderLen)
+	logger.AssertTrue(len(data) >= RadioStateEventDataHeaderLen)
 	s := RadioStateEventData{
 		Channel:     data[0],
 		PowerDbm:    int8(data[1]),
-		EnergyState: RadioStates(data[2]),
-		SubState:    RadioSubStates(data[3]),
-		State:       RadioStates(data[4]),
+		EnergyState: types.RadioStates(data[2]),
+		SubState:    types.RadioSubStates(data[3]),
+		State:       types.RadioStates(data[4]),
 		RadioTime:   binary.LittleEndian.Uint64(data[5:13]),
 	}
 	return s
 }
 
 func deserializeNodeInfoData(data []byte) NodeInfoEventData {
-	simplelogger.AssertTrue(len(data) >= NodeInfoEventDataHeaderLen)
+	logger.AssertTrue(len(data) >= NodeInfoEventDataHeaderLen)
 	s := NodeInfoEventData{
-		NodeId: NodeId(binary.LittleEndian.Uint32(data[0:4])),
+		NodeId: types.NodeId(binary.LittleEndian.Uint32(data[0:4])),
 	}
 	return s
 }
