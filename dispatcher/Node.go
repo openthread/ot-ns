@@ -117,7 +117,6 @@ func newNode(d *Dispatcher, nodeid NodeId, cfg *NodeConfig) *Node {
 	}
 
 	nc.failureCtrl = newFailureCtrl(nc, NonFailTime)
-	nc.logger.CurrentLevel = logger.ErrorLevel
 	return nc
 }
 

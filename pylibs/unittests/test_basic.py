@@ -430,7 +430,7 @@ class BasicTests(OTNSTestCase):
         ns.go(5)
         ns.unwatch(5, 6)
         self.assertEqual([3, 4, 8], ns.watched())
-        ns.unwatchAll()
+        ns.unwatch_all()
         self.assertEqual([], ns.watched())
         ns.watch_all('debug')
         self.assertEqual([1,2,3,4,5,6,7,8,9,10], ns.watched())

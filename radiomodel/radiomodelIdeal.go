@@ -53,7 +53,7 @@ func (rm *RadioModelIdeal) DeleteNode(nodeid NodeId) {
 }
 
 func (rm *RadioModelIdeal) CheckRadioReachable(src *RadioNode, dst *RadioNode) bool {
-	if src != dst && dst.RadioState == RadioRx {
+	if src != dst && dst.RadioState == RadioRx && src.RadioChannel == dst.RadioChannel {
 		dist := src.GetDistanceTo(dst)
 		if dist <= src.RadioRange { // simple disc radio model
 			return true
@@ -92,6 +92,8 @@ func (rm *RadioModelIdeal) HandleEvent(node *RadioNode, q EventQueue, evt *Event
 		rm.txStop(node, q, evt)
 	case EventTypeRadioChannelSample:
 		rm.channelSampleStart(node, q, evt)
+	default:
+		break
 	}
 }
 

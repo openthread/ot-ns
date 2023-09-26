@@ -29,7 +29,7 @@
 # SRP client and server example.
 
 from otns.cli import OTNS
-from otns.cli.errors import OTNSCliError, OTNSExitedError
+from otns.cli.errors import OTNSExitedError
 
 
 def main():
@@ -88,6 +88,7 @@ def main():
     # allow some time for graphics to be displayed in web GUI.
     ns.speed=0.001
     ns.go(0.001)
+
 
 if __name__ == '__main__':
     try:
