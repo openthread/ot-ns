@@ -51,7 +51,7 @@ type RadioNode struct {
 	RadioSubState RadioSubStates
 
 	// RadioChannel is the current radio's channel (For Rx, Tx, or sampling).
-	RadioChannel uint8
+	RadioChannel ChannelId
 
 	// Node position in units/pixels.
 	X, Y float64
@@ -73,7 +73,7 @@ func NewRadioNode(nodeid NodeId, cfg *RadioNodeConfig) *RadioNode {
 		X:             float64(cfg.X),
 		Y:             float64(cfg.Y),
 		RadioRange:    float64(cfg.RadioRange),
-		RadioChannel:  uint8(DefaultChannelNumber),
+		RadioChannel:  DefaultChannelNumber,
 		rssiSampleMax: RssiMinusInfinity,
 	}
 	return rn
@@ -81,7 +81,7 @@ func NewRadioNode(nodeid NodeId, cfg *RadioNodeConfig) *RadioNode {
 
 func (rn *RadioNode) SetChannel(ch ChannelId) {
 	logger.AssertTrue(ch >= MinChannelNumber && ch <= MaxChannelNumber)
-	rn.RadioChannel = uint8(ch)
+	rn.RadioChannel = ch
 }
 
 func (rn *RadioNode) SetRadioState(state RadioStates, subState RadioSubStates) {

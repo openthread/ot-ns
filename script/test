@@ -188,6 +188,9 @@ py_examples()
     check_py_example "$OTNSDIR"/pylibs/examples/ping.py
     check_py_example "$OTNSDIR"/pylibs/examples/farm.py
     check_py_example "$OTNSDIR"/pylibs/examples/many_hops_network.py
+    check_py_example "$OTNSDIR"/pylibs/examples/dns_client.py
+    check_py_example "$OTNSDIR"/pylibs/examples/srp.py
+    check_py_example "$OTNSDIR"/pylibs/examples/multiple_channels.py
 }
 
 stress_tests()

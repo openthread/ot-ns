@@ -400,7 +400,7 @@ class OTNS(object):
         cmd = f'unwatch {" ".join(map(str, nodeids))}'
         self._do_command(cmd)
 
-    def unwatchAll(self) -> None:
+    def unwatch_all(self) -> None:
         """
         Disable watch (unwatch) on all nodes.
         """
@@ -445,18 +445,18 @@ class OTNS(object):
     @property
     def packet_loss_ratio(self) -> float:
         """
-        Get the message drop rate of 128 byte packet.
-        Smaller packet has lower drop rate.
+        Get the message drop ratio of 128 byte packet.
+        Smaller packet has lower drop ratio.
 
-        :return: message drop rate (0 ~ 1.0)
+        :return: message drop ratio (0 ~ 1.0)
         """
         return self._expect_float(self._do_command('plr'))
 
     @packet_loss_ratio.setter
     def packet_loss_ratio(self, value: float) -> None:
         """
-        Set the message drop rate of 128 byte packet.
-        Smaller packet has lower drop rate.
+        Set the message drop ratio of 128 byte packet.
+        Smaller packet has lower drop ratio.
 
         :param value: message drop ratio (0 ~ 1.0)
         """
@@ -590,6 +590,20 @@ class OTNS(object):
 
     def prefix_add(self, nodeid: int, prefix: str, preferred=True, slaac=True, dhcp=False, dhcp_other=False,
                    default_route=True, on_mesh=True, stable=True, prf='med') -> None:
+        """
+        Add a prefix to the network data of a node and register the updated network data with the Leader.
+
+        :param nodeid: Node ID
+        :param prefix: the IPv6 prefix to add
+        :param preferred: P_preferred flag
+        :param slaac: P_slaac flag
+        :param dhcp: P_dhcp flag
+        :param dhcp_other: P_configure flag
+        :param default_route: P_default flag
+        :param on_mesh: P_on_mesh flag
+        :param stable: P_stable flag
+        :param prf: P_preference value (hi/med/low)
+        """
         flags = ''
         if preferred:
             flags += 'p'
@@ -649,7 +663,7 @@ class OTNS(object):
         Get node ipaddrs.
 
         :param nodeid: node ID
-        :param addrtype: address type (e.x. mleid, rloc, linklocal), or None for all addresses
+        :param addrtype: address type (one of mleid, rloc, linklocal), or None for all addresses
 
         :return: list of filtered addresses
         """
@@ -699,6 +713,15 @@ class OTNS(object):
         """
         self.node_cmd(nodeid, 'panid 0x%04x' % panid)
 
+    def set_extpanid(self, nodeid: int, extpanid: int) -> None:
+        """
+        Set node extended pan ID.
+
+        :param nodeid: node ID
+        :param extpanid: extended pan ID
+        """
+        self.node_cmd(nodeid, 'extpanid %016x' % extpanid)
+
     def get_panid(self, nodeid: int) -> int:
         """
         Get node pan ID.
@@ -709,13 +732,42 @@ class OTNS(object):
         """
         return self._expect_hex(self.node_cmd(nodeid, 'panid'))
 
+    def set_channel(self, nodeid: int, channel: int) -> None:
+        """
+        Set node channel.
+
+        :param nodeid: node ID
+        :param channel: IEEE 802.15.4 channel number
+        """
+        self.node_cmd(nodeid, 'channel %d' % channel)
+
+    def get_channel(self, nodeid: int) -> int:
+        """
+        Get node pan ID.
+
+        :param nodeid: node ID
+
+        :return: IEEE 802.15.4 channel number
+        """
+        return self._expect_hex(self.node_cmd(nodeid, 'channel'))
+
+    def get_extpanid(self, nodeid: int) -> int:
+        """
+        Get node extended pan ID.
+
+        :param nodeid: node ID
+
+        :return: extended pan ID
+        """
+        return self._expect_hex(self.node_cmd(nodeid, 'extpanid'))
+
     def get_networkkey(self, nodeid: int) -> str:
         """
         Get network key.
 
         :param nodeid: target node ID
 
-        :return: network key as a hex string
+        :return: network key as a hex string (without '0x' prefix)
         """
         return self._expect_str(self.node_cmd(nodeid, 'networkkey'))
 
@@ -724,7 +776,7 @@ class OTNS(object):
         Set network key.
 
         :param nodeid: target node ID
-        :param key: network key as a hex string
+        :param key: network key as a hex string (without '0x' prefix)
         """
         self.node_cmd(nodeid, f'networkkey {key}')
 
@@ -923,11 +975,16 @@ class OTNS(object):
         self.node_cmd(nodeid, f'routerdowngradethreshold {val}')
 
     def coaps_enable(self) -> None:
+        """
+        Enable the 'coaps' function of OTNS to collect info about CoAP messages.
+        :return:
+        """
         self._do_command('coaps enable')
 
     def coaps(self) -> List[Dict]:
         """
-        Get recent CoAP messages.
+        Get recent CoAP messages collected by OTNS. The 'coaps' function should be enabled prior to
+        calling this.
         """
         lines = self._do_command('coaps')
         messages = yaml.safe_load('\n'.join(lines))

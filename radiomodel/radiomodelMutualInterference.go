@@ -74,7 +74,7 @@ func (rm *RadioModelMutualInterference) DeleteNode(nodeid NodeId) {
 }
 
 func (rm *RadioModelMutualInterference) CheckRadioReachable(src *RadioNode, dst *RadioNode) bool {
-	if src == dst || dst.RadioState != RadioRx {
+	if src == dst || dst.RadioState != RadioRx || src.RadioChannel != dst.RadioChannel {
 		return false
 	}
 	if rm.IsDiscLimit && src.GetDistanceTo(dst) > src.RadioRange {

@@ -78,7 +78,6 @@ func GetNodeLogger(simulationId int, cfg *NodeConfig) *NodeLogger {
 		if log.isFileEnabled && log.logFile == nil {
 			log.openLogFile()
 		}
-		log.CurrentLevel = ErrorLevel
 	}
 	return log
 }

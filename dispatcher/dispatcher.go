@@ -557,7 +557,7 @@ func (d *Dispatcher) processNextEvent(simSpeed float64) bool {
 			logger.AssertTrue(nextAlarmTime == d.CurTime || nextSendTime == d.CurTime)
 			node := d.nodes[evt.NodeId]
 			if node != nil {
-				// execute event - either a msg sent out, or handled by RadioModel.
+				// execute event - either a msg to be dispatched, or handled internally.
 				if !evt.MustDispatch {
 					switch evt.Type {
 					case EventTypeAlarmFired:
@@ -1057,6 +1057,8 @@ func (d *Dispatcher) AddNode(nodeid NodeId, cfg *NodeConfig) *Node {
 
 	if d.cfg.DefaultWatchOn {
 		d.WatchNode(nodeid, logger.ParseLevelString(d.cfg.DefaultWatchLevel))
+	} else {
+		node.logger.CurrentLevel = logger.ErrorLevel
 	}
 	return node
 }
