@@ -35,6 +35,8 @@ import (
 
 type DbValue = float64
 
+const UndefinedDbValue = math.MaxFloat64
+
 // IEEE 802.15.4-2015 related parameters for 2.4 GHz O-QPSK PHY
 const (
 	MinChannelNumber     ChannelId = 0 // below 11 are sub-Ghz channels for 802.15.4-2015
@@ -97,6 +99,9 @@ type RadioModel interface {
 	// GetName gets the display name of this RadioModel.
 	GetName() string
 
+	// GetParameters gets the parameters of this RadioModel. These may be modified during operation.
+	GetParameters() *RadioModelParams
+
 	// init initializes the RadioModel.
 	init()
 }
@@ -104,6 +109,9 @@ type RadioModel interface {
 // RadioModelParams stores model parameters for the radio model.
 type RadioModelParams struct {
 	MeterPerUnit        float64 // the distance in meters, equivalent to a single distance unit(pixel)
+	IsDiscLimit         bool    // If true, RF signal Tx range is limited to the RadioRange set for each node
+	RssiMinDbm          DbValue // Lowest RSSI value (dBm) that can be returned, overriding other calculations
+	RssiMaxDbm          DbValue // Highest RSSI value (dBm) that can be returned, overriding other calculations
 	ExponentDb          DbValue // the exponent (dB) in the regular/LOS model
 	FixedLossDb         DbValue // the fixed loss (dB) term in the regular/LOS model
 	NlosExponentDb      DbValue // the exponent (dB) in the NLOS model
@@ -113,43 +121,65 @@ type RadioModelParams struct {
 	ShadowFadingSigmaDb DbValue // sigma (stddev) parameter for Shadow Fading (SF), in dB
 }
 
+// newRadioModelParams gets a new set of parameters with default values, as a basis to configure further.
+func newRadioModelParams() *RadioModelParams {
+	return &RadioModelParams{
+		MeterPerUnit:        defaultMeterPerUnit,
+		IsDiscLimit:         false,
+		RssiMinDbm:          RssiMin,
+		RssiMaxDbm:          RssiMax,
+		ExponentDb:          UndefinedDbValue,
+		FixedLossDb:         UndefinedDbValue,
+		NlosExponentDb:      UndefinedDbValue,
+		NlosFixedLossDb:     UndefinedDbValue,
+		NoiseFloorDbm:       UndefinedDbValue,
+		SnrMinThresholdDb:   UndefinedDbValue,
+		ShadowFadingSigmaDb: UndefinedDbValue,
+	}
+}
+
 // NewRadioModel creates a new RadioModel with given name, or nil if model not found.
 func NewRadioModel(modelName string) RadioModel {
 	var model RadioModel
 	switch modelName {
 	case "Ideal", "I", "1":
-		model = &RadioModelIdeal{
-			Name:      "Ideal",
-			FixedRssi: -60,
-			Params: &RadioModelParams{
-				MeterPerUnit: defaultMeterPerUnit,
-			},
-		}
+		model = &RadioModelIdeal{name: "Ideal", params: newRadioModelParams()}
+		p := model.GetParameters()
+		p.IsDiscLimit = true
+		p.RssiMinDbm = -60.0
+		p.RssiMaxDbm = -60.0
+
 	case "Ideal_Rssi", "IR", "2", "default":
 		model = &RadioModelIdeal{
-			Name:            "Ideal_Rssi",
-			UseVariableRssi: true,
-			Params:          newIndoorModelParamsItu(),
+			name:   "Ideal_Rssi",
+			params: newRadioModelParams(),
 		}
+		p := model.GetParameters()
+		setIndoorModelParamsItu(p)
+		p.IsDiscLimit = true
 	case "MutualInterference", "MI", "M", "3":
 		model = &RadioModelMutualInterference{
-			Name:         "MutualInterference",
-			Params:       newIndoorModelParams3gpp(),
+			name:         "MutualInterference",
+			params:       newRadioModelParams(),
 			shadowFading: newShadowFading(),
 		}
+		setIndoorModelParams3gpp(model.GetParameters())
 	case "MIDisc", "MID", "4":
 		model = &RadioModelMutualInterference{
-			Name:         "MIDisc",
-			IsDiscLimit:  true,
-			Params:       newIndoorModelParams3gpp(),
+			name:         "MIDisc",
+			params:       newRadioModelParams(),
 			shadowFading: newShadowFading(),
 		}
+		p := model.GetParameters()
+		setIndoorModelParams3gpp(p)
+		p.IsDiscLimit = true
 	case "Outdoor", "5":
 		model = &RadioModelMutualInterference{
-			Name:         "Outdoor",
-			Params:       newOutdoorModelParams(),
+			name:         "Outdoor",
+			params:       newRadioModelParams(),
 			shadowFading: newShadowFading(),
 		}
+		setOutdoorModelParams(model.GetParameters())
 	default:
 		model = nil
 	}

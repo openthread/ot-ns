@@ -133,12 +133,20 @@ func TestParseBytes(t *testing.T) {
 
 	assert.True(t, parseBytes([]byte("plr"), &cmd) == nil && cmd.Plr != nil && cmd.Plr.Val == nil)
 	assert.True(t, parseBytes([]byte("plr 1"), &cmd) == nil && cmd.Plr != nil && *cmd.Plr.Val == 1)
+	assert.True(t, parseBytes([]byte("plr 0.78910"), &cmd) == nil && cmd.Plr != nil && *cmd.Plr.Val == 0.78910)
 
 	assert.True(t, parseBytes([]byte("radio 1 on"), &cmd) == nil && cmd.Radio != nil)
 	assert.True(t, parseBytes([]byte("radio 1 off"), &cmd) == nil && cmd.Radio != nil)
 	assert.True(t, parseBytes([]byte("radio 1 2 3 on"), &cmd) == nil && cmd.Radio != nil)
 	assert.True(t, parseBytes([]byte("radio 4 5 6 off"), &cmd) == nil && cmd.Radio != nil)
 	assert.True(t, parseBytes([]byte("radio 4 5 6 ft 10 60"), &cmd) == nil && cmd.Radio != nil)
+	assert.True(t, parseBytes([]byte("radiomodel AnyName"), &cmd) == nil && cmd.RadioModel != nil && cmd.RadioModel.Model == "AnyName")
+	assert.True(t, parseBytes([]byte("radiomodel 42"), &cmd) == nil && cmd.RadioModel != nil && cmd.RadioModel.Model == "42")
+	assert.True(t, parseBytes([]byte("radiomodel"), &cmd) == nil && cmd.RadioModel != nil && cmd.RadioModel.Model == "")
+	assert.True(t, parseBytes([]byte("radioparam"), &cmd) == nil && cmd.RadioParam != nil && cmd.RadioParam.Param == "" && cmd.RadioParam.Val == nil)
+	assert.True(t, parseBytes([]byte("radioparam name1"), &cmd) == nil && cmd.RadioParam != nil && cmd.RadioParam.Param == "name1" && cmd.RadioParam.Val == nil)
+	assert.True(t, parseBytes([]byte("radioparam name1 0.43"), &cmd) == nil && cmd.RadioParam != nil && cmd.RadioParam.Param == "name1" && *cmd.RadioParam.Val == 0.43)
+	assert.True(t, parseBytes([]byte("radioparam name2 -23.512"), &cmd) == nil && cmd.RadioParam != nil && cmd.RadioParam.Param == "name2" && cmd.RadioParam.Sign == "-" && *cmd.RadioParam.Val == 23.512)
 
 	assert.True(t, parseBytes([]byte("scan 1"), &cmd) == nil && cmd.Scan != nil)
 

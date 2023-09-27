@@ -41,15 +41,8 @@ import (
 // is also radio reception possible beyond the radioRange. Also, devices with better Rx sensitivity will receive
 // radio frames at longer distances beyond the radioRange.
 type RadioModelMutualInterference struct {
-	Name string
-
-	// Whether RF signal reception is limited to the RadioRange disc of each node, or not (default false).
-	// If true, the interference (e.g. RSSI sampled on channel) is confined to the disc and frame
-	// reception is also confined to the disc.
-	IsDiscLimit bool
-
-	// Parameters of an indoor propagation model
-	Params       *RadioModelParams
+	name         string
+	params       *RadioModelParams
 	shadowFading *shadowFading
 
 	nodes                 map[NodeId]*RadioNode
@@ -77,21 +70,33 @@ func (rm *RadioModelMutualInterference) CheckRadioReachable(src *RadioNode, dst 
 	if src == dst || dst.RadioState != RadioRx || src.RadioChannel != dst.RadioChannel {
 		return false
 	}
-	if rm.IsDiscLimit && src.GetDistanceTo(dst) > src.RadioRange {
+	if rm.params.IsDiscLimit && src.GetDistanceTo(dst) > src.RadioRange {
 		return false
 	}
 	rssi := rm.GetTxRssi(src, dst)
-	floorDbm := math.Max(dst.RxSensitivity, rm.Params.NoiseFloorDbm) + rm.Params.SnrMinThresholdDb
+	floorDbm := math.Max(dst.RxSensitivity, rm.params.NoiseFloorDbm) + rm.params.SnrMinThresholdDb
 	return rssi >= RssiMin && rssi <= RssiMax && rssi >= floorDbm
 }
 
 func (rm *RadioModelMutualInterference) GetTxRssi(src *RadioNode, dst *RadioNode) DbValue {
+	var rssi DbValue
+
 	dist := src.GetDistanceTo(dst)
-	if rm.IsDiscLimit && dist > src.RadioRange {
+	if rm.params.IsDiscLimit && dist > src.RadioRange {
 		return RssiMinusInfinity
 	}
-	rssi := computeIndoorRssi3gpp(dist, src.TxPower, rm.Params)
-	rssi -= rm.shadowFading.computeShadowFading(src, dst, rm.Params)
+
+	if rm.params.RssiMinDbm < rm.params.RssiMaxDbm {
+		rssi = computeIndoorRssi3gpp(dist, src.TxPower, rm.params)
+		rssi -= rm.shadowFading.computeShadowFading(src, dst, rm.params)
+		if rssi < rm.params.RssiMinDbm {
+			rssi = rm.params.RssiMinDbm
+		} else if rssi > rm.params.RssiMaxDbm {
+			rssi = rm.params.RssiMaxDbm
+		}
+	} else {
+		rssi = rm.params.RssiMaxDbm
+	}
 	return rssi
 }
 
@@ -144,7 +149,11 @@ func (rm *RadioModelMutualInterference) HandleEvent(node *RadioNode, q EventQueu
 }
 
 func (rm *RadioModelMutualInterference) GetName() string {
-	return rm.Name
+	return rm.name
+}
+
+func (rm *RadioModelMutualInterference) GetParameters() *RadioModelParams {
+	return rm.params
 }
 
 func (rm *RadioModelMutualInterference) init() {
@@ -158,12 +167,12 @@ func (rm *RadioModelMutualInterference) init() {
 	rm.interferedBy = map[NodeId]map[NodeId]*RadioNode{}
 }
 
-func (rm *RadioModelMutualInterference) getRssiAmbientNoise(node *RadioNode, channel ChannelId) DbValue {
-	return rm.Params.NoiseFloorDbm
+func (rm *RadioModelMutualInterference) getRssiAmbientNoise() DbValue {
+	return rm.params.NoiseFloorDbm
 }
 
 func (rm *RadioModelMutualInterference) getRssiOnChannel(node *RadioNode, channel ChannelId) DbValue {
-	rssiMax := rm.getRssiAmbientNoise(node, channel)
+	rssiMax := rm.getRssiAmbientNoise()
 	// loop all active transmitters
 	for _, v := range rm.activeTransmitters[channel] {
 		rssi := rm.GetTxRssi(v, node)
@@ -247,7 +256,7 @@ func (rm *RadioModelMutualInterference) txStop(node *RadioNode, evt *Event) {
 
 func (rm *RadioModelMutualInterference) applyInterference(src *RadioNode, dst *RadioNode, evt *Event) {
 	// Apply interference. Loop all interferers that were active during Tx by 'src' and add their signal powers.
-	powIntfMax := rm.getRssiAmbientNoise(dst, ChannelId(evt.RadioCommData.Channel))
+	powIntfMax := rm.getRssiAmbientNoise()
 	for _, interferer := range rm.interferedBy[src.Id] {
 		if interferer == dst { // if dst node was at some point transmitting itself, fail the Rx
 			rm.log(evt.Timestamp, dst.Id, "Detected self-transmission of Node, set Rx OT_ERROR_ABORT")
