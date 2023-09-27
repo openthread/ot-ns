@@ -130,7 +130,7 @@ func (rt *CmdRunner) RunCommand(cmdline string, output io.Writer) error {
 		// run the OTNS-CLI command without node context
 		cmd := Command{}
 
-		if err := ParseBytes([]byte(cmdline), &cmd); err != nil {
+		if err := parseBytes([]byte(cmdline), &cmd); err != nil {
 			if _, err := fmt.Fprintf(output, "Error: %v\n", err); err != nil {
 				return err
 			}
