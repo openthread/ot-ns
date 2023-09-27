@@ -61,6 +61,7 @@ type Command struct {
 	Plr                 *PlrCmd                 `| @@` //nolint
 	Radio               *RadioCmd               `| @@` //nolint
 	RadioModel          *RadioModelCmd          `| @@` //nolint
+	RadioParam          *RadioParamCmd          `| @@` //nolint
 	Scan                *ScanCmd                `| @@` //nolint
 	Speed               *SpeedCmd               `| @@` //nolint
 	Time                *TimeCmd                `| @@` //nolint
@@ -457,6 +458,14 @@ type PlrCmd struct {
 type RadioModelCmd struct {
 	Cmd   struct{} `"radiomodel"`    //nolint
 	Model string   `[(@Ident|@Int)]` //nolint
+}
+
+// noinspection GoVetStructTag
+type RadioParamCmd struct {
+	Cmd   struct{} `"radioparam"`      //nolint
+	Param string   `[@Ident]`          //nolint
+	Sign  string   `[@("-"|"+")]`      //nolint
+	Val   *float64 `[ (@Int|@Float) ]` //nolint
 }
 
 // noinspection GoVetStructTag

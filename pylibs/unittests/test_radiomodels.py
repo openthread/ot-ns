@@ -25,6 +25,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+
 import unittest
 
 from OTNSTestCase import OTNSTestCase
@@ -32,15 +33,10 @@ from test_basic import BasicTests
 from test_commissioning import CommissioningTests
 from test_ping import PingTests
 from test_csl import CslTests
-from otns.cli import errors, OTNS
+from otns.cli import errors
 
 
 class RadioModelTests(OTNSTestCase):
-
-    # override
-    def setUp(self):
-        super().setUp()
-        self.ns.radiomodel = 'MutualInterference'
 
     def testRadioModelSwitching(self):
         ns = self.ns
@@ -91,6 +87,29 @@ class RadioModelTests(OTNSTestCase):
         ns.node_cmd(3,'txpower 20')
         ns.go(200)
         self.assertFormPartitions(1)
+
+    def testRadioParametersGet(self):
+        ns = self.ns
+        rp = ns.radioparams()
+        self.assertEqual(0,rp['IsDiscLimit'])
+        self.assertEqual(-126,rp['RssiMinDbm'])
+        self.assertEqual(126,rp['RssiMaxDbm'])
+        self.assertEqual(rp['NoiseFloorDbm'], ns.get_radioparam('NoiseFloorDbm'))
+        self.assertEqual(rp['ExponentDb'], ns.get_radioparam('ExponentDb'))
+        with self.assertRaises(errors.OTNSCliError):
+            ns.get_radioparam('NonExistingParam')
+
+    def testRadioParametersSet(self):
+        ns = self.ns
+        ns.set_radioparam('NlosExponentDb', 48.0)
+        rp = ns.radioparams()
+        self.assertEqual(48.0, rp['NlosExponentDb'])
+        self.assertEqual(0, rp['IsDiscLimit'])
+
+        ns.radiomodel = 'MIDisc' # selecting a model resets the parameters
+        rp = ns.radioparams()
+        self.assertNotEquals(48.0, rp['NlosExponentDb'])
+        self.assertEqual(1, rp['IsDiscLimit'])
 
 
 class BasicTests_Ideal(BasicTests):

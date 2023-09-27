@@ -30,6 +30,7 @@ Python libraries use the CLI to manage simulations.
 * [plr](#plr)
 * [radio](#radio-node-id-node-id--on--off--ft-fail-duration-fail-interval)
 * [radiomodel](#radiomodel-modelname)
+* [radioparam](#radioparam-param-name-new-value)
 * [scan](#scan-node-id)
 * [speed](#speed)
 * [title](#title-string)
@@ -528,6 +529,37 @@ Done
 Ideal_Rssi
 Done
 >
+```
+
+### radioparam \[param-name\] \[new-value\]
+
+Get or set parameters of the current radiomodel. Use without the optional arguments to get a list of all current 
+radiomodel parameters. Add the `param-name` to get only the value of that parameter. If both `param-name` and `new-value` 
+are provided, the parameter value is set to `new-value`. It has to be a numeric value.
+
+```bash
+> radioparam
+MeterPerUnit         0.1
+IsDiscLimit          0
+RssiMinDbm           -126
+RssiMaxDbm           126
+ExponentDb           17.3
+FixedLossDb          40
+NlosExponentDb       38.3
+NlosFixedLossDb      26.77
+NoiseFloorDbm        -95
+SnrMinThresholdDb    -4
+ShadowFadingSigmaDb  8.03
+Done
+> radioparam MeterPerUnit
+0.1
+Done
+> radioparam MeterPerUnit 0.5
+Done
+> radioparam MeterPerUnit
+0.5
+Done
+> 
 ```
 
 ### scan \<node-id\>

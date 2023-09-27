@@ -31,6 +31,7 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
 
@@ -252,6 +253,8 @@ func (rt *CmdRunner) execute(cmd *Command, output io.Writer) {
 		rt.executeNetInfo(cc, cc.NetInfo)
 	} else if cmd.RadioModel != nil {
 		rt.executeRadioModel(cc, cc.RadioModel)
+	} else if cmd.RadioParam != nil {
+		rt.executeRadioParam(cc, cc.RadioParam)
 	} else if cmd.Energy != nil {
 		rt.executeEnergy(cc, cc.Energy)
 	} else if cmd.LogLevel != nil {
@@ -726,6 +729,68 @@ func (rt *CmdRunner) executeRadioModel(cc *CommandContext, cmd *RadioModelCmd) {
 			cc.errorf("radiomodel '%v' is not defined", name)
 		}
 	}
+}
+
+func displayRadioParam(val *reflect.Value) (string, bool) {
+	if val.CanFloat() {
+		f := val.Float()
+		if f == radiomodel.UndefinedDbValue {
+			return "undefined", false
+		}
+		return strconv.FormatFloat(f, 'f', -1, 64), true
+	} else if val.Bool() {
+		return "1", true
+	}
+	return "0", true
+}
+
+func (rt *CmdRunner) executeRadioParam(cc *CommandContext, cmd *RadioParamCmd) {
+	rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
+		rp := sim.Dispatcher().GetRadioModel().GetParameters()
+		rpVal := reflect.ValueOf(rp).Elem()
+		rpTyp := reflect.TypeOf(rp).Elem()
+
+		// variant: radioparam
+		if len(cmd.Param) == 0 {
+			for i := 0; i < rpVal.NumField(); i++ {
+				fname := rpTyp.Field(i).Name
+				fval := rpVal.Field(i)
+				s, isDefined := displayRadioParam(&fval)
+				if isDefined {
+					cc.outputf("%-20s %s\n", fname, s)
+				}
+			}
+			return
+		}
+
+		// variant: radioparam <param-name>
+		// variant: radioparam <param-name> <param-value>
+		var fval reflect.Value
+		_, ok := rpTyp.FieldByName(cmd.Param)
+		if !ok {
+			cc.errorf("Unknown radiomodel parameter: %s", cmd.Param)
+			return
+		}
+
+		fval = rpVal.FieldByName(cmd.Param)
+		isFloat := fval.CanFloat()
+		if cmd.Val == nil { // show value of single parameter
+			s, _ := displayRadioParam(&fval)
+			cc.outputf("%s\n", s)
+			return
+		}
+
+		// set new parameter value
+		newVal := *cmd.Val
+		if cmd.Sign == "-" {
+			newVal = -newVal
+		}
+		if !isFloat { // if we're setting a bool parameter, use <=0 -> false ; >0 -> true
+			fval.SetBool(newVal > 0)
+		} else {
+			fval.SetFloat(newVal)
+		}
+	})
 }
 
 func (rt *CmdRunner) executeLogLevel(cc *CommandContext, cmd *LogLevelCmd) {

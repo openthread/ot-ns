@@ -28,38 +28,36 @@ package radiomodel
 
 import "math"
 
-func newIndoorModelParamsItu() *RadioModelParams {
-	return &RadioModelParams{
-		MeterPerUnit: defaultMeterPerUnit,
-		ExponentDb:   30.0,
-		FixedLossDb:  20.0*math.Log10(2400) - 28.0,
-	}
+// custom parameter rounding function
+func paround(param float64) float64 {
+	return math.Round(param*100.0) / 100.0
+}
+
+// ITU-T model
+func setIndoorModelParamsItu(params *RadioModelParams) {
+	params.ExponentDb = 30.0
+	params.FixedLossDb = paround(20.0*math.Log10(2400) - 28.0)
 }
 
 // see 3GPP TR 38.901 V17.0.0, Table 7.4.1-1: Pathloss models.
-func newIndoorModelParams3gpp() *RadioModelParams {
-	return &RadioModelParams{
-		MeterPerUnit:        defaultMeterPerUnit,
-		ExponentDb:          17.3,
-		FixedLossDb:         32.4 + 20*math.Log10(2.4),
-		NlosExponentDb:      38.3,
-		NlosFixedLossDb:     17.3 + 24.9*math.Log10(2.4),
-		NoiseFloorDbm:       noiseFloorIndoorDbm,
-		SnrMinThresholdDb:   -4.0, // see calcber.m Octave file
-		ShadowFadingSigmaDb: 8.03,
-	}
+func setIndoorModelParams3gpp(params *RadioModelParams) {
+	params.ExponentDb = 17.3
+	params.FixedLossDb = paround(32.4 + 20*math.Log10(2.4))
+	params.NlosExponentDb = 38.3
+	params.NlosFixedLossDb = paround(17.3 + 24.9*math.Log10(2.4))
+	params.NoiseFloorDbm = noiseFloorIndoorDbm
+	params.SnrMinThresholdDb = -4.0 // see calcber.m Octave file
+	params.ShadowFadingSigmaDb = 8.03
 }
 
 // experimental outdoor model with LoS
-func newOutdoorModelParams() *RadioModelParams {
-	return &RadioModelParams{
-		MeterPerUnit:        0.5,
-		ExponentDb:          17.3,
-		FixedLossDb:         32.4 + 20*math.Log10(2.4),
-		NoiseFloorDbm:       noiseFloorIndoorDbm,
-		SnrMinThresholdDb:   -4.0, // see calcber.m Octave file
-		ShadowFadingSigmaDb: 3.0,
-	}
+func setOutdoorModelParams(params *RadioModelParams) {
+	params.MeterPerUnit = 0.5
+	params.ExponentDb = 17.3
+	params.FixedLossDb = paround(32.4 + 20*math.Log10(2.4))
+	params.NoiseFloorDbm = noiseFloorIndoorDbm
+	params.SnrMinThresholdDb = -4.0 // see calcber.m Octave file
+	params.ShadowFadingSigmaDb = 3.0
 }
 
 // computeIndoorRssi computes the RSSI for a receiver at distance dist, using a simple indoor exponent loss model.
@@ -92,7 +90,6 @@ func computeIndoorRssi3gpp(dist float64, txPower DbValue, modelParams *RadioMode
 			pathloss = math.Max(pathloss, pathlossNLOS)
 		}
 	}
-
 	rssi := txPower - pathloss
 	return rssi
 }

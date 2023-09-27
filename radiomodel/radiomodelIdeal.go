@@ -1,4 +1,4 @@
-// Copyright (c) 2022, The OTNS Authors.
+// Copyright (c) 2022-2023, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -36,10 +36,8 @@ import (
 // based on an average RF propagation model. There is a hard stop of reception beyond the
 // radioRange of the node i.e. ideal disc model.
 type RadioModelIdeal struct {
-	Name            string
-	UseVariableRssi bool // when true it uses distance-dependent RSSI model, else FixedRssi.
-	FixedRssi       DbValue
-	Params          *RadioModelParams
+	name   string
+	params *RadioModelParams
 
 	nodes map[NodeId]*RadioNode
 }
@@ -63,9 +61,16 @@ func (rm *RadioModelIdeal) CheckRadioReachable(src *RadioNode, dst *RadioNode) b
 }
 
 func (rm *RadioModelIdeal) GetTxRssi(srcNode *RadioNode, dstNode *RadioNode) DbValue {
-	rssi := rm.FixedRssi // in the most ideal case, always assume a good RSSI up until the max range.
-	if rm.UseVariableRssi {
-		rssi = computeIndoorRssiItu(srcNode.GetDistanceTo(dstNode), srcNode.TxPower, rm.Params)
+	var rssi DbValue
+	if rm.params.RssiMinDbm < rm.params.RssiMaxDbm {
+		rssi = computeIndoorRssiItu(srcNode.GetDistanceTo(dstNode), srcNode.TxPower, rm.params)
+		if rssi < rm.params.RssiMinDbm {
+			rssi = rm.params.RssiMinDbm
+		} else if rssi > rm.params.RssiMaxDbm {
+			rssi = rm.params.RssiMaxDbm
+		}
+	} else {
+		rssi = rm.params.RssiMaxDbm
 	}
 	return rssi
 }
@@ -98,7 +103,11 @@ func (rm *RadioModelIdeal) HandleEvent(node *RadioNode, q EventQueue, evt *Event
 }
 
 func (rm *RadioModelIdeal) GetName() string {
-	return rm.Name
+	return rm.name
+}
+
+func (rm *RadioModelIdeal) GetParameters() *RadioModelParams {
+	return rm.params
 }
 
 func (rm *RadioModelIdeal) init() {

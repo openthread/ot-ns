@@ -161,6 +161,8 @@ class OTNS(object):
     @property
     def radiomodel(self) -> str:
         """
+        Get radiomodel used for simulation.
+
         :return: current radio model used
         """
         return self._expect_str(self._do_command(f'radiomodel'))
@@ -168,11 +170,45 @@ class OTNS(object):
     @radiomodel.setter
     def radiomodel(self, model: str) -> None:
         """
-        Set radiomodel for simulation.
+        Set radiomodel to be used for simulation. Setting a radiomodel also resets all the
+        parameters.
 
         :param model: name of new radio model to use. Default is "MutualInterference".
         """
         assert self._do_command(f'radiomodel {model}')[0] == model
+
+    def radioparams(self) -> Dict[int, Collection[int]]:
+        """
+        Get radiomodel parameters.
+
+        :return: dict with parameter strings as keys and parameter values as values
+        """
+        output = self._do_command('radioparam')
+        params = {}
+        for line in output:
+            line = line.split()
+            parname = line[0]
+            parvalue = float(line[1])
+            params[parname] = parvalue
+        return params
+
+    def get_radioparam(self, parname: str):
+        """
+        Get a radiomodel parameter.
+
+        :param parname: parameter name (string)
+        :return parameter value
+        """
+        return float(self._do_command(f'radioparam {parname}')[0])
+
+    def set_radioparam(self, parname: str, parvalue: float):
+        """
+        Set a radiomodel parameter to the specified value.
+
+        :param parname: parameter name (string)
+        :param parvalue: parameter value (float)
+        """
+        self._do_command(f'radioparam {parname} {parvalue}')
 
     @property
     def loglevel(self) -> str:
