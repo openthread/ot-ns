@@ -31,6 +31,7 @@ Python libraries use the CLI to manage simulations.
 * [radio](#radio-node-id-node-id--on--off--ft-fail-duration-fail-interval)
 * [radiomodel](#radiomodel-modelname)
 * [radioparam](#radioparam-param-name-new-value)
+* [rxsens](#rxsens-node-id-sensitivity-value)
 * [scan](#scan-node-id)
 * [speed](#speed)
 * [title](#title-string)
@@ -560,6 +561,27 @@ Done
 0.5
 Done
 > 
+```
+
+### rxsens \<node-id\> \[sensitivity-value\]
+
+Get or set the current receiver sensitivity (dBm) for the node. Values range from -126 to 126. For correct radio 
+operation, the receiver sensitivity MUST be kept lower than the current CCA ED threshold. The latter can be set 
+using the OT node CLI command `ccathreshold`.
+
+```bash
+> add router
+1
+Done
+> rxsens 1
+-100 dBm
+Done
+> rxsens 1 -85
+Done
+> rxsens 1
+-85 dBm
+Done
+>  
 ```
 
 ### scan \<node-id\>

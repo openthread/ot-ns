@@ -97,6 +97,10 @@ func (rm *RadioModelIdeal) HandleEvent(node *RadioNode, q EventQueue, evt *Event
 		rm.txStop(node, q, evt)
 	case EventTypeRadioChannelSample:
 		rm.channelSampleStart(node, q, evt)
+	case EventTypeRadioState:
+		node.SetRadioState(evt.RadioStateData.EnergyState, evt.RadioStateData.SubState)
+		node.SetChannel(ChannelId(evt.RadioStateData.Channel))
+		node.SetRxSensitivity(DbValue(evt.RadioStateData.RxSensDbm))
 	default:
 		break
 	}

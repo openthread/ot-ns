@@ -67,21 +67,22 @@ type JoinResult struct {
 }
 
 type Node struct {
-	D             *Dispatcher
-	Id            NodeId
-	X, Y          int
-	PartitionId   uint32
-	ExtAddr       uint64
-	Rloc16        uint16
-	CreateTime    uint64
-	CurTime       uint64
-	Role          OtDeviceRole
+	D           *Dispatcher
+	Id          NodeId
+	X, Y        int
+	PartitionId uint32
+	ExtAddr     uint64
+	Rloc16      uint16
+	CreateTime  uint64
+	CurTime     uint64
+	Role        OtDeviceRole
+	RadioNode   *radiomodel.RadioNode
+
 	conn          net.Conn
 	msgId         uint64
 	err           error
 	failureCtrl   *FailureCtrl
 	isFailed      bool
-	radioNode     *radiomodel.RadioNode
 	pendingPings  []*pingRequest
 	pingResults   []*PingResult
 	joinerState   OtJoinerState
@@ -111,7 +112,7 @@ func newNode(d *Dispatcher, nodeid NodeId, cfg *NodeConfig) *Node {
 		Role:        OtDeviceRoleDisabled,
 		conn:        nil, // connection will be set when first event is received from node.
 		err:         nil, // keep track of connection errors.
-		radioNode:   radiomodel.NewRadioNode(nodeid, radioCfg),
+		RadioNode:   radiomodel.NewRadioNode(nodeid, radioCfg),
 		joinerState: OtJoinerStateIdle,
 		logger:      logger.GetNodeLogger(d.cfg.SimulationId, cfg),
 	}
@@ -122,6 +123,39 @@ func newNode(d *Dispatcher, nodeid NodeId, cfg *NodeConfig) *Node {
 
 func (node *Node) String() string {
 	return GetNodeName(node.Id)
+}
+
+// SendToUART sends any data to virtual time UART of the node.
+func (node *Node) SendToUART(data []byte) error {
+	var err error
+	evt := &Event{
+		Timestamp: node.D.CurTime,
+		Type:      EventTypeUartWrite,
+		Data:      data,
+		NodeId:    node.Id,
+	}
+
+	node.logger.Tracef("UART-write: %s", data)
+	node.sendEvent(evt)
+	if node.err != nil {
+		err = node.err
+	}
+	return err
+}
+
+func (node *Node) SendRxSensitivityEvent(includeData bool, rxSens int8) error {
+	data := make([]byte, 0)
+	if includeData {
+		data = []byte{byte(rxSens)}
+	}
+	evt := &Event{
+		Timestamp: node.D.CurTime,
+		Type:      EventTypeRadioSetRxSensitivity,
+		Data:      data,
+		NodeId:    node.Id,
+	}
+	node.sendEvent(evt)
+	return node.err
 }
 
 // SendEvent sends Event evt serialized to the node, over socket. It uses evt.Timestamp

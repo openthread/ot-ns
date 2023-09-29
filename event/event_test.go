@@ -68,7 +68,7 @@ func TestDeserializeRadioCommEvent(t *testing.T) {
 }
 
 func TestDeserializeRadioStateEvent(t *testing.T) {
-	data, _ := hex.DecodeString("0403020100000000090a000000000000000d000d05030b0240e2010000000000")
+	data, _ := hex.DecodeString("0403020100000000090a000000000000000e000d05ab030b0240e2010000000000")
 	var ev Event
 	n := ev.Deserialize(data)
 	assert.Equal(t, uint64(16909060), ev.Delay)
@@ -76,6 +76,7 @@ func TestDeserializeRadioStateEvent(t *testing.T) {
 	assert.Equal(t, uint64(10), ev.MsgId)
 	assert.Equal(t, uint8(13), ev.RadioStateData.Channel)
 	assert.Equal(t, int8(5), ev.RadioStateData.PowerDbm)
+	assert.Equal(t, int8(-85), ev.RadioStateData.RxSensDbm)
 	assert.Equal(t, types.RadioTx, ev.RadioStateData.EnergyState)
 	assert.Equal(t, types.RFSIM_RADIO_SUBSTATE_RX_ACK_TX_ONGOING, ev.RadioStateData.SubState)
 	assert.Equal(t, types.RadioRx, ev.RadioStateData.State)
@@ -84,7 +85,7 @@ func TestDeserializeRadioStateEvent(t *testing.T) {
 }
 
 func TestDeserializeMultiple(t *testing.T) {
-	data1, _ := hex.DecodeString("0403020100000000090a000000000000000d000d05030b0240e2010000000000")
+	data1, _ := hex.DecodeString("0403020100000000090a000000000000000e000d059c030b0240e2010000000000")
 	data2, _ := hex.DecodeString("040302010000000006040000000000000011000cf6112a000000000000000c1020304050")
 	data3, _ := hex.DecodeString("aabbccddeeff1122341122334455667788")
 	data := append(data1, data2...)
@@ -97,6 +98,7 @@ func TestDeserializeMultiple(t *testing.T) {
 	assert.Equal(t, uint64(10), ev.MsgId)
 	assert.Equal(t, uint8(13), ev.RadioStateData.Channel)
 	assert.Equal(t, int8(5), ev.RadioStateData.PowerDbm)
+	assert.Equal(t, int8(-100), ev.RadioStateData.RxSensDbm)
 	assert.Equal(t, types.RadioTx, ev.RadioStateData.EnergyState)
 	assert.Equal(t, types.RFSIM_RADIO_SUBSTATE_RX_ACK_TX_ONGOING, ev.RadioStateData.SubState)
 	assert.Equal(t, types.RadioRx, ev.RadioStateData.State)

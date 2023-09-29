@@ -50,7 +50,7 @@ func (m mockDispatcherCallback) OnNodeRecover(nodeid NodeId) {
 func (m mockDispatcherCallback) OnUartWrite(nodeid NodeId, data []byte) {
 }
 
-func (m mockDispatcherCallback) OnNextEventTime(curTimeUs uint64, nextTimeUs uint64) {
+func (m mockDispatcherCallback) OnNextEventTime(nextTimeUs uint64) {
 }
 
 func mockNode1() *Node {

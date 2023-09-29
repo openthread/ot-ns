@@ -68,8 +68,8 @@ type RadioNodeConfig struct {
 func NewRadioNode(nodeid NodeId, cfg *RadioNodeConfig) *RadioNode {
 	rn := &RadioNode{
 		Id:            nodeid,
-		TxPower:       defaultTxPowerDbm,
-		RxSensitivity: receiveSensitivityDbm,
+		TxPower:       RssiInvalid,
+		RxSensitivity: RssiInvalid,
 		X:             float64(cfg.X),
 		Y:             float64(cfg.Y),
 		RadioRange:    float64(cfg.RadioRange),
@@ -87,6 +87,10 @@ func (rn *RadioNode) SetChannel(ch ChannelId) {
 func (rn *RadioNode) SetRadioState(state RadioStates, subState RadioSubStates) {
 	rn.RadioState = state
 	rn.RadioSubState = subState
+}
+
+func (rn *RadioNode) SetRxSensitivity(rxSens DbValue) {
+	rn.RxSensitivity = rxSens
 }
 
 func (rn *RadioNode) SetNodePos(x int, y int) {

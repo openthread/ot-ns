@@ -143,6 +143,10 @@ func (rm *RadioModelMutualInterference) HandleEvent(node *RadioNode, q EventQueu
 		rm.txStop(node, evt)
 	case EventTypeRadioChannelSample:
 		rm.channelSampleStart(node, evt)
+	case EventTypeRadioState:
+		node.SetRadioState(evt.RadioStateData.EnergyState, evt.RadioStateData.SubState)
+		node.SetChannel(ChannelId(evt.RadioStateData.Channel))
+		node.SetRxSensitivity(DbValue(evt.RadioStateData.RxSensDbm))
 	default:
 		break // Unknown events not handled.
 	}

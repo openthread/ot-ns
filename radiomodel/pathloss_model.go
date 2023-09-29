@@ -45,7 +45,7 @@ func setIndoorModelParams3gpp(params *RadioModelParams) {
 	params.FixedLossDb = paround(32.4 + 20*math.Log10(2.4))
 	params.NlosExponentDb = 38.3
 	params.NlosFixedLossDb = paround(17.3 + 24.9*math.Log10(2.4))
-	params.NoiseFloorDbm = noiseFloorIndoorDbm
+	params.NoiseFloorDbm = defaultNoiseFloorIndoorDbm
 	params.SnrMinThresholdDb = -4.0 // see calcber.m Octave file
 	params.ShadowFadingSigmaDb = 8.03
 }
@@ -55,7 +55,7 @@ func setOutdoorModelParams(params *RadioModelParams) {
 	params.MeterPerUnit = 0.5
 	params.ExponentDb = 17.3
 	params.FixedLossDb = paround(32.4 + 20*math.Log10(2.4))
-	params.NoiseFloorDbm = noiseFloorIndoorDbm
+	params.NoiseFloorDbm = defaultNoiseFloorIndoorDbm
 	params.SnrMinThresholdDb = -4.0 // see calcber.m Octave file
 	params.ShadowFadingSigmaDb = 3.0
 }
