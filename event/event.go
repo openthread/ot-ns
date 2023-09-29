@@ -42,21 +42,22 @@ type EventType = uint8
 
 const (
 	// Event type IDs (external, shared between OT-NS and OT node)
-	EventTypeAlarmFired         EventType = 0
-	EventTypeRadioReceived      EventType = 1
-	EventTypeUartWrite          EventType = 2
-	EventTypeRadioSpinelWrite   EventType = 3
-	EventTypePostCmd            EventType = 4
-	EventTypeStatusPush         EventType = 5
-	EventTypeRadioCommStart     EventType = 6
-	EventTypeRadioTxDone        EventType = 7
-	EventTypeRadioChannelSample EventType = 8
-	EventTypeRadioState         EventType = 9
-	EventTypeRadioRxDone        EventType = 10
-	EventTypeExtAddr            EventType = 11
-	EventTypeNodeInfo           EventType = 12
-	EventTypeNodeDisconnected   EventType = 14
-	EventTypeRadioLog           EventType = 15
+	EventTypeAlarmFired            EventType = 0
+	EventTypeRadioReceived         EventType = 1
+	EventTypeUartWrite             EventType = 2
+	EventTypeRadioSpinelWrite      EventType = 3
+	EventTypePostCmd               EventType = 4
+	EventTypeStatusPush            EventType = 5
+	EventTypeRadioCommStart        EventType = 6
+	EventTypeRadioTxDone           EventType = 7
+	EventTypeRadioChannelSample    EventType = 8
+	EventTypeRadioState            EventType = 9
+	EventTypeRadioRxDone           EventType = 10
+	EventTypeExtAddr               EventType = 11
+	EventTypeNodeInfo              EventType = 12
+	EventTypeNodeDisconnected      EventType = 14
+	EventTypeRadioLog              EventType = 15
+	EventTypeRadioSetRxSensitivity EventType = 16
 )
 
 const (
@@ -64,7 +65,7 @@ const (
 )
 
 // Event format used by OT nodes.
-const EventMsgHeaderLen = 19 // from OT platform-simulation.h struct Event { }
+const eventMsgHeaderLen = 19 // from OT platform-simulation.h struct Event { }
 type Event struct {
 	Delay uint64
 	Type  EventType
@@ -86,7 +87,7 @@ type Event struct {
 
 // All ...EventData formats below only used by OT nodes supporting advanced
 // RF simulation.
-const RadioCommEventDataHeaderLen = 11 // from OT-RFSIM platform, event-sim.h struct
+const radioCommEventDataHeaderLen = 11 // from OT-RFSIM platform, event-sim.h struct
 type RadioCommEventData struct {
 	Channel  uint8
 	PowerDbm int8
@@ -94,17 +95,18 @@ type RadioCommEventData struct {
 	Duration uint64
 }
 
-const RadioStateEventDataHeaderLen = 13 // from OT-RFSIM platform, event-sim.h struct
+const radioStateEventDataHeaderLen = 14 // from OT-RFSIM platform, event-sim.h struct
 type RadioStateEventData struct {
 	Channel     uint8
 	PowerDbm    int8
+	RxSensDbm   int8
 	EnergyState types.RadioStates
 	SubState    types.RadioSubStates
 	State       types.RadioStates
 	RadioTime   uint64
 }
 
-const NodeInfoEventDataHeaderLen = 4 // from OT-RFSIM platform, otSimSendNodeInfoEvent()
+const nodeInfoEventDataHeaderLen = 4 // from OT-RFSIM platform, otSimSendNodeInfoEvent()
 type NodeInfoEventData struct {
 	NodeId types.NodeId
 }
@@ -142,12 +144,12 @@ func (e *Event) Serialize() []byte {
 	}
 
 	payload := append(extraFields, e.Data...)
-	msg := make([]byte, EventMsgHeaderLen+len(payload))
+	msg := make([]byte, eventMsgHeaderLen+len(payload))
 	binary.LittleEndian.PutUint64(msg[:8], e.Delay) // e.Timestamp is not sent, only e.Delay.
 	msg[8] = e.Type
 	binary.LittleEndian.PutUint64(msg[9:17], e.MsgId)
 	binary.LittleEndian.PutUint16(msg[17:19], uint16(len(payload)))
-	n := copy(msg[EventMsgHeaderLen:], payload)
+	n := copy(msg[eventMsgHeaderLen:], payload)
 	logger.AssertTrue(n == len(payload))
 
 	return msg
@@ -158,7 +160,7 @@ func (e *Event) Serialize() []byte {
 // is incomplete i.e. does not contain one entire serialized Event.
 func (e *Event) Deserialize(data []byte) int {
 	n := len(data)
-	if n < EventMsgHeaderLen {
+	if n < eventMsgHeaderLen {
 		return 0
 	}
 	e.Delay = binary.LittleEndian.Uint64(data[:8])
@@ -166,28 +168,28 @@ func (e *Event) Deserialize(data []byte) int {
 	e.MsgId = binary.LittleEndian.Uint64(data[9:17])
 	datalen := binary.LittleEndian.Uint16(data[17:19])
 	var payloadOffset uint16 = 0
-	if datalen > uint16(n-EventMsgHeaderLen) {
+	if datalen > uint16(n-eventMsgHeaderLen) {
 		return 0
 	}
-	e.Data = data[EventMsgHeaderLen : EventMsgHeaderLen+datalen]
+	e.Data = data[eventMsgHeaderLen : eventMsgHeaderLen+datalen]
 
 	// Detect composite event types
 	switch e.Type {
 	case EventTypeRadioChannelSample:
 		e.RadioCommData = deserializeRadioCommData(e.Data)
-		payloadOffset += RadioCommEventDataHeaderLen
+		payloadOffset += radioCommEventDataHeaderLen
 	case EventTypeRadioRxDone:
 		fallthrough
 	case EventTypeRadioCommStart:
 		e.RadioCommData = deserializeRadioCommData(e.Data)
-		payloadOffset += RadioCommEventDataHeaderLen
+		payloadOffset += radioCommEventDataHeaderLen
 		logger.AssertEqual(e.RadioCommData.Channel, e.Data[payloadOffset]) // channel is stored twice.
 	case EventTypeRadioState:
 		e.RadioStateData = deserializeRadioStateData(e.Data)
-		payloadOffset += RadioStateEventDataHeaderLen
+		payloadOffset += radioStateEventDataHeaderLen
 	case EventTypeNodeInfo:
 		e.NodeInfoData = deserializeNodeInfoData(e.Data)
-		payloadOffset += NodeInfoEventDataHeaderLen
+		payloadOffset += nodeInfoEventDataHeaderLen
 	default:
 		break
 	}
@@ -199,11 +201,11 @@ func (e *Event) Deserialize(data []byte) int {
 	// e.Timestamp is not in the event, so set to invalid initially.
 	e.Timestamp = InvalidTimestamp
 
-	return int(EventMsgHeaderLen + datalen)
+	return int(eventMsgHeaderLen + datalen)
 }
 
 func deserializeRadioCommData(data []byte) RadioCommEventData {
-	logger.AssertTrue(len(data) >= RadioCommEventDataHeaderLen)
+	logger.AssertTrue(len(data) >= radioCommEventDataHeaderLen)
 	s := RadioCommEventData{
 		Channel:  data[0],
 		PowerDbm: int8(data[1]),
@@ -214,20 +216,21 @@ func deserializeRadioCommData(data []byte) RadioCommEventData {
 }
 
 func deserializeRadioStateData(data []byte) RadioStateEventData {
-	logger.AssertTrue(len(data) >= RadioStateEventDataHeaderLen)
+	logger.AssertTrue(len(data) >= radioStateEventDataHeaderLen)
 	s := RadioStateEventData{
 		Channel:     data[0],
 		PowerDbm:    int8(data[1]),
-		EnergyState: types.RadioStates(data[2]),
-		SubState:    types.RadioSubStates(data[3]),
-		State:       types.RadioStates(data[4]),
-		RadioTime:   binary.LittleEndian.Uint64(data[5:13]),
+		RxSensDbm:   int8(data[2]),
+		EnergyState: types.RadioStates(data[3]),
+		SubState:    types.RadioSubStates(data[4]),
+		State:       types.RadioStates(data[5]),
+		RadioTime:   binary.LittleEndian.Uint64(data[6:14]),
 	}
 	return s
 }
 
 func deserializeNodeInfoData(data []byte) NodeInfoEventData {
-	logger.AssertTrue(len(data) >= NodeInfoEventDataHeaderLen)
+	logger.AssertTrue(len(data) >= nodeInfoEventDataHeaderLen)
 	s := NodeInfoEventData{
 		NodeId: types.NodeId(binary.LittleEndian.Uint32(data[0:4])),
 	}
@@ -235,8 +238,8 @@ func deserializeNodeInfoData(data []byte) NodeInfoEventData {
 }
 
 // Copy creates a (struct) copy of the Event.
-func (e Event) Copy() Event {
-	newEv := e
+func (e *Event) Copy() Event {
+	newEv := *e
 	return newEv
 }
 

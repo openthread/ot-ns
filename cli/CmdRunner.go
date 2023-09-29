@@ -255,6 +255,8 @@ func (rt *CmdRunner) execute(cmd *Command, output io.Writer) {
 		rt.executeRadioModel(cc, cc.RadioModel)
 	} else if cmd.RadioParam != nil {
 		rt.executeRadioParam(cc, cc.RadioParam)
+	} else if cmd.RxSens != nil {
+		rt.executeRxSens(cc, cc.RxSens)
 	} else if cmd.Energy != nil {
 		rt.executeEnergy(cc, cc.Energy)
 	} else if cmd.LogLevel != nil {
@@ -467,7 +469,12 @@ func (rt *CmdRunner) executePing(cc *CommandContext, cmd *PingCmd) {
 
 func (rt *CmdRunner) getNode(sim *simulation.Simulation, sel NodeSelector) (*simulation.Node, *dispatcher.Node) {
 	if sel.Id > 0 {
-		return sim.Nodes()[sel.Id], sim.Dispatcher().Nodes()[sel.Id]
+		var dnode *dispatcher.Node
+		node := sim.Nodes()[sel.Id]
+		if node != nil {
+			dnode = node.DNode
+		}
+		return node, dnode
 	}
 
 	return nil, nil
@@ -541,7 +548,7 @@ func (rt *CmdRunner) executeNode(cc *CommandContext, cmd *NodeCmd) {
 			} else {
 				output = node.Command(*cmd.Command, simulation.DefaultCommandTimeout)
 			}
-			node.Logger.DisplayPendingLogEntries(sim.Dispatcher().CurTime)
+			node.DisplayPendingLogEntries()
 			for _, line := range output {
 				cc.outputf("%s\n", line)
 			}
@@ -789,6 +796,36 @@ func (rt *CmdRunner) executeRadioParam(cc *CommandContext, cmd *RadioParamCmd) {
 			fval.SetBool(newVal > 0)
 		} else {
 			fval.SetFloat(newVal)
+		}
+	})
+}
+
+func (rt *CmdRunner) executeRxSens(cc *CommandContext, cmd *RxSensCmd) {
+	rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
+		node, _ := rt.getNode(sim, cmd.Id)
+		if node == nil {
+			cc.errorf("node not found")
+			return
+		}
+
+		// variant: rxsens <node-id>
+		if cmd.Val == nil {
+			cc.outputf("%d dBm\n", node.GetRxSensitivity())
+			return
+		}
+
+		// variant: rxsens <node-id> <sensitivity-value>
+		rxSens := *cmd.Val
+		if cmd.Sign == "-" {
+			rxSens = -rxSens
+		}
+		if rxSens < int(radiomodel.RssiMin) || rxSens > int(radiomodel.RssiMax) {
+			cc.errorf("value out of range (%d - %d)", int(radiomodel.RssiMin), int(radiomodel.RssiMax))
+			return
+		}
+		node.SetRxSensitivity(rxSens)
+		if node.CommandResult() != nil {
+			cc.error(node.CommandResult())
 		}
 	})
 }

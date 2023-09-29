@@ -126,8 +126,8 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 
 	// creation of the dispatcher and simulation nodes
 	logger.Debugf("simulation:AddNode: %+v, rawMode=%v", cfg, s.rawMode)
-	dnode := s.d.AddNode(nodeid, cfg) // ensure dispatcher-node is present before OT process starts.
-	node, err := newNode(s, nodeid, cfg)
+	dnode := s.d.AddNode(nodeid, cfg)
+	node, err := newNode(s, nodeid, cfg, dnode)
 	if err != nil {
 		logger.Errorf("simulation add node failed: %v", err)
 		s.d.DeleteNode(nodeid) // delete dispatcher node again.
@@ -281,12 +281,12 @@ func (s *Simulation) OnUartWrite(nodeid NodeId, data []byte) {
 	node.uartReader <- data
 }
 
-func (s *Simulation) OnNextEventTime(ts uint64, nextTs uint64) {
+func (s *Simulation) OnNextEventTime(nextTs uint64) {
 	// display the pending log messages of nodes. Nodes are sorted by id.
 	s.VisitNodesInOrder(func(node *Node) {
 		node.processUartData()
-		node.Logger.DisplayPendingLogEntries(ts)
-		node.DisplayPendingLines(ts)
+		node.DisplayPendingLogEntries()
+		node.DisplayPendingLines()
 	})
 }
 

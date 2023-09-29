@@ -98,8 +98,8 @@ type CallbackHandler interface {
 	// OnUartWrite Notifies that the node's UART was written with data.
 	OnUartWrite(nodeid NodeId, data []byte)
 
-	// OnNextEventTime Notifies that the Dispatcher simulation moves to the next event time.
-	OnNextEventTime(curTimeUs uint64, nextTimeUs uint64)
+	// OnNextEventTime Notifies that the Dispatcher simulation will move shortly to the next event time.
+	OnNextEventTime(nextTimeUs uint64)
 }
 
 // goDuration represents a particular duration of the simulation at a given speed.
@@ -144,12 +144,13 @@ type Dispatcher struct {
 	coaps                 *coapsHandler
 
 	Counters struct {
-		// Event counters
+		// Received event counters
 		AlarmEvents      uint64
 		RadioEvents      uint64
 		StatusPushEvents uint64
 		UartWriteEvents  uint64
 		CollisionEvents  uint64
+		OtherEvents      uint64
 		// Packet dispatching counters
 		DispatchByExtAddrSucc   uint64
 		DispatchByExtAddrFail   uint64
@@ -361,7 +362,7 @@ func (d *Dispatcher) goSimulateForDuration(duration goDuration) {
 			logger.AssertTrue(d.CurTime <= d.pauseTime)
 
 			if !goon && len(d.aliveNodes) == 0 {
-				d.cbHandler.OnNextEventTime(d.CurTime, d.pauseTime)
+				d.cbHandler.OnNextEventTime(d.pauseTime)
 				d.advanceTime(d.pauseTime) // if nothing more to do before d.pauseTime.
 				break
 			}
@@ -415,11 +416,11 @@ func (d *Dispatcher) handleRecvEvent(evt *Event) {
 		fallthrough
 	case EventTypeRadioChannelSample:
 		d.Counters.RadioEvents += 1
-		d.radioModel.HandleEvent(node.radioNode, d.eventQueue, evt)
+		d.radioModel.HandleEvent(node.RadioNode, d.eventQueue, evt)
 	case EventTypeRadioState:
 		d.Counters.RadioEvents += 1
 		d.handleRadioState(node, evt)
-		d.radioModel.HandleEvent(node.radioNode, d.eventQueue, evt)
+		d.radioModel.HandleEvent(node.RadioNode, d.eventQueue, evt)
 	case EventTypeStatusPush:
 		d.Counters.StatusPushEvents += 1
 		d.handleStatusPush(node, string(evt.Data))
@@ -427,11 +428,13 @@ func (d *Dispatcher) handleRecvEvent(evt *Event) {
 		d.Counters.UartWriteEvents += 1
 		d.cbHandler.OnUartWrite(node.Id, evt.Data)
 	case EventTypeExtAddr:
+		d.Counters.OtherEvents += 1
 		var extaddr = binary.BigEndian.Uint64(evt.Data[0:8])
 		node.onStatusPushExtAddr(extaddr)
 	case EventTypeNodeInfo:
-		break
+		d.Counters.OtherEvents += 1
 	case EventTypeNodeDisconnected:
+		d.Counters.OtherEvents += 1
 		logger.Debugf("%s socket disconnected.", node)
 		d.setSleeping(node.Id)
 		d.alarmMgr.SetTimestamp(node.Id, Ever)
@@ -536,7 +539,7 @@ func (d *Dispatcher) processNextEvent(simSpeed float64) bool {
 	if nextEventTime > d.pauseTime {
 		return false
 	}
-	d.cbHandler.OnNextEventTime(d.CurTime, nextEventTime)
+	d.cbHandler.OnNextEventTime(nextEventTime)
 	d.advanceTime(nextEventTime)
 
 	// process (if any) all queued events, that happen at exactly procUntilTime
@@ -565,7 +568,7 @@ func (d *Dispatcher) processNextEvent(simSpeed float64) bool {
 					case EventTypeRadioLog:
 						node.logger.Trace(evt.Data)
 					default:
-						d.radioModel.HandleEvent(node.radioNode, d.eventQueue, evt)
+						d.radioModel.HandleEvent(node.RadioNode, d.eventQueue, evt)
 					}
 				} else {
 					switch evt.Type {
@@ -574,7 +577,7 @@ func (d *Dispatcher) processNextEvent(simSpeed float64) bool {
 					case EventTypeRadioRxDone:
 						d.sendRadioCommRxDoneEvents(node, evt)
 					default:
-						if d.radioModel.OnEventDispatch(node.radioNode, node.radioNode, evt) {
+						if d.radioModel.OnEventDispatch(node.RadioNode, node.RadioNode, evt) {
 							node.sendEvent(evt)
 						}
 					}
@@ -688,32 +691,6 @@ func (d *Dispatcher) advanceNodeTime(node *Node, timestamp uint64, force bool) {
 		Timestamp: timestamp,
 	}
 	node.sendEvent(msg) // move the OT-node's virtual-time to new time using an alarm msg.
-}
-
-// SendToUART sends data to virtual time UART of the target node.
-func (d *Dispatcher) SendToUART(id NodeId, data []byte) error {
-	var err error
-	evt := &Event{
-		Timestamp: d.CurTime,
-		Type:      EventTypeUartWrite,
-		Data:      data,
-		NodeId:    id,
-	}
-	node := d.nodes[id]
-	if node != nil {
-		if node.conn == nil {
-			err = fmt.Errorf("cannot send to node %d UART: connection closed", id)
-		} else {
-			node.logger.Tracef("UART-write: %s", data)
-			node.sendEvent(evt)
-			if node.err != nil {
-				err = node.err
-			}
-		}
-	} else {
-		err = fmt.Errorf("cannot send to UART of deleted/unknown Dispatcher node: %d", id)
-	}
-	return err
 }
 
 // sendRadioCommRxStartEvents dispatches an event to nearby nodes eligible to receiving the frame.
@@ -838,7 +815,7 @@ func (d *Dispatcher) sendRadioCommRxDoneEvents(srcNode *Node, evt *Event) {
 func (d *Dispatcher) checkRadioReachable(src *Node, dst *Node) bool {
 	// the RadioModel will check distance and radio-state of receivers.
 	return src != dst && src != nil && dst != nil &&
-		d.radioModel.CheckRadioReachable(src.radioNode, dst.radioNode)
+		d.radioModel.CheckRadioReachable(src.RadioNode, dst.RadioNode)
 }
 
 func (d *Dispatcher) sendOneRadioFrame(evt *Event,
@@ -869,7 +846,7 @@ func (d *Dispatcher) sendOneRadioFrame(evt *Event,
 	// Tx failure cases below:
 	//   3) radio model indicates failure on this specific link (e.g. interference) now.
 	// Below lets the radio model process every individual dispatch, to set RSSI, error, etc.
-	if d.radioModel.OnEventDispatch(srcnode.radioNode, dstnode.radioNode, &evt2) {
+	if d.radioModel.OnEventDispatch(srcnode.RadioNode, dstnode.RadioNode, &evt2) {
 		// send the event plus time keeping - moves dstnode's time to the current send-event's time.
 		dstnode.sendEvent(&evt2)
 	}
@@ -1052,7 +1029,7 @@ func (d *Dispatcher) AddNode(nodeid NodeId, cfg *NodeConfig) *Node {
 	d.alarmMgr.AddNode(nodeid)
 	d.energyAnalyser.AddNode(nodeid, d.CurTime)
 	d.vis.AddNode(nodeid, cfg.X, cfg.Y, cfg.RadioRange)
-	d.radioModel.AddNode(nodeid, node.radioNode)
+	d.radioModel.AddNode(nodeid, node.RadioNode)
 	d.setAlive(nodeid)
 
 	if d.cfg.DefaultWatchOn {
@@ -1281,7 +1258,7 @@ func (d *Dispatcher) SetNodePos(id NodeId, x, y int) {
 	logger.AssertNotNil(node)
 
 	node.X, node.Y = x, y
-	node.radioNode.SetNodePos(x, y)
+	node.RadioNode.SetNodePos(x, y)
 	d.vis.SetNodePos(id, x, y)
 }
 
@@ -1491,7 +1468,7 @@ func (d *Dispatcher) SetRadioModel(model radiomodel.RadioModel) {
 		// when setting a new model, transfer all nodes into it.
 		for id, node := range d.nodes {
 			d.radioModel.DeleteNode(id)
-			model.AddNode(id, node.radioNode)
+			model.AddNode(id, node.RadioNode)
 		}
 	}
 	d.radioModel = model
@@ -1506,9 +1483,6 @@ func (d *Dispatcher) handleRadioState(node *Node, evt *Event) {
 	const hdr = "(OTNS)       [T] RadioState----:"
 	node.logger.Tracef("%s EnergyState=%s SubState=%s RadioState=%s RadioTime=%d NextStTime=+%d",
 		hdr, energyState, subState, state, evt.RadioStateData.RadioTime, evt.Delay)
-
-	node.radioNode.SetRadioState(energyState, subState)
-	node.radioNode.SetChannel(int(evt.RadioStateData.Channel))
 
 	if d.energyAnalyser != nil {
 		radioEnergy := d.energyAnalyser.GetNode(node.Id)
@@ -1525,4 +1499,6 @@ func (d *Dispatcher) handleRadioState(node *Node, evt *Event) {
 			Timestamp: d.CurTime + evt.Delay,
 		})
 	}
+
+	//d.cbHandler.xyz FIXME
 }
