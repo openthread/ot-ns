@@ -237,8 +237,11 @@ func (rm *RadioModelMutualInterference) txStart(node *RadioNode, evt *Event) {
 
 func (rm *RadioModelMutualInterference) txStop(node *RadioNode, evt *Event) {
 	ch := int(evt.RadioCommData.Channel)
-	_, nodeTransmits := rm.activeTransmitters[ch][node.Id]
-	logger.AssertTrue(nodeTransmits)
+	// if channel changed during operation, we need to stop it also at the old channel.
+	isChannelChangedDuringTx := ch != node.RadioChannel
+	if isChannelChangedDuringTx {
+		delete(rm.activeTransmitters[node.RadioChannel], node.Id)
+	}
 
 	// stop active transmission
 	delete(rm.activeTransmitters[ch], node.Id)
@@ -254,6 +257,9 @@ func (rm *RadioModelMutualInterference) txStop(node *RadioNode, evt *Event) {
 	rxDoneEvt := evt.Copy()
 	rxDoneEvt.Type = EventTypeRadioRxDone
 	rxDoneEvt.RadioCommData.Error = OT_ERROR_NONE
+	if isChannelChangedDuringTx {
+		rxDoneEvt.RadioCommData.Error = OT_ERROR_FCS
+	}
 	rxDoneEvt.MustDispatch = true
 	rm.eventQ.Add(&rxDoneEvt)
 }

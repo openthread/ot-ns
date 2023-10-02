@@ -307,8 +307,10 @@ export default class PixiVisualizer extends VObject {
     visSetNodeMode(nodeId, mode) {
         let oldMode = this.nodes[nodeId].nodeMode;
         this.nodes[nodeId].setMode(mode);
-        this.logNode(nodeId, `Mode changed from ${fmt.modeToString(oldMode)} to ${fmt.modeToString(mode)}`);
-        this.onNodeUpdate(nodeId);
+        if (oldMode != mode) {
+            this.logNode(nodeId, `Mode changed from ${fmt.modeToString(oldMode)} to ${fmt.modeToString(mode)}`);
+            this.onNodeUpdate(nodeId);
+        }
     }
 
     visSetNetworkInfo(version, commit, real) {
@@ -419,8 +421,11 @@ export default class PixiVisualizer extends VObject {
             this.createUnicastMessage(src, dst, mvInfo);
         }
 
-        src.txPowerLast = mvInfo.getPowerDbm();
-        src.channelLast = mvInfo.getChannel();
+        if (src.txPowerLast != mvInfo.getPowerDbm() || src.channelLast != mvInfo.getChannel()) {
+            src.txPowerLast = mvInfo.getPowerDbm();
+            src.channelLast = mvInfo.getChannel();
+            this.onNodeUpdate(srcId);
+        }
     }
 
     visSetNodePartitionId(nodeId, partitionId) {
@@ -445,13 +450,6 @@ export default class PixiVisualizer extends VObject {
             this.runCommand("add " + type + " x " + this.newNodePos.x + " y " + this.newNodePos.y);
             this.newNodePos = null
         }
-    }
-
-    // Set the position (x,y) for the next new node to be placed.
-    ctrlSetNewNodePosition(x, y) {
-        x = Math.round(x);
-        y = Math.round(y);
-        this.newNodePos = new PIXI.Point(x,y);
     }
 
     ctrlMoveNodeTo(nodeId, x, y, cb) {
@@ -512,7 +510,6 @@ export default class PixiVisualizer extends VObject {
 
         return parid
     }
-
 
     setSelectedNode(id) {
         if (id === this._selectedNodeId) {

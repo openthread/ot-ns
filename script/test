@@ -191,6 +191,7 @@ py_examples()
     check_py_example "$OTNSDIR"/pylibs/examples/dns_client.py
     check_py_example "$OTNSDIR"/pylibs/examples/srp.py
     check_py_example "$OTNSDIR"/pylibs/examples/multiple_channels.py
+    check_py_example "$OTNSDIR"/pylibs/examples/rekey.py
 }
 
 stress_tests()

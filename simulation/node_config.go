@@ -148,6 +148,7 @@ func (nap *NodeAutoPlacer) UpdateReference(x, y int) {
 	nap.X = x
 	nap.Yref = y
 	nap.Y = y
+	nap.isReset = false
 }
 
 // NextNodePosition lets the autoplacer pick the next position for a new node to be placed.
