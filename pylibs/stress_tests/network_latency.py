@@ -120,7 +120,6 @@ class StressTest(BaseStressTest):
 
     def run(self):
         ns = self.ns
-        ns.speed=30
         Y = 300
         X1 = 300
         X2 = X1 + RADIUS * 4
@@ -139,7 +138,6 @@ class StressTest(BaseStressTest):
         # now start the real tests
         logging.debug("real test starts...")
         ns.set_title("Network (Ping) Latency test - test phase")
-        ns.speed = 1e6
         for _ in range(REPEAT):
             self.ns.radiomodel = 'MIDisc' # reset the radiomodel with new static random deviations.
             for datasize in (32, 64, 128, 256, 512, 1024):
