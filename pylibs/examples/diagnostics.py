@@ -73,6 +73,11 @@ def main():
     display(ns.node_cmd(8,f'networkdiagnostic get {a_mleid} 5 19 23 24 25 26 27 28 34'))
     display(ns.go(60))
 
+    display(["","Send DIAG_GET.qry to RLOC16"])
+    a_rloc16 = ns.get_rloc16(nid_srv)
+    display(ns.node_cmd(8,f'meshdiag routerneighbortable {a_rloc16}'))
+    display(ns.go(60))
+
     # allow some time for graphics to be displayed in web GUI.
     ns.speed=0.001
     ns.go(0.001)
