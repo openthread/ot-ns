@@ -48,7 +48,8 @@ class OTNSExitedError(OTNSCliError):
 
 class OTNSCommandInterruptedError(OTNSExitedError):
     """
-    Command was interrupted due to OTNS exiting.
+    Command was interrupted due to OTNS exiting. This is a specific case of
+    OTNSExitedError.
     """
 
     def __init__(self):
@@ -70,5 +71,7 @@ def create_otns_cli_error(error_line: str):
     if error_line.startswith("Error: command interrupted"):
         return OTNSCommandInterruptedError()
     if error_line.startswith("Error: "):
-        return OTNSCliError(error_line[7:])
+        return OTNSCliError(error_line)
+    if error_line.startswith("Error "):
+        return OTNSCliError(error_line)
     return OTNSCliError("Error: " + error_line)

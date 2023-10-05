@@ -198,7 +198,7 @@ func (nl *NodeLogger) Error(err error) {
 	if err == nil {
 		return
 	}
-	NodeLogf(nl.Id, ErrorLevel, "Error: %v", err)
+	NodeLogf(nl.Id, ErrorLevel, "%v", err)
 }
 
 func (nl *NodeLogger) Panicf(format string, args ...interface{}) {
@@ -226,13 +226,16 @@ func (nl *NodeLogger) DisplayPendingLogEntries(ts uint64) {
 	for {
 		select {
 		case ent := <-nl.entries:
-			logStr := tsStr + ent.Msg
 			isDisplayEntry := nl.CurrentLevel >= ent.Level
 			if ent.Level <= DebugLevel || isDisplayEntry {
+				logStr := tsStr + ent.Msg
+				if logStr[len(logStr)-1:] == "\n" { // remove duplicate newline chars
+					logStr = logStr[:len(logStr)-1]
+				}
 				_ = nl.writeToLogFile(logStr)
-			}
-			if isDisplayEntry {
-				logAlways(ent.Level, nodeStr+logStr)
+				if isDisplayEntry {
+					logAlways(ent.Level, nodeStr+logStr)
+				}
 			}
 			break
 		default:
