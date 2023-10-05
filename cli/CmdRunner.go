@@ -65,6 +65,21 @@ func (cc *CommandContext) outputStr(msg string) {
 	_, _ = fmt.Fprint(cc.output, msg)
 }
 
+func (cc *CommandContext) outputStrArray(msg []string) {
+	for _, line := range msg {
+		_, _ = fmt.Fprint(cc.output, line+"\n")
+	}
+}
+
+func (cc *CommandContext) outputErr(err error) {
+	s := err.Error()
+	if strings.HasPrefix(s, "Error") { // OT CLI errors already prepend this.
+		cc.outputf("%s\n", s)
+	} else {
+		cc.outputf("Error: %s\n", s) // OTNS generated errors not.
+	}
+}
+
 func (cc *CommandContext) outputf(format string, args ...interface{}) {
 	_, _ = fmt.Fprintf(cc.output, format, args...)
 }
@@ -75,8 +90,8 @@ func (cc *CommandContext) errorf(format string, args ...interface{}) {
 
 func (cc *CommandContext) error(err error) {
 	if err != nil {
-		if cc.err != nil { // if previous error, print it now and keep the last.
-			cc.outputf("Error: %s\n", cc.err)
+		if cc.Err() != nil { // if previous error stored, print it now and keep the last.
+			cc.outputErr(cc.Err())
 		}
 		cc.err = err
 	}
@@ -182,18 +197,17 @@ func (rt *CmdRunner) execute(cmd *Command, output io.Writer) {
 	}
 
 	defer func() {
-		if cc.Err() != nil {
-			cc.outputf("Error: %v\n", cc.Err())
+		if rt.ctx.Err() != nil && cmd.Exit == nil {
+			cc.outputErr(simulation.CommandInterruptedError)
+		} else if cc.Err() != nil {
+			cc.outputErr(cc.Err())
 		} else if !cc.isBackgroundCmd {
 			cc.outputf("Done\n")
-		} else {
-			cc.outputf("Started\n")
 		}
 	}()
 
 	defer func() {
 		rerr := recover()
-
 		if rerr != nil {
 			if err, ok := rerr.(error); ok {
 				cc.err = errors.Wrapf(err, "panic: %v", err)
@@ -312,7 +326,7 @@ func (rt *CmdRunner) executeGo(cc *CommandContext, cmd *GoCmd) {
 			})
 			cc.err = <-done
 
-			if rt.ctx.Err() != nil || cc.err != nil {
+			if rt.ctx.Err() != nil || cc.Err() != nil {
 				break
 			}
 		}
@@ -335,7 +349,7 @@ func (rt *CmdRunner) postAsyncWait(cc *CommandContext, f func(sim *simulation.Si
 	done := make(chan struct{})
 	if rt.sim.PostAsync(func() {
 		defer close(done) // even if f() fails execution, 'done' should be closed.
-		f(rt.sim)         // executing task (later) may set cc.err status if error occurs.
+		f(rt.sim)         // executing task (later) may set cc.Err() status if error occurs.
 	}) {
 		<-done // only block-wait if task was accepted.
 	} else {
@@ -535,24 +549,31 @@ func (rt *CmdRunner) executeNode(cc *CommandContext, cmd *NodeCmd) {
 		}
 
 		defer func() {
-			err := recover()
-			if err != nil {
-				cc.errorf("%+v", err)
+			rerr := recover()
+			if rerr != nil {
+				cc.errorf("%+v", rerr)
 			}
 		}()
 
 		if cmd.Command != nil {
 			var output []string
+			prefix := ""
 			if cc.isBackgroundCmd {
-				node.CommandExpectNone(*cmd.Command, simulation.DefaultCommandTimeout)
+				output = node.CommandNoDone(*cmd.Command, simulation.DefaultCommandTimeout)
+				prefix = "  "
 			} else {
 				output = node.Command(*cmd.Command, simulation.DefaultCommandTimeout)
 			}
-			node.DisplayPendingLogEntries()
-			for _, line := range output {
-				cc.outputf("%s\n", line)
-			}
+
 			err := node.CommandResult()
+			node.DisplayPendingLogEntries()
+			if cc.isBackgroundCmd && err == nil {
+				cc.outputf("Started\n")
+			}
+			for _, line := range output {
+				cc.outputf("%s%s\n", prefix, line)
+			}
+
 			if err != nil {
 				cc.error(err)
 			}
@@ -775,7 +796,7 @@ func (rt *CmdRunner) executeRadioParam(cc *CommandContext, cmd *RadioParamCmd) {
 		var fval reflect.Value
 		_, ok := rpTyp.FieldByName(cmd.Param)
 		if !ok {
-			cc.errorf("Unknown radiomodel parameter: %s", cmd.Param)
+			cc.errorf("unknown radiomodel parameter: %s", cmd.Param)
 			return
 		}
 
@@ -940,7 +961,13 @@ func (rt *CmdRunner) executeScan(cc *CommandContext, cmd *ScanCmd) {
 			cc.errorf("node %d not found", cmd.Node.Id)
 			return
 		}
-		node.CommandExpectNone("scan", simulation.DefaultCommandTimeout)
+		output := node.CommandNoDone("scan", simulation.DefaultCommandTimeout)
+		err := node.CommandResult()
+		cc.error(err)
+		if err == nil {
+			cc.outputf("Started\n")
+		}
+		cc.outputStrArray(output)
 	})
 }
 

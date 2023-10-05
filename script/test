@@ -28,8 +28,6 @@
 # shellcheck source=script/common.sh
 . "$(dirname "$0")"/common.sh
 
-OT_DIR=${OT_DIR:-}
-
 show_help()
 {
     set +x
@@ -57,7 +55,6 @@ go_tests()
 {
     install_deps
     install_otns
-    build_openthread
 
     echo "" >coverage.txt
 
@@ -83,76 +80,11 @@ install_otns()
     ./script/install
 }
 
-get_openthread()
-{
-    if [[ -z $OT_DIR ]]; then
-        OT_DIR=$PWD/ot-rfsim
-        git submodule update --init --recursive --depth 1
-    fi
-}
-
-get_openthread_versions()
-{
-    if [[ -z $OT_DIR ]]; then
-        OT_DIR=$PWD/ot-rfsim
-        git submodule update --init --recursive
-    fi
-}
-
-build_openthread()
-{
-    get_openthread
-    install_openthread_buildtools
-
-    (
-        # Note that OT_DIR points to the ot-rfsim submodule.
-        cd "$OT_DIR"
-
-        # TODO: MacOS CI build fails for empty options. So we give one option here that is anyway set.
-        local options=("-DOT_OTNS=ON")
-
-        local COVERAGE=${COVERAGE:-0}
-        if [[ $COVERAGE == 1 ]]; then
-            options+=(
-                "-DOT_COVERAGE=ON"
-            )
-        fi
-
-        ./script/build "${options[@]}"
-        cp ./build/bin/ot-cli-ftd ./ot-versions
-    )
-}
-
-build_openthread_versions()
-{
-    get_openthread_versions
-    install_openthread_buildtools
-
-    (
-        # Note that OT_DIR points to the ot-rfsim submodule.
-        cd "$OT_DIR"
-
-        if [[ ! -f ./ot-versions/ot-cli-ftd_v11 ]]; then
-            ./script/build_v11
-        fi
-        if [[ ! -f ./ot-versions/ot-cli-ftd_v12 ]]; then
-            ./script/build_v12
-        fi
-        if [[ ! -f ./ot-versions/ot-cli-ftd_v13 ]]; then
-            ./script/build_v13
-        fi
-        if [[ ! -f ./ot-versions/ot-cli-ftd ]]; then
-            ./script/build_latest
-        fi
-    )
-}
-
 py_unittests()
 {
     install_deps
     python3 -m pip install --user -r "$OTNSDIR"/pylibs/unittests/requirements.txt
     install_otns
-    build_openthread_versions
 
     python3 "$OTNSDIR"/pylibs/unittests/test_basic.py
     python3 "$OTNSDIR"/pylibs/unittests/test_ping.py
@@ -182,7 +114,7 @@ py_examples()
 {
     install_deps
     install_otns
-    build_openthread
+
     check_py_example "$OTNSDIR"/pylibs/examples/simple.py
     check_py_example "$OTNSDIR"/pylibs/examples/form_partition.py
     check_py_example "$OTNSDIR"/pylibs/examples/ping.py
@@ -192,13 +124,14 @@ py_examples()
     check_py_example "$OTNSDIR"/pylibs/examples/srp.py
     check_py_example "$OTNSDIR"/pylibs/examples/multiple_channels.py
     check_py_example "$OTNSDIR"/pylibs/examples/rekey.py
+    check_py_example "$OTNSDIR"/pylibs/examples/diagnostics.py
 }
 
 stress_tests()
 {
     install_deps
     install_otns
-    build_openthread
+
     python3 "$OTNSDIR"/pylibs/stress_tests/run_stress_suite.py "$@"
 }
 
@@ -232,7 +165,7 @@ main()
                 shift 2
                 ;;
             build-openthread)
-                build_openthread
+                rebuild_openthread
                 shift 1
                 ;;
             build-openthread-versions)

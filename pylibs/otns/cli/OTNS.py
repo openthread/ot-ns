@@ -100,13 +100,15 @@ class OTNS(object):
         except BrokenPipeError:
             pass
 
-    def go(self, duration: float = None, speed: float = None) -> None:
+    def go(self, duration: float = None, speed: float = None) -> List[str]:
         """
         Continue the simulation for a period of time.
 
         :param duration: the time duration (in simulating time) for the simulation to continue,
                          or continue forever if duration is not specified.
         :param speed: simulating speed. Use current simulating speed if not specified.
+        :return: any CLI lines output obtained during the go() period. This may be output of commands
+                 running in the background, such as 'scan'. They may be 'Error' lines.
         """
         if duration is None:
             cmd = 'go ever'
@@ -119,7 +121,7 @@ class OTNS(object):
         if speed is not None:
             cmd += f' speed {speed}'
 
-        self._do_command(cmd)
+        return self._do_command(cmd, raise_cli_err=False)
 
     def save_pcap(self, fpath, fname):
         """
@@ -254,7 +256,7 @@ class OTNS(object):
 
         return which_otns
 
-    def _do_command(self, cmd: str, do_logging: bool = True) -> List[str]:
+    def _do_command(self, cmd: str, do_logging: bool = True, raise_cli_err: bool = True) -> List[str]:
         with self._lock_otns_do_command:
             if do_logging:
                 logging.info("OTNS <<< %s", cmd)
@@ -279,7 +281,7 @@ class OTNS(object):
                     logging.info(f"OTNS >>> {line}")
                 if line == 'Done':
                     return output
-                elif line.startswith('Error: '):
+                elif (line.startswith('Error: ') or line.startswith('Error ')) and raise_cli_err:
                     raise create_otns_cli_error(line)
                 elif line == 'Started':
                     return output

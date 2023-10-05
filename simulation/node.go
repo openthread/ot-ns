@@ -244,40 +244,59 @@ func (node *Node) inputCommand(cmd string) error {
 	return err
 }
 
-func (node *Node) CommandExpectNone(cmd string, timeout time.Duration) {
+// CommandNoDone executes the command without expecting 'Done' (e.g. it's a background command).
+// It just reads output lines until the node is asleep.
+func (node *Node) CommandNoDone(cmd string, timeout time.Duration) []string {
 	err := node.inputCommand(cmd)
 	if err != nil {
 		node.error(err)
-	} else {
-		_, err = node.expectLine(cmd, timeout)
-		node.error(err)
-	}
-}
-
-func (node *Node) Command(cmd string, timeout time.Duration) []string {
-	err2 := node.inputCommand(cmd)
-	if err2 == nil {
-		_, err1 := node.expectLine(cmd, timeout)
-		if err1 != nil {
-			node.error(err1)
-			return []string{}
-		}
-	} else {
-		node.error(err2)
 		return []string{}
 	}
 
-	output, err := node.expectLine(DoneOrErrorRegexp, timeout)
+	_, err = node.expectLine(cmd, timeout)
 	if err != nil {
 		node.error(err)
 		return []string{}
 	}
-	if len(output) == 0 {
-		node.error(fmt.Errorf("node responds empty line to cmd '%s'", cmd))
+
+	var output []string
+	for {
+		line, ok := node.readLine()
+		if !ok {
+			break
+		}
+		if strings.HasPrefix(line, "Error") {
+			node.error(fmt.Errorf(line))
+		} else {
+			output = append(output, line)
+		}
+	}
+	return output
+}
+
+// Command executes the command and waits for 'Done', or an 'Error', at end of output.
+func (node *Node) Command(cmd string, timeout time.Duration) []string {
+	err := node.inputCommand(cmd)
+	if err != nil {
+		node.error(err)
+		return []string{}
+	}
+
+	_, err = node.expectLine(cmd, timeout)
+	if err != nil {
+		node.error(err)
+		return []string{}
+	}
+
+	var output []string
+	output, err = node.expectLine(DoneOrErrorRegexp, timeout)
+	if err != nil {
+		node.error(err)
 		return []string{}
 	}
 
 	var result string
+	logger.AssertTrue(len(output) >= 1) // there's always a Done or Error line in output.
 	output, result = output[:len(output)-1], output[len(output)-1]
 	if result != "Done" {
 		node.error(fmt.Errorf(result))
@@ -788,6 +807,32 @@ func (node *Node) lineReaderStdErr(reader io.Reader) {
 	}
 }
 
+// readLine attempts to read a line from the node. Returns false when the node is asleep and
+// therefore cannot return any more lines at the moment.
+func (node *Node) readLine() (string, bool) {
+	done := node.S.ctx.Done()
+	pendingLinesReceived := false
+
+	for {
+		select {
+		case <-done:
+			return "", false
+		case readLine := <-node.pendingLines:
+			if len(readLine) > 0 {
+				node.Logger.Tracef("UART: %s", readLine)
+			}
+			return readLine, true
+		default:
+			node.S.Dispatcher().RecvEvents() // keep virtual-UART events coming.
+			node.processUartData()           // forge data from UART-events into lines (fills up node.pendingLines)
+			if pendingLinesReceived && !node.S.Dispatcher().IsAlive(node.Id) {
+				return "", false
+			}
+			pendingLinesReceived = true
+		}
+	}
+}
+
 func (node *Node) expectLine(line interface{}, timeout time.Duration) ([]string, error) {
 	var outputLines []string
 	done := node.S.ctx.Done()
@@ -807,8 +852,7 @@ func (node *Node) expectLine(line interface{}, timeout time.Duration) ([]string,
 			}
 
 			outputLines = append(outputLines, readLine)
-			if node.isLineMatch(readLine, line) {
-				// found the exact line
+			if node.isLineMatch(readLine, line) { // found the exact line
 				node.S.Dispatcher().RecvEvents() // this blocks until node is asleep.
 				return outputLines, nil
 			}
@@ -902,7 +946,7 @@ loop:
 	for {
 		select {
 		case line := <-node.pendingLines:
-			logger.Println(line)
+			logger.Println("  " + line)
 		default:
 			break loop
 		}

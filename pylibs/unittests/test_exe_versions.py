@@ -74,14 +74,19 @@ class ExeVersionTests(OTNSTestCase):
         ns._do_command("exe v13")
         ns.add('router')
         ns.go(10)
-        self.assertEqual(6, len(ns.nodes()))
+        ns._do_command("exe v131")
+        ns.add('router')
+        ns.go(10)
+        self.assertEqual(7, len(ns.nodes()))
         ns.go(60)
-        self.assertEqual(6, len(ns.nodes()))
+        self.assertEqual(7, len(ns.nodes()))
         self.assertEqual(1, len(ns.partitions()))
 
 def testAddVersionNodes(self):
         ns: OTNS = self.ns
         ns.add('router', x=250, y=250)
+        ns.go(10)
+        ns.add('router', version='v131')
         ns.go(10)
         ns.add('router', version='v13')
         ns.go(10)
@@ -89,7 +94,7 @@ def testAddVersionNodes(self):
         ns.go(10)
         ns.add('router', version='v11')
         ns.go(10)
-        self.assertEqual(4, len(ns.nodes()))
+        self.assertEqual(5, len(ns.nodes()))
         self.assertEqual(1, len(ns.partitions()))
 
 

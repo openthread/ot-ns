@@ -528,17 +528,22 @@ class BasicTests(OTNSTestCase):
             ns.node_cmd(1,'state')
         ns.add('router')
         ns.node_cmd(1,'state')
+        ns.go(20)
+
+        ns.node_cmd(1,'dns config 2001::1234 1234 5000 2 0 srv_txt_sep udp')
         with self.assertRaises(errors.OTNSCliError):
             ns.node_cmd(1,'sdfklsjflksj')
         with self.assertRaises(errors.OTNSCliError):
             ns.node_cmd(1,'dns config nonexistoption')
-        ns.node_cmd(1,'dns config 2001::1234 1234 5000 2 0 srv_txt_sep udp')
+        ns.node_cmd(1,'dns config')
 
         ns.node_cmd(1,'dns resolve nonexistent.example.com')
-        ns.go(11) # response comes during the go period.
+        ns.go(30) # error response comes during the go period.
 
         with self.assertRaises(errors.OTNSCliError):
             ns.node_cmd(1,'dns resolvea b c d e f')
+
+        ns.go(1)
 
     def testExitCmd(self):
         ns: OTNS = self.ns

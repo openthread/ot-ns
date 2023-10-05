@@ -39,7 +39,7 @@ func TestDetermineExecutableBasedOnConfig(t *testing.T) {
 		Ftd:         "my-ftd-fail",
 		Mtd:         "ot-cli-mtd",
 		Br:          "br-script",
-		SearchPaths: []string{".", "./otrfsim/path/not/found", "../ot-rfsim/build/bin"},
+		SearchPaths: []string{".", "./otrfsim/path/not/found", "../ot-rfsim/ot-versions"},
 	}
 
 	// if file could not be located, same name is returned.
@@ -51,12 +51,12 @@ func TestDetermineExecutableBasedOnConfig(t *testing.T) {
 	nodeCfg.IsMtd = true
 	nodeCfg.IsRouter = false
 	exe = cfg.DetermineExecutableBasedOnConfig(&nodeCfg)
-	assert.Equal(t, "../ot-rfsim/build/bin/ot-cli-mtd", exe)
+	assert.Equal(t, "../ot-rfsim/ot-versions/ot-cli-mtd", exe)
 
 	// test assumes that ot-rfsim has been built.
 	cfg.Mtd = "ot-cli-mtd"
 	exe = cfg.DetermineExecutableBasedOnConfig(&nodeCfg)
-	assert.Equal(t, "../ot-rfsim/build/bin/ot-cli-mtd", exe)
+	assert.Equal(t, "../ot-rfsim/ot-versions/ot-cli-mtd", exe)
 
 	// Also non-executable files could be supplied. The error comes only later when adding the node type.
 	cfg.Ftd = "../simulation/node_config.go"

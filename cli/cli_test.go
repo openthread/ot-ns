@@ -171,10 +171,25 @@ func TestParseBytes(t *testing.T) {
 }
 
 func TestContextlessCommandPat(t *testing.T) {
-	assert.True(t, contextLessCommandsPat.MatchString("exit"))
-	assert.True(t, contextLessCommandsPat.MatchString("node 1"))
-	assert.True(t, contextLessCommandsPat.MatchString("!nodes"))
-	assert.True(t, contextLessCommandsPat.MatchString("!ping 23 24"))
+	assert.True(t, isContextlessCommand("exit"))
+	assert.True(t, isContextlessCommand("node 1"))
+	assert.True(t, isContextlessCommand("!nodes"))
+	assert.True(t, isContextlessCommand("!ping 23 24"))
+}
+
+func TestBackgroundCommandPat(t *testing.T) {
+	// only node-context commands are required to test here. See isBackgroundCommand() why.
+	assert.True(t, backgroundCommandsPat.MatchString("scan"))
+	assert.True(t, backgroundCommandsPat.MatchString("discover"))
+	assert.True(t, backgroundCommandsPat.MatchString("dns resolve 1234"))
+	assert.True(t, backgroundCommandsPat.MatchString("dns resolve4 1234"))
+	assert.True(t, backgroundCommandsPat.MatchString("dns browse example.com"))
+	assert.True(t, backgroundCommandsPat.MatchString("dns service test"))
+	assert.True(t, backgroundCommandsPat.MatchString("dns servicehost testlabel testname"))
+	assert.False(t, backgroundCommandsPat.MatchString("dns compression enable"))
+	assert.True(t, backgroundCommandsPat.MatchString("networkdiagnostic get ff02::1234 23 24 25"))
+	assert.True(t, backgroundCommandsPat.MatchString("networkdiagnostic reset fd18::1234 2 3"))
+	assert.False(t, backgroundCommandsPat.MatchString("networkdiagnostic qry ff02::1234 23 24 25"))
 }
 
 type mockCliHandler struct {
