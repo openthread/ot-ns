@@ -49,7 +49,10 @@ def main():
     ns.web()
 
     nid_cl=ns.add("router", x=600, y=300) #Leader
+    ns.node_cmd(nid_cl,"prefix add 2001:dead:beef:cafe::/64 paros med")
+    ns.node_cmd(nid_cl,"netdata register")
     ns.go(10)
+
     nid_srv=ns.add("router", x=600, y=500, version="v131") # Router DUT
     ns.go(10)
     # Add Children to the Router
@@ -63,18 +66,27 @@ def main():
     ns.add("router",x=670,y=320)
     ns.go(130)
 
-    display(["","Send DIAG_GET.req to RLOC"])
+    a_rloc16 = ns.get_rloc16(nid_srv)
     a_rloc = ns.get_ipaddrs(nid_srv,'rloc')[0]
+    a_mleid = ns.get_ipaddrs(nid_srv,'mleid')[0]
+
+    display(["","Send DIAG_GET.req to RLOC"])
     display(ns.node_cmd(nid_cl,f'networkdiagnostic get {a_rloc} 19 23 24 25 26 27 28'))
     display(ns.go(60)) # command runs in the background - this collects the output
 
     display(["","Send DIAG_GET.req to ML-EID (from Node 8)"])
-    a_mleid = ns.get_ipaddrs(nid_srv,'mleid')[0]
     display(ns.node_cmd(8,f'networkdiagnostic get {a_mleid} 5 19 23 24 25 26 27 28 34'))
     display(ns.go(60))
 
-    display(["","Send DIAG_GET.qry to RLOC16"])
-    a_rloc16 = ns.get_rloc16(nid_srv)
+    display(["","Send DIAG_GET.qry to RLOC16 - childtable - TLV 0x2D"])
+    display(ns.node_cmd(8,f'meshdiag childtable {a_rloc16}'))
+    display(ns.go(60))
+
+    display(["","Send DIAG_GET.qry to RLOC16 - childip6 - TLV 0x2E"])
+    display(ns.node_cmd(8,f'meshdiag childip6 {a_rloc16}'))
+    display(ns.go(60))
+
+    display(["","Send DIAG_GET.qry to RLOC16 - routerneighbourtable - TLV 0x2F"])
     display(ns.node_cmd(8,f'meshdiag routerneighbortable {a_rloc16}'))
     display(ns.go(60))
 
