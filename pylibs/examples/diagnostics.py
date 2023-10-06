@@ -50,7 +50,7 @@ def main():
 
     nid_cl=ns.add("router", x=600, y=300) #Leader
     ns.node_cmd(nid_cl,"prefix add 2001:dead:beef:cafe::/64 paros med")
-    ns.node_cmd(nid_cl,"netdata register")
+    ns.node_cmd(nid_cl,"netdata register") # TODO check for propagation?
     ns.go(10)
 
     nid_srv=ns.add("router", x=600, y=500, version="v131") # Router DUT

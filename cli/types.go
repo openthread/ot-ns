@@ -32,9 +32,7 @@ import (
 
 var (
 	contextLessCommandsPat = regexp.MustCompile(`(exit|node|!.+)\b`)
-	backgroundCommandsPat  = regexp.MustCompile(`(discover|dns resolve|
-dns resolve4|dns browse|dns service|dns servicehost|
-scan|networkdiagnostic get|networkdiagnostic reset|meshdiag)\b`)
+	backgroundCommandsPat  = regexp.MustCompile(`(discover|dns resolve|dns resolve4|dns browse|dns service|dns servicehost|scan|networkdiagnostic get|networkdiagnostic reset|meshdiag)\b`)
 )
 
 func isContextlessCommand(line string) bool {

@@ -85,7 +85,7 @@ class CommissioningTests(OTNSTestCase):
         ns.thread_start(n2)
         self.go(100)
         c = ns.counters()
-        print('countes', c)
+        print('counters', c)
         joins = ns.joins()
         print('joins', joins)
         self.assertFormPartitions(1)
