@@ -4,20 +4,21 @@
 [![codecov][codecov-svg]][codecov-url]
 ---
 
-# OpenThread Network Simulator
+# OpenThread Network Simulator 2
 
-OpenThread Network Simulator (OTNS) simulates Thread networks using OpenThread POSIX instances
+OpenThread Network Simulator (OTNS2) simulates Thread networks using OpenThread POSIX instances
 and provides visualization and management of those simulated networks.
 
 Note: this is a fork of the [OpenThread OTNS project](https://github.com/openthread/ot-ns) by 
 [IoTconsultancy.nl](https://www.iotconsultancy.nl/) with some additional features:
 
 * Support for more accurate RF simulation of the OpenThread node. Requires the OpenThread platform 
-  `ot-rfsim` to be selected, which specifically supports RF simulation. This project is included as 
+  `ot-rfsim`, which specifically supports RF simulation, for OT nodes. This project is included as 
   a Git submodule.
-* Selectable radio (RF propagation) models.
+* Selectable radio (RF propagation) models with tunable RF parameters.
 * Control of logging display from OT-node, using `log` and `watch` CLI commands. Logging to file per 
   OT-node.
+* Detailed logging options for RF operations (at log-level 'trace')
 * Animations with duration scaled to the actual time duration of a packet in flight (at low simulation 
   speed only).
 * Various UI look & feel improvements.
@@ -27,14 +28,14 @@ Thread is a registered trademark of the Thread Group, Inc.
 
 To learn more about OpenThread, visit [openthread.io](https://openthread.io).
 
-[build-actions-svg]: https://github.com/openthread/ot-ns/workflows/Build/badge.svg?branch=main&event=push
-[build-actions]: https://github.com/openthread/ot-ns/actions?query=workflow%3ABuild+branch%3Amain+event%3Apush
-[lint-actions-svg]: https://github.com/openthread/ot-ns/workflows/Lint/badge.svg?branch=main&event=push
-[lint-actions]: https://github.com/openthread/ot-ns/actions?query=workflow%3ALint+branch%3Amain+event%3Apush
-[test-actions-svg]: https://github.com/openthread/ot-ns/workflows/Test/badge.svg?branch=main&event=push
-[test-actions]: https://github.com/openthread/ot-ns/actions?query=workflow%3ATest+branch%3Amain+event%3Apush
-[codecov-svg]: https://codecov.io/gh/openthread/ot-ns/branch/main/graph/badge.svg
-[codecov-url]: https://codecov.io/gh/openthread/ot-ns
+[build-actions-svg]: https://github.com/EskoDijk/ot-ns/workflows/Build/badge.svg?branch=main&event=push
+[build-actions]: https://github.com/EskoDijk/ot-ns/actions?query=workflow%3ABuild+branch%3Amain+event%3Apush
+[lint-actions-svg]: https://github.com/EskoDijk/ot-ns/workflows/Lint/badge.svg?branch=main&event=push
+[lint-actions]: https://github.com/EskoDijk/ot-ns/actions?query=workflow%3ALint+branch%3Amain+event%3Apush
+[test-actions-svg]: https://github.com/EskoDijk/ot-ns/workflows/Test/badge.svg?branch=main&event=push
+[test-actions]: https://github.com/EskoDijk/ot-ns/actions?query=workflow%3ATest+branch%3Amain+event%3Apush
+[codecov-svg]: https://codecov.io/gh/EskoDijk/ot-ns/branch/main/graph/badge.svg
+[codecov-url]: https://codecov.io/gh/EskoDijk/ot-ns
 
 ## Get started
 See [GUIDE](GUIDE.md) to get started. 

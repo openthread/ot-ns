@@ -28,12 +28,16 @@ cd otns
 ./script/install
 ```
 
-## Build OpenThread for OTNS
+This command also builds and installs the required OpenThread nodes.
+
+## Build OpenThread for OTNS (Optional)
 
 This fork of OTNS uses POSIX simulation to simulate Thread nodes, with a specific platform `ot-rfsim`.
-The simulator starts the node executable `ot-cli-ftd` which is used to simulate all node types.
+The simulator uses node executables such as `ot-cli-ftd`. By default, the `install` script will build 
+a common set of OpenThread nodes of different version (v1.1, v1.2, v1.3.0, v1.3.1, and "latest") that 
+are used in the various examples and unit-tests of OTNS.
 
-To build the executable with platform `ot-rfsim` for OTNS, see the example build below. 
+To build or rebuild yourself an executable with platform `ot-rfsim` for OTNS, see the example build below. 
 It shows a build with default settings that builds an OpenThread node of version "latest".  This version is the 
 latest one that is bundled with the current checkout out commit of OTNS. It gets bumped occassionally to the 
 latest OpenThread main branch.
@@ -55,15 +59,38 @@ $ cd ot-rfsim
 $ ./script/build_v11
 $ ./script/build_v12
 $ ./script/build_v13
+$ ./script/build_v131
 $ cd ..
 ```
 
-These versions are optional. They can be added to a simulation using specific flags in the `add` command that adds 
-a node.
+These nodes of specific versions can be added to a simulation using specific flags in the `add` command that adds 
+a node. Type `help add` in OTNS to see this.
+
+NOTE: all of the above version-specific build scripts may manipulate the submodule 'openthread' to get a specific 
+desired historical commit.
+
+The generic build script can be invoked as shown below. This will build whatever code is currently 
+residing in the 'openthread' submodule without switching to a specific OT version.
+
+```bash
+$ cd ot-rfsim
+$ ./script/build
+$ cd ..
+```
+
+Finally, the generic build script allows setting or overriding any OT build arguments. See an example below:
+
+```bash
+$ cd ot-rfsim
+$ ./script/build -DOT_FULL_LOGS=OFF -DOT_COAP_OBSERVE=ON -DOT_TCP=ON
+$ cd ..
+```
+
+In this example a node is built with debug logs off (for speed in simulation), CoAP-observe enabled, and TCP enabled.
 
 ## Run OTNS
 
-After building OpenThread, run OTNS from the working directory (i.e. the root of this repo):
+Preferably run OTNS from the working directory (i.e. the root of this repo):
 
 ```bash
 cd ~/otns
@@ -90,6 +117,8 @@ Use a web browser to manage the simulated Thread network:
 * Add, delete, and move various types of OpenThread nodes
 * Disable and recover node radios
 * Adjust simulation speed
+* See some logged events
+* See nodes' energy usage (Alpha feature - pending validation)
 
 ## Use OTNS CLI
 
