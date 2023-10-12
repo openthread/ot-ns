@@ -52,13 +52,9 @@ class OTNS(object):
     CLI_PROMPT = '> '
     CLI_USER_HINT = 'OTNS command CLI - type \'exit\' to exit, or \'help\' for command overview.'
 
-    def __init__(self, otns_path: Optional[str] = None, otns_args: Optional[List[str]] = None,
-                 is_interactive: Optional[bool] = False):
+    def __init__(self, otns_path: Optional[str] = None, otns_args: Optional[List[str]] = None):
         self._otns_path = otns_path or self._detect_otns_path()
-        if is_interactive:
-            default_args = ['-autogo=true', '-web=true', '-speed', str(OTNS.DEFAULT_SIMULATE_SPEED)]
-        else:
-            default_args = ['-autogo=false', '-web=false', '-speed', str(OTNS.DEFAULT_SIMULATE_SPEED)]
+        default_args = ['-autogo=false', '-web=false', '-speed', str(OTNS.DEFAULT_SIMULATE_SPEED)]
         # Note: given otns_args may override i.e. revert the default_args
         self._otns_args = default_args + list(otns_args or [])
         logging.info("otns found: %s", self._otns_path)
@@ -132,6 +128,22 @@ class OTNS(object):
         """
         os.makedirs(fpath, exist_ok = True)
         shutil.copy2("current.pcap", os.path.join(fpath,fname))
+
+    @property
+    def autogo(self) -> bool:
+        """
+        :return: autogo setting (True=enabled)
+        """
+        return self._expect_int(self._do_command(f'autogo'))
+
+    @autogo.setter
+    def autogo(self, is_auto: bool) -> None:
+        """
+        Set autogo to enabled or disabled.
+
+        :param is_auto: True if autogo is enabled, False if disabled
+        """
+        self._do_command(f'autogo {int(is_auto)}')
 
     @property
     def speed(self) -> float:
@@ -229,6 +241,15 @@ class OTNS(object):
         """
         self._do_command(f'log {level}')
 
+    def logconfig(self, level: int = logging.INFO) -> None:
+        """
+        Configure Python logging package to display the pyOTNS internal log messages.
+        This overrides any existing configuration of the 'logging' package.
+
+        :param level: a log level value that defines what to log, e.g. logging.DEBUG.
+        """
+        logging.basicConfig(level=level, format='%(asctime)s - %(levelname)s - %(message)s')
+
     @property
     def time(self) -> int:
         """
@@ -290,7 +311,8 @@ class OTNS(object):
 
     def interactive_cli(self, prompt: Optional[str] = CLI_PROMPT,
                         user_hint: Optional[str] = CLI_USER_HINT,
-                        close_otns_on_exit: Optional[bool] = False):
+                        close_otns_on_exit: Optional[bool] = False,
+                        is_autogo: Optional[bool] = True):
         """
         Start an interactive CLI and GUI session, where the user can control the simulation until the
         exit command is typed.
@@ -298,8 +320,11 @@ class OTNS(object):
         :param prompt: (optional) custom prompt string
         :param user_hint: (optional) user hint about being in CLI mode
         :param close_otns_on_exit: (optional) behavior to close OTNS when user exits the CLI.
+        :param is_autogo: (optional) if True, simulation time will automatically advance at given speed.
         """
         with self._lock_interactive_cli:
+            old_autogo = self.autogo
+            self.autogo = is_autogo
             readline.set_auto_history(True)  # using Python readline library for CLI history on input().
             print(user_hint)
             while True:
@@ -313,12 +338,14 @@ class OTNS(object):
                 for line in output_lines:
                     print(line)
 
+            self.autogo = old_autogo
             if close_otns_on_exit:
                 self.close()
 
     def interactive_cli_threaded(self, prompt: Optional[str] = CLI_PROMPT,
                                  user_hint: Optional[str] = CLI_USER_HINT,
-                                 close_otns_on_exit: Optional[bool] = True):
+                                 close_otns_on_exit: Optional[bool] = True,
+                                 is_autogo: Optional[bool] = True):
         """
         Start an interactive CLI and GUI session in a new thread. The user can now control the simulation
         using CLI and GUI, while the Python script also operates on the simulation in parallel. If the
@@ -327,12 +354,13 @@ class OTNS(object):
         :param prompt: (optional) custom prompt string
         :param user_hint: (optional) user hint about being in CLI mode
         :param close_otns_on_exit: (optional) behavior to close OTNS when user exits the CLI.
+        :param is_autogo: (optional) if True, simulation time will automatically advance at given speed.
 
         :return: True if thread could be started, False if not (e.g. already running).
         """
         if self._cli_thread is not None:
             return False
-        self._cli_thread = threading.Thread(target=self.interactive_cli, args=(prompt, user_hint))
+        self._cli_thread = threading.Thread(target=self.interactive_cli, args=(prompt, user_hint, close_otns_on_exit, is_autogo))
         self._cli_thread.start()
         return True
 

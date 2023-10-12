@@ -8,6 +8,7 @@ Python libraries use the CLI to manage simulations.
 ## OTNS command list
 
 * [add](#add-type-x-x-y-y-rr-radio-range-id-node-id-restore)
+* [autogo](#autogo--1--0-)
 * [coaps](#coaps-enable)
 * [counters](#counters)
 * [cv](#cv-option-onoff-)
@@ -85,12 +86,30 @@ Done
 Done
 ```
 
+### autogo \[ 1 | 0 \]
+
+Get or set the simulation's `autogo` property. Use without parameter to get the property's value. If true (1), the 
+simulation automatically runs with the current speed. If false (0), the simulation does not automatically run and 
+requires an explicit `go` command to advance a particular time period. Use with parameter to set the value.
+
+```bash
+> autogo
+1
+Done
+> autogo 0
+Done
+> autogo
+0
+Done
+>
+```
+
 ### coaps enable
 
 Enable collecting info of CoAP messages. CoAP message transmission and reception is detected through the special 
 "coap" OTNS push events sent from the OT node binary to the simulator.
 
-```
+```bash
 > coaps enable
 Done
 ```
@@ -99,7 +118,7 @@ Done
 
 Show info of collected CoAP messages in yaml format.
 
-```
+```bash
 > coaps
 - {time: 57019000, src: 2, id: 25421, type: 0, code: 2, uri: a/as, dst_addr: 'fdde:ad00:beef:0:0:ff:fe00:f000', dst_port: 61631, receivers: [{time: 57019961, dst: 1, src_addr: 'fdde:ad00:beef:0:0:ff:fe00:f001', src_port: 61631}]}
 - {time: 57019961, src: 1, id: 25421, type: 2, code: 68, dst_addr: 'fdde:ad00:beef:0:0:ff:fe00:f001', dst_port: 61631, receivers: [{time: 57021242, dst: 2, src_addr: 'fdde:ad00:beef:0:0:ff:fe00:f000', src_port: 61631}]}

@@ -285,6 +285,8 @@ func (rt *CmdRunner) execute(cmd *Command, output io.Writer) {
 		rt.executeHelp(cc, cmd.Help)
 	} else if cmd.Exe != nil {
 		rt.executeExe(cc, cmd.Exe)
+	} else if cmd.AutoGo != nil {
+		rt.executeAutoGo(cc, cmd.AutoGo)
 	} else {
 		logger.Panicf("unimplemented command: %#v", cmd)
 	}
@@ -331,6 +333,20 @@ func (rt *CmdRunner) executeGo(cc *CommandContext, cmd *GoCmd) {
 			}
 		}
 	}
+}
+
+func (rt *CmdRunner) executeAutoGo(cc *CommandContext, cmd *AutoGoCmd) {
+	rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
+		if cmd.Val == nil {
+			autoGoInt := 0
+			if sim.AutoGo() {
+				autoGoInt = 1
+			}
+			cc.outputf("%d\n", autoGoInt)
+		} else {
+			sim.SetAutoGo(cmd.Val.Yes != nil)
+		}
+	})
 }
 
 func (rt *CmdRunner) executeSpeed(cc *CommandContext, cmd *SpeedCmd) {

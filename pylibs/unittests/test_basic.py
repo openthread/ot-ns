@@ -27,6 +27,7 @@
 #
 
 import logging
+import time
 import unittest
 from typing import Dict
 
@@ -497,30 +498,29 @@ class BasicTests(OTNSTestCase):
         self.assertEqual(14003030, ns.time) # rounded to nearest microsecond.
 
     def testScan(self):
-        self.tearDown()
-        with OTNS(otns_args=['-log', 'trace', '-autogo=true']) as ns:
-            ns.radiomodel = 'MutualInterference'
-            ns.add('router')
+        ns: OTNS = self.ns
+        ns.radiomodel = 'MutualInterference'
+        ns.add('router')
 
-            with self.assertRaises(errors.OTNSCliError):
-                ns._do_command("scan 2")
-
-            ns.add('router')
-            ns.add('router')
-            ns.add('router', x=100, y=200)
-            ns.add('router')
-            ns.add('router')
-
-            ns.go(50)
-            ns._do_command("scan 1")
-            ns.go(5)
+        with self.assertRaises(errors.OTNSCliError):
             ns._do_command("scan 2")
-            ns.go(1)
-            ns._do_command("scan 3")
-            ns.go(15)
-            ns.speed = 1
-            ns._do_command("scan 6")
-            # no go() period at the end to test starting scan and immediately stopping simulation.
+
+        ns.add('router')
+        ns.add('router')
+        ns.add('router', x=100, y=200)
+        ns.add('router')
+        ns.add('router')
+
+        ns.go(50)
+        ns._do_command("scan 1")
+        ns.go(5)
+        ns._do_command("scan 2")
+        ns.go(1)
+        ns._do_command("scan 3")
+        ns.go(15)
+        ns.speed = 1
+        ns._do_command("scan 6")
+        # no go() period at the end to test starting scan and immediately stopping simulation.
 
     def testInvalidNodeCmd(self):
         ns: OTNS = self.ns
@@ -558,6 +558,32 @@ class BasicTests(OTNSTestCase):
             ns.add('router')
         with self.assertRaises(errors.OTNSExitedError):
             ns._do_command('exit')
+
+    def testAutoGo(self):
+        ns: OTNS = self.ns
+        self.assertFalse(ns.autogo)
+
+        ns.add('router')
+        ns.add('router')
+        ns.add('router')
+        ns.go(60)
+        self.assertEqual(60e6, ns.time)
+
+        # With 1 realtime second of autogo, simulation moves approx speed * 1 =~ 5 seconds forward.
+        # It can be somewhat lower if the simulation doesn't manage to run at requested speed.
+        t1 = ns.time
+        ns.speed = 5
+        ns.autogo = True
+        time.sleep(1)
+        self.assertTrue(ns.time > 4e6 + t1)
+        self.assertTrue(ns.autogo)
+
+        # When autogo is disabled, it finishes the current autogo duration of 1 second.
+        ns.autogo = False
+        t2 = ns.time
+        time.sleep(1)
+        self.assertTrue(ns.time <= t2 + 1e6)
+        self.assertFalse(ns.autogo)
 
 
 if __name__ == '__main__':

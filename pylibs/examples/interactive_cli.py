@@ -30,11 +30,11 @@ from otns.cli.errors import OTNSExitedError
 
 
 def main():
-    # the 'is_interactive' parameter will configure OTNS for interactive use.
-    ns = OTNS(is_interactive=True)
+    ns = OTNS()
+    ns.web()
 
     ns.radiomodel = 'MIDisc'
-    ns.speed = 0.008
+    ns.speed = 20
     ns.set_title("Interactive simulation with OTNS CLI example - switch to cmdline and e.g. type 'ping 1 5'")
 
     # add some nodes and let them form network
@@ -51,10 +51,11 @@ def main():
 
     # here we call the CLI for the user to type commands. Now the simulation can be manipulated as wanted,
     # using the CLI or GUI commands. Typing 'exit' will exit this call.
+    ns.speed = 0.008
     ns.interactive_cli()
 
     # after the user exits, more scripted things could be done. But usually the script would also exit.
-    ns.speed = 10.0
+    ns.speed = 10
     ns.add("fed")
     ns.go(60)
 
