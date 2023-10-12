@@ -60,6 +60,17 @@ func TestParseBytes(t *testing.T) {
 	assert.Nil(t, parseBytes([]byte("add router x 1 y 2 id 3 rr 1234"), &cmd))
 	assert.Nil(t, parseBytes([]byte("add router rr 1234 id 3 y 2 x 1"), &cmd))
 
+	assert.Nil(t, parseBytes([]byte("autogo"), &cmd))
+	assert.NotNil(t, cmd.AutoGo)
+	assert.Nil(t, parseBytes([]byte("autogo 1"), &cmd))
+	assert.NotNil(t, cmd.AutoGo)
+	assert.Nil(t, parseBytes([]byte("autogo 0"), &cmd))
+	assert.NotNil(t, cmd.AutoGo)
+	assert.Nil(t, parseBytes([]byte("autogo y"), &cmd))
+	assert.NotNil(t, cmd.AutoGo)
+	assert.Nil(t, parseBytes([]byte("autogo n"), &cmd))
+	assert.NotNil(t, cmd.AutoGo)
+
 	assert.True(t, parseBytes([]byte("countdown 3"), &cmd) == nil && cmd.CountDown != nil)
 	assert.True(t, parseBytes([]byte("countdown 3 \"abc\""), &cmd) == nil && cmd.CountDown != nil)
 

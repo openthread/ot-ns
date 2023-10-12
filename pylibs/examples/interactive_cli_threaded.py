@@ -32,8 +32,7 @@ from otns.cli.errors import OTNSExitedError
 
 
 def main():
-    # the 'is_interactive' parameter will configure OTNS for interactive use.
-    ns = OTNS(is_interactive=True)
+    ns = OTNS()
 
     ns.radiomodel = 'MIDisc'
     ns.speed = 1.0

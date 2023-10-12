@@ -55,6 +55,8 @@ type Simulation struct {
 	vis            visualize.Visualizer
 	cmdRunner      CmdRunner
 	rawMode        bool
+	autoGo         bool
+	autoGoChange   chan bool
 	networkInfo    visualize.NetworkInfo
 	energyAnalyser *energy.EnergyAnalyser
 	nodePlacer     *NodeAutoPlacer
@@ -62,14 +64,16 @@ type Simulation struct {
 
 func NewSimulation(ctx *progctx.ProgCtx, cfg *Config, dispatcherCfg *dispatcher.Config) (*Simulation, error) {
 	s := &Simulation{
-		Started:     make(chan struct{}),
-		Exited:      make(chan struct{}),
-		ctx:         ctx,
-		cfg:         cfg,
-		nodes:       map[NodeId]*Node{},
-		rawMode:     cfg.RawMode,
-		networkInfo: visualize.DefaultNetworkInfo(),
-		nodePlacer:  NewNodeAutoPlacer(),
+		Started:      make(chan struct{}),
+		Exited:       make(chan struct{}),
+		ctx:          ctx,
+		cfg:          cfg,
+		nodes:        map[NodeId]*Node{},
+		rawMode:      cfg.RawMode,
+		autoGo:       cfg.AutoGo,
+		autoGoChange: make(chan bool, 1),
+		networkInfo:  visualize.DefaultNetworkInfo(),
+		nodePlacer:   NewNodeAutoPlacer(),
 	}
 	s.SetLogLevel(cfg.LogLevel)
 	s.networkInfo.Real = cfg.Real
@@ -191,6 +195,10 @@ func (s *Simulation) genNodeId() NodeId {
 func (s *Simulation) Run() {
 	defer logger.Debugf("simulation exit.")
 
+	if s.cfg.AutoGo {
+		s.autoGoChange <- true
+	}
+
 	// run dispatcher in current thread, until exit.
 	s.ctx.WaitAdd("dispatcher", 1)
 	close(s.Started)
@@ -218,7 +226,48 @@ func (s *Simulation) GetNodes() []NodeId {
 }
 
 func (s *Simulation) AutoGo() bool {
-	return s.cfg.AutoGo
+	return s.autoGo
+}
+
+func (s *Simulation) SetAutoGo(isAuto bool) {
+	if s.autoGo != isAuto {
+		s.autoGoChange <- isAuto
+		s.autoGo = isAuto
+	}
+}
+
+func (s *Simulation) AutoGoRoutine(ctx *progctx.ProgCtx, sim *Simulation) {
+	defer ctx.WaitDone("autogo")
+
+	for {
+	loop2:
+		// First for waits until autogo is enabled.
+		for {
+			select {
+			case isAutoGo := <-sim.autoGoChange:
+				if isAutoGo {
+					break loop2
+				}
+			case <-ctx.Done():
+				return
+			}
+		}
+
+	loop:
+		// Second block executes Go() until autogo is disabled.
+		for {
+			select {
+			case isAutoGo := <-sim.autoGoChange:
+				if !isAutoGo {
+					break loop
+				}
+			case <-ctx.Done():
+				return
+			default:
+				<-sim.Go(time.Second)
+			}
+		}
+	}
 }
 
 func (s *Simulation) IsStopping() bool {

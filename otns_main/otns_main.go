@@ -202,10 +202,8 @@ func Main(ctx *progctx.ProgCtx, visualizerCreator func(ctx *progctx.ProgCtx, arg
 		_ = web.OpenWeb(ctx)
 	}
 
-	if args.AutoGo {
-		ctx.WaitAdd("autogo", 1)
-		go autoGo(ctx, sim)
-	}
+	ctx.WaitAdd("autogo", 1)
+	go sim.AutoGoRoutine(ctx, sim)
 
 	vis.Run() // visualize must run in the main thread
 	ctx.Cancel("main")
@@ -242,16 +240,6 @@ func handleSignals(ctx *progctx.ProgCtx) {
 		}
 	}()
 	<-sigHandlerReady
-}
-
-func autoGo(ctx *progctx.ProgCtx, sim *simulation.Simulation) {
-	defer ctx.WaitDone("autogo")
-	for {
-		<-sim.Go(time.Second * 5)
-		if ctx.Err() != nil { // exit when context is Done.
-			return
-		}
-	}
 }
 
 func createSimulation(ctx *progctx.ProgCtx) *simulation.Simulation {

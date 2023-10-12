@@ -37,6 +37,7 @@ import (
 // noinspection GoVetStructTag
 type Command struct {
 	Add                 *AddCmd                 `  @@` //nolint
+	AutoGo              *AutoGoCmd              `| @@` //nolint
 	Coaps               *CoapsCmd               `| @@` //nolint
 	ConfigVisualization *ConfigVisualizationCmd `| @@` //nolint
 	CountDown           *CountDownCmd           `| @@` //nolint
@@ -104,6 +105,12 @@ type DebugCmd struct {
 	Cmd  struct{} `"debug"`            //nolint
 	Fail *string  `[ @"fail" ]`        //nolint
 	Echo *string  `[ "echo" @String ]` //nolint
+}
+
+// noinspection GoVetStructTag
+type AutoGoCmd struct {
+	Cmd struct{}     `"autogo"` //nolint
+	Val *YesOrNoFlag `[ @@ ]`   // nolint
 }
 
 // noinspection GoVetStructTag
