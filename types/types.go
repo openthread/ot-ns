@@ -151,6 +151,7 @@ const (
 	RadioSleep    RadioStates = 1
 	RadioRx       RadioStates = 2
 	RadioTx       RadioStates = 3
+	RadioInvalid  RadioStates = 255
 )
 
 func (s RadioStates) String() string {

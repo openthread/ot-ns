@@ -37,6 +37,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"github.com/openthread/ot-ns/cli"
 	"github.com/openthread/ot-ns/dispatcher"
 	"github.com/openthread/ot-ns/logger"
@@ -48,7 +50,6 @@ import (
 	visualizeMulti "github.com/openthread/ot-ns/visualize/multi"
 	"github.com/openthread/ot-ns/web"
 	webSite "github.com/openthread/ot-ns/web/site"
-	"github.com/pkg/errors"
 )
 
 type MainArgs struct {

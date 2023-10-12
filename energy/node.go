@@ -47,6 +47,8 @@ func (node *NodeEnergy) ComputeRadioState(timestamp uint64) {
 		node.radio.SpentTx += delta
 	case RadioRx:
 		node.radio.SpentRx += delta
+	case RadioInvalid:
+		break // skip bookkeeping in this case
 	default:
 		logger.Panicf("unknown radio state: %v", node.radio.State)
 	}
