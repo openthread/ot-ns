@@ -585,6 +585,28 @@ class BasicTests(OTNSTestCase):
         self.assertTrue(ns.time <= t2 + 1e6)
         self.assertFalse(ns.autogo)
 
+    def testRxSensitivity(self):
+        ns: OTNS = self.ns
+        ns.add('router')
+        ns.add('router')
+        self.assertTrue('-100 dBm', ns._do_command('rxsens 1'))
+        self.assertTrue('-100 dBm', ns._do_command('rxsens 2'))
+
+        ns._do_command('rxsens 1 -85')
+        self.assertTrue('-85 dBm', ns._do_command('rxsens 1'))
+        self.assertTrue('-100 dBm', ns._do_command('rxsens 2'))
+
+    def testCcaThreshold(self):
+        ns: OTNS = self.ns
+        ns.add('router')
+        ns.add('router')
+        self.assertTrue('-75 dBm', ns.node_cmd(1,'ccathreshold'))
+        self.assertTrue('-75 dBm', ns.node_cmd(2,'ccathreshold'))
+
+        ns.node_cmd(2, 'ccathreshold -80')
+        self.assertTrue('-75 dBm', ns.node_cmd(1,'ccathreshold'))
+        self.assertTrue('-80 dBm', ns.node_cmd(2,'ccathreshold'))
+
 
 if __name__ == '__main__':
     unittest.main()
