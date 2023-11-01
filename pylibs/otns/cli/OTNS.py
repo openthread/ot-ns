@@ -248,7 +248,7 @@ class OTNS(object):
 
         :param level: a log level value that defines what to log, e.g. logging.DEBUG.
         """
-        logging.basicConfig(level=level, format='%(asctime)s - %(levelname)s - %(message)s')
+        logging.basicConfig(force=True, level=level, format='%(asctime)s - %(levelname)s - %(message)s')
 
     @property
     def time(self) -> int:
@@ -852,6 +852,13 @@ class OTNS(object):
         """
         self._do_command('web')
 
+    def web_display(self) -> None:
+        """
+        Wait for web browser display/rendering of current topology/situation to be done.
+        TODO: currently uses a heuristic method and it's not verified that the web browser has actually rendered.
+        """
+        self._do_command('go 1us speed 0.000001')
+
     def ifconfig_up(self, nodeid: int) -> None:
         """
         Turn up network interface.
@@ -1006,6 +1013,9 @@ class OTNS(object):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
+    def __del__(self):
         self.close()
 
     def get_router_upgrade_threshold(self, nodeid: int) -> int:
