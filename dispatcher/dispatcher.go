@@ -309,8 +309,8 @@ func (d *Dispatcher) handleRecvEvent(evt *event) {
 	node := d.nodes[nodeid]
 	node.peerAddr = evt.SrcAddr
 
-	if d.isWatching(evt.NodeId) {
-		simplelogger.Warnf("Node %d <<< %+v, cur time %d, node time %d, delay %d", evt.NodeId, *evt,
+	if d.IsWatching(evt.NodeId) {
+		simplelogger.Infof("Node %d <<< %+v, cur time %d, node time %d, delay %d", evt.NodeId, *evt,
 			d.CurTime, int64(d.nodes[nodeid].CurTime)-int64(d.CurTime), evt.Delay)
 	}
 
@@ -550,8 +550,8 @@ func (d *Dispatcher) advanceNodeTime(id NodeId, timestamp uint64, force bool) {
 
 	d.alarmMgr.SetNotified(id)
 	d.setAlive(id)
-	if d.isWatching(id) {
-		simplelogger.Warnf("Node %d >>> advance time %v -> %v", id, oldTime, timestamp)
+	if d.IsWatching(id) {
+		simplelogger.Infof("Node %d >>> advance time %v -> %v", id, oldTime, timestamp)
 	}
 }
 
@@ -705,11 +705,11 @@ func (d *Dispatcher) sendOneMessage(sit *sendItem, srcnode *Node, dstnode *Node)
 	d.alarmMgr.SetNotified(dstnodeid)
 	d.setAlive(dstnodeid)
 
-	if d.isWatching(dstnodeid) {
+	if d.IsWatching(dstnodeid) {
 		if dstnode == srcnode {
-			simplelogger.Warnf("Node %d >>> TX DONE", dstnodeid)
+			simplelogger.Infof("Node %d >>> TX DONE", dstnodeid)
 		} else {
-			simplelogger.Warnf("Node %d >>> received message from node %d", dstnodeid, srcnode.Id)
+			simplelogger.Infof("Node %d >>> received message from node %d", dstnodeid, srcnode.Id)
 		}
 	}
 }
@@ -1082,7 +1082,7 @@ func (d *Dispatcher) UnwatchNode(nodeid NodeId) {
 	delete(d.watchingNodes, nodeid)
 }
 
-func (d *Dispatcher) isWatching(nodeid NodeId) bool {
+func (d *Dispatcher) IsWatching(nodeid NodeId) bool {
 	_, ok := d.watchingNodes[nodeid]
 	return ok
 }
