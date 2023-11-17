@@ -54,6 +54,9 @@ export function roleToString(role) {
 }
 
 export function modeToString(mode) {
+    if (mode == undefined) {
+        return "undefined";
+    }
     let s = "";
     if (mode.getRxOnWhenIdle()) {
         s += "r";

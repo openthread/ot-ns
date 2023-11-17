@@ -36,7 +36,7 @@ YGAP = 80
 RADIO_RANGE = int(XGAP * 2.5)
 
 LARGE_N = 11
-PACKET_LOSS_RATIO = 0.08
+PACKET_LOSS_RATIO = max((int(os.getenv('STRESS_LEVEL', '1')) -1)/10.0, 0.0)
 
 SIMULATE_TIME_TOTAL = 600
 SIMULATE_TIME_PERIOD = 30
@@ -52,8 +52,8 @@ class StressTest(BaseStressTest):
 
     def run(self):
         self.ns.packet_loss_ratio = PACKET_LOSS_RATIO
-        self.ns.radiomodel = 'MutualInterference'
         self.ns.loglevel = 'info'
+        self.ns.web('stats')
 
         durations = []
         partition_counts = []

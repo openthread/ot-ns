@@ -56,6 +56,7 @@ class PowerCycleExample:
         #ns.watch_default('trace')
         ns.set_title("Network Power Cycle Example - Topology setup")
         ns.web()
+        ns.web('stats')
 
         self.setup_topology_size_n(N)
         ns.go(300)

@@ -48,6 +48,7 @@ import (
 	"github.com/openthread/ot-ns/visualize"
 	visualizeGrpc "github.com/openthread/ot-ns/visualize/grpc"
 	visualizeMulti "github.com/openthread/ot-ns/visualize/multi"
+	visualizeStatslog "github.com/openthread/ot-ns/visualize/statslog"
 	"github.com/openthread/ot-ns/web"
 	webSite "github.com/openthread/ot-ns/web/site"
 )
@@ -100,7 +101,7 @@ func parseArgs() {
 	flag.BoolVar(&args.OpenWeb, "web", true, "open web visualization")
 	flag.BoolVar(&args.RawMode, "raw", false, "use raw mode (skips OT node init by script)")
 	flag.BoolVar(&args.Real, "real", false, "use real mode (for real devices - currently NOT SUPPORTED)")
-	flag.StringVar(&args.ListenAddr, "listen", fmt.Sprintf("localhost:%d", InitialDispatcherPort), "specify UDP listen address and port")
+	flag.StringVar(&args.ListenAddr, "listen", fmt.Sprintf("localhost:%d", InitialDispatcherPort), "specify UDP listen address and port-base")
 	flag.BoolVar(&args.DumpPackets, "dump-packets", false, "dump packets")
 	flag.BoolVar(&args.NoPcap, "no-pcap", false, "do not generate PCAP file (named \"current.pcap\")")
 	flag.BoolVar(&args.NoReplay, "no-replay", false, "do not generate Replay file (named \"otns_?.replay\")")
@@ -109,7 +110,7 @@ func parseArgs() {
 	flag.Parse()
 }
 
-func parseListenAddr() {
+func parseListenAddr() int {
 	var err error
 
 	notifyInvalidListenAddr := func() {
@@ -130,18 +131,15 @@ func parseListenAddr() {
 		notifyInvalidListenAddr()
 	}
 
-	portOffset := (args.DispatcherPort - InitialDispatcherPort) / 10
-	logger.Infof("Using env PORT_OFFSET=%d", portOffset)
-	if err = os.Setenv("PORT_OFFSET", strconv.Itoa(portOffset)); err != nil {
-		logger.Panic(err)
-	}
+	simId := (args.DispatcherPort - InitialDispatcherPort) / 10
+	return simId
 }
 
 func Main(ctx *progctx.ProgCtx, visualizerCreator func(ctx *progctx.ProgCtx, args *MainArgs) visualize.Visualizer, cliOptions *cli.CliOptions) {
 	handleSignals(ctx)
 	parseArgs()
 	logger.SetLevelFromString(args.LogLevel)
-	parseListenAddr()
+	simId := parseListenAddr()
 
 	rand.Seed(time.Now().UnixNano())
 
@@ -154,15 +152,19 @@ func Main(ctx *progctx.ProgCtx, visualizerCreator func(ctx *progctx.ProgCtx, arg
 
 	replayFn := ""
 	if !args.NoReplay {
-		replayFn = fmt.Sprintf("otns_%s.replay", os.Getenv("PORT_OFFSET"))
+		replayFn = fmt.Sprintf("otns_%d.replay", simId)
 	}
 	if vis != nil {
 		vis = visualizeMulti.NewMultiVisualizer(
 			vis,
 			visualizeGrpc.NewGrpcVisualizer(visGrpcServerAddr, replayFn),
+			visualizeStatslog.NewStatslogVisualizer(simId),
 		)
 	} else {
-		vis = visualizeGrpc.NewGrpcVisualizer(visGrpcServerAddr, replayFn)
+		vis = visualizeMulti.NewMultiVisualizer(
+			visualizeGrpc.NewGrpcVisualizer(visGrpcServerAddr, replayFn),
+			visualizeStatslog.NewStatslogVisualizer(simId),
+		)
 	}
 
 	ctx.WaitAdd("webserver", 1)
@@ -176,8 +178,9 @@ func Main(ctx *progctx.ProgCtx, visualizerCreator func(ctx *progctx.ProgCtx, arg
 	}()
 	<-webSite.Started
 
-	sim := createSimulation(ctx)
+	sim := createSimulation(simId, ctx)
 	rt := cli.NewCmdRunner(ctx, sim)
+	vis.Init()
 	sim.SetVisualizer(vis)
 
 	ctx.WaitAdd("cli", 1)
@@ -199,7 +202,7 @@ func Main(ctx *progctx.ProgCtx, visualizerCreator func(ctx *progctx.ProgCtx, arg
 	web.ConfigWeb(args.DispatcherHost, args.DispatcherPort-2, args.DispatcherPort-1, args.DispatcherPort-3)
 	logger.Debugf("open web: %v", args.OpenWeb)
 	if args.OpenWeb {
-		_ = web.OpenWeb(ctx)
+		_ = web.OpenWeb(ctx, web.MainTab)
 	}
 
 	ctx.WaitAdd("autogo", 1)
@@ -242,7 +245,7 @@ func handleSignals(ctx *progctx.ProgCtx) {
 	<-sigHandlerReady
 }
 
-func createSimulation(ctx *progctx.ProgCtx) *simulation.Simulation {
+func createSimulation(simId int, ctx *progctx.ProgCtx) *simulation.Simulation {
 	var speed float64
 	var err error
 
@@ -267,7 +270,7 @@ func createSimulation(ctx *progctx.ProgCtx) *simulation.Simulation {
 	simcfg.DispatcherPort = args.DispatcherPort
 	simcfg.DumpPackets = args.DumpPackets
 	simcfg.AutoGo = args.AutoGo
-	simcfg.Id = (args.DispatcherPort - InitialDispatcherPort) / 10
+	simcfg.Id = simId
 	if len(args.InitScriptName) > 0 {
 		simcfg.InitScript, err = simulation.ReadNodeScript(args.InitScriptName)
 		if err != nil {

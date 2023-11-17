@@ -846,36 +846,13 @@ class OTNS(object):
         """
         self.node_cmd(nodeid, f'networkkey {key}')
 
-    def config_dataset(self, nodeid: int, panid: int = None, networkkey: str = None, network_name: str = None,
-                       dataset='active'):
-        """
-        Configure the active/pending dataset
-        :param nodeid: target node ID
-        :param panid: the Pan ID.
-        :param networkkey: the network key
-        :param network_name: the network name
-        """
-        assert dataset in ('active', 'pending'), dataset
-
-        self.node_cmd(nodeid, 'dataset clear')
-
-        if panid is not None:
-            self.node_cmd(nodeid, f'dataset panid 0x{panid:04x}')
-
-        if networkkey is not None:
-            self.node_cmd(nodeid, f'dataset networkkey {networkkey}')
-
-        if network_name is not None:
-            network_name = self._escape_whitespace(network_name)
-            self.node_cmd(nodeid, f'dataset networkname {network_name}')
-
-        self.node_cmd(nodeid, f'dataset commit {dataset}')
-
-    def web(self) -> None:
+    def web(self, tab_name: str = "") -> None:
         """
         Open web browser for visualization.
+
+        :param tab_name: name of tab/page to open (optional). Use 'main', 'stats', or 'energy'.
         """
-        self._do_command('web')
+        self._do_command(f'web {tab_name}')
 
     def web_display(self) -> None:
         """

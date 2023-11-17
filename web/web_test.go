@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2020-2023, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -36,7 +36,15 @@ import (
 
 func TestOpenWeb(t *testing.T) {
 	ctx := progctx.New(context.Background())
-	err := OpenWeb(ctx)
+	err := OpenWeb(ctx, MainTab)
+	if err != nil {
+		t.Error(err)
+	}
+	err = OpenWeb(ctx, StatsTab)
+	if err != nil {
+		t.Error(err)
+	}
+	err = OpenWeb(ctx, EnergyTab)
 	if err != nil {
 		t.Error(err)
 	}

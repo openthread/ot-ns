@@ -1,4 +1,4 @@
-// Copyright (c) 2022, The OTNS Authors.
+// Copyright (c) 2022-2023, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -27,7 +27,6 @@
 package visualize
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/openthread/ot-ns/dissectpkt/wpan"
@@ -37,6 +36,7 @@ import (
 )
 
 type Visualizer interface {
+	Init()
 	Run()
 	Stop()
 
@@ -76,28 +76,6 @@ type MsgVisualizeInfo struct {
 	DstAddrExtended uint64
 	SendDurationUs  uint32
 	PowerDbm        int8
-}
-
-func (info *MsgVisualizeInfo) Label() string {
-	frameType := info.FrameControl.FrameType()
-	if frameType == wpan.FrameTypeAck {
-		return fmt.Sprintf("ACK%03d", info.Seq)
-	} else if info.FrameControl.SecurityEnabled() {
-		return fmt.Sprintf("MAC%03d", info.Seq)
-	} else {
-		return fmt.Sprintf("MLE%03d", info.Seq)
-	}
-}
-
-func (info *MsgVisualizeInfo) FormatDstAddr() interface{} {
-	dstaddrmode := info.FrameControl.DestAddrMode()
-	if dstaddrmode == wpan.AddrModeShort {
-		return fmt.Sprintf("%04x", info.DstAddrShort)
-	} else if dstaddrmode == wpan.AddrModeExtended {
-		return fmt.Sprintf("%016x", info.DstAddrExtended)
-	} else {
-		return "@"
-	}
 }
 
 type TitleInfo struct {

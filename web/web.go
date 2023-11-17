@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2020-2023, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -31,9 +31,14 @@ import (
 	"os/exec"
 	"runtime"
 
-	"github.com/openthread/ot-ns/progctx"
-
 	"github.com/openthread/ot-ns/logger"
+	"github.com/openthread/ot-ns/progctx"
+)
+
+const (
+	MainTab   = "visualize"
+	EnergyTab = "energyViewer"
+	StatsTab  = "statsViewer"
 )
 
 var (
@@ -55,14 +60,14 @@ func ConfigWeb(serverBindAddress string, serverHttpDebugPort int, grpcServicePor
 	logger.Debugf("ConfigWeb: %+v", grpcWebProxyParams)
 }
 
-func OpenWeb(ctx *progctx.ProgCtx) error {
+func OpenWeb(ctx *progctx.ProgCtx, tabResourceName string) error {
 	if err := assureGrpcWebProxyRunning(ctx); err != nil {
 		logger.Errorf("start grpcwebproxy failed: %v", err)
 		logger.Errorf("Web visualization is unusable. Please make sure grpcwebproxy is installed.")
 		return err
 	}
 
-	return openWebBrowser(fmt.Sprintf("http://localhost:%d/visualize?addr=localhost:%d", grpcWebProxyParams.webSitePort, grpcWebProxyParams.serverHttpDebugPort))
+	return openWebBrowser(fmt.Sprintf("http://localhost:%d/%s?addr=localhost:%d", grpcWebProxyParams.webSitePort, tabResourceName, grpcWebProxyParams.serverHttpDebugPort))
 }
 
 // open opens the specified URL in the default browser of the user.

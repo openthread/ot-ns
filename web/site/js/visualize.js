@@ -30,7 +30,7 @@ import {SetResources} from "./vis/resources";
 import {StatusCode} from "grpc-web";
 
 const {
-    VisualizeRequest, VisualizeEvent, OtDeviceRole, NodeMode,
+    VisualizeRequest, VisualizeEvent,
 } = require('./proto/visualize_grpc_pb.js');
 const {VisualizeGrpcServiceClient} = require('./proto/visualize_grpc_grpc_web_pb.js');
 
@@ -202,7 +202,7 @@ function loadOk() {
         if (status != null) {
             console.log('visualize gRPC stream status: code = ' + status.code + ' details = ' + status.details);
             if (status.code != StatusCode.OK) {
-                vis.visStopIdleCheckTimer(); // stop expecting the HeartBeat events
+                vis.stopIdleCheckTimer(); // stop expecting the HeartBeat events
             }
         }
     });
@@ -210,7 +210,7 @@ function loadOk() {
     stream.on('end', function (end) {
         // stream end signal
         console.log('visualize gRPC stream end');
-        vis.visStopIdleCheckTimer();
+        vis.stopIdleCheckTimer();
     });
 }
 

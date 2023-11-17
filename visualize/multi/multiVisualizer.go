@@ -1,4 +1,4 @@
-// Copyright (c) 2022, The OTNS Authors.
+// Copyright (c) 2022-2023, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -31,13 +31,17 @@ import (
 
 	"github.com/openthread/ot-ns/energy"
 	. "github.com/openthread/ot-ns/types"
-	"github.com/openthread/ot-ns/visualize/grpc/pb"
-
 	"github.com/openthread/ot-ns/visualize"
+	"github.com/openthread/ot-ns/visualize/grpc/pb"
 )
 
 type multiVisualizer struct {
 	vs []visualize.Visualizer
+}
+
+// NewMultiVisualizer creates a new Visualizer that multiplexes to multiple Visualizers.
+func NewMultiVisualizer(vs ...visualize.Visualizer) visualize.Visualizer {
+	return &multiVisualizer{vs: vs}
 }
 
 func (mv *multiVisualizer) SetNetworkInfo(networkInfo visualize.NetworkInfo) {
@@ -55,6 +59,12 @@ func (mv *multiVisualizer) OnExtAddrChange(id NodeId, extaddr uint64) {
 func (mv *multiVisualizer) SetSpeed(speed float64) {
 	for _, v := range mv.vs {
 		v.SetSpeed(speed)
+	}
+}
+
+func (mv *multiVisualizer) Init() {
+	for _, v := range mv.vs {
+		v.Init()
 	}
 }
 
@@ -201,8 +211,4 @@ func (mv *multiVisualizer) SetEnergyAnalyser(ea *energy.EnergyAnalyser) {
 	for _, v := range mv.vs {
 		v.SetEnergyAnalyser(ea)
 	}
-}
-
-func NewMultiVisualizer(vs ...visualize.Visualizer) visualize.Visualizer {
-	return &multiVisualizer{vs: vs}
 }
