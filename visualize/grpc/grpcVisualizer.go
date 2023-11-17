@@ -51,6 +51,21 @@ type grpcVisualizer struct {
 	sync.Mutex
 }
 
+// NewGrpcVisualizer creates a new Visualizer that uses Google RPC communication with a web page.
+func NewGrpcVisualizer(address string, replayFn string) visualize.Visualizer {
+	gsv := &grpcVisualizer{
+		simctrl: nil,
+		f:       newGrpcField(),
+	}
+
+	if replayFn != "" {
+		gsv.replay = replay.NewReplay(replayFn)
+	}
+
+	gsv.server = newGrpcServer(gsv, address)
+	return gsv
+}
+
 func (gv *grpcVisualizer) SetNetworkInfo(networkInfo visualize.NetworkInfo) {
 	gv.Lock()
 	defer gv.Unlock()
@@ -61,6 +76,10 @@ func (gv *grpcVisualizer) SetNetworkInfo(networkInfo visualize.NetworkInfo) {
 		Version: networkInfo.Version,
 		Commit:  networkInfo.Commit,
 	}}}, false)
+}
+
+func (gv *grpcVisualizer) Init() {
+	//
 }
 
 func (gv *grpcVisualizer) Run() {
@@ -536,18 +555,4 @@ func (gv *grpcVisualizer) SetEnergyAnalyser(ea *energy.EnergyAnalyser) {
 	defer gv.Unlock()
 
 	gv.energyAnalyser = ea
-}
-
-func NewGrpcVisualizer(address string, replayFn string) visualize.Visualizer {
-	gsv := &grpcVisualizer{
-		simctrl: nil,
-		f:       newGrpcField(),
-	}
-
-	if replayFn != "" {
-		gsv.replay = replay.NewReplay(replayFn)
-	}
-
-	gsv.server = newGrpcServer(gsv, address)
-	return gsv
 }

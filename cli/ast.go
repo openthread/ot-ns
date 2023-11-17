@@ -353,7 +353,8 @@ type ExitCmd struct {
 
 // noinspection GoVetStructTag
 type WebCmd struct {
-	Cmd struct{} `"web"` //nolint
+	Cmd     struct{} `"web"`                            //nolint
+	TabName *string  `@[ "main" | "energy" | "stats" ]` //nolint
 }
 
 // noinspection GoVetStructTag

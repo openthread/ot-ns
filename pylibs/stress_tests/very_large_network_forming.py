@@ -45,7 +45,7 @@ REPEAT = max(int(os.getenv('STRESS_LEVEL', '1')) // 2, 1)
 
 class StressTest(BaseStressTest):
     """
-    This test creates a large to very large network topology, without GUI -- to boost performance.
+    This test creates a large to very large network topology, without topology GUI -- to boost performance.
     Parameter LARGE_N can be set higher e.g. 32 to run a 1024 node network. This takes multiple hours
     and also requires an ot-cli-ftd node build with -DOT_FULL_LOGS=OFF build setting, for performance.
     """
@@ -58,8 +58,8 @@ class StressTest(BaseStressTest):
 
     def run(self):
         self.ns.packet_loss_ratio = PACKET_LOSS_RATIO
-        self.ns.radiomodel = 'MutualInterference'
         self.ns.loglevel = 'info'
+        self.ns.web('stats')
 
         durations = []
         partition_counts = []

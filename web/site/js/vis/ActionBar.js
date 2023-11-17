@@ -75,6 +75,7 @@ export default class ActionBar extends VObject {
             button.sprite = sprite
         });
         this._speedDisplayBtn.minWidth = 88;
+        // add any-context buttons
         this.addButton(">>", "any", "speed", (e) => {
             this.actionSpeedUp()
         });
@@ -100,18 +101,24 @@ export default class ActionBar extends VObject {
         this.addButton("Radio On", "node", "radio", (e) => {
             this.actionRadioOn(e)
         });
+        // add more any-context buttons
         this._logClearButton = this.addButton("Clear Log", "any", "", (e) => {
             this.actionClearLog()
         });
         this._logOnOffButton = this.addButton("Show Log", "any", "", (e) => {
             this.actionToggleLogWindow()
         });
-        this._energyChartOnOffButton = this.addButton("Energy-stats", "any", "", (e) => {
-            this.actionOpenEnergyWindow()
-        });
         this.addButton("Delete All", "any", "del", (e) => {
             this.actionClear(e)
         });
+        // add buttons that open different viewers in separate tab
+        this._energyChartOpenButton = this.addButton("Energy-stats \u2197", "any", "", (e) => {
+            this.actionOpenEnergyWindow()
+        });
+        this._statsViewerOpenButton = this.addButton("Node-stats \u2197", "any", "", (e) => {
+            this.actionOpenStatsWindow()
+        });
+
     }
 
     setAbilities(abilities) {
@@ -217,6 +224,10 @@ export default class ActionBar extends VObject {
     
     actionOpenEnergyWindow() {
         window.open(document.location.href.replace("/visualize","/energyViewer"), '_blank');
+    }
+
+    actionOpenStatsWindow() {
+        window.open(document.location.href.replace("/visualize","/statsViewer"), '_blank');
     }
 
     addButton(label, context, requiredAbility, callback, onRefresh) {

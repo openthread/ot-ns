@@ -107,6 +107,7 @@ export default class PixiVisualizer extends VObject {
 
         this.nodeWindow = new NodeWindow();
         this.addChild(this.nodeWindow);
+        this._selectedNodeId = 0;
 
         this.otVersion = "";
         this.otCommit = "";
@@ -209,7 +210,7 @@ export default class PixiVisualizer extends VObject {
         this._resetIdleCheckTimer()
     }
 
-    visStopIdleCheckTimer() {
+    stopIdleCheckTimer() {
         if (this._idleCheckTimer) {
             this.cancelCallback(this._idleCheckTimer);
             delete this._idleCheckTimer
@@ -431,8 +432,10 @@ export default class PixiVisualizer extends VObject {
     visSetNodePartitionId(nodeId, partitionId) {
         let oldPartitionId = this.nodes[nodeId].partition;
         this.nodes[nodeId].partition = partitionId;
-        this.logNode(nodeId, `Partition changed from ${fmt.formatPartitionId(oldPartitionId)} to ${fmt.formatPartitionId(partitionId)}`)
-        this.onNodeUpdate(nodeId);
+        if (oldPartitionId != partitionId) {
+            this.logNode(nodeId, `Partition changed from ${fmt.formatPartitionId(oldPartitionId)} to ${fmt.formatPartitionId(partitionId)}`)
+            this.onNodeUpdate(nodeId);
+        }
     }
 
     visShowDemoLegend(x, y, title) {
@@ -520,7 +523,7 @@ export default class PixiVisualizer extends VObject {
         if (old_sel) {
             old_sel.onUnselected();
         }
-        delete this._selectedNodeId;
+        this._selectedNodeId = 0; // unselect
 
         let new_sel = this.nodes[id];
         if (new_sel) {
@@ -529,7 +532,6 @@ export default class PixiVisualizer extends VObject {
         }
 
         this.nodeWindow.showNode(new_sel);
-
         this.actionBar.setContext(new_sel || "any");
     }
 

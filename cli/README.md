@@ -13,7 +13,7 @@ Python libraries use the CLI to manage simulations.
 * [counters](#counters)
 * [cv](#cv-option-onoff-)
 * [del](#del-node-id-node-id-)
-* [energy](#energy-save--filename-)
+* [energy](#energy-save-filename)
 * [exe](#exe)
 * [exit](#exit)
 * [go](#go-duration-speed-particular-speed)
@@ -38,7 +38,7 @@ Python libraries use the CLI to manage simulations.
 * [title](#title-string)
 * [unwatch](#unwatch-node-id-node-id-)
 * [watch](#watch-node-id-node-id-)
-* [web](#web)
+* [web](#web-tabname)
 
 ## OTNS command reference
 
@@ -232,7 +232,7 @@ Done
 ### exe (default | v11 | v12 | v13)
 
 Set all OpenThread (OT) executables, or shell scripts, for all node types to particular defaults. Value `default` will 
-use the OT-NS default executables which is OpenThread as built by the user and placed in the `.` directory from 
+use the OTNS default executables which is OpenThread as built by the user and placed in the `.` directory from 
 where the simulator is run. Values starting with `v` will use the pre-built binary of the specific indicated Thread 
 version, e.g. `v12` denotes Thread v1.2.x. 
 
@@ -797,13 +797,21 @@ Done
 > 
 ```
 
-### web
+### web \[\<TabName\>\]
 
-Open a web browser (tab) for visualization. 
+Open a web browser (tab) for visualization. The optional `TabName` indicates which OTNS2 tab to open: 
 
-NOTE: multiple web browser tabs/windows may be opened for the same simulation.
+* if not provided, or "main", the default main simulation window will open.
+* if "stats", the stats-viewer will be opened.
+* if "energy", the energy-viewer will be opened.
+
+NOTE: multiple web browser tabs/windows of the same type may be opened for the same simulation.
 
 ```bash
 > web
+Done
+> web energy
+Done
+> web stats
 Done
 ```

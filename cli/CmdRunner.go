@@ -744,7 +744,22 @@ func (rt *CmdRunner) executeCounters(cc *CommandContext, counters *CountersCmd) 
 }
 
 func (rt *CmdRunner) executeWeb(cc *CommandContext, webcmd *WebCmd) {
-	if err := web.OpenWeb(rt.ctx); err != nil {
+	tabResource := ""
+	if *webcmd.TabName == "" {
+		tabResource = web.MainTab
+	} else {
+		switch *webcmd.TabName {
+		case "main":
+			tabResource = web.MainTab
+		case "stats":
+			tabResource = web.StatsTab
+		case "energy":
+			tabResource = web.EnergyTab
+		default:
+			cc.errorf("unrecognized web tab identifier: %s", *webcmd.TabName)
+		}
+	}
+	if err := web.OpenWeb(rt.ctx, tabResource); err != nil {
 		cc.error(err)
 	}
 }

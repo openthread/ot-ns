@@ -1,4 +1,4 @@
-// Copyright (c) 2022, The OTNS Authors.
+// Copyright (c) 2022-2023, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -35,6 +35,11 @@ import (
 )
 
 type nopVisualizer struct{}
+
+// NewNopVisualizer creates a new Visualizer that does nothing.
+func NewNopVisualizer() Visualizer {
+	return nopVisualizer{}
+}
 
 func (nv nopVisualizer) SetNetworkInfo(networkInfo NetworkInfo) {
 }
@@ -73,6 +78,10 @@ func (nv nopVisualizer) SetNodePos(nodeid NodeId, x, y int) {
 }
 
 func (nv nopVisualizer) SetController(ctrl SimulationController) {
+}
+
+func (nv nopVisualizer) Init() {
+
 }
 
 func (nv nopVisualizer) Run() {
@@ -131,8 +140,4 @@ func (nv nopVisualizer) UpdateNodesEnergy(node []*pb.NodeEnergy, timestamp uint6
 
 func (nv nopVisualizer) SetEnergyAnalyser(ea *energy.EnergyAnalyser) {
 
-}
-
-func NewNopVisualizer() Visualizer {
-	return nopVisualizer{}
 }

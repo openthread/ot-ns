@@ -233,7 +233,6 @@ service VisualizeGrpcService {
     rpc Visualize (VisualizeRequest) returns (stream VisualizeEvent);
     rpc Command (CommandRequest) returns (CommandResponse);
     rpc EnergyReport (VisualizeRequest) returns (stream NetworkEnergyEvent);
-
 }
 
 message Empty {

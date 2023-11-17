@@ -38,6 +38,7 @@ main()
     npm version
     npx webpack ./js/visualize.js -o ./static/js/visualize.js
     npx webpack ./js/energyViewer.js -o ./static/js/energyViewer.js
+    npx webpack ./js/statsViewer.js -o ./static/js/statsViewer.js
 
     go-bindata -pkg web_site -o _bindata.go templates/... static/...
     head -26 bindata.go >_merge_bindata.go

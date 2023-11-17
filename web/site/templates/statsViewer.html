@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>OTNS2 - Stats viewer</title>
+</head>
+<body>
+    <div class="statsViewer-container" style="position: relative; height:80vh; width:90vw">
+        <canvas id="statsViewer"></canvas>
+    </div>
+
+    <script language="javascript">
+        let server = "http://{{index . "addr"}}";
+    </script>
+    <script src="/static/js/statsViewer.js"></script>
+</body>
+</html>
