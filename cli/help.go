@@ -40,47 +40,16 @@ import (
 )
 
 type Help struct {
-	termWidth   uint
-	maxCmdWidth uint
-	commands    map[string]string
+	termWidth     uint
+	maxCmdWidth   uint
+	commands      map[string]string
+	commandsShort map[string]string
 }
 
 var (
-	cmdHeaderPattern = regexp.MustCompile("###+ .+")
+	cmdHeaderPattern  = regexp.MustCompile("^### .+")
+	linkTargetPattern = regexp.MustCompile(`\(#[a-z]+\)`)
 )
-
-var commandHelp = map[string]string{
-	"help":       "Show help for a specific command.",
-	"add":        "Add a node to the simulation.",
-	"coaps":      "Enable collecting info about CoAP messages.",
-	"counters":   "Display runtime counters of the simulation.",
-	"cv":         "Configure visualization options.",
-	"del":        "Delete node(s) by node ID.",
-	"energy":     "Save node energy use information to a file.",
-	"exe":        "Display or set the OT executables used per node type.",
-	"exit":       "Exit OTNS (if not in node context) or exit node context.",
-	"go":         "Simulate for a specified time.",
-	"joins":      "Connect finished joiner sessions.",
-	"log":        "Inspect current log level or set a new log level.",
-	"move":       "Move a node to a target position.",
-	"netinfo":    "Set network info.",
-	"node":       "Switch CLI to a specific node context, or send a command to a specific node.",
-	"nodes":      "List all nodes.",
-	"partitions": "List all Thread Partitions.",
-	"pts":        "(synonym for: partitions)",
-	"ping":       "Ping from a given source node to a destination.",
-	"pings":      "Display finished 'ping' commands.",
-	"plr":        "Get or set the global packet loss ratio.",
-	"radio":      "Set a node's radio on/off or set fail-time parameters.",
-	"radiomodel": "Get or set the current RF simulation radio model.",
-	"scan":       "Let a node perform a network scan.",
-	"speed":      "Get or set the curent simulation speed.",
-	"time":       "Display current simulation time in us.",
-	"title":      "Set simulation window title.",
-	"watch":      "Enable additional detailed log messages for selected node(s).",
-	"unwatch":    "Disable the additional detailed log messages set by 'watch'.",
-	"web":        "Open a web browser for visualization.",
-}
 
 // Embed the CLI help file as a static resource.
 //
@@ -90,9 +59,10 @@ var cliHelpFile string
 // Creates new Help object. It is used to display CLI commands help to the user.
 func newHelp() Help {
 	h := Help{
-		termWidth:   80,
-		maxCmdWidth: 10,
-		commands:    make(map[string]string),
+		termWidth:     80,
+		maxCmdWidth:   10,
+		commands:      make(map[string]string),
+		commandsShort: make(map[string]string),
 	}
 	h.parseHelpFile()
 	h.update()
@@ -113,19 +83,19 @@ func (help *Help) update() {
 func (help *Help) outputGeneralHelp() string {
 	cmdHelp := ""
 	// get a sorted list of commands
-	cmds := make([]string, 0, len(commandHelp))
-	for k := range commandHelp {
+	cmds := make([]string, 0, len(help.commandsShort))
+	for k := range help.commandsShort {
 		cmds = append(cmds, k)
 	}
 	sort.Strings(cmds)
 
 	for _, c := range cmds {
-		cmdHelp += fmt.Sprintf("%-15s %s\n", c, commandHelp[c])
+		cmdHelp += fmt.Sprintf("%-15s %s\n", c, help.commandsShort[c])
 	}
 	return cmdHelp +
 		wordwrap.WrapString("\nFor detailed help per command, use: 'help <command>'\n",
 			help.termWidth) +
-		wordwrap.WrapString("\nFor detailed one-page CLI command reference go to:\n"+
+		wordwrap.WrapString("\nFor detailed CLI command reference in browser go to:\n"+
 			"https://github.com/EskoDijk/ot-ns/blob/main/cli/README.md\n",
 			help.termWidth)
 }
@@ -172,26 +142,30 @@ func (help *Help) parseHelpFile() {
 		if line == "```bash" {
 			line = "\nExample:"
 			indent = 2
+		} else if line == "```shell" {
+			line = "\nDefinition:"
+			indent = 2
 		} else if line == "```" {
 			line = ""
 			indent = 0
 		} else if cmdHeaderPattern.MatchString(line) {
-			cmdline := markdownUnquote(strings.TrimSpace(line))
-			cmdSingle := cmdline[strings.Index(cmdline, " ")+1:]
-			idx := strings.Index(cmdSingle, " ")
-			if idx > 0 {
-				cmdSingle = cmdSingle[0:idx]
-			}
-			activeCmd = cmdSingle
-			if _, ok := help.commands[activeCmd]; !ok {
-				help.commands[activeCmd] = ""
-			}
-			line = cmdline
+			activeCmd = strings.TrimSpace(line[strings.Index(line, " ")+1:])
+			help.commands[activeCmd] = ""
+			help.commandsShort[activeCmd] = ""
+			line = activeCmd
 			indent = 0
 		}
 
 		if len(activeCmd) > 0 {
-			help.commands[activeCmd] += indentString[0:indent] + line + "\n"
+			help.commands[activeCmd] += indentString[0:indent] + markdownUnquote(line) + "\n"
+			if line != activeCmd && len(help.commandsShort[activeCmd]) == 0 {
+				firstSentence := line
+				idx := strings.Index(line, ".")
+				if idx > 0 {
+					firstSentence = line[:idx+1]
+				}
+				help.commandsShort[activeCmd] = firstSentence
+			}
 		}
 	}
 }
@@ -200,5 +174,6 @@ func markdownUnquote(md string) string {
 	// TODO: consider that double backslash may be present in the future in the Markdown.
 	// TODO: change MD links to text
 	md = strings.ReplaceAll(md, "\\", "")
+	md = linkTargetPattern.ReplaceAllString(md, "")
 	return md
 }
