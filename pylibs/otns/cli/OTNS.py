@@ -41,7 +41,7 @@ from .errors import *
 
 class OTNS(object):
     """
-    OTNS creates and manages an OTNS simulation through CLI.
+    OTNS creates and manages an OTNS simulation through its CLI.
     """
 
     MAX_SIMULATE_SPEED = 1000000  # Max simulating speed
@@ -119,7 +119,7 @@ class OTNS(object):
 
         return self._do_command(cmd, raise_cli_err=False)
 
-    def save_pcap(self, fpath, fname):
+    def save_pcap(self, fpath, fname) -> None:
         """
         Save the PCAP file of last simulation to the file 'fname'. Call this after close().
 
@@ -148,7 +148,9 @@ class OTNS(object):
     @property
     def speed(self) -> float:
         """
-        :return: simulating speed
+        Get simulating speed.
+
+        :return: current simulating speed (float, '0' means paused)
         """
         speed = self._expect_float(self._do_command(f'speed'))
         if speed >= OTNS.MAX_SIMULATE_SPEED:
@@ -163,7 +165,7 @@ class OTNS(object):
         """
         Set simulating speed.
 
-        :param speed: new simulating speed
+        :param speed: new simulating speed (float). Value '0' will pause the simulation
         """
         if speed >= OTNS.MAX_SIMULATE_SPEED:
             speed = OTNS.MAX_SIMULATE_SPEED
@@ -185,9 +187,10 @@ class OTNS(object):
     def radiomodel(self, model: str) -> None:
         """
         Set radiomodel to be used for simulation. Setting a radiomodel also resets all the
-        parameters.
+        radiomodel parameters.
 
         :param model: name of new radio model to use. Default is "MutualInterference".
+                      See CLI Readme or type 'help radiomodel' to see the options.
         """
         assert self._do_command(f'radiomodel {model}')[0] == model
 
@@ -206,21 +209,21 @@ class OTNS(object):
             params[parname] = parvalue
         return params
 
-    def get_radioparam(self, parname: str):
+    def get_radioparam(self, parname: str) -> float:
         """
         Get a radiomodel parameter.
 
-        :param parname: parameter name (string)
-        :return parameter value
+        :param parname: name (string) of radiomodel parameter
+        :return parameter value (float)
         """
         return float(self._do_command(f'radioparam {parname}')[0])
 
-    def set_radioparam(self, parname: str, parvalue: float):
+    def set_radioparam(self, parname: str, parvalue: float) -> None:
         """
         Set a radiomodel parameter to the specified value.
 
-        :param parname: parameter name (string)
-        :param parvalue: parameter value (float)
+        :param parname: name (string) of the radiomodel parameter
+        :param parvalue: parameter value (float) to be set
         """
         self._do_command(f'radioparam {parname} {parvalue}')
 
@@ -309,10 +312,22 @@ class OTNS(object):
 
                 output.append(line)
 
+    def cmd(self, cmd:str) -> List[str]:
+        """
+        Execute an arbitrary OTNS CLI command and return the resulting output lines] (if any).
+
+        :param cmd: the command line string to execute in OTNS.
+        :return: output lines from OTNS with command result, if any. The "Done" or "Error" strings are not
+                returned. In case the command execution lead to an error, OTNSCliError is raised. In case
+                OTNS exited while processing the command, OTNSCommandInterruptedError is raised. See
+                errors.py for more possibilites (all are subclass of OTNSError).
+        """
+        return self._do_command(cmd)
+
     def interactive_cli(self, prompt: Optional[str] = CLI_PROMPT,
                         user_hint: Optional[str] = CLI_USER_HINT,
                         close_otns_on_exit: Optional[bool] = False,
-                        is_autogo: Optional[bool] = True):
+                        is_autogo: Optional[bool] = True) -> None:
         """
         Start an interactive CLI and GUI session, where the user can control the simulation until the
         exit command is typed.
@@ -345,7 +360,7 @@ class OTNS(object):
     def interactive_cli_threaded(self, prompt: Optional[str] = CLI_PROMPT,
                                  user_hint: Optional[str] = CLI_USER_HINT,
                                  close_otns_on_exit: Optional[bool] = True,
-                                 is_autogo: Optional[bool] = True):
+                                 is_autogo: Optional[bool] = True) -> bool:
         """
         Start an interactive CLI and GUI session in a new thread. The user can now control the simulation
         using CLI and GUI, while the Python script also operates on the simulation in parallel. If the

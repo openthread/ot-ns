@@ -469,11 +469,11 @@ class BasicTests(OTNSTestCase):
 
     def testHelp(self):
         ns: OTNS = self.ns
-        ns._do_command("help")
-        ns._do_command("help plr")
-        ns._do_command("help radiomodel")
-        ns._do_command("help add")
-        ns._do_command("help exe")
+        ns.cmd("help")
+        ns.cmd("help plr")
+        ns.cmd("help radiomodel")
+        ns.cmd("help add")
+        ns.cmd("help exe")
 
     def testGoUnits(self):
         ns: OTNS = self.ns
@@ -503,7 +503,7 @@ class BasicTests(OTNSTestCase):
         ns.add('router')
 
         with self.assertRaises(errors.OTNSCliError):
-            ns._do_command("scan 2")
+            ns.cmd("scan 2")
 
         ns.add('router')
         ns.add('router')
@@ -512,14 +512,14 @@ class BasicTests(OTNSTestCase):
         ns.add('router')
 
         ns.go(50)
-        ns._do_command("scan 1")
+        ns.cmd("scan 1")
         ns.go(5)
-        ns._do_command("scan 2")
+        ns.cmd("scan 2")
         ns.go(1)
-        ns._do_command("scan 3")
+        ns.cmd("scan 3")
         ns.go(15)
         ns.speed = 1
-        ns._do_command("scan 6")
+        ns.cmd("scan 6")
         # no go() period at the end to test starting scan and immediately stopping simulation.
 
     def testInvalidNodeCmd(self):
@@ -550,14 +550,14 @@ class BasicTests(OTNSTestCase):
         # Tested here that the exit command itself does not raise errors.OTNSExitedError.
         # That error is only raised for unexpected exits of OTNS, or when performing an
         # action while OTNS has already exited.
-        ns._do_command('exit')
+        ns.cmd('exit')
 
         with self.assertRaises(errors.OTNSExitedError):
             ns.go(1)
         with self.assertRaises(errors.OTNSExitedError):
             ns.add('router')
         with self.assertRaises(errors.OTNSExitedError):
-            ns._do_command('exit')
+            ns.cmd('exit')
 
     def testAutoGo(self):
         ns: OTNS = self.ns
@@ -589,12 +589,12 @@ class BasicTests(OTNSTestCase):
         ns: OTNS = self.ns
         ns.add('router')
         ns.add('router')
-        self.assertTrue('-100 dBm', ns._do_command('rxsens 1'))
-        self.assertTrue('-100 dBm', ns._do_command('rxsens 2'))
+        self.assertTrue('-100 dBm', ns.cmd('rxsens 1'))
+        self.assertTrue('-100 dBm', ns.cmd('rxsens 2'))
 
-        ns._do_command('rxsens 1 -85')
-        self.assertTrue('-85 dBm', ns._do_command('rxsens 1'))
-        self.assertTrue('-100 dBm', ns._do_command('rxsens 2'))
+        ns.cmd('rxsens 1 -85')
+        self.assertTrue('-85 dBm', ns.cmd('rxsens 1'))
+        self.assertTrue('-100 dBm', ns.cmd('rxsens 2'))
 
     def testCcaThreshold(self):
         ns: OTNS = self.ns
