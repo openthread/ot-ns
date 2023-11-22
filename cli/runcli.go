@@ -196,12 +196,15 @@ func (cli *CliInstance) Run(handler CliHandler, options *CliOptions) error {
 
 		if options.EchoInput {
 			if _, err := stdout.WriteString(line + "\n"); err != nil {
+				_ = stdout.Sync()
 				return err
 			}
 		}
 
 		cmd := strings.TrimSpace(line)
 		if len(cmd) == 0 {
+			stdout.WriteString("")
+			_ = stdout.Sync()
 			continue
 		}
 

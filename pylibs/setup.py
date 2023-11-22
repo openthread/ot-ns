@@ -31,7 +31,7 @@ setuptools.setup(
     name="pyOTNS",
     version="1.0.0",
     author="The OTNS Authors",
-    description="Run OpenThread mesh network simulation using OTNS from Python",
+    description="Run OpenThread mesh network simulations using OTNS2 from Python",
     url="https://github.com/EskoDijk/ot-ns",
     packages=setuptools.find_packages(),
     classifiers=[
