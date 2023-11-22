@@ -114,14 +114,11 @@ func (help *Help) outputHelp(commands []string) string {
 		if !ok {
 			explanation = "(Non-existent command.)"
 		}
+		// adapt output to console width, and use word-wrap
 		w := help.termWidth - help.maxCmdWidth - 1
 		explWrapped := strings.Split(wordwrap.WrapString(explanation, w), "\n")
 		for _, line := range explWrapped {
-			if cmdHeaderPattern.MatchString(line) {
-				s += line[strings.Index(line, " ")+1:] + "\n"
-			} else {
-				s += "  " + line + "\n"
-			}
+			s += line + "\n"
 		}
 	}
 	return s
@@ -158,6 +155,11 @@ func (help *Help) parseHelpFile() {
 
 		if len(activeCmd) > 0 {
 			help.commands[activeCmd] += indentString[0:indent] + markdownUnquote(line) + "\n"
+
+			if line == activeCmd {
+				indent = 2 // set indent for first-sentence of explanation.
+			}
+
 			if line != activeCmd && len(help.commandsShort[activeCmd]) == 0 {
 				firstSentence := line
 				idx := strings.Index(line, ".")
@@ -165,6 +167,7 @@ func (help *Help) parseHelpFile() {
 					firstSentence = line[:idx+1]
 				}
 				help.commandsShort[activeCmd] = firstSentence
+				indent = 0 // no indent, after first-sentence.
 			}
 		}
 	}

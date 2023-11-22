@@ -24,7 +24,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-
+import logging
 # Case study on routing when a prefix becomes deprecated. Requires loading current.pcap
 # into Wireshark to see the results.
 
@@ -36,7 +36,7 @@ from otns.cli.errors import OTNSExitedError
 
 def main():
     ns = OTNS()
-    ns.logconfig()
+    ns.logconfig(logging.INFO)
     ns.loglevel = 'info'
     ns.radiomodel = 'MIDisc'
     ns.web()

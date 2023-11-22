@@ -35,7 +35,7 @@ def main():
 
     ns.radiomodel = 'MIDisc'
     ns.speed = 20
-    ns.set_title("Interactive simulation with OTNS CLI example - switch to cmdline and e.g. type 'ping 1 5'")
+    ns.set_title("Interactive simulation with OTNS CLI example - setting up")
 
     # add some nodes and let them form network
     ns.add("router")
@@ -51,13 +51,15 @@ def main():
 
     # here we call the CLI for the user to type commands. Now the simulation can be manipulated as wanted,
     # using the CLI or GUI commands. Typing 'exit' will exit this call.
+    ns.set_title("Interactive simulation with OTNS CLI example - switch to cmdline and e.g. type 'ping 1 5', then look at animation")
     ns.speed = 0.008
+    ns.autogo = True
     ns.interactive_cli()
 
     # after the user exits, more scripted things could be done. But usually the script would also exit.
     ns.speed = 10
     ns.add("fed")
-    ns.go(60)
+    ns.go(15)
 
 
 if __name__ == '__main__':

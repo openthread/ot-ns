@@ -33,9 +33,10 @@ from otns.cli.errors import OTNSExitedError
 
 def main():
     ns = OTNS()
+    ns.web()
 
     ns.radiomodel = 'MIDisc'
-    ns.speed = 1.0
+    ns.speed = 10.0
     ns.set_title("Interactive simulation OTNS CLI Threaded example - switch to cmdline and type some commands.")
 
     # add some nodes and let them form network
@@ -52,11 +53,13 @@ def main():
 
     # here we call the threaded CLI for the user to type commands. Now the simulation can be manipulated as wanted,
     # using the CLI or GUI commands.
+    ns.speed = 1.0
+    ns.autogo = True
     if ns.interactive_cli_threaded():
         # if returns True, the threaded CLI was started.
         # in parallel, this script can now act on the simulation.
-        for n in range(1, 10):
-            print('Sending scripted ping 1 -> 5')
+        for n in range(1, 20):
+            print('\nSending Python scripted ping 1 -> 5')
             ns.ping(1, 5)
             time.sleep(5)
 

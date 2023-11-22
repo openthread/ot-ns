@@ -607,6 +607,15 @@ class BasicTests(OTNSTestCase):
         self.assertTrue('-75 dBm', ns.node_cmd(1,'ccathreshold'))
         self.assertTrue('-80 dBm', ns.node_cmd(2,'ccathreshold'))
 
+    def testCmdCommand(self):
+        ns: OTNS = self.ns
+        output = ns.cmd('autogo') # arbitrary command
+        self.assertEqual(1, len(output))
+        self.assertEqual('0', output[0])
+
+        output = ns.cmd('') # test empty command (like pressing enter, only newline is sent to OTNS)
+        self.assertEqual(0, len(output))
+
 
 if __name__ == '__main__':
     unittest.main()
