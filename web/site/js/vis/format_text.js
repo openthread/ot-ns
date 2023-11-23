@@ -38,6 +38,10 @@ export function formatPartitionId(parid) {
     return ('00000000' + parid.toString(16).toUpperCase()).slice(-8);
 }
 
+export function spacePad(value, numChars) {
+    return value.toString().padStart(numChars)
+}
+
 export function roleToString(role) {
     switch (role) {
         case OtDeviceRole.OT_DEVICE_ROLE_DISABLED:

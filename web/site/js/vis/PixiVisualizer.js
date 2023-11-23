@@ -246,16 +246,17 @@ export default class PixiVisualizer extends VObject {
     }
 
     updateStatusMsg() {
-        this.statusMsg.text = "OTNS-Web | FPS=" + Math.round(ticker.FPS).toString().padStart(3, " ") + " | "
-            + this.getNodeCountByRole(OtDeviceRole.OT_DEVICE_ROLE_LEADER) + " leaders "
-            + this.getNodeCountByRole(OtDeviceRole.OT_DEVICE_ROLE_ROUTER) + " routers "
-            + this.getNodeCountByRole(OtDeviceRole.OT_DEVICE_ROLE_CHILD) + " EDs "
-            + this.getNodeCountByRole(OtDeviceRole.OT_DEVICE_ROLE_DETACHED) + " detached"
+        this.statusMsg.text = "OTNS2-Web | FPS=" + fmt.spacePad(Math.round(ticker.FPS), 3) + " | "
+            + fmt.spacePad(this._getNodeCountByRole(OtDeviceRole.OT_DEVICE_ROLE_LEADER),3) + " leaders "
+            + fmt.spacePad(this._getPartitionCount(),3) + " partitions "
+            + fmt.spacePad(this._getNodeCountByRole(OtDeviceRole.OT_DEVICE_ROLE_ROUTER),3) + " routers "
+            + fmt.spacePad(this._getNodeCountByRole(OtDeviceRole.OT_DEVICE_ROLE_CHILD),3) + " EDs "
+            + fmt.spacePad(this._getNodeCountByRole(OtDeviceRole.OT_DEVICE_ROLE_DETACHED),3) + " detached"
             + " | SPEED=" + this.formatSpeed()
             + " | TIME=" + this.formatTime();
     }
 
-    getNodeCountByRole(role) {
+    _getNodeCountByRole(role) {
         let count = 0;
         for (let nodeid in this.nodes) {
             let node = this.nodes[nodeid];
@@ -264,6 +265,17 @@ export default class PixiVisualizer extends VObject {
             }
         }
         return count
+    }
+
+    _getPartitionCount() {
+        let aPts = {};
+        for (let nodeid in this.nodes) {
+            let pts = this.nodes[nodeid].partition;
+            if (pts > 0) {
+                aPts[pts] = 1;
+            }
+        }
+        return Object.keys(aPts).length;
     }
 
     log(text, color = LOG_WINDOW_FONT_COLOR) {
