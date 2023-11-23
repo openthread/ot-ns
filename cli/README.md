@@ -401,15 +401,22 @@ Done
 
 ### netinfo
 
-Set network info.
+Set network nodes info.
 
 ```shell
 netinfo [version "<string>"] [commit "<string>"] [real y|n]
 ```
 
-NOTE: this command will be modified or removed in a next version, because the version, commit and 'real' information 
-does not accurately reflect the information from the present simulation and the nodes present in it. For example, 
-nodes of multiple commit versions may be present, as well as multiple versions.
+Sets information about OpenThread version and Commit used for simulation nodes, as well as whether nodes are real 
+or simulated. This information is then shown in the GUI. This temporarily overrides the information that OTNS already sets by 
+default, whenever a node is added or deleted. When a node is added or deleted again, OTNS will automatically set the 
+version and commit information again based on current nodes in the simulation.
+
+In the GUI, when the version/commit message is clicked, a web browser tab will be opened with the Github code for 
+the particular version/commit. This only works currently if there's a single version/commit shared by all nodes in the 
+simulation.
+
+NOTE: setting `real` enabled (y) will disable some of the GUI controls of the simulation, such as speed/pause.
 
 ```bash
 > netinfo version "Latest"

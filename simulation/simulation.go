@@ -51,6 +51,7 @@ type Simulation struct {
 	stopped        bool
 	cfg            *Config
 	nodes          map[NodeId]*Node
+	nodeVersions   map[string]int
 	d              *dispatcher.Dispatcher
 	vis            visualize.Visualizer
 	cmdRunner      CmdRunner
@@ -69,6 +70,7 @@ func NewSimulation(ctx *progctx.ProgCtx, cfg *Config, dispatcherCfg *dispatcher.
 		ctx:          ctx,
 		cfg:          cfg,
 		nodes:        map[NodeId]*Node{},
+		nodeVersions: map[string]int{},
 		rawMode:      cfg.RawMode,
 		autoGo:       cfg.AutoGo,
 		autoGoChange: make(chan bool, 1),
@@ -179,9 +181,39 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 		return nil, err
 	}
 
+	s.updateNodeVersions()
 	node.onStart()
 	node.Logger.DisplayPendingLogEntries(ts)
 	return node, err
+}
+
+func (s *Simulation) updateNodeVersions() {
+	s.nodeVersions = map[string]int{}
+	for _, node := range s.nodes {
+		v := node.GetVersion()
+		if _, ok := s.nodeVersions[v]; !ok {
+			s.nodeVersions[v] = 1
+		} else {
+			s.nodeVersions[v] += 1
+		}
+	}
+
+	ver := "-"
+	com := ""
+	if len(s.nodeVersions) == 1 {
+		for v := range s.nodeVersions {
+			ver = v
+			com = getCommitFromOtVersion(v)
+		}
+	} else {
+		ver = fmt.Sprintf("(%d different OT versions active)", len(s.nodeVersions))
+	}
+
+	if ver != s.networkInfo.Version || com != s.networkInfo.Commit {
+		s.networkInfo.Version = ver
+		s.networkInfo.Commit = com
+		s.vis.SetNetworkInfo(s.networkInfo)
+	}
 }
 
 func (s *Simulation) genNodeId() NodeId {
@@ -393,6 +425,7 @@ func (s *Simulation) DeleteNode(nodeid NodeId) error {
 	node.Logger.DisplayPendingLogEntries(s.d.CurTime)
 	node.Logger.Close()
 	delete(s.nodes, nodeid)
+	s.updateNodeVersions()
 	return err
 }
 

@@ -71,10 +71,12 @@ type Node struct {
 	Id    int
 	DNode *dispatcher.Node
 
-	Logger       *logger.NodeLogger
-	cfg          *NodeConfig
-	cmd          *exec.Cmd
-	cmdErr       error       // store the last CLI command error; nil if none.
+	Logger  *logger.NodeLogger
+	cfg     *NodeConfig
+	cmd     *exec.Cmd
+	cmdErr  error // store the last CLI command error; nil if none.
+	version string
+
 	pendingLines chan string // OT node CLI output lines, pending processing.
 	pipeIn       io.WriteCloser
 	pipeOut      io.ReadCloser
@@ -106,6 +108,7 @@ func newNode(s *Simulation, nodeid NodeId, cfg *NodeConfig, dnode *dispatcher.No
 		pendingLines: make(chan string, 10000),
 		uartType:     NodeUartTypeUndefined,
 		uartReader:   make(chan []byte, 10000),
+		version:      "",
 	}
 	node.Logger.Debugf("Node config: IsMtd=%t IsRouter=%t IsBR=%t RxOffWhenIdle=%t", cfg.IsMtd, cfg.IsRouter,
 		cfg.IsBorderRouter, cfg.RxOffWhenIdle)
@@ -162,6 +165,7 @@ func (node *Node) onStart() {
 	node.Logger.Infof("started, panid=0x%04x, chan=%d, eui64=%#v, extaddr=%#v, state=%s, key=%#v, mode=%v",
 		node.GetPanid(), node.GetChannel(), node.GetEui64(), node.GetExtAddr(), node.GetState(),
 		node.GetNetworkKey(), node.GetMode())
+	node.Logger.Infof("         version=%s", node.GetVersion())
 }
 
 func (node *Node) IsFED() bool {
@@ -697,7 +701,10 @@ func (node *Node) ThreadStop() {
 
 // GetVersion gets the version string of the OpenThread node.
 func (node *Node) GetVersion() string {
-	return node.CommandExpectString("version", DefaultCommandTimeout)
+	if node.version == "" {
+		node.version = node.CommandExpectString("version", DefaultCommandTimeout)
+	}
+	return node.version
 }
 
 func (node *Node) GetExecutablePath() string {

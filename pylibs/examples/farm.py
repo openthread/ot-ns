@@ -54,7 +54,6 @@ def main():
     ns.speed = 4
     ns.radiomodel = 'Outdoor'
     ns.set_title("Farm Example")
-    ns.set_network_info(version="Latest", commit="main", real=False)
     ns.config_visualization(broadcast_message=False)
     ns.web()
 
