@@ -29,8 +29,15 @@ import VObject from "./VObject";
 import ActionBar from "./ActionBar";
 import {Text} from "./wrapper";
 import {
-    FRAME_CONTROL_MASK_FRAME_TYPE, FRAME_TYPE_ACK, LOG_WINDOW_FONT_COLOR, MAX_SPEED, PAUSE_SPEED, STATUS_MSG_FONT_FAMILY,
-    STATUS_MSG_FONT_SIZE, NODE_ID_INVALID
+    FRAME_CONTROL_MASK_FRAME_TYPE,
+    FRAME_TYPE_ACK,
+    LOG_WINDOW_FONT_COLOR,
+    MAX_SPEED,
+    PAUSE_SPEED,
+    STATUS_MSG_FONT_FAMILY,
+    STATUS_MSG_FONT_SIZE,
+    NODE_ID_INVALID,
+    NODE_LABEL_FONT_FAMILY
 } from "./consts";
 import Node from "./Node"
 import {AckMessage, BroadcastMessage, UnicastMessage} from "./message";
@@ -111,21 +118,21 @@ export default class PixiVisualizer extends VObject {
 
         this.otVersion = "";
         this.otCommit = "";
-        this.otCommitIdMsg = new Text("OpenThread Version: ", {
+        this.otCommitIdMsg = new Text("", {
             fill: "#0052ff",
-            fontFamily: "Verdana",
-            fontSize: 13,
-            fontStyle: "italic",
-            fontWeight: "bolder"
+            fontFamily: NODE_LABEL_FONT_FAMILY,
+            fontSize: 12
         });
         this.otCommitIdMsg.position.set(this.statusMsg.x, this.statusMsg.y + this.statusMsg.height + 3);
         this.otCommitIdMsg.interactive = true;
         this.otCommitIdMsg.setOnTap((e) => {
-            window.open('https://github.com/openthread/openthread/commit/' + this.otCommit, '_blank');
+            if (this.otCommit.length > 0) {
+                window.open('https://github.com/openthread/openthread/tree/' + this.otCommit, '_blank');
+            }
             e.stopPropagation();
         });
         this.addChild(this.otCommitIdMsg);
-        this.setOTVersion("", "main");
+        this.setOTVersion("-", "");
 
         this.titleText = new PIXI.Text("", {
             fill: "#e69900",
@@ -220,7 +227,11 @@ export default class PixiVisualizer extends VObject {
     setOTVersion(version, commit) {
         this.otVersion = version;
         this.otCommit = commit;
-        this.otCommitIdMsg.text = "OpenThread Version: " + version + " (" + commit + ")";
+        let txt = "OpenThread Version: " + version;
+        if (commit.length>0) {
+            txt += " (" + commit + ")"
+        }
+        this.otCommitIdMsg.text =  txt;
     }
 
     setReal(real) {

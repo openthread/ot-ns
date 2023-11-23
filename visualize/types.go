@@ -103,7 +103,7 @@ type NetworkInfo struct {
 func DefaultNetworkInfo() NetworkInfo {
 	return NetworkInfo{
 		Real:    false,
-		Version: "",
-		Commit:  "main",
+		Version: "-",
+		Commit:  "",
 	}
 }

@@ -31,6 +31,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	. "github.com/openthread/ot-ns/types"
 )
@@ -58,4 +59,16 @@ func removeAllFiles(globPath string) error {
 		}
 	}
 	return nil
+}
+
+func getCommitFromOtVersion(ver string) string {
+	if strings.HasPrefix(ver, "OPENTHREAD/") && len(ver) >= 13 {
+		commit := ver[11:]
+		idx := strings.Index(commit, ";")
+		if idx > 0 {
+			commit = commit[0:idx]
+			return commit
+		}
+	}
+	return ""
 }
