@@ -805,7 +805,8 @@ func displayRadioParam(val *reflect.Value) (string, bool) {
 
 func (rt *CmdRunner) executeRadioParam(cc *CommandContext, cmd *RadioParamCmd) {
 	rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
-		rp := sim.Dispatcher().GetRadioModel().GetParameters()
+		rm := sim.Dispatcher().GetRadioModel()
+		rp := rm.GetParameters()
 		rpVal := reflect.ValueOf(rp).Elem()
 		rpTyp := reflect.TypeOf(rp).Elem()
 
@@ -844,10 +845,20 @@ func (rt *CmdRunner) executeRadioParam(cc *CommandContext, cmd *RadioParamCmd) {
 		if cmd.Sign == "-" {
 			newVal = -newVal
 		}
+
+		isChanged := false
 		if !isFloat { // if we're setting a bool parameter, use <=0 -> false ; >0 -> true
-			fval.SetBool(newVal > 0)
+			newValBool := newVal > 0
+			oldValBool := fval.Bool()
+			isChanged = oldValBool != newValBool
+			fval.SetBool(newValBool)
 		} else {
+			oldVal := fval.Float()
+			isChanged = oldVal != newVal
 			fval.SetFloat(newVal)
+		}
+		if isChanged {
+			rm.OnParametersModified()
 		}
 	})
 }

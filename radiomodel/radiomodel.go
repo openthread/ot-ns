@@ -45,12 +45,6 @@ const (
 	TimeUsPerBit                   = 4
 )
 
-// default radio & simulation parameters
-const (
-	defaultNoiseFloorIndoorDbm DbValue = -95.0 // Indoor model ambient noise floor (dBm)
-	defaultMeterPerUnit        float64 = 0.10  // Default distance equivalent in meters of one grid/pixel distance unit.
-)
-
 // RSSI parameter encodings for communication with OT node (maps to int8)
 const (
 	RssiInvalid       DbValue = 127.0
@@ -89,6 +83,10 @@ type RadioModel interface {
 	// able to detect the frame).
 	OnEventDispatch(srcNode *RadioNode, dstNode *RadioNode, evt *Event) bool
 
+	// OnNextEventTime is called when the Dispatcher moves the simulation time to a higher timestamp ts,
+	// where new event(s) will be executed.
+	OnNextEventTime(ts uint64)
+
 	// HandleEvent handles all radio-model events coming out of the simulator event queue.
 	// node is the RadioNode object equivalent to evt.NodeId. Newly generated events may be put back into
 	// the EventQueue q for scheduled processing.
@@ -100,40 +98,11 @@ type RadioModel interface {
 	// GetParameters gets the parameters of this RadioModel. These may be modified during operation.
 	GetParameters() *RadioModelParams
 
+	// OnParametersModified is called when one or more parameters (RadioModelParams) were modified.
+	OnParametersModified()
+
 	// init initializes the RadioModel.
 	init()
-}
-
-// RadioModelParams stores model parameters for the radio model.
-type RadioModelParams struct {
-	MeterPerUnit        float64 // the distance in meters, equivalent to a single distance unit(pixel)
-	IsDiscLimit         bool    // If true, RF signal Tx range is limited to the RadioRange set for each node
-	RssiMinDbm          DbValue // Lowest RSSI value (dBm) that can be returned, overriding other calculations
-	RssiMaxDbm          DbValue // Highest RSSI value (dBm) that can be returned, overriding other calculations
-	ExponentDb          DbValue // the exponent (dB) in the regular/LOS model
-	FixedLossDb         DbValue // the fixed loss (dB) term in the regular/LOS model
-	NlosExponentDb      DbValue // the exponent (dB) in the NLOS model
-	NlosFixedLossDb     DbValue // the fixed loss (dB) term in the NLOS model
-	NoiseFloorDbm       DbValue // the noise floor (ambient noise, in dBm)
-	SnrMinThresholdDb   DbValue // the minimal value an SNR/SINR should be, to have a non-zero frame success probability.
-	ShadowFadingSigmaDb DbValue // sigma (stddev) parameter for Shadow Fading (SF), in dB
-}
-
-// newRadioModelParams gets a new set of parameters with default values, as a basis to configure further.
-func newRadioModelParams() *RadioModelParams {
-	return &RadioModelParams{
-		MeterPerUnit:        defaultMeterPerUnit,
-		IsDiscLimit:         false,
-		RssiMinDbm:          RssiMin,
-		RssiMaxDbm:          RssiMax,
-		ExponentDb:          UndefinedDbValue,
-		FixedLossDb:         UndefinedDbValue,
-		NlosExponentDb:      UndefinedDbValue,
-		NlosFixedLossDb:     UndefinedDbValue,
-		NoiseFloorDbm:       UndefinedDbValue,
-		SnrMinThresholdDb:   UndefinedDbValue,
-		ShadowFadingSigmaDb: UndefinedDbValue,
-	}
 }
 
 // NewRadioModel creates a new RadioModel with given name, or nil if model not found.
@@ -157,25 +126,26 @@ func NewRadioModel(modelName string) RadioModel {
 		p.IsDiscLimit = true
 	case "MutualInterference", "MI", "M", "3":
 		model = &RadioModelMutualInterference{
-			name:         "MutualInterference",
-			params:       newRadioModelParams(),
-			shadowFading: newShadowFading(),
+			name:       "MutualInterference",
+			params:     newRadioModelParams(),
+			prevParams: *newRadioModelParams(),
+			fading:     newFadingModel(),
 		}
 		setIndoorModelParams3gpp(model.GetParameters())
 	case "MIDisc", "MID", "4":
 		model = &RadioModelMutualInterference{
-			name:         "MIDisc",
-			params:       newRadioModelParams(),
-			shadowFading: newShadowFading(),
+			name:   "MIDisc",
+			params: newRadioModelParams(),
+			fading: newFadingModel(),
 		}
 		p := model.GetParameters()
 		setIndoorModelParams3gpp(p)
 		p.IsDiscLimit = true
 	case "Outdoor", "5":
 		model = &RadioModelMutualInterference{
-			name:         "Outdoor",
-			params:       newRadioModelParams(),
-			shadowFading: newShadowFading(),
+			name:   "Outdoor",
+			params: newRadioModelParams(),
+			fading: newFadingModel(),
 		}
 		setOutdoorModelParams(model.GetParameters())
 	default:
@@ -185,25 +155,4 @@ func NewRadioModel(modelName string) RadioModel {
 		model.init()
 	}
 	return model
-}
-
-// addSignalPowersDbm calculates signal power in dBm of two added, uncorrelated, signals with powers p1 and p2 (dBm).
-func addSignalPowersDbm(p1 DbValue, p2 DbValue) DbValue {
-	if p1 > p2+15.0 {
-		return p1
-	}
-	if p2 > p1+15.0 {
-		return p2
-	}
-	return 10.0 * math.Log10(math.Pow(10, p1/10.0)+math.Pow(10, p2/10.0))
-}
-
-// clipRssi clips the RSSI value (in dBm, as DbValue) to int8 range for return to OT nodes.
-func clipRssi(rssi DbValue) int8 {
-	if rssi > RssiMax {
-		rssi = RssiMax
-	} else if rssi < RssiMin {
-		rssi = RssiMinusInfinity
-	}
-	return int8(math.Round(rssi))
 }

@@ -682,6 +682,8 @@ NlosFixedLossDb      26.77
 NoiseFloorDbm        -95
 SnrMinThresholdDb    -4
 ShadowFadingSigmaDb  8.03
+TimeFadingSigmaMaxDb 4
+MeanTimeFadingChange 120
 Done
 > radioparam MeterPerUnit
 0.1
