@@ -1,4 +1,4 @@
-// Copyright (c) 2023, The OTNS Authors.
+// Copyright (c) 2022-2023, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -28,36 +28,28 @@ package radiomodel
 
 import "math"
 
-// computeIndoorRssi computes the RSSI for a receiver at distance dist, using a simple indoor exponent loss model.
-// See https://en.wikipedia.org/wiki/ITU_model_for_indoor_attenuation
-func computeIndoorRssiItu(dist float64, txPower DbValue, modelParams *RadioModelParams) DbValue {
-	pathloss := 0.0
-	distMeters := dist * modelParams.MeterPerUnit
-	if distMeters >= 0.01 {
-		pathloss = modelParams.ExponentDb*math.Log10(distMeters) + modelParams.FixedLossDb
-		if pathloss < 0.0 {
-			pathloss = 0.0
-		}
-	}
-	rssi := txPower - pathloss
-	return rssi
+// paround is a custom parameter rounding function (2 digits)
+func paround(param float64) float64 {
+	return math.Round(param*100.0) / 100.0
 }
 
-// computeIndoorRssi3gpp computes the RSSI for a receiver at distance dist, using the Indoor/Office 3GPP
-// model defined in 3GPP TR 38.901 V17.0.0, Table 7.4.1-1: Pathloss models.
-func computeIndoorRssi3gpp(dist float64, txPower DbValue, modelParams *RadioModelParams) DbValue {
-	pathloss := 0.0
-	distMeters := dist * modelParams.MeterPerUnit
-	if distMeters >= 0.01 {
-		pathloss = modelParams.ExponentDb*math.Log10(distMeters) + modelParams.FixedLossDb
-		if pathloss < 0.0 {
-			pathloss = 0.0
-		}
-		if modelParams.NlosExponentDb > 0.0 {
-			pathlossNLOS := modelParams.NlosExponentDb*math.Log10(distMeters) + modelParams.NlosFixedLossDb
-			pathloss = math.Max(pathloss, pathlossNLOS)
-		}
+// addSignalPowersDbm calculates signal power in dBm of two added, uncorrelated, signals with powers p1 and p2 (dBm).
+func addSignalPowersDbm(p1 DbValue, p2 DbValue) DbValue {
+	if p1 > p2+15.0 { // avoid costly calculation where possible
+		return p1
 	}
-	rssi := txPower - pathloss
-	return rssi
+	if p2 > p1+15.0 {
+		return p2
+	}
+	return 10.0 * math.Log10(math.Pow(10, p1/10.0)+math.Pow(10, p2/10.0))
+}
+
+// clipRssi clips the RSSI value (in dBm, as DbValue) to int8 range for return to OT nodes.
+func clipRssi(rssi DbValue) int8 {
+	if rssi > RssiMax {
+		rssi = RssiMax
+	} else if rssi < RssiMin {
+		rssi = RssiMinusInfinity
+	}
+	return int8(math.Round(rssi))
 }

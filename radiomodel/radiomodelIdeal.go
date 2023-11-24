@@ -89,6 +89,14 @@ func (rm *RadioModelIdeal) OnEventDispatch(src *RadioNode, dst *RadioNode, evt *
 	return true
 }
 
+func (rm *RadioModelIdeal) OnNextEventTime(ts uint64) {
+	//
+}
+
+func (rm *RadioModelIdeal) OnParametersModified() {
+	//
+}
+
 func (rm *RadioModelIdeal) HandleEvent(node *RadioNode, q EventQueue, evt *Event) {
 	switch evt.Type {
 	case EventTypeRadioCommStart:

@@ -41,9 +41,10 @@ import (
 // is also radio reception possible beyond the radioRange. Also, devices with better Rx sensitivity will receive
 // radio frames at longer distances beyond the radioRange.
 type RadioModelMutualInterference struct {
-	name         string
-	params       *RadioModelParams
-	shadowFading *shadowFading
+	name       string
+	params     *RadioModelParams
+	prevParams RadioModelParams
+	fading     *fadingModel
 
 	nodes                 map[NodeId]*RadioNode
 	activeTransmitters    map[ChannelId]map[NodeId]*RadioNode
@@ -88,7 +89,9 @@ func (rm *RadioModelMutualInterference) GetTxRssi(src *RadioNode, dst *RadioNode
 
 	if rm.params.RssiMinDbm < rm.params.RssiMaxDbm {
 		rssi = computeIndoorRssi3gpp(dist, src.TxPower, rm.params)
-		rssi -= rm.shadowFading.computeShadowFading(src, dst, rm.params)
+		if rm.params.ShadowFadingSigmaDb > 0 || rm.params.TimeFadingSigmaMaxDb > 0 {
+			rssi -= rm.fading.computeFading(src, dst, rm.params)
+		}
 		if rssi < rm.params.RssiMinDbm {
 			rssi = rm.params.RssiMinDbm
 		} else if rssi > rm.params.RssiMaxDbm {
@@ -130,6 +133,22 @@ func (rm *RadioModelMutualInterference) OnEventDispatch(src *RadioNode, dst *Rad
 		break
 	}
 	return true
+}
+
+func (rm *RadioModelMutualInterference) OnNextEventTime(ts uint64) {
+	rm.fading.onAdvanceTime(ts)
+}
+
+func (rm *RadioModelMutualInterference) OnParametersModified() {
+	// for specific parameter changes, clear cache, so that values may be rebuilt in conformance with latest
+	// global parameter settings.
+	if rm.prevParams.TimeFadingSigmaMaxDb != rm.params.TimeFadingSigmaMaxDb ||
+		rm.prevParams.ShadowFadingSigmaDb != rm.params.ShadowFadingSigmaDb ||
+		rm.prevParams.MeterPerUnit != rm.params.MeterPerUnit ||
+		rm.prevParams.MeanTimeFadingChange != rm.params.MeanTimeFadingChange {
+		rm.fading.clearCaches()
+	}
+	rm.prevParams = *rm.params
 }
 
 func (rm *RadioModelMutualInterference) HandleEvent(node *RadioNode, q EventQueue, evt *Event) {

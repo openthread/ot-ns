@@ -363,6 +363,7 @@ func (d *Dispatcher) goSimulateForDuration(duration goDuration) {
 
 			if !goon && len(d.aliveNodes) == 0 {
 				d.cbHandler.OnNextEventTime(d.pauseTime)
+				d.radioModel.OnNextEventTime(d.pauseTime)
 				d.advanceTime(d.pauseTime) // if nothing more to do before d.pauseTime.
 				break
 			}
@@ -540,6 +541,7 @@ func (d *Dispatcher) processNextEvent(simSpeed float64) bool {
 		return false
 	}
 	d.cbHandler.OnNextEventTime(nextEventTime)
+	d.radioModel.OnNextEventTime(nextEventTime)
 	d.advanceTime(nextEventTime)
 
 	// process (if any) all queued events, that happen at exactly procUntilTime
