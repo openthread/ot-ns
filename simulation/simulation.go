@@ -273,7 +273,7 @@ func (s *Simulation) AutoGoRoutine(ctx *progctx.ProgCtx, sim *Simulation) {
 
 	for {
 	loop2:
-		// First for waits until autogo is enabled.
+		// First for block waits until autogo is enabled.
 		for {
 			select {
 			case isAutoGo := <-sim.autoGoChange:
@@ -286,7 +286,7 @@ func (s *Simulation) AutoGoRoutine(ctx *progctx.ProgCtx, sim *Simulation) {
 		}
 
 	loop:
-		// Second block executes Go() until autogo is disabled.
+		// Second for block executes Go() until autogo is disabled.
 		for {
 			select {
 			case isAutoGo := <-sim.autoGoChange:

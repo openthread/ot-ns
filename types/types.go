@@ -32,7 +32,7 @@ import (
 )
 
 type NodeId = int
-type ChannelId = int
+type ChannelId = uint8
 
 const (
 	InvalidNodeId         NodeId = 0

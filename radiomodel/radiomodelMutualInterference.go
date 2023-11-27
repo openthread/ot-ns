@@ -119,7 +119,7 @@ func (rm *RadioModelMutualInterference) OnEventDispatch(src *RadioNode, dst *Rad
 	case EventTypeRadioChannelSample:
 		// take final channel sample
 		if evt.RadioCommData.Error == OT_ERROR_NONE {
-			r := rm.getRssiOnChannel(src, int(evt.RadioCommData.Channel))
+			r := rm.getRssiOnChannel(src, evt.RadioCommData.Channel)
 			if r > src.rssiSampleMax {
 				src.rssiSampleMax = r
 			}
@@ -164,7 +164,7 @@ func (rm *RadioModelMutualInterference) HandleEvent(node *RadioNode, q EventQueu
 		rm.channelSampleStart(node, evt)
 	case EventTypeRadioState:
 		node.SetRadioState(evt.RadioStateData.EnergyState, evt.RadioStateData.SubState)
-		node.SetChannel(ChannelId(evt.RadioStateData.Channel))
+		node.SetChannel(evt.RadioStateData.Channel)
 		node.SetRxSensitivity(DbValue(evt.RadioStateData.RxSensDbm))
 	default:
 		break // Unknown events not handled.
@@ -209,7 +209,7 @@ func (rm *RadioModelMutualInterference) getRssiOnChannel(node *RadioNode, channe
 
 func (rm *RadioModelMutualInterference) txStart(node *RadioNode, evt *Event) {
 	// verify node doesn't already transmit or sample on this channel.
-	ch := int(evt.RadioCommData.Channel) // move to the (new) channel for this Tx
+	ch := evt.RadioCommData.Channel // move to the (new) channel for this Tx
 	_, nodeTransmits := rm.activeTransmitters[ch][node.Id]
 	_, nodeSamples := rm.activeChannelSamplers[ch][node.Id]
 	if nodeTransmits || nodeSamples {
@@ -255,7 +255,7 @@ func (rm *RadioModelMutualInterference) txStart(node *RadioNode, evt *Event) {
 }
 
 func (rm *RadioModelMutualInterference) txStop(node *RadioNode, evt *Event) {
-	ch := int(evt.RadioCommData.Channel)
+	ch := evt.RadioCommData.Channel
 	// if channel changed during operation, we need to stop it also at the old channel.
 	isChannelChangedDuringTx := ch != node.RadioChannel
 	if isChannelChangedDuringTx {
@@ -309,7 +309,7 @@ func (rm *RadioModelMutualInterference) applyInterference(src *RadioNode, dst *R
 // update sample value for all channel-sampling nodes that may detect the new source src.
 func (rm *RadioModelMutualInterference) updateChannelSamplingNodes(src *RadioNode, evt *Event) {
 	logger.AssertTrue(evt.Type == EventTypeRadioCommStart)
-	ch := int(evt.RadioCommData.Channel)
+	ch := evt.RadioCommData.Channel
 	for _, samplingNode := range rm.activeChannelSamplers[ch] {
 		r := rm.GetTxRssi(src, samplingNode)
 		if r != RssiInvalid {
@@ -319,7 +319,7 @@ func (rm *RadioModelMutualInterference) updateChannelSamplingNodes(src *RadioNod
 }
 
 func (rm *RadioModelMutualInterference) channelSampleStart(srcNode *RadioNode, evt *Event) {
-	ch := int(evt.RadioCommData.Channel)
+	ch := evt.RadioCommData.Channel
 	// verify node doesn't already transmit or sample on its channel.
 	_, nodeTransmits := rm.activeTransmitters[ch][srcNode.Id]
 	_, nodeSamples := rm.activeChannelSamplers[ch][srcNode.Id]

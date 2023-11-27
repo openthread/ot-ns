@@ -28,87 +28,36 @@ package pcap
 
 import (
 	"encoding/binary"
-	"fmt"
+	"math"
 	"os"
-
-	. "github.com/openthread/ot-ns/types"
 )
 
-type FrameType int
-
+// wpan-tap / DLT IEEE802 15 4 TAP specification is at
+// https://gitlab.com/exegin/ieee802-15-4-tap
 const (
-	FrameTypeOff FrameType = iota
-	FrameTypeWpan
-	FrameTypeWpanTap
-	FrameTypeUnknown
+	dltIeee802154Tap       = 283
+	pcapTapFrameHeaderSize = 28
 )
 
 const (
-	FrameTypeOffStr     string = "off"
-	FrameTypeWpanStr    string = "wpan"
-	FrameTypeWpanTapStr string = "wpan-tap"
+	tlvFcsType           = 0
+	tlvRss               = 1
+	tlvChannelAssignment = 3
+	tlvSofTimestamp      = 5
+	tlvLqi               = 10
 )
 
-const (
-	dltIeee802154       = 195
-	pcapMagicNumber     = 0xA1B2C3D4
-	pcapVersionMajor    = 2
-	pcapVersionMinor    = 4
-	pcapFileHeaderSize  = 24
-	pcapFrameHeaderSize = 16
-)
-
-// File represents a PCAP file
-type File interface {
-	AppendFrame(frame Frame) error
-	Sync() error
-	Close() error
-}
-
-// Frame represents a single radio frame that can be added to a PCAP file
-type Frame struct {
-	Timestamp uint64
-	Data      []byte
-	Channel   ChannelId
-	Rssi      float32
-}
-
-type wpanFile struct {
+type tapFile struct {
 	fd *os.File
 }
 
-// NewFile creates a new PCAP file with all frames using specified frameType
-func NewFile(filename string, frameType FrameType) (File, error) {
-	switch frameType {
-	case FrameTypeWpan:
-		return newWpanFile(filename)
-	case FrameTypeWpanTap:
-		return newWpanTapFile(filename)
-	default:
-		return nil, fmt.Errorf("invalid PCAP frame type: %d", frameType)
-	}
-}
-
-func ParseFrameTypeStr(tp string) FrameType {
-	switch tp {
-	case FrameTypeOffStr:
-		return FrameTypeOff
-	case FrameTypeWpanStr:
-		return FrameTypeWpan
-	case FrameTypeWpanTapStr:
-		return FrameTypeWpanTap
-	default:
-		return FrameTypeUnknown
-	}
-}
-
-func newWpanFile(filename string) (File, error) {
+func newWpanTapFile(filename string) (File, error) {
 	fd, err := os.OpenFile(filename, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
 	if err != nil {
 		return nil, err
 	}
 
-	pf := &wpanFile{
+	pf := &tapFile{
 		fd: fd,
 	}
 
@@ -120,15 +69,49 @@ func newWpanFile(filename string) (File, error) {
 	return pf, nil
 }
 
-func (pf *wpanFile) AppendFrame(frame Frame) error {
-	var header [pcapFrameHeaderSize]byte
+func setTlv(hdr *[pcapFrameHeaderSize + pcapTapFrameHeaderSize]byte, idx *int, tlvType uint16, data []byte) {
+	var l uint16
+	lenData := uint16(len(data))
+	l = lenData & 0xFFFC
+	if lenData&0x0003 > 0 {
+		l += 4
+	}
+	tlv := make([]byte, 4+l)
+	binary.LittleEndian.PutUint16(tlv[0:2], tlvType)
+	binary.LittleEndian.PutUint16(tlv[2:4], lenData)
+	copy(tlv[4:], data[:])
+	copy(hdr[*idx:], tlv[:])
+	*idx += int(4 + l)
+}
+
+func (pf *tapFile) AppendFrame(frame Frame) error {
+	var header [pcapFrameHeaderSize + pcapTapFrameHeaderSize]byte
+
 	sec := uint32(frame.Timestamp / 1000000)
 	usec := uint32(frame.Timestamp % 1000000)
 	binary.LittleEndian.PutUint32(header[:4], sec)
 	binary.LittleEndian.PutUint32(header[4:8], usec)
-	plen := uint32(len(frame.Data))
-	binary.LittleEndian.PutUint32(header[8:12], plen)
-	binary.LittleEndian.PutUint32(header[12:16], plen)
+	frLen := uint32(len(frame.Data)) + pcapTapFrameHeaderSize
+	binary.LittleEndian.PutUint32(header[8:12], frLen)
+	binary.LittleEndian.PutUint32(header[12:pcapFrameHeaderSize], frLen)
+
+	// append fields per wpan-tap spec https://gitlab.com/exegin/ieee802-15-4-tap
+	n := pcapFrameHeaderSize
+	header[n] = 0 // wpan-tap version
+	n += 1
+	header[n] = 0 // reserved
+	n += 1
+	binary.LittleEndian.PutUint16(header[n:n+2], pcapTapFrameHeaderSize) // header len
+	n += 2
+	setTlv(&header, &n, tlvFcsType, []byte{1}) // 1 == 16-bit CRC (=FCS)
+	rssFloat := frame.Rssi
+	rssValue := make([]byte, 4)
+	binary.LittleEndian.PutUint32(rssValue, math.Float32bits(rssFloat))
+	setTlv(&header, &n, tlvRss, rssValue)
+	channelAssign := make([]byte, 3)
+	binary.LittleEndian.PutUint16(channelAssign, uint16(frame.Channel))
+	channelAssign[2] = 0 // 0 == IEEE 802.15.4 channel page 0
+	setTlv(&header, &n, tlvChannelAssignment, channelAssign)
 
 	var err error
 
@@ -141,15 +124,15 @@ func (pf *wpanFile) AppendFrame(frame Frame) error {
 	return err
 }
 
-func (pf *wpanFile) Sync() error {
+func (pf *tapFile) Sync() error {
 	return pf.fd.Sync()
 }
 
-func (pf *wpanFile) Close() error {
+func (pf *tapFile) Close() error {
 	return pf.fd.Close()
 }
 
-func (pf *wpanFile) writeHeader() error {
+func (pf *tapFile) writeHeader() error {
 	var header [pcapFileHeaderSize]byte
 	binary.LittleEndian.PutUint32(header[:4], pcapMagicNumber)
 	binary.LittleEndian.PutUint16(header[4:6], pcapVersionMajor)
@@ -157,7 +140,7 @@ func (pf *wpanFile) writeHeader() error {
 	binary.LittleEndian.PutUint32(header[8:12], 0)
 	binary.LittleEndian.PutUint32(header[12:16], 0)
 	binary.LittleEndian.PutUint32(header[16:20], 256)
-	binary.LittleEndian.PutUint32(header[20:24], dltIeee802154)
+	binary.LittleEndian.PutUint32(header[20:24], dltIeee802154Tap)
 	if _, err := pf.fd.Write(header[:]); err != nil {
 		return err
 	}
