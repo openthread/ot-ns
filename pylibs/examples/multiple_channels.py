@@ -27,7 +27,8 @@
 
 #
 # Thread Networks on multiple channels example. Each network has its own
-# distinct active dataset.
+# distinct active dataset. The PCAP type 'wpan-tap' is selected, which stores
+# metadata for each frame including the 802.15.4 channel.
 
 from otns.cli import OTNS
 from otns.cli.errors import OTNSCliError, OTNSExitedError
@@ -36,7 +37,7 @@ from otns.cli.errors import OTNSCliError, OTNSExitedError
 class MultipleChannelsExample:
 
     def __init__(self):
-        self.ns = OTNS(otns_args=["-raw"])
+        self.ns = OTNS(otns_args=["-raw", "-pcap", "wpan-tap"])
         self.ns.set_title("Multiple Channels Example")
         self.ns.web()
 
@@ -46,7 +47,7 @@ class MultipleChannelsExample:
         self.ns.set_network_name(nid,f"Netw{ngrp}_Chan{chan}")
         self.ns.set_panid(nid,ngrp)
         self.ns.set_extpanid(nid,ngrp)
-        self.ns.set_networkkey(nid,f"{ngrp:#0{34}x}"[2:])
+        self.ns.set_networkkey(nid, "00112233445566778899aabbccddeef" + str(ngrp)) # each grp own network-key
         self.ns.set_channel(nid,chan)
         self.ns.ifconfig_up(nid)
         self.ns.thread_start(nid)

@@ -31,7 +31,6 @@ import (
 	"os"
 
 	"github.com/openthread/ot-ns/logger"
-
 	"github.com/openthread/ot-ns/otns_main"
 	"github.com/openthread/ot-ns/progctx"
 	"github.com/openthread/ot-ns/visualize"

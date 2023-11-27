@@ -42,6 +42,7 @@ import (
 	"github.com/openthread/ot-ns/cli"
 	"github.com/openthread/ot-ns/dispatcher"
 	"github.com/openthread/ot-ns/logger"
+	"github.com/openthread/ot-ns/pcap"
 	"github.com/openthread/ot-ns/progctx"
 	"github.com/openthread/ot-ns/simulation"
 	. "github.com/openthread/ot-ns/types"
@@ -69,7 +70,7 @@ type MainArgs struct {
 	DispatcherHost string
 	DispatcherPort int
 	DumpPackets    bool
-	NoPcap         bool
+	PcapType       string
 	NoReplay       bool
 	NoLogFile      bool
 }
@@ -103,7 +104,7 @@ func parseArgs() {
 	flag.BoolVar(&args.Real, "real", false, "use real mode (for real devices - currently NOT SUPPORTED)")
 	flag.StringVar(&args.ListenAddr, "listen", fmt.Sprintf("localhost:%d", InitialDispatcherPort), "specify UDP listen address and port-base")
 	flag.BoolVar(&args.DumpPackets, "dump-packets", false, "dump packets")
-	flag.BoolVar(&args.NoPcap, "no-pcap", false, "do not generate PCAP file (named \"current.pcap\")")
+	flag.StringVar(&args.PcapType, "pcap", pcap.FrameTypeWpanStr, "PCAP file type: 'off', 'wpan', or 'wpan-tap' (name is \"current.pcap\")")
 	flag.BoolVar(&args.NoReplay, "no-replay", false, "do not generate Replay file (named \"otns_?.replay\")")
 	flag.BoolVar(&args.NoLogFile, "no-logfile", false, "do not generate node log files (named \"tmp/?_?.log\")")
 
@@ -282,9 +283,8 @@ func createSimulation(simId int, ctx *progctx.ProgCtx) *simulation.Simulation {
 
 	dispatcherCfg := dispatcher.DefaultConfig()
 	dispatcherCfg.SimulationId = simcfg.Id
-	if !args.NoPcap {
-		dispatcherCfg.PcapChannels[simcfg.Channel] = struct{}{}
-	}
+	dispatcherCfg.PcapEnabled = args.PcapType != pcap.FrameTypeOffStr
+	dispatcherCfg.PcapFrameType = pcap.ParseFrameTypeStr(args.PcapType)
 	dispatcherCfg.DefaultWatchLevel = args.WatchLevel
 	dispatcherCfg.DefaultWatchOn = logger.ParseLevelString(args.WatchLevel) != logger.OffLevel
 

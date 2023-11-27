@@ -34,7 +34,8 @@ import (
 )
 
 func TestPcapFile(t *testing.T) {
-	pcap, err := NewFile("test.pcap")
+	pcapFilename := "test.pcap"
+	pcap, err := NewFile(pcapFilename, FrameTypeWpan)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -48,10 +49,16 @@ func TestPcapFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	assert.True(t, pcapFileHeaderSize == getFileSize(t, "test.pcap"))
+	assert.True(t, pcapFileHeaderSize == getFileSize(t, pcapFilename))
 
 	for i := 0; i < 10; i++ {
-		err = pcap.AppendFrame(0, []byte{0x0})
+		frame := Frame{
+			Timestamp: uint64(i) * 1000,
+			Data:      []byte{0x12, 0x10, 0xa6, 0x80, 0x65},
+			Channel:   12,
+			Rssi:      -60.0,
+		}
+		err = pcap.AppendFrame(frame)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -60,7 +67,45 @@ func TestPcapFile(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		assert.True(t, pcapFileHeaderSize+(pcapFrameHeaderSize+1)*(i+1) == getFileSize(t, "test.pcap"))
+		assert.True(t, pcapFileHeaderSize+(pcapFrameHeaderSize+5)*(i+1) == getFileSize(t, pcapFilename))
+	}
+}
+
+func TestPcapTapFile(t *testing.T) {
+	pcapFilename := "test_tap.pcap"
+	pcap, err := NewFile(pcapFilename, FrameTypeWpanTap)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer func() {
+		_ = pcap.Close()
+	}()
+
+	err = pcap.Sync()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	assert.True(t, pcapFileHeaderSize == getFileSize(t, pcapFilename))
+
+	for i := 0; i < 10; i++ {
+		frame := Frame{
+			Timestamp: uint64(i) * 1000,
+			Data:      []byte{0x12, 0x10, 0x30, 0x3f, 0x94},
+			Channel:   uint8(i + 11),
+			Rssi:      -60.0 + float32(i),
+		}
+		err = pcap.AppendFrame(frame)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		err = pcap.Sync()
+		if err != nil {
+			t.Fatal(err)
+		}
+		assert.True(t, pcapFileHeaderSize+(pcapFrameHeaderSize+pcapTapFrameHeaderSize+5)*(i+1) == getFileSize(t, pcapFilename))
 	}
 }
 

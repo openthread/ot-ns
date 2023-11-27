@@ -60,16 +60,12 @@ const (
 	DefaultReadTimeout        = time.Second * 5
 )
 
-type pcapFrameItem struct {
-	Ustime uint64
-	Data   []byte
-}
-
 type Config struct {
 	Speed             float64
 	Real              bool
 	DumpPackets       bool
-	PcapChannels      map[ChannelId]struct{}
+	PcapEnabled       bool
+	PcapFrameType     pcap.FrameType
 	DefaultWatchOn    bool
 	DefaultWatchLevel string
 	VizUpdateTime     time.Duration
@@ -81,7 +77,8 @@ func DefaultConfig() *Config {
 		Speed:          1,
 		Real:           false,
 		DumpPackets:    false,
-		PcapChannels:   make(map[ChannelId]struct{}, 1),
+		PcapEnabled:    true,
+		PcapFrameType:  pcap.FrameTypeWpanTap,
 		DefaultWatchOn: false,
 		VizUpdateTime:  125 * time.Millisecond,
 		SimulationId:   0,
@@ -127,8 +124,8 @@ type Dispatcher struct {
 	nodes                 map[NodeId]*Node
 	deletedNodes          map[NodeId]struct{}
 	aliveNodes            map[NodeId]struct{}
-	pcap                  *pcap.File
-	pcapFrameChan         chan pcapFrameItem
+	pcap                  pcap.File
+	pcapFrameChan         chan pcap.Frame
 	vis                   visualize.Visualizer
 	taskChan              chan func()
 	speed                 float64
@@ -167,7 +164,7 @@ type Dispatcher struct {
 func NewDispatcher(ctx *progctx.ProgCtx, cfg *Config, cbHandler CallbackHandler) *Dispatcher {
 	logger.AssertTrue(!cfg.Real || cfg.Speed == 1)
 	var err error
-	ln, unixSocketFile := NewUnixSocket(cfg.SimulationId)
+	ln, unixSocketFile := newUnixSocket(cfg.SimulationId)
 	vis := visualize.NewNopVisualizer()
 
 	d := &Dispatcher{
@@ -184,7 +181,7 @@ func NewDispatcher(ctx *progctx.ProgCtx, cfg *Config, cbHandler CallbackHandler)
 		aliveNodes:         make(map[NodeId]struct{}),
 		extaddrMap:         map[uint64]*Node{},
 		rloc16Map:          rloc16Map{},
-		pcapFrameChan:      make(chan pcapFrameItem, 100000),
+		pcapFrameChan:      make(chan pcap.Frame, 100000),
 		speed:              cfg.Speed,
 		speedStartRealTime: time.Now(),
 		lastVizTime:        time.Unix(0, 0),
@@ -196,8 +193,8 @@ func NewDispatcher(ctx *progctx.ProgCtx, cfg *Config, cbHandler CallbackHandler)
 		stopped:            false,
 	}
 	d.speed = d.normalizeSpeed(d.speed)
-	if len(d.cfg.PcapChannels) > 0 {
-		d.pcap, err = pcap.NewFile("current.pcap")
+	if d.cfg.PcapEnabled {
+		d.pcap, err = pcap.NewFile("current.pcap", cfg.PcapFrameType)
 		logger.PanicIfError(err)
 		d.waitGroup.Add(1)
 		go d.pcapFrameWriter()
@@ -212,7 +209,7 @@ func NewDispatcher(ctx *progctx.ProgCtx, cfg *Config, cbHandler CallbackHandler)
 	return d
 }
 
-func NewUnixSocket(socketId int) (net.Listener, string) {
+func newUnixSocket(socketId int) (net.Listener, string) {
 	err := os.MkdirAll("/tmp/otns", 0777)
 	logger.FatalIfError(err, err)
 	unixSocketFile := fmt.Sprintf("/tmp/otns/socket_dispatcher_%d", socketId) // remove old one
@@ -322,7 +319,18 @@ loop:
 	}
 
 	// handle all remaining tasks - other goroutines may be blocking on task completion.
-	d.handleTasks()
+	// handle all remaining go-duration requests.
+loop2:
+	for {
+		select {
+		case t := <-d.taskChan:
+			t()
+		case duration := <-d.goDurationChan:
+			close(duration.done)
+		default:
+			break loop2
+		}
+	}
 }
 
 func (d *Dispatcher) goSimulateForDuration(duration goDuration) {
@@ -696,18 +704,24 @@ func (d *Dispatcher) advanceNodeTime(node *Node, timestamp uint64, force bool) {
 }
 
 // sendRadioCommRxStartEvents dispatches an event to nearby nodes eligible to receiving the frame.
-// It also logs the frame in pcap/dump and visualizes the sending.
+// It also logs the frame (pcap and/or dump) and visualizes the sending.
 func (d *Dispatcher) sendRadioCommRxStartEvents(srcNode *Node, evt *Event) {
 	logger.AssertTrue(evt.Type == EventTypeRadioCommStart)
 	if srcNode.isFailed {
-		return // source node can't send - don't send
+		return // failed source node can't send - don't send
 	}
 
-	// record the sent frame in Pcap/Dump logs - once, at time of Tx start. Only do pcap if channel is
-	// configured to be recorded in the pcap file.
-	if _, ok := d.cfg.PcapChannels[int(evt.RadioCommData.Channel)]; ok {
-		d.pcapFrameChan <- pcapFrameItem{evt.Timestamp, evt.Data[RadioMessagePsduOffset:]}
+	// record the to-be-received frame in Pcap file
+	if d.cfg.PcapEnabled {
+		d.pcapFrameChan <- pcap.Frame{
+			Timestamp: evt.Timestamp,
+			Data:      evt.Data[RadioMessagePsduOffset:],
+			Channel:   evt.RadioCommData.Channel,
+			Rssi:      float32(evt.RadioCommData.PowerDbm), // uses Tx power as virtual-sniffer's RSSI.
+		}
 	}
+
+	// record the sent frame in Dump logging - once, at time of Tx start.
 	if d.cfg.DumpPackets {
 		d.dumpPacket(evt)
 	}
@@ -756,7 +770,7 @@ func (d *Dispatcher) sendRadioCommRxStartEvents(srcNode *Node, evt *Event) {
 }
 
 // sendRadioCommRxDoneEvents dispatches an event where >=1 nodes may receive a frame that is done
-// being transmitted, determines who receives it, and also does frame logging/pcap and visualization events.
+// being transmitted, and determines who receives it.
 func (d *Dispatcher) sendRadioCommRxDoneEvents(srcNode *Node, evt *Event) {
 	logger.AssertTrue(evt.Type == EventTypeRadioRxDone)
 
@@ -911,9 +925,9 @@ func (d *Dispatcher) pcapFrameWriter() {
 	}()
 
 	for item := range d.pcapFrameChan {
-		err := d.pcap.AppendFrame(item.Ustime, item.Data)
+		err := d.pcap.AppendFrame(item)
 		if err != nil {
-			logger.Errorf("write pcap failed:%+v", err)
+			logger.Errorf("write pcap frame failed: %+v", err)
 		}
 	}
 }
