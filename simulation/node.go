@@ -85,6 +85,8 @@ type Node struct {
 	uartType     NodeUartType
 }
 
+// newNode creates a new simulation node. If unsuccessful, it returns an error != nil and the Node object created
+// so far (if node return != nil), or nil if node object wasn't created yet.
 func newNode(s *Simulation, nodeid NodeId, cfg *NodeConfig, dnode *dispatcher.Node) (*Node, error) {
 	var err error
 
@@ -110,30 +112,31 @@ func newNode(s *Simulation, nodeid NodeId, cfg *NodeConfig, dnode *dispatcher.No
 		uartReader:   make(chan []byte, 10000),
 		version:      "",
 	}
+
 	node.Logger.Debugf("Node config: IsMtd=%t IsRouter=%t IsBR=%t RxOffWhenIdle=%t", cfg.IsMtd, cfg.IsRouter,
 		cfg.IsBorderRouter, cfg.RxOffWhenIdle)
 	node.Logger.Debugf("  exe path: %s", cfg.ExecutablePath)
 	node.Logger.Debugf("  position: (%d,%d)", cfg.X, cfg.Y)
 
 	if node.pipeIn, err = cmd.StdinPipe(); err != nil {
-		return nil, err
+		return node, err
 	}
 
 	if node.pipeOut, err = cmd.StdoutPipe(); err != nil {
-		return nil, err
+		return node, err
 	}
 
 	if node.pipeErr, err = cmd.StderrPipe(); err != nil {
-		return nil, err
+		return node, err
 	}
 
 	if err = cmd.Start(); err != nil {
-		return nil, err
+		return node, err
 	}
 
 	go node.lineReaderStdErr(node.pipeErr) // reads StdErr output from OT node exe and acts on failures
 
-	return node, nil
+	return node, err
 }
 
 func (node *Node) String() string {
@@ -147,7 +150,7 @@ func (node *Node) error(err error) {
 	}
 }
 
-func (node *Node) runInitScript(cfg []string) error {
+func (node *Node) runScript(cfg []string) error {
 	logger.AssertNotNil(cfg)
 	for _, cmd := range cfg {
 		if node.CommandResult() != nil {
@@ -161,56 +164,63 @@ func (node *Node) runInitScript(cfg []string) error {
 	return node.CommandResult()
 }
 
-func (node *Node) onStart() {
-	node.Logger.Infof("started, panid=0x%04x, chan=%d, eui64=%#v, extaddr=%#v, state=%s, key=%#v, mode=%v",
-		node.GetPanid(), node.GetChannel(), node.GetEui64(), node.GetExtAddr(), node.GetState(),
-		node.GetNetworkKey(), node.GetMode())
-	node.Logger.Infof("         version=%s", node.GetVersion())
-}
-
-func (node *Node) IsFED() bool {
-	return !node.cfg.IsMtd
-}
-
-func (node *Node) SignalExit() error {
+func (node *Node) signalExit() error {
+	if node.cmd.Process == nil {
+		return nil
+	}
+	node.Logger.Tracef("Sending SIGTERM to node process PID %d", node.cmd.Process.Pid)
 	return node.cmd.Process.Signal(syscall.SIGTERM)
 }
 
-func (node *Node) Exit() error {
-	_ = node.cmd.Process.Signal(syscall.SIGTERM)
+func (node *Node) exit() error {
+	_ = node.signalExit()
 
 	// Pipes are closed to allow cmd.Wait() to be successful and not hang.
-	_ = node.pipeIn.Close()
-	_ = node.pipeErr.Close()
-	_ = node.pipeOut.Close()
+	if node.pipeIn != nil {
+		_ = node.pipeIn.Close()
+	}
+	if node.pipeErr != nil {
+		_ = node.pipeErr.Close()
+	}
+	if node.pipeOut != nil {
+		_ = node.pipeOut.Close()
+	}
 
-	processDone := make(chan bool)
+	var err error = nil
 	isKilled := false
-	node.Logger.Trace("Waiting for process to exit ...")
-	timeout := time.After(NodeExitTimeout)
-	go func() {
-		select {
-		case processDone <- true:
-			break
-		case <-timeout:
-			node.Logger.Warn("Node did not exit in time, sending SIGKILL.")
-			isKilled = true
-			_ = node.cmd.Process.Kill()
-			processDone <- true
-		}
-	}()
-	err := node.cmd.Wait() // wait for process end
-	node.Logger.Tracef("Node process exited. Wait().err=%v", err)
-	<-processDone
+	if node.cmd.Process != nil {
+		processDone := make(chan bool)
+		node.Logger.Trace("Waiting for process PID %d to exit ...", node.cmd.Process.Pid)
+		timeout := time.After(NodeExitTimeout)
+		go func() {
+			select {
+			case processDone <- true:
+				break
+			case <-timeout:
+				node.Logger.Warn("Node did not exit in time, sending SIGKILL.")
+				isKilled = true
+				_ = node.cmd.Process.Kill()
+				processDone <- true
+			}
+		}()
+		err = node.cmd.Wait() // wait for process end
+		node.Logger.Tracef("Node process exited. Wait().err=%v", err)
+		<-processDone // signal above goroutine to end
+	}
+	node.Logger.Debugf("Node exited.")
+
+	// finalize the log file/printing.
+	node.DisplayPendingLogEntries()
+	node.DisplayPendingLines()
+	node.Logger.Close()
 
 	if isKilled { // when killed, a "signal: killed" error is always given by Wait(). Suppress this.
 		return nil
 	}
-
 	return err
 }
 
-func (node *Node) AssurePrompt() {
+func (node *Node) assurePrompt() {
 	err := node.inputCommand("")
 	if err == nil {
 		if _, err := node.expectLine("", time.Second); err == nil {
@@ -364,7 +374,7 @@ func (node *Node) GetRxSensitivity() int {
 	if err != nil {
 		return int(radiomodel.RssiInvalid)
 	}
-	node.AssurePrompt()
+	node.assurePrompt()
 	return int(node.DNode.RadioNode.RxSensitivity)
 }
 
@@ -487,6 +497,18 @@ func (node *Node) GetIpAddrMleid() []string {
 func (node *Node) GetIpAddrRloc() []string {
 	addrs := node.Command("ipaddr rloc", DefaultCommandTimeout)
 	return addrs
+}
+
+func (node *Node) GetIpAddrSlaac() []string {
+	addrs := node.Command("ipaddr -v", DefaultCommandTimeout)
+	slaacAddrs := make([]string, 0)
+	for _, addr := range addrs {
+		idx := strings.Index(addr, " origin:slaac ")
+		if idx > 0 {
+			slaacAddrs = append(slaacAddrs, addr[0:idx])
+		}
+	}
+	return slaacAddrs
 }
 
 func (node *Node) GetIpMaddr() []string {
@@ -618,7 +640,7 @@ func (node *Node) FactoryReset() {
 		node.error(err)
 		return
 	}
-	node.AssurePrompt()
+	node.assurePrompt()
 	node.Logger.Info("factoryreset complete")
 }
 
@@ -629,7 +651,7 @@ func (node *Node) Reset() {
 		node.error(err)
 		return
 	}
-	node.AssurePrompt()
+	node.assurePrompt()
 	node.Logger.Warn("reset complete")
 }
 
@@ -782,6 +804,13 @@ loop:
 	}
 }
 
+func (node *Node) onStart() {
+	node.Logger.Infof("started, panid=0x%04x, chan=%d, eui64=%#v, extaddr=%#v, state=%s, key=%#v, mode=%v",
+		node.GetPanid(), node.GetChannel(), node.GetEui64(), node.GetExtAddr(), node.GetState(),
+		node.GetNetworkKey(), node.GetMode())
+	node.Logger.Infof("         version=%s", node.GetVersion())
+}
+
 func (node *Node) onProcessFailure(err error) {
 	node.Logger.Errorf("node process failed")
 	node.S.PostAsync(func() {
@@ -897,7 +926,7 @@ func (node *Node) Ping(addr string, payloadSize int, count int, interval int, ho
 	}
 	_, err = node.expectLine(cmd, DefaultCommandTimeout)
 	node.Logger.Error(err)
-	node.AssurePrompt()
+	node.assurePrompt()
 }
 
 func (node *Node) isLineMatch(line string, _expectedLine interface{}) bool {

@@ -30,6 +30,7 @@ package types
 // ... packages).
 type NodeConfig struct {
 	ID             int
+	Type           string
 	X, Y           int
 	IsAutoPlaced   bool
 	IsMtd          bool
@@ -46,6 +47,7 @@ type NodeConfig struct {
 func DefaultNodeConfig() NodeConfig {
 	return NodeConfig{
 		ID:             -1, // -1 for the next available nodeid
+		Type:           ROUTER,
 		X:              0,
 		Y:              0,
 		IsAutoPlaced:   true,
@@ -61,23 +63,28 @@ func DefaultNodeConfig() NodeConfig {
 	}
 }
 
-func UpdateNodeConfig(cfg *NodeConfig, nodeType string) {
-	switch nodeType {
+// UpdateNodeConfig sets NodeConfig flags based on chosen node type cfg.Type
+func (cfg *NodeConfig) UpdateNodeConfigFromType() {
+	switch cfg.Type {
 	case ROUTER, REED, FTD:
 		cfg.IsRouter = true
 		cfg.IsMtd = false
+		cfg.IsBorderRouter = false
 		cfg.RxOffWhenIdle = false
 	case FED:
 		cfg.IsRouter = false
 		cfg.IsMtd = false
+		cfg.IsBorderRouter = false
 		cfg.RxOffWhenIdle = false
 	case MED, MTD:
 		cfg.IsRouter = false
 		cfg.IsMtd = true
+		cfg.IsBorderRouter = false
 		cfg.RxOffWhenIdle = false
 	case SED, SSED:
 		cfg.IsRouter = false
 		cfg.IsMtd = true
+		cfg.IsBorderRouter = false
 		cfg.RxOffWhenIdle = true
 	case BR:
 		cfg.IsRouter = true
@@ -85,6 +92,6 @@ func UpdateNodeConfig(cfg *NodeConfig, nodeType string) {
 		cfg.IsBorderRouter = true
 		cfg.RxOffWhenIdle = false
 	default:
-		panic("unknown nodeType")
+		panic("unknown node type cfg.Type")
 	}
 }

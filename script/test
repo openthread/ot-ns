@@ -93,6 +93,7 @@ py_unittests()
     python3 "$OTNSDIR"/pylibs/unittests/test_radiomodels.py
     python3 "$OTNSDIR"/pylibs/unittests/test_csl.py
     python3 "$OTNSDIR"/pylibs/unittests/test_exe_versions.py
+    python3 "$OTNSDIR"/pylibs/unittests/test_border_router.py
 
     # Increase number of open files limit to allow large number of nodes. Ubuntu 22.04 has 8192 hard limit.
     ulimit -Sn 8192

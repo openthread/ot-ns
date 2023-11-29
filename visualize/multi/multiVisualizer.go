@@ -81,9 +81,9 @@ func (mv *multiVisualizer) Stop() {
 	}
 }
 
-func (mv *multiVisualizer) AddNode(nodeid NodeId, x int, y int, radioRange int) {
+func (mv *multiVisualizer) AddNode(nodeid NodeId, cfg *NodeConfig) {
 	for _, v := range mv.vs {
-		v.AddNode(nodeid, x, y, radioRange)
+		v.AddNode(nodeid, cfg)
 	}
 }
 

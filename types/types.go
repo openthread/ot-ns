@@ -104,6 +104,7 @@ const (
 	AddrTypeRloc      AddrType = "rloc"
 	AddrTypeAloc      AddrType = "aloc"
 	AddrTypeLinkLocal AddrType = "linklocal"
+	AddrTypeSlaac     AddrType = "slaac"
 )
 
 type OtDeviceRole int

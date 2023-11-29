@@ -244,9 +244,15 @@ func (nl *NodeLogger) DisplayPendingLogEntries(ts uint64) {
 	}
 }
 
+// IsFileEnabled returns true if logging to file is currently enabled, false if not.
+func (nl *NodeLogger) IsFileEnabled() bool {
+	return nl.isFileEnabled
+}
+
 func (nl *NodeLogger) Close() {
 	if nl.logFile != nil {
-		_ = nl.logFile.Sync()
+		nl.Debugf("Closing log file.")
+		nl.DisplayPendingLogEntries(nl.timestampUs)
 		_ = nl.logFile.Close()
 		nl.logFile = nil
 	}

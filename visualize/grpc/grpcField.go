@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2022, The OTNS Authors.
+// Copyright (c) 2020-2023, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -41,9 +41,9 @@ type grpcField struct {
 	networkInfo visualize.NetworkInfo
 }
 
-func (f *grpcField) addNode(id NodeId, x int, y int, radioRange int) *grpcNode {
+func (f *grpcField) addNode(id NodeId, cfg *NodeConfig) *grpcNode {
 	logger.AssertNil(f.nodes[id])
-	gn := newGprcNode(id, x, y, radioRange)
+	gn := newGprcNode(id, cfg)
 	f.nodes[id] = gn
 	return gn
 }

@@ -137,7 +137,7 @@ type Ipv6Address struct {
 
 // noinspection GoVetStructTag
 type AddrTypeFlag struct {
-	Type AddrType `@( "any" | "mleid" | "rloc" | "aloc" | "linklocal" )` //nolint
+	Type AddrType `@( "any" | "mleid" | "rloc" | "slaac" | "linklocal" )` //nolint
 }
 
 // noinspection GoVetStructTag

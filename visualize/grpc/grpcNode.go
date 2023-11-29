@@ -47,13 +47,13 @@ type grpcNode struct {
 	childTable  map[uint64]struct{}
 }
 
-func newGprcNode(id NodeId, x int, y int, radioRange int) *grpcNode {
+func newGprcNode(id NodeId, cfg *NodeConfig) *grpcNode {
 	gn := &grpcNode{
 		nodeid:      id,
 		extaddr:     InvalidExtAddr,
-		x:           x,
-		y:           y,
-		radioRange:  radioRange,
+		x:           cfg.X,
+		y:           cfg.Y,
+		radioRange:  cfg.RadioRange,
 		mode:        DefaultNodeMode(),
 		rloc16:      threadconst.InvalidRloc16,
 		role:        OtDeviceRoleDisabled,

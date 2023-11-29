@@ -135,7 +135,7 @@ func (sv *statslogVisualizer) Stop() {
 	sv.close()
 }
 
-func (sv *statslogVisualizer) AddNode(nodeid NodeId, x int, y int, radioRange int) {
+func (sv *statslogVisualizer) AddNode(nodeid NodeId, cfg *NodeConfig) {
 	sv.nodeRoles[nodeid] = OtDeviceRoleDisabled
 	sv.nodeModes[nodeid] = NodeMode{}
 }
@@ -192,16 +192,11 @@ func (sv *statslogVisualizer) createLogFile() {
 	logger.AssertNil(sv.logFile)
 
 	var err error
-	err = os.Remove(sv.logFileName)
-	if err != nil {
-		logger.Errorf("removing old stats log file %s failed: %+v", sv.logFileName, err)
-		sv.isFileEnabled = false
-		return
-	}
+	_ = os.Remove(sv.logFileName)
 
 	sv.logFile, err = os.OpenFile(sv.logFileName, os.O_CREATE|os.O_WRONLY, 0664)
 	if err != nil {
-		logger.Errorf("creating stats log file %s failed: %+v", sv.logFileName, err)
+		logger.Errorf("creating new stats log file %s failed: %+v", sv.logFileName, err)
 		sv.isFileEnabled = false
 		return
 	}
@@ -258,7 +253,6 @@ func (sv *statslogVisualizer) writeToLogFile(line string) error {
 
 func (sv *statslogVisualizer) close() {
 	if sv.logFile != nil {
-		_ = sv.logFile.Sync()
 		_ = sv.logFile.Close()
 		sv.logFile = nil
 		sv.isFileEnabled = false

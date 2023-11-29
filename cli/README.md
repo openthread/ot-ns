@@ -230,18 +230,19 @@ Use 'exe' without arguments to list the OpenThread (OT) executables, or shell sc
 of the node types
 FTD (Full Thread Device), MTD (Minimal Thread Device) and BR (Thread Border Router). When a new node is created the
 executable currently in this list is used to start a node instance of the respective node type.
-
-NOTE: the `br` (Border Router) node type is currently not supported (functionality is under construction).
+The `br` (Border Router) node type is an FTD with some additional functions, and prefixes/routes, typical for a Thread 
+Border Router.
 
 The line `Executables search path` lists the paths where the executable of that given name will be searched first.
 Finally, the line `Detected FTD path` lists the final detected path where the `ftd` executable has been found. This 
-is provided as a sanity check (for the FTD case only) that the right executable has been detected for future OT nodes.
+is provided as a sanity check (for the FTD case only) that the right executable has been detected for to-be-created 
+OT nodes.
 
 ```bash
 > exe
 ftd: ot-cli-ftd
 mtd: ot-cli-ftd
-br : ot-br.sh
+br : ot-cli-ftd
 Executables search path: [".", "./ot-rfsim/ot-versions"]
 Detected FTD path      : ./ot-rfsim/ot-versions/ot-cli-ftd
 Done
@@ -251,19 +252,29 @@ Done
 #### exe: Set OT executable for all node types
 
 ```shell
-exe (default | v11 | v12 | v13)
+exe (default | v11 | v12 | v13 | v131)
 ```
 
 Set all OpenThread (OT) executables, or shell scripts, for all node types to particular defaults. Value `default` will 
-use the OTNS default executables which is OpenThread as built by the user and placed in the `.` directory from 
-where the simulator is run. Values starting with `v` will use the pre-built binary of the specific indicated Thread 
-version, e.g. `v12` denotes Thread v1.2.x. 
+use the OTNS default executables: this is typically a recent OT development build. Values starting with `v` will use 
+the pre-built binary of the specific indicated Thread version, e.g. `v12` denotes Thread v1.2.x.
+
+NOTE: the 'br' node type is currently not adapted to other versions.
 
 ```bash
+> exe v11
+ftd: ot-cli-ftd_v11
+mtd: ot-cli-ftd_v11
+br : ot-cli-ftd
+Executables search path: [".", "./ot-rfsim/ot-versions"]
+Detected FTD path      : ./ot-rfsim/ot-versions/ot-cli-ftd_v11
+Done
 > exe default
-ftd: ./ot-cli-ftd
-mtd: ./ot-cli-ftd
-br : ./otbr-sim.sh
+ftd: ot-cli-ftd
+mtd: ot-cli-ftd
+br : ot-cli-ftd
+Executables search path: [".", "./ot-rfsim/ot-versions"]
+Detected FTD path      : ./ot-rfsim/ot-versions/ot-cli-ftd
 Done
 >
 ```
@@ -271,13 +282,14 @@ Done
 #### exe: Change OT executable for particular node type
 
 ```shell
-exe ( ftd | mtd | br ) ["<path-to-executable>"]
+exe ( ftd | mtd | br ) ["<path-or-filename-of-executable>"]
 ```
 
 Change the OpenThread (OT) executable, or shell script, for a particular node types as provided in the first 
-argument (ftd, mtd, or br). The path-to-executable is provided in the second argument and will replace the current 
+argument (ftd, mtd, or br). The path-or-filename is provided in the second argument and will replace the current 
 default executable for that node type. If only the first argument is given, the current executable for this node 
-type will be listed.
+type will be listed and no change is made. If only a filename is given, without full path, the executable will be 
+located using the search paths listed under `Executables search path`.
 
 Note that the default executable is used when normally adding a node using the GUI or a command such as 
 ```add router x 200 y 200``` where the executable is not explictly specified. The "exe" argument of the "add" command 
@@ -286,18 +298,20 @@ will however override the default executable always, for example as in the comma
 
 ```bash
 > exe ftd "./my-ot-cli-ftd"
+ftd: ./my-ot-cli-ftd
 Done
 > exe br "./br-script.sh"
+br : ./br-script.sh
 Done
 > exe
 ftd: ./my-ot-cli-ftd
-mtd: ./ot-cli-ftd
+mtd: ot-cli-ftd
 br : ./br-script.sh
 Executables search path: [".", "./ot-rfsim/ot-versions"]
 Detected FTD path      : ./my-ot-cli-ftd
 Done
 > exe mtd
-mtd: ./ot-cli-ftd
+mtd: ot-cli-ftd
 Done
 ```
 
@@ -521,6 +535,7 @@ ping <src-id> <dst-id> [<addr-type>] [datasize <sz>] [count <cnt>] [interval <in
 ping <src-id> "<dst-addr>" [datasize <sz>] [count <cnt>] [interval <intval>] [hoplimit <hoplim>]
 ```
 
+where `<addr-type>` can be `linklocal`, `rloc`, `mleid`, `slaac`, or `any`.
 NOTE: Sleepy End Devices (SEDs) typically don't respond to a ping request, while Synchronized Sleepy End Devices
 (SSEDs) do. A regular SED can be turned into a SSED by using the `csl period` command on the SED node.
 

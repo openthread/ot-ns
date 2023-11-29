@@ -131,7 +131,7 @@ func TestParseBytes(t *testing.T) {
 	assert.True(t, parseBytes([]byte("ping 1 2"), &cmd) == nil && cmd.Ping != nil)
 	assert.True(t, parseBytes([]byte("ping 1 2 any"), &cmd) == nil && cmd.Ping != nil)
 	assert.True(t, parseBytes([]byte("ping 1 2 mleid"), &cmd) == nil && cmd.Ping != nil)
-	assert.True(t, parseBytes([]byte("ping 1 2 aloc"), &cmd) == nil && cmd.Ping != nil)
+	assert.True(t, parseBytes([]byte("ping 13 223 slaac"), &cmd) == nil && cmd.Ping != nil)
 	assert.True(t, parseBytes([]byte("ping 1 2 rloc"), &cmd) == nil && cmd.Ping != nil)
 	assert.True(t, parseBytes([]byte("ping 1 2 linklocal"), &cmd) == nil && cmd.Ping != nil)
 	assert.True(t, parseBytes([]byte("ping 1 \"2001::1\""), &cmd) == nil && cmd.Ping != nil)
