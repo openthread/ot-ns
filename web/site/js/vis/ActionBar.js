@@ -91,6 +91,9 @@ export default class ActionBar extends VObject {
         this.addButton("SED", "any", "add", (e) => {
             this.actionNewSED(e)
         });
+        this.addButton("BR", "any", "add", (e) => {
+            this.actionNewBR(e)
+        });
         // add node context buttons
         this.addButton("Delete", "node", "del", (e) => {
             this.actionDelete(e)
@@ -188,6 +191,10 @@ export default class ActionBar extends VObject {
 
     actionNewSED(e) {
         this.vis.ctrlAddNode("sed")
+    }
+
+    actionNewBR(e) {
+        this.vis.ctrlAddNode("br")
     }
 
     actionDelete(e) {

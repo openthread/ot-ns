@@ -387,8 +387,6 @@ func (rt *CmdRunner) executeAddNode(cc *CommandContext, cmd *AddCmd) {
 		cfg.IsAutoPlaced = false
 	}
 
-	UpdateNodeConfig(&cfg, cmd.Type.Val)
-
 	if cmd.Id != nil {
 		cfg.ID = cmd.Id.Val
 	}
@@ -397,13 +395,22 @@ func (rt *CmdRunner) executeAddNode(cc *CommandContext, cmd *AddCmd) {
 		cfg.RadioRange = cmd.RadioRange.Val
 	}
 
+	cfg.Type = cmd.Type.Val
+	cfg.UpdateNodeConfigFromType()
+
 	if cmd.Executable != nil {
 		cfg.ExecutablePath = simCfg.ExeConfig.DetermineExecutableBasedOnExeName(cmd.Executable.Path)
 	} else if cmd.Version != nil {
-		cfg.ExecutablePath = simulation.GetExecutableForThreadVersion(cmd.Version.Val)
+		exeName := simulation.GetExecutableForThreadVersion(cmd.Version.Val)
+		cfg.ExecutablePath = simCfg.ExeConfig.DetermineExecutableBasedOnExeName(exeName)
 	}
 
 	cfg.Restore = cmd.Restore != nil
+
+	// for a BR, do extra init steps to set prefix/routes/etc.
+	if cfg.IsBorderRouter {
+		cfg.InitScript = append(cfg.InitScript, simulation.DefaultBrScript...)
+	}
 
 	rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
 		node, err := sim.AddNode(&cfg)
@@ -519,7 +526,6 @@ func (rt *CmdRunner) getAddrs(node *simulation.Node, addrType *AddrTypeFlag) []s
 	if (addrType == nil || addrType.Type == AddrTypeAny) || addrType.Type == AddrTypeMleid {
 		addrs = append(addrs, node.GetIpAddrMleid()...)
 	}
-
 	if len(addrs) > 0 {
 		return addrs
 	}
@@ -527,7 +533,13 @@ func (rt *CmdRunner) getAddrs(node *simulation.Node, addrType *AddrTypeFlag) []s
 	if (addrType == nil || addrType.Type == AddrTypeAny) || addrType.Type == AddrTypeRloc {
 		addrs = append(addrs, node.GetIpAddrRloc()...)
 	}
+	if len(addrs) > 0 {
+		return addrs
+	}
 
+	if (addrType == nil || addrType.Type == AddrTypeAny) || addrType.Type == AddrTypeSlaac {
+		addrs = append(addrs, node.GetIpAddrSlaac()...)
+	}
 	if len(addrs) > 0 {
 		return addrs
 	}
@@ -583,6 +595,7 @@ func (rt *CmdRunner) executeNode(cc *CommandContext, cmd *NodeCmd) {
 
 			err := node.CommandResult()
 			node.DisplayPendingLogEntries()
+			node.DisplayPendingLines()
 			if cc.isBackgroundCmd && err == nil {
 				cc.outputf("Started\n")
 			}

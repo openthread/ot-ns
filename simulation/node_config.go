@@ -27,6 +27,7 @@
 package simulation
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -55,8 +56,31 @@ type NodeAutoPlacer struct {
 var DefaultExecutableConfig ExecutableConfig = ExecutableConfig{
 	Ftd:         "ot-cli-ftd",
 	Mtd:         "ot-cli-ftd",
-	Br:          "ot-br.sh",
-	SearchPaths: []string{".", "./ot-rfsim/ot-versions"},
+	Br:          "ot-cli-ftd_br",
+	SearchPaths: []string{".", "./ot-rfsim/ot-versions", "./build/bin"},
+}
+
+// DefaultNodeInitScript is an array of commands, sent to a new node by default (unless changed).
+var DefaultNodeInitScript = []string{
+	"networkname " + DefaultNetworkName,
+	"networkkey " + DefaultNetworkKey,
+	fmt.Sprintf("panid 0x%x", DefaultPanid),
+	fmt.Sprintf("channel %d", DefaultChannel),
+	//"routerselectionjitter 1", // jitter can be set to '1' to speed up network formation for realtime tests.
+	"ifconfig up",
+	"thread start",
+}
+
+// DefaultBrScript is an array of commands, sent to a new BR by default (unless changed).
+var DefaultBrScript = []string{
+	"routerselectionjitter 1",                              // BR wants to become Router early on.
+	"routerdowngradethreshold 33",                          // BR never wants to downgrade.
+	"routerupgradethreshold 33",                            // BR always wants to upgrade.
+	"netdata publish prefix fd00:f00d:cafe::/64 paros med", // OMR prefix from DHCPv6-PD delegation (ULA infra)
+	"netdata publish route fc00::/7 s med",                 // route to ULA-based AIL
+	"netdata publish route 64:ff9b::/96 sn med",            // infrastructure-defined NAT64 translation
+	"bbr enable",
+	"srp server enable",
 }
 
 func (cfg *ExecutableConfig) SearchPathsString() string {
@@ -68,10 +92,10 @@ func (cfg *ExecutableConfig) SearchPathsString() string {
 	return s[0:len(s)-2] + "]"
 }
 
-// GetExecutableForThreadVersion gets the prebuilt executable for given Thread version string as in cli.ThreadVersion
+// GetExecutableForThreadVersion gets prebuilt executable name for given Thread version string as in cli.ThreadVersion
 func GetExecutableForThreadVersion(version string) string {
 	logger.AssertTrue(strings.HasPrefix(version, "v1") && len(version) >= 3 && len(version) <= 4)
-	return "ot-rfsim/ot-versions/ot-cli-ftd_" + version
+	return "ot-cli-ftd_" + version
 }
 
 func isFile(exePath string) bool {

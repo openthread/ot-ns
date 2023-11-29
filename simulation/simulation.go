@@ -136,6 +136,7 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 	node, err := newNode(s, nodeid, cfg, dnode)
 	if err != nil {
 		logger.Errorf("simulation add node failed: %v", err)
+		_ = node.exit()        // delete the simulation node
 		s.d.DeleteNode(nodeid) // delete dispatcher node again.
 		s.nodePlacer.ReuseNextNodePosition()
 		return nil, err
@@ -146,10 +147,9 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 	node.uartType = NodeUartTypeVirtualTime
 	logger.AssertTrue(s.d.IsAlive(nodeid))
 	evtCnt := s.d.RecvEvents() // allow new node to connect, and to receive its startup events.
-	ts := s.d.CurTime
 
-	node.Logger.DisplayPendingLogEntries(ts)
 	if s.IsStopping() { // stop early when exiting the simulation.
+		_ = s.DeleteNode(nodeid)
 		return nil, CommandInterruptedError
 	}
 
@@ -157,19 +157,19 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 	if !dnode.IsConnected() {
 		_ = s.DeleteNode(nodeid)
 		s.nodePlacer.ReuseNextNodePosition()
-		node.Logger.DisplayPendingLogEntries(ts)
 		return nil, errors.Errorf("simulation AddNode: new node %d did not respond (evtCnt=%d)", nodeid, evtCnt)
 	}
+
+	// run setup and script(s) for the node
 	node.Logger.Debugf("start setup of node (mode, init script)")
 	node.setupMode()
 	err = node.CommandResult()
-
 	if !s.rawMode && err == nil {
-		err = node.runInitScript(cfg.InitScript)
+		err = node.runScript(cfg.InitScript)
 	}
 
-	node.Logger.DisplayPendingLogEntries(ts)
-	if s.IsStopping() { // stop early when exiting the simulation.
+	if s.IsStopping() { // stop here when exiting the simulation.
+		_ = s.DeleteNode(nodeid)
 		return nil, CommandInterruptedError
 	}
 
@@ -177,13 +177,14 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 		node.Logger.Errorf("simulation node init failed, deleting node - %v", err)
 		_ = s.DeleteNode(node.Id)
 		s.nodePlacer.ReuseNextNodePosition()
-		node.Logger.DisplayPendingLogEntries(ts)
 		return nil, err
 	}
 
 	s.updateNodeVersions()
 	node.onStart()
-	node.Logger.DisplayPendingLogEntries(ts)
+	node.DisplayPendingLogEntries()
+	node.DisplayPendingLines()
+
 	return node, err
 }
 
@@ -321,13 +322,13 @@ func (s *Simulation) Stop() {
 
 	// for faster process, signal node exit first in parallel.
 	for _, node := range s.nodes {
-		_ = node.SignalExit()
+		_ = node.signalExit()
 	}
 
 	// then clean up and wait for each node process to stop, sequentially.
 	s.ctx.Cancel("simulation-stop")
 	for _, node := range s.nodes {
-		_ = node.Exit()
+		_ = node.exit()
 	}
 
 	logger.Debugf("all simulation nodes exited.")
@@ -417,13 +418,10 @@ func (s *Simulation) DeleteNode(nodeid NodeId) error {
 		err := fmt.Errorf("node %d not found", nodeid)
 		return err
 	}
-	logger.AssertFalse(s.Dispatcher().IsAlive(nodeid))
 	s.d.NotifyCommand(nodeid) // sets node alive, as we expect a NodeExit event as final one in queue.
-	err := node.Exit()
+	err := node.exit()
 	s.d.RecvEvents()
 	s.d.DeleteNode(nodeid)
-	node.Logger.DisplayPendingLogEntries(s.d.CurTime)
-	node.Logger.Close()
 	delete(s.nodes, nodeid)
 	s.updateNodeVersions()
 	return err

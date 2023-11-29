@@ -42,9 +42,10 @@ def main():
     logging.basicConfig(level=logging.WARNING)
 
     display(["", "diagnostics.py example"])
-    ns = OTNS(otns_args=["-log", "warn"])
+    ns = OTNS()
+    ns.loglevel = 'info'
+    #ns.watch_default('debug')
     ns.radiomodel = 'MIDisc'
-    #ns.watch_default('trace')
     ns.set_title("Network Diagnostics Example")
     ns.web()
 

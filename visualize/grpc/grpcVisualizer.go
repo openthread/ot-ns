@@ -111,16 +111,17 @@ func (gv *grpcVisualizer) Stop() {
 	}
 }
 
-func (gv *grpcVisualizer) AddNode(nodeid NodeId, x int, y int, radioRange int) {
+func (gv *grpcVisualizer) AddNode(nodeid NodeId, cfg *NodeConfig) {
 	gv.Lock()
 	defer gv.Unlock()
 
-	gv.f.addNode(nodeid, x, y, radioRange)
+	gv.f.addNode(nodeid, cfg)
 	gv.addVisualizationEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_AddNode{AddNode: &pb.AddNodeEvent{
 		NodeId:     int32(nodeid),
-		X:          int32(x),
-		Y:          int32(y),
-		RadioRange: int32(radioRange),
+		X:          int32(cfg.X),
+		Y:          int32(cfg.Y),
+		RadioRange: int32(cfg.RadioRange),
+		NodeType:   cfg.Type,
 	}}}, false)
 }
 

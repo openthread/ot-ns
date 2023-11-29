@@ -66,6 +66,7 @@ export default class NodeWindow extends VObject {
         txt += rid+cid+pid;
 
         txt += `ExtAddr   : ${fmt.formatExtAddr(node.extAddr)}\n` +
+            `Type      : ${node.type}\n` +
             `Role      : ${fmt.roleToString(node.role)}\n` +
             `Mode      : ${fmt.modeToString(node.nodeMode)}\n` +
             `Partition : ${fmt.formatPartitionId(node.partition)}\n` +

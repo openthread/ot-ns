@@ -36,14 +36,16 @@ const NODE_SHAPE_SCALE = 64;
 const NODE_SELECTION_SCALE = 128;
 const CIRCULAR_SHAPE_RADIUS = 20;
 const HEXAGONAL_SHAPE_RADIUS = 22;
+const SQUARE_SHAPE_RADIUS = 22;
 
 let vis = Visualizer();
 
 export default class Node extends VObject {
-    constructor(nodeId, x, y, radioRange) {
+    constructor(nodeId, x, y, radioRange, nodeType) {
         super();
 
         this.id = nodeId;
+        this.type = nodeType;
         this.extAddr = EXT_ADDR_INVALID;
         this.radioRange = radioRange;
         this.nodeMode = new NodeMode([true, true, true, true]);
@@ -157,6 +159,9 @@ export default class Node extends VObject {
     }
 
     _getStatusSpriteTexture() {
+        if (this.type === 'br') {
+            return Resources().WhiteSolidSquare64.texture;
+        }
         switch (this.role) {
             case OtDeviceRole.OT_DEVICE_ROLE_LEADER:
             case OtDeviceRole.OT_DEVICE_ROLE_ROUTER:
@@ -172,6 +177,9 @@ export default class Node extends VObject {
     }
 
     _getPartitionSpriteTexture() {
+        if (this.type === 'br') {
+            return Resources().WhiteSolidSquare64.texture;
+        }
         switch (this.role) {
             case OtDeviceRole.OT_DEVICE_ROLE_LEADER:
             case OtDeviceRole.OT_DEVICE_ROLE_ROUTER:
@@ -196,6 +204,9 @@ export default class Node extends VObject {
 
     _updateSize() {
         let radius = CIRCULAR_SHAPE_RADIUS;
+        if (this.type === 'br') {
+            radius = SQUARE_SHAPE_RADIUS;
+        }
         switch (this.role) {
             case OtDeviceRole.OT_DEVICE_ROLE_LEADER:
             case OtDeviceRole.OT_DEVICE_ROLE_ROUTER:

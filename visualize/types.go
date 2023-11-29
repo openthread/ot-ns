@@ -40,7 +40,7 @@ type Visualizer interface {
 	Run()
 	Stop()
 
-	AddNode(nodeid NodeId, x int, y int, radioRange int)
+	AddNode(nodeid NodeId, cfg *NodeConfig)
 	SetNodeRloc16(nodeid NodeId, rloc16 uint16)
 	SetNodeRole(nodeid NodeId, role OtDeviceRole)
 	SetNodeMode(nodeid NodeId, mode NodeMode)

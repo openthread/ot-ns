@@ -1044,7 +1044,7 @@ func (d *Dispatcher) AddNode(nodeid NodeId, cfg *NodeConfig) *Node {
 	d.nodes[nodeid] = node
 	d.alarmMgr.AddNode(nodeid)
 	d.energyAnalyser.AddNode(nodeid, d.CurTime)
-	d.vis.AddNode(nodeid, cfg.X, cfg.Y, cfg.RadioRange)
+	d.vis.AddNode(nodeid, cfg)
 	d.radioModel.AddNode(nodeid, node.RadioNode)
 	d.setAlive(nodeid)
 

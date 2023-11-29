@@ -27,8 +27,6 @@
 package simulation
 
 import (
-	"fmt"
-
 	"github.com/openthread/ot-ns/logger"
 	. "github.com/openthread/ot-ns/types"
 )
@@ -39,17 +37,6 @@ const (
 	DefaultPanid       = 0xface
 	DefaultChannel     = 11
 )
-
-// DefaultNodeInitScript is an array of commands, sent to a new node by default (unless changed).
-var DefaultNodeInitScript = []string{
-	"networkname " + DefaultNetworkName,
-	"networkkey " + DefaultNetworkKey,
-	fmt.Sprintf("panid 0x%x", DefaultPanid),
-	fmt.Sprintf("channel %d", DefaultChannel),
-	//"routerselectionjitter 1", // jitter can be set to '1' to speed up network formation for realtime tests.
-	"ifconfig up",
-	"thread start",
-}
 
 type Config struct {
 	InitScript       []string
