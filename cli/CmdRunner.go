@@ -399,10 +399,9 @@ func (rt *CmdRunner) executeAddNode(cc *CommandContext, cmd *AddCmd) {
 	cfg.UpdateNodeConfigFromType()
 
 	if cmd.Executable != nil {
-		cfg.ExecutablePath = simCfg.ExeConfig.DetermineExecutableBasedOnExeName(cmd.Executable.Path)
+		cfg.ExecutablePath = simCfg.ExeConfig.FindExecutable(cmd.Executable.Path)
 	} else if cmd.Version != nil {
-		exeName := simulation.GetExecutableForThreadVersion(cmd.Version.Val)
-		cfg.ExecutablePath = simCfg.ExeConfig.DetermineExecutableBasedOnExeName(exeName)
+		cfg.ExecutablePath = simCfg.ExeConfig.FindExecutableBasedOnConfig(&cfg)
 	}
 
 	cfg.Restore = cmd.Restore != nil
@@ -1150,6 +1149,7 @@ func (rt *CmdRunner) executeEnergy(cc *CommandContext, energy *EnergyCmd) {
 func (rt *CmdRunner) executeExe(cc *CommandContext, cmd *ExeCmd) {
 	rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
 		cfg := sim.GetConfig()
+		ec := &cfg.ExeConfig
 		isSetDefault := cmd.Default != nil
 		isSetNodeType := len(cmd.NodeType.Val) > 0
 		isSetVersion := len(cmd.Version.Val) > 0
@@ -1160,19 +1160,19 @@ func (rt *CmdRunner) executeExe(cc *CommandContext, cmd *ExeCmd) {
 			switch cmd.NodeType.Val {
 			case FTD, ROUTER, REED, FED:
 				if isSetPath {
-					cfg.ExeConfig.Ftd = cmd.Path
+					ec.Ftd = cmd.Path
 				}
-				cc.outputf("ftd: %s\n", cfg.ExeConfig.Ftd)
+				cc.outputf("ftd: %s\n", ec.Ftd)
 			case MTD, MED, SED, SSED:
 				if isSetPath {
-					cfg.ExeConfig.Mtd = cmd.Path
+					ec.Mtd = cmd.Path
 				}
-				cc.outputf("mtd: %s\n", cfg.ExeConfig.Mtd)
+				cc.outputf("mtd: %s\n", ec.Mtd)
 			case BR:
 				if isSetPath {
-					cfg.ExeConfig.Br = cmd.Path
+					ec.Br = cmd.Path
 				}
-				cc.outputf("br : %s\n", cfg.ExeConfig.Br)
+				cc.outputf("br : %s\n", ec.Br)
 			}
 			return
 		} else if isSetDefault && !isSetPath && !isSetNodeType && !isSetVersion {
@@ -1180,9 +1180,7 @@ func (rt *CmdRunner) executeExe(cc *CommandContext, cmd *ExeCmd) {
 			cfg.ExeConfig = cfg.ExeConfigDefault
 		} else if isSetVersion && !isSetPath {
 			// set executables to that of a named version for all node types except br.
-			cfg.ExeConfig.Ftd = simulation.GetExecutableForThreadVersion(cmd.Version.Val)
-			cfg.ExeConfig.Mtd = cfg.ExeConfig.Ftd
-			cfg.ExeConfig.Br = cfg.ExeConfigDefault.Br
+			ec.SetVersion(cmd.Version.Val)
 		} else if !isSetDefault && !isSetNodeType && !isSetVersion && !isSetPath {
 			// display the exe output list.
 		} else {
@@ -1190,11 +1188,13 @@ func (rt *CmdRunner) executeExe(cc *CommandContext, cmd *ExeCmd) {
 			return
 		}
 
-		cc.outputf("ftd: %s\n", cfg.ExeConfig.Ftd)
-		cc.outputf("mtd: %s\n", cfg.ExeConfig.Mtd)
-		cc.outputf("br : %s\n", cfg.ExeConfig.Br)
-		cc.outputf("Executables search path: %s\n", cfg.ExeConfig.SearchPathsString())
-		cc.outputf("Detected FTD path      : %s\n", cfg.ExeConfig.DetermineExecutableBasedOnConfig(&cfg.NewNodeConfig))
+		cc.outputf("ftd: %s\n", ec.Ftd)
+		cc.outputf("mtd: %s\n", ec.Mtd)
+		cc.outputf("br : %s\n", ec.Br)
+		cc.outputf("Executables search path: %s\n", ec.SearchPathsString())
+		cc.outputf("Detected FTD path      : %s\n", ec.FindExecutable(ec.Ftd))
+		cc.outputf("Detected MTD path      : %s\n", ec.FindExecutable(ec.Mtd))
+		cc.outputf("Detected BR path       : %s\n", ec.FindExecutable(ec.Br))
 	})
 }
 

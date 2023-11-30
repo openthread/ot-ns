@@ -127,7 +127,7 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 
 	// auto-selection of Executable by simulation's policy, in case not defined by cfg.
 	if len(cfg.ExecutablePath) == 0 {
-		cfg.ExecutablePath = s.cfg.ExeConfig.DetermineExecutableBasedOnConfig(cfg)
+		cfg.ExecutablePath = s.cfg.ExeConfig.FindExecutableBasedOnConfig(cfg)
 	}
 
 	// creation of the dispatcher and simulation nodes

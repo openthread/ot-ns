@@ -30,7 +30,8 @@ package types
 // ... packages).
 type NodeConfig struct {
 	ID             int
-	Type           string
+	Type           string // Type as requested on creation (router, sed, fed, br, etc.)
+	Version        string // Thread version string or "" for default
 	X, Y           int
 	IsAutoPlaced   bool
 	IsMtd          bool
@@ -39,7 +40,7 @@ type NodeConfig struct {
 	RxOffWhenIdle  bool
 	NodeLogFile    bool
 	RadioRange     int
-	ExecutablePath string
+	ExecutablePath string // executable full path or "" for auto-determined
 	Restore        bool
 	InitScript     []string
 }
@@ -48,6 +49,7 @@ func DefaultNodeConfig() NodeConfig {
 	return NodeConfig{
 		ID:             -1, // -1 for the next available nodeid
 		Type:           ROUTER,
+		Version:        "",
 		X:              0,
 		Y:              0,
 		IsAutoPlaced:   true,
@@ -63,7 +65,7 @@ func DefaultNodeConfig() NodeConfig {
 	}
 }
 
-// UpdateNodeConfig sets NodeConfig flags based on chosen node type cfg.Type
+// UpdateNodeConfigFromType sets NodeConfig flags correctly, based on chosen node type cfg.Type
 func (cfg *NodeConfig) UpdateNodeConfigFromType() {
 	switch cfg.Type {
 	case ROUTER, REED, FTD:
