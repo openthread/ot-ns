@@ -55,7 +55,7 @@ type NodeAutoPlacer struct {
 
 var DefaultExecutableConfig ExecutableConfig = ExecutableConfig{
 	Ftd:         "ot-cli-ftd",
-	Mtd:         "ot-cli-ftd",
+	Mtd:         "ot-cli-mtd",
 	Br:          "ot-cli-ftd_br",
 	SearchPaths: []string{".", "./ot-rfsim/ot-versions", "./build/bin"},
 }
@@ -92,10 +92,12 @@ func (cfg *ExecutableConfig) SearchPathsString() string {
 	return s[0:len(s)-2] + "]"
 }
 
-// GetExecutableForThreadVersion gets prebuilt executable name for given Thread version string as in cli.ThreadVersion
-func GetExecutableForThreadVersion(version string) string {
+// SetVersion sets all executables to the defaults associated to the given Thread version number.
+func (cfg *ExecutableConfig) SetVersion(version string) {
 	logger.AssertTrue(strings.HasPrefix(version, "v1") && len(version) >= 3 && len(version) <= 4)
-	return "ot-cli-ftd_" + version
+	cfg.Ftd = DefaultExecutableConfig.Ftd + "_" + version
+	cfg.Mtd = DefaultExecutableConfig.Mtd + "_" + version
+	cfg.Br = DefaultExecutableConfig.Br // BR is currently not adapted to versions.
 }
 
 func isFile(exePath string) bool {
@@ -105,9 +107,9 @@ func isFile(exePath string) bool {
 	return false
 }
 
-// DetermineExecutableBasedOnExeName returns a full path to the named executable, by searching in standard
+// FindExecutable returns a full path to the named executable, by searching in standard
 // search paths if needed. If the given exeName is already a full path itself, it will be returned itself.
-func (cfg *ExecutableConfig) DetermineExecutableBasedOnExeName(exeName string) string {
+func (cfg *ExecutableConfig) FindExecutable(exeName string) string {
 	if filepath.IsAbs(exeName) || exeName[0] == '.' {
 		return exeName
 	}
@@ -123,21 +125,22 @@ func (cfg *ExecutableConfig) DetermineExecutableBasedOnExeName(exeName string) s
 	return exeName
 }
 
-func (cfg *ExecutableConfig) DetermineExecutableBasedOnConfig(nodeCfg *NodeConfig) string {
+// FindExecutableBasedOnConfig gets the executable based on NodeConfig information.
+func (cfg *ExecutableConfig) FindExecutableBasedOnConfig(nodeCfg *NodeConfig) string {
+	if len(nodeCfg.ExecutablePath) > 0 {
+		return nodeCfg.ExecutablePath
+	}
 	exeName := cfg.Ftd
 	if nodeCfg.IsMtd {
 		exeName = cfg.Mtd
 	}
 	if nodeCfg.IsBorderRouter {
 		exeName = cfg.Br
+	} else if len(nodeCfg.Version) > 0 {
+		exeName += "_" + nodeCfg.Version
 	}
 
-	if filepath.IsAbs(exeName) {
-		return exeName
-	}
-
-	// if not found directly, it means it's just a name that needs to be located in our search paths.
-	return cfg.DetermineExecutableBasedOnExeName(exeName)
+	return cfg.FindExecutable(exeName)
 }
 
 func NewNodeAutoPlacer() *NodeAutoPlacer {
