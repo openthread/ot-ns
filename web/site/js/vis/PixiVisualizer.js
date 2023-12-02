@@ -132,7 +132,6 @@ export default class PixiVisualizer extends VObject {
             e.stopPropagation();
         });
         this.addChild(this.otCommitIdMsg);
-        this.setOTVersion("-", "");
 
         this.titleText = new PIXI.Text("", {
             fill: "#e69900",
@@ -227,7 +226,20 @@ export default class PixiVisualizer extends VObject {
     setOTVersion(version, commit) {
         this.otVersion = version;
         this.otCommit = commit;
+        if (version != this.otVersion) {
+            console.log("Set default OpenThread Version display: " + version);
+        }
+        if (commit != this.otCommit) {
+            console.log("Set default OpenThread Commit display : " + commit);
+        }
+        this.displayOTVersion(version, commit)
+    }
+
+    displayOTVersion(version, commit) {
         let txt = "OpenThread Version: " + version;
+        if (version.length == 0) {
+            txt += "-"
+        }
         if (commit.length>0) {
             txt += " (" + commit + ")"
         }
@@ -337,17 +349,20 @@ export default class PixiVisualizer extends VObject {
         }
     }
 
-    visSetNetworkInfo(version, commit, real) {
-        let oldVersion = this.otVersion;
-        let oldCommit = this.otCommit;
-        this.setOTVersion(version, commit);
-        this.setReal(real);
-
-        if (oldVersion != this.otVersion) {
-            this.log(`OpenThread Version: ${version}`);
-        }
-        if (oldCommit != this.otCommit) {
-            this.log(`OpenThread Commit: ${commit}`);
+    visSetNetworkInfo(version, commit, real, nodeId, threadVersion) {
+        if (nodeId<=0) { // if no nodeId given, it sets default network display.
+            this.setOTVersion(version, commit);
+            this.setReal(real);
+        }else{
+            let node = this.nodes[nodeId];
+            if (node) {
+                node.setOTVersion(version, commit);
+                node.setThreadVersion(threadVersion);
+                this.displayOTVersion(version, commit);
+                this.onNodeUpdate(nodeId);
+            }else{
+                this.log(`visSetNetworkInfo(): node ${nodeId} not found`);
+            }
         }
     }
 
@@ -552,6 +567,9 @@ export default class PixiVisualizer extends VObject {
         if (new_sel) {
             this._selectedNodeId = id;
             new_sel.onSelected();
+            this.displayOTVersion(new_sel.otVersion, new_sel.otCommit);
+        }else{
+            this.displayOTVersion(this.otVersion, this.otCommit); // back to default
         }
 
         this.nodeWindow.showNode(new_sel);

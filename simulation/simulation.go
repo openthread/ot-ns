@@ -51,7 +51,6 @@ type Simulation struct {
 	stopped        bool
 	cfg            *Config
 	nodes          map[NodeId]*Node
-	nodeVersions   map[string]int
 	d              *dispatcher.Dispatcher
 	vis            visualize.Visualizer
 	cmdRunner      CmdRunner
@@ -70,7 +69,6 @@ func NewSimulation(ctx *progctx.ProgCtx, cfg *Config, dispatcherCfg *dispatcher.
 		ctx:          ctx,
 		cfg:          cfg,
 		nodes:        map[NodeId]*Node{},
-		nodeVersions: map[string]int{},
 		rawMode:      cfg.RawMode,
 		autoGo:       cfg.AutoGo,
 		autoGoChange: make(chan bool, 1),
@@ -125,8 +123,10 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 		s.nodePlacer.UpdateReference(cfg.X, cfg.Y)
 	}
 
-	// auto-selection of Executable by simulation's policy, in case not defined by cfg.
-	if len(cfg.ExecutablePath) == 0 {
+	// selection of Executable by simulation's policy, based on cfg
+	if len(cfg.Version) > 0 {
+		cfg.ExecutablePath = s.cfg.ExeConfigDefault.FindExecutableBasedOnConfig(cfg)
+	} else {
 		cfg.ExecutablePath = s.cfg.ExeConfig.FindExecutableBasedOnConfig(cfg)
 	}
 
@@ -161,9 +161,22 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 	}
 
 	// run setup and script(s) for the node
-	node.Logger.Debugf("start setup of node (mode, init script)")
-	node.setupMode()
+	node.Logger.Debugf("start setup of node (version/commit, mode, init script)")
+	ver := node.GetVersion()
+	threadVer := node.GetThreadVersion()
+	nodeInfo := visualize.NetworkInfo{
+		Real:          s.networkInfo.Real,
+		Version:       ver,
+		Commit:        getCommitFromOtVersion(ver),
+		NodeId:        nodeid,
+		ThreadVersion: threadVer,
+	}
+	s.vis.SetNetworkInfo(nodeInfo)
 	err = node.CommandResult()
+	if err == nil {
+		node.setupMode()
+		err = node.CommandResult()
+	}
 	if !s.rawMode && err == nil {
 		err = node.runScript(cfg.InitScript)
 	}
@@ -180,41 +193,11 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 		return nil, err
 	}
 
-	s.updateNodeVersions()
 	node.onStart()
 	node.DisplayPendingLogEntries()
 	node.DisplayPendingLines()
 
 	return node, err
-}
-
-func (s *Simulation) updateNodeVersions() {
-	s.nodeVersions = map[string]int{}
-	for _, node := range s.nodes {
-		v := node.GetVersion()
-		if _, ok := s.nodeVersions[v]; !ok {
-			s.nodeVersions[v] = 1
-		} else {
-			s.nodeVersions[v] += 1
-		}
-	}
-
-	ver := "-"
-	com := ""
-	if len(s.nodeVersions) == 1 {
-		for v := range s.nodeVersions {
-			ver = v
-			com = getCommitFromOtVersion(v)
-		}
-	} else {
-		ver = fmt.Sprintf("(%d different OT versions active)", len(s.nodeVersions))
-	}
-
-	if ver != s.networkInfo.Version || com != s.networkInfo.Commit {
-		s.networkInfo.Version = ver
-		s.networkInfo.Commit = com
-		s.vis.SetNetworkInfo(s.networkInfo)
-	}
 }
 
 func (s *Simulation) genNodeId() NodeId {
@@ -423,7 +406,6 @@ func (s *Simulation) DeleteNode(nodeid NodeId) error {
 	s.d.RecvEvents()
 	s.d.DeleteNode(nodeid)
 	delete(s.nodes, nodeid)
-	s.updateNodeVersions()
 	return err
 }
 

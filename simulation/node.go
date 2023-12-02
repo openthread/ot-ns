@@ -71,11 +71,12 @@ type Node struct {
 	Id    int
 	DNode *dispatcher.Node
 
-	Logger  *logger.NodeLogger
-	cfg     *NodeConfig
-	cmd     *exec.Cmd
-	cmdErr  error // store the last CLI command error; nil if none.
-	version string
+	Logger        *logger.NodeLogger
+	cfg           *NodeConfig
+	cmd           *exec.Cmd
+	cmdErr        error // store the last CLI command error; nil if none.
+	version       string
+	threadVersion int
 
 	pendingLines chan string // OT node CLI output lines, pending processing.
 	pipeIn       io.WriteCloser
@@ -719,6 +720,14 @@ func (node *Node) ThreadStart() {
 
 func (node *Node) ThreadStop() {
 	node.Command("thread stop", DefaultCommandTimeout)
+}
+
+// GetThreadVersion gets the Thread version integer of the OpenThread node.
+func (node *Node) GetThreadVersion() int {
+	if node.threadVersion == 0 {
+		node.threadVersion = node.CommandExpectInt("thread version", DefaultCommandTimeout)
+	}
+	return node.threadVersion
 }
 
 // GetVersion gets the version string of the OpenThread node.

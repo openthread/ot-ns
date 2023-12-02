@@ -227,24 +227,24 @@ List, or change, OT versions/executables used per node type.
 #### exe: list OT executables used per node type 
 
 Use 'exe' without arguments to list the OpenThread (OT) executables, or shell scripts, that are preconfigured for each 
-of the node types
-FTD (Full Thread Device), MTD (Minimal Thread Device) and BR (Thread Border Router). When a new node is created the
-executable currently in this list is used to start a node instance of the respective node type.
+of the node types FTD (Full Thread Device), MTD (Minimal Thread Device) and BR (Thread Border Router). When a new node 
+is created the executable currently in this list is used to start a node instance of that node type.
 The `br` (Border Router) node type is an FTD with some additional functions, and prefixes/routes, typical for a Thread 
-Border Router.
+1.3 Border Router.
 
 The line `Executables search path` lists the paths where the executable of that given name will be searched first.
-Finally, the line `Detected FTD path` lists the final detected path where the `ftd` executable has been found. This 
-is provided as a sanity check (for the FTD case only) that the right executable has been detected for to-be-created 
-OT nodes.
+Finally, the lines `Detected ... path` lists the final detected path where the executable has been found. This 
+is provided as a sanity check that the right executable has been detected for to-be-created OT nodes.
 
 ```bash
 > exe
 ftd: ot-cli-ftd
-mtd: ot-cli-ftd
-br : ot-cli-ftd
-Executables search path: [".", "./ot-rfsim/ot-versions"]
+mtd: ot-cli-mtd
+br : ot-cli-ftd_br
+Executables search path: [".", "./ot-rfsim/ot-versions", "./build/bin"]
 Detected FTD path      : ./ot-rfsim/ot-versions/ot-cli-ftd
+Detected MTD path      : ./ot-rfsim/ot-versions/ot-cli-mtd
+Detected BR path       : ./ot-rfsim/ot-versions/ot-cli-ftd_br
 Done
 >  
 ```
@@ -264,17 +264,21 @@ NOTE: the 'br' node type is currently not adapted to other versions.
 ```bash
 > exe v11
 ftd: ot-cli-ftd_v11
-mtd: ot-cli-ftd_v11
-br : ot-cli-ftd
-Executables search path: [".", "./ot-rfsim/ot-versions"]
+mtd: ot-cli-mtd_v11
+br : ot-cli-ftd_br
+Executables search path: [".", "./ot-rfsim/ot-versions", "./build/bin"]
 Detected FTD path      : ./ot-rfsim/ot-versions/ot-cli-ftd_v11
+Detected MTD path      : ./ot-rfsim/ot-versions/ot-cli-mtd_v11
+Detected BR path       : ./ot-rfsim/ot-versions/ot-cli-ftd_br
 Done
 > exe default
 ftd: ot-cli-ftd
-mtd: ot-cli-ftd
-br : ot-cli-ftd
-Executables search path: [".", "./ot-rfsim/ot-versions"]
+mtd: ot-cli-mtd
+br : ot-cli-ftd_br
+Executables search path: [".", "./ot-rfsim/ot-versions", "./build/bin"]
 Detected FTD path      : ./ot-rfsim/ot-versions/ot-cli-ftd
+Detected MTD path      : ./ot-rfsim/ot-versions/ot-cli-mtd
+Detected BR path       : ./ot-rfsim/ot-versions/ot-cli-ftd_br
 Done
 >
 ```
@@ -305,13 +309,15 @@ br : ./br-script.sh
 Done
 > exe
 ftd: ./my-ot-cli-ftd
-mtd: ot-cli-ftd
+mtd: ot-cli-mtd
 br : ./br-script.sh
-Executables search path: [".", "./ot-rfsim/ot-versions"]
+Executables search path: [".", "./ot-rfsim/ot-versions", "./build/bin"]
 Detected FTD path      : ./my-ot-cli-ftd
+Detected MTD path      : ./ot-rfsim/ot-versions/ot-cli-mtd
+Detected BR path       : ./br-script.sh
 Done
 > exe mtd
-mtd: ot-cli-ftd
+mtd: ot-cli-mtd
 Done
 ```
 
@@ -415,29 +421,30 @@ Done
 
 ### netinfo
 
-Set network nodes info.
+Set default network and nodes info.
 
 ```shell
 netinfo [version "<string>"] [commit "<string>"] [real y|n]
 ```
 
-Sets information about OpenThread version and Commit used for simulation nodes, as well as whether nodes are real 
-or simulated. This information is then shown in the GUI. This temporarily overrides the information that OTNS already sets by 
-default, whenever a node is added or deleted. When a node is added or deleted again, OTNS will automatically set the 
-version and commit information again based on current nodes in the simulation.
+Sets information about OpenThread version and commit used for simulation nodes, as well as whether nodes are real 
+or simulated. This default information is then shown in the GUI, whenever a node is not selected. When a node is 
+selected, the node-specific version/commit information will be used instead.
 
 In the GUI, when the version/commit message is clicked, a web browser tab will be opened with the Github code for 
-the particular version/commit. This only works currently if there's a single version/commit shared by all nodes in the 
-simulation.
+the particular version/commit. 
 
-NOTE: setting `real` enabled (y) will disable some of the GUI controls of the simulation, such as speed/pause.
+NOTE: setting `real` enabled (y) will disable some of the GUI controls of the simulation, such as speed/pause. The 
+`real` setting remains as set by this command and is not impacted by selecting nodes in the GUI.
 
 ```bash
 > netinfo version "Latest"
 Done
-> netinfo version "Latest" commit "b49ee08"
+> netinfo version "Latest" commit "a1816c1"
 Done
 > netinfo real y
+Done
+> netinfo version "please select a node and then click this text to see the node's code." commit ""
 Done
 ```
 
