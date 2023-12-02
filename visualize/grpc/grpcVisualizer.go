@@ -72,9 +72,11 @@ func (gv *grpcVisualizer) SetNetworkInfo(networkInfo visualize.NetworkInfo) {
 
 	gv.f.networkInfo = networkInfo
 	gv.addVisualizationEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_SetNetworkInfo{SetNetworkInfo: &pb.SetNetworkInfoEvent{
-		Real:    networkInfo.Real,
-		Version: networkInfo.Version,
-		Commit:  networkInfo.Commit,
+		Real:          networkInfo.Real,
+		Version:       networkInfo.Version,
+		Commit:        networkInfo.Commit,
+		NodeId:        int32(networkInfo.NodeId),
+		ThreadVersion: int32(networkInfo.ThreadVersion),
 	}}}, false)
 }
 
@@ -373,6 +375,7 @@ func (gv *grpcVisualizer) prepareStream(stream *grpcStream) error {
 		Real:    gv.f.networkInfo.Real,
 		Version: gv.f.networkInfo.Version,
 		Commit:  gv.f.networkInfo.Commit,
+		NodeId:  int32(InvalidNodeId),
 	}}}); err != nil {
 		return err
 	}

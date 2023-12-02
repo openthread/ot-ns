@@ -73,3 +73,26 @@ export function modeToString(mode) {
     }
     return s;
 }
+
+export function threadVersionToString(ver) {
+    switch(ver) {
+        case 0:
+            return "INVALID";
+        case 1:
+            return "1.0.x";
+        case 2:
+            return "1.1.x";
+        case 3:
+            return "1.2.x";
+        case 4:
+            return "1.3.0";
+        case 5:
+            return "1.3.1";
+        case 6:
+            return "1.4.x?";
+        case 7:
+            return "1.5.x?";
+        default:
+            return "UNKNOWN";
+    }
+}

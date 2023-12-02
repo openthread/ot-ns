@@ -95,15 +95,19 @@ func DefaultTitleInfo() TitleInfo {
 }
 
 type NetworkInfo struct {
-	Real    bool
-	Version string
-	Commit  string
+	Real          bool
+	Version       string
+	Commit        string
+	NodeId        int
+	ThreadVersion int
 }
 
 func DefaultNetworkInfo() NetworkInfo {
 	return NetworkInfo{
-		Real:    false,
-		Version: "-",
-		Commit:  "",
+		Real:          false,
+		Version:       "",
+		Commit:        "",
+		NodeId:        InvalidNodeId,
+		ThreadVersion: 0,
 	}
 }

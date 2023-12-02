@@ -136,7 +136,7 @@ class OTNS(object):
         """
         :return: autogo setting (True=enabled)
         """
-        return self._expect_int(self._do_command(f'autogo'))
+        return self._expect_int(self._do_command(f'autogo')) == 1
 
     @autogo.setter
     def autogo(self, is_auto: bool) -> None:
@@ -196,7 +196,7 @@ class OTNS(object):
         """
         assert self._do_command(f'radiomodel {model}')[0] == model
 
-    def radioparams(self) -> Dict[int, Collection[int]]:
+    def radioparams(self) -> Dict[str, float]:
         """
         Get radiomodel parameters.
 
@@ -324,7 +324,7 @@ class OTNS(object):
 
     def cmd(self, cmd:str) -> List[str]:
         """
-        Execute an arbitrary OTNS CLI command and return the resulting output lines] (if any).
+        Execute an arbitrary OTNS CLI command and return the resulting output lines (if any).
 
         :param cmd: the command line string to execute in OTNS.
         :return: output lines from OTNS with command result, if any. The "Done" or "Error" strings are not
@@ -351,7 +351,7 @@ class OTNS(object):
 
     def interactive_cli(self, prompt: Optional[str] = CLI_PROMPT,
                         user_hint: Optional[str] = CLI_USER_HINT,
-                        close_otns_on_exit: Optional[bool] = False) -> None:
+                        close_otns_on_exit: Optional[bool] = False) -> bool:
         """
         Start an interactive CLI and GUI session, where the user can control the simulation until the
         exit command is typed.
@@ -485,10 +485,10 @@ class OTNS(object):
         :return: watched node IDs
         """
         cmd = f'watch'
-        idsStr = self._do_command(cmd)[0]
-        if len(idsStr)==0:
+        ids_str = self._do_command(cmd)[0]
+        if len(ids_str)==0:
             return []
-        return list(map(int, idsStr.split(" ")))
+        return list(map(int, ids_str.split(" ")))
 
     def unwatch(self, *nodeids: int) -> None:
         """
@@ -1084,6 +1084,14 @@ class OTNS(object):
         :param val: the Router downgrade threshold
         """
         self.node_cmd(nodeid, f'routerdowngradethreshold {val}')
+
+    def get_thread_version(self, nodeid: int) -> int:
+        """
+        Get Thread version (integer) of a node.
+        :param nodeid: the node ID
+        :return: the Thread version
+        """
+        return self._expect_int(self.node_cmd(nodeid, 'thread version'))
 
     def coaps_enable(self) -> None:
         """

@@ -189,7 +189,7 @@ function loadOk() {
                 break;
             case VisualizeEvent.TypeCase.SET_NETWORK_INFO:
                 e = resp.getSetNetworkInfo();
-                vis.visSetNetworkInfo(e.getVersion(), e.getCommit(), e.getReal());
+                vis.visSetNetworkInfo(e.getVersion(), e.getCommit(), e.getReal(), e.getNodeId(), e.getThreadVersion());
                 break;
             default:
                 console.log('unknown event!!! ' + resp.getTypeCase());

@@ -50,6 +50,8 @@ export default class NodeWindow extends VObject {
 
         let txt        =
             `Node ${node.id} properties\n\n` +
+            `Type      : ${node.type}\n` +
+            `Thread Ver: ${node.threadVersion} (v${fmt.threadVersionToString(node.threadVersion)})\n` +
             `RLOC16    : ${fmt.formatRloc16(node.rloc16)}\n` ;
 
         let rid = `Router ID : --\n`;
@@ -66,7 +68,6 @@ export default class NodeWindow extends VObject {
         txt += rid+cid+pid;
 
         txt += `ExtAddr   : ${fmt.formatExtAddr(node.extAddr)}\n` +
-            `Type      : ${node.type}\n` +
             `Role      : ${fmt.roleToString(node.role)}\n` +
             `Mode      : ${fmt.modeToString(node.nodeMode)}\n` +
             `Partition : ${fmt.formatPartitionId(node.partition)}\n` +

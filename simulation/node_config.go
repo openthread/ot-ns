@@ -93,11 +93,12 @@ func (cfg *ExecutableConfig) SearchPathsString() string {
 }
 
 // SetVersion sets all executables to the defaults associated to the given Thread version number.
-func (cfg *ExecutableConfig) SetVersion(version string) {
+// The given defaultConfig is used as a base to derive the versioned executables from.
+func (cfg *ExecutableConfig) SetVersion(version string, defaultConfig *ExecutableConfig) {
 	logger.AssertTrue(strings.HasPrefix(version, "v1") && len(version) >= 3 && len(version) <= 4)
-	cfg.Ftd = DefaultExecutableConfig.Ftd + "_" + version
-	cfg.Mtd = DefaultExecutableConfig.Mtd + "_" + version
-	cfg.Br = DefaultExecutableConfig.Br // BR is currently not adapted to versions.
+	cfg.Ftd = defaultConfig.Ftd + "_" + version
+	cfg.Mtd = defaultConfig.Mtd + "_" + version
+	cfg.Br = defaultConfig.Br // BR is currently not adapted to versions.
 }
 
 func isFile(exePath string) bool {
