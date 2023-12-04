@@ -43,27 +43,15 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/openthread/ot-ns/dispatcher"
+	"github.com/openthread/ot-ns/event"
 	"github.com/openthread/ot-ns/logger"
 	"github.com/openthread/ot-ns/otoutfilter"
-	"github.com/openthread/ot-ns/radiomodel"
 	. "github.com/openthread/ot-ns/types"
 )
 
 const (
 	DefaultCommandTimeout = time.Second * 10
 	NodeExitTimeout       = time.Second * 3
-)
-
-var (
-	DoneOrErrorRegexp = regexp.MustCompile(`(Done|Error \d+: .*)`)
-)
-
-type NodeUartType int
-
-const (
-	NodeUartTypeUndefined   NodeUartType = iota
-	NodeUartTypeRealTime    NodeUartType = iota
-	NodeUartTypeVirtualTime NodeUartType = iota
 )
 
 type Node struct {
@@ -78,12 +66,13 @@ type Node struct {
 	version       string
 	threadVersion int
 
-	pendingLines chan string // OT node CLI output lines, pending processing.
-	pipeIn       io.WriteCloser
-	pipeOut      io.ReadCloser
-	pipeErr      io.ReadCloser
-	uartReader   chan []byte
-	uartType     NodeUartType
+	pendingLines  chan string       // OT node CLI output lines, pending processing.
+	pendingEvents chan *event.Event // OT node emitted events to be processed.
+	pipeIn        io.WriteCloser
+	pipeOut       io.ReadCloser
+	pipeErr       io.ReadCloser
+	uartReader    chan []byte
+	uartType      NodeUartType
 }
 
 // newNode creates a new simulation node. If unsuccessful, it returns an error != nil and the Node object created
@@ -102,16 +91,17 @@ func newNode(s *Simulation, nodeid NodeId, cfg *NodeConfig, dnode *dispatcher.No
 	cmd := exec.CommandContext(context.Background(), cfg.ExecutablePath, strconv.Itoa(nodeid), s.d.GetUnixSocketName())
 
 	node := &Node{
-		S:            s,
-		Id:           nodeid,
-		Logger:       logger.GetNodeLogger(s.cfg.Id, cfg),
-		DNode:        dnode,
-		cfg:          cfg,
-		cmd:          cmd,
-		pendingLines: make(chan string, 10000),
-		uartType:     NodeUartTypeUndefined,
-		uartReader:   make(chan []byte, 10000),
-		version:      "",
+		S:             s,
+		Id:            nodeid,
+		Logger:        logger.GetNodeLogger(s.cfg.Id, cfg),
+		DNode:         dnode,
+		cfg:           cfg,
+		cmd:           cmd,
+		pendingLines:  make(chan string, 10000),
+		pendingEvents: make(chan *event.Event, 100),
+		uartType:      NodeUartTypeUndefined,
+		uartReader:    make(chan []byte, 10000),
+		version:       "",
 	}
 
 	node.Logger.Debugf("Node config: IsMtd=%t IsRouter=%t IsBR=%t RxOffWhenIdle=%t", cfg.IsMtd, cfg.IsRouter,
@@ -304,7 +294,7 @@ func (node *Node) Command(cmd string, timeout time.Duration) []string {
 	}
 
 	var output []string
-	output, err = node.expectLine(DoneOrErrorRegexp, timeout)
+	output, err = node.expectLine(doneOrErrorRegexp, timeout)
 	if err != nil {
 		node.error(err)
 		return []string{}
@@ -366,23 +356,126 @@ func (node *Node) CommandExpectHex(cmd string, timeout time.Duration) int {
 	return int(iv)
 }
 
-func (node *Node) SetChannel(ch int) {
+func (node *Node) CommandExpectEnabledOrDisabled(cmd string, timeout time.Duration) bool {
+	output := node.CommandExpectString(cmd, timeout)
+	if output == "Enabled" {
+		return true
+	} else if output == "Disabled" {
+		return false
+	} else if len(output) == 0 {
+		node.Logger.Errorf("CommandExpectEnabledOrDisabled() did not get data from node")
+		return false
+	} else {
+		node.Logger.Errorf("expect Enabled/Disabled, but read: '%#v'", output)
+	}
+	return false
+}
+
+func (node *Node) SetChannel(ch ChannelId) {
 	node.Command(fmt.Sprintf("channel %d", ch), DefaultCommandTimeout)
 }
 
-func (node *Node) GetRxSensitivity() int {
-	err := node.DNode.SendRxSensitivityEvent(false, 0)
-	if err != nil {
-		return int(radiomodel.RssiInvalid)
+func (node *Node) GetRfSimParam(param RfSimParam) RfSimParamValue {
+	switch param {
+	case ParamRxSensitivity:
+		fallthrough
+	case ParamCslUncertainty:
+		fallthrough
+	case ParamCslAccuracy:
+		return node.getOrSetRfSimParam(false, param, 0) // TODO
+	case ParamCcaThreshold:
+		return node.GetCcaThreshold()
+	default:
+		node.error(fmt.Errorf("unknown RfSim parameter: %d", param))
+		return 0 // FIXME
 	}
-	node.assurePrompt()
-	return int(node.DNode.RadioNode.RxSensitivity)
 }
 
-func (node *Node) SetRxSensitivity(rxSens int) {
-	logger.AssertTrue(rxSens >= int(radiomodel.RssiMin) && rxSens <= int(radiomodel.RssiMax))
-	err := node.DNode.SendRxSensitivityEvent(true, int8(rxSens))
+func (node *Node) SetRfSimParam(param RfSimParam, value RfSimParamValue) {
+	switch param {
+	case ParamRxSensitivity:
+		if value < RssiMin || value > RssiMax {
+			node.error(fmt.Errorf("parameter out of range %d to %d", RssiMin, RssiMax))
+			return
+		}
+		node.getOrSetRfSimParam(true, param, value)
+	case ParamCslAccuracy:
+		fallthrough
+	case ParamCslUncertainty:
+		if value < 0 || value > 255 {
+			node.error(fmt.Errorf("parameter out of range 0-255"))
+			return
+		}
+		node.getOrSetRfSimParam(true, param, value)
+	case ParamCcaThreshold:
+		node.SetCcaThreshold(value)
+	default:
+		node.error(fmt.Errorf("unknown RfSim parameter: %d", param))
+	}
+}
+
+func (node *Node) GetRxSensitivity() int8 {
+	return int8(node.getOrSetRfSimParam(false, ParamRxSensitivity, RssiInvalid))
+}
+
+func (node *Node) SetRxSensitivity(rxSens int8) {
+	logger.AssertTrue(rxSens >= RssiMin && rxSens <= RssiMax)
+	node.getOrSetRfSimParam(true, ParamRxSensitivity, RfSimParamValue(rxSens))
+}
+
+func (node *Node) GetCslAccuracy() uint8 {
+	return uint8(node.getOrSetRfSimParam(false, ParamCslAccuracy, 255))
+}
+
+func (node *Node) SetCslAccuracy(accPpm uint8) {
+	node.getOrSetRfSimParam(true, ParamCslAccuracy, RfSimParamValue(accPpm))
+}
+
+func (node *Node) GetCslUncertainty() uint8 {
+	return uint8(node.getOrSetRfSimParam(false, ParamCslUncertainty, 255))
+}
+
+func (node *Node) SetCslUncertainty(unc10us uint8) {
+	node.getOrSetRfSimParam(true, ParamCslUncertainty, RfSimParamValue(unc10us))
+}
+
+func (node *Node) getOrSetRfSimParam(isSet bool, param RfSimParam, value RfSimParamValue) RfSimParamValue {
+	node.cmdErr = nil
+	err := node.DNode.SendRfSimEvent(isSet, param, value)
+	if err == nil {
+		// wait for response event
+		for {
+			evt, err := node.expectEvent(event.EventTypeRadioRfSimParamRsp, DefaultCommandTimeout)
+			if err != nil {
+				node.error(err)
+				return value
+			}
+			if evt.NodeId == node.Id && evt.RfSimParamData.Param == param {
+				return RfSimParamValue(evt.RfSimParamData.Value)
+			}
+		}
+	}
 	node.error(err)
+	return value
+}
+
+func (node *Node) GetCcaThreshold() RfSimParamValue {
+	s := node.CommandExpectString("ccathreshold", DefaultCommandTimeout)
+	idx := strings.Index(s, " dBm")
+	iv, err := strconv.ParseInt(s[0:idx], 10, 0)
+	if err != nil {
+		node.error(err)
+		return RssiInvalid
+	}
+	return RfSimParamValue(iv)
+}
+
+func (node *Node) SetCcaThreshold(thresh RfSimParamValue) {
+	if thresh >= RssiMin && thresh <= RssiMax {
+		node.Command(fmt.Sprintf("ccathreshold %d", thresh), DefaultCommandTimeout)
+	} else {
+		node.error(fmt.Errorf("parameter out of range 0-255"))
+	}
 }
 
 func (node *Node) GetChannel() int {
@@ -656,6 +749,18 @@ func (node *Node) Reset() {
 	node.Logger.Warn("reset complete")
 }
 
+func (node *Node) Ping(addr string, payloadSize int, count int, interval int, hopLimit int) {
+	cmd := fmt.Sprintf("ping async %s %d %d %d %d", addr, payloadSize, count, interval, hopLimit)
+	err := node.inputCommand(cmd)
+	if err != nil {
+		node.error(err)
+		return
+	}
+	_, err = node.expectLine(cmd, DefaultCommandTimeout)
+	node.Logger.Error(err)
+	node.assurePrompt()
+}
+
 func (node *Node) GetNetworkKey() string {
 	return node.CommandExpectString("networkkey", DefaultCommandTimeout)
 }
@@ -852,6 +957,29 @@ func (node *Node) lineReaderStdErr(reader io.Reader) {
 	}
 }
 
+func (node *Node) expectEvent(evtType event.EventType, timeout time.Duration) (*event.Event, error) {
+	done := node.S.ctx.Done()
+	deadline := time.After(timeout)
+
+	for {
+		select {
+		case <-done:
+			return nil, CommandInterruptedError
+		case <-deadline:
+			err := fmt.Errorf("expectEvent timeout: expected type %d", evtType)
+			return nil, err
+		case evt := <-node.pendingEvents:
+			node.Logger.Tracef("expectEvent() received: %v", evt)
+			return evt, nil
+		default:
+			if !node.S.Dispatcher().IsAlive(node.Id) {
+				time.Sleep(time.Millisecond * 10) // in case of node connection error, this becomes busy-loop.
+			}
+			node.S.Dispatcher().RecvEvents() // keep virtual-UART events coming.
+		}
+	}
+}
+
 // readLine attempts to read a line from the node. Returns false when the node is asleep and
 // therefore cannot return any more lines at the moment.
 func (node *Node) readLine() (string, bool) {
@@ -909,33 +1037,6 @@ func (node *Node) expectLine(line interface{}, timeout time.Duration) ([]string,
 			node.processUartData()           // forge data from UART-events into lines (fills up node.pendingLines)
 		}
 	}
-}
-
-func (node *Node) CommandExpectEnabledOrDisabled(cmd string, timeout time.Duration) bool {
-	output := node.CommandExpectString(cmd, timeout)
-	if output == "Enabled" {
-		return true
-	} else if output == "Disabled" {
-		return false
-	} else if len(output) == 0 {
-		node.Logger.Errorf("CommandExpectEnabledOrDisabled() did not get data from node")
-		return false
-	} else {
-		node.Logger.Errorf("expect Enabled/Disabled, but read: '%#v'", output)
-	}
-	return false
-}
-
-func (node *Node) Ping(addr string, payloadSize int, count int, interval int, hopLimit int) {
-	cmd := fmt.Sprintf("ping async %s %d %d %d %d", addr, payloadSize, count, interval, hopLimit)
-	err := node.inputCommand(cmd)
-	if err != nil {
-		node.error(err)
-		return
-	}
-	_, err = node.expectLine(cmd, DefaultCommandTimeout)
-	node.Logger.Error(err)
-	node.assurePrompt()
 }
 
 func (node *Node) isLineMatch(line string, _expectedLine interface{}) bool {

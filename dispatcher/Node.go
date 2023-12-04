@@ -30,11 +30,9 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/openthread/ot-ns/logger"
-
 	. "github.com/openthread/ot-ns/event"
+	"github.com/openthread/ot-ns/logger"
 	"github.com/openthread/ot-ns/radiomodel"
-	"github.com/openthread/ot-ns/threadconst"
 	. "github.com/openthread/ot-ns/types"
 )
 
@@ -108,7 +106,7 @@ func newNode(d *Dispatcher, nodeid NodeId, cfg *NodeConfig) *Node {
 		X:           cfg.X,
 		Y:           cfg.Y,
 		ExtAddr:     InvalidExtAddr,
-		Rloc16:      threadconst.InvalidRloc16,
+		Rloc16:      InvalidRloc16,
 		Role:        OtDeviceRoleDisabled,
 		conn:        nil, // connection will be set when first event is received from node.
 		err:         nil, // keep track of connection errors.
@@ -143,16 +141,22 @@ func (node *Node) SendToUART(data []byte) error {
 	return err
 }
 
-func (node *Node) SendRxSensitivityEvent(includeData bool, rxSens int8) error {
-	data := make([]byte, 0)
-	if includeData {
-		data = []byte{byte(rxSens)}
+func (node *Node) SendRfSimEvent(writeValue bool, param RfSimParam, value RfSimParamValue) error {
+	var eventType EventType
+	if writeValue {
+		eventType = EventTypeRadioRfSimParamSet
+	} else {
+		eventType = EventTypeRadioRfSimParamGet
 	}
+
 	evt := &Event{
 		Timestamp: node.D.CurTime,
-		Type:      EventTypeRadioSetRxSensitivity,
-		Data:      data,
+		Type:      eventType,
 		NodeId:    node.Id,
+		RfSimParamData: RfSimParamEventData{
+			Param: param,
+			Value: int32(value),
+		},
 	}
 	node.sendEvent(evt)
 	return node.err
@@ -221,7 +225,6 @@ func (node *Node) IsConnected() bool {
 func (node *Node) Fail() {
 	if !node.isFailed {
 		node.isFailed = true
-		node.D.cbHandler.OnNodeFail(node.Id)
 		node.D.vis.OnNodeFail(node.Id)
 		node.logger.Debugf("radio set to scheduled failure")
 	}
@@ -230,7 +233,6 @@ func (node *Node) Fail() {
 func (node *Node) Recover() {
 	if node.isFailed {
 		node.isFailed = false
-		node.D.cbHandler.OnNodeRecover(node.Id)
 		node.D.vis.OnNodeRecover(node.Id)
 		node.logger.Debugf("radio recovered from scheduled failure")
 	}

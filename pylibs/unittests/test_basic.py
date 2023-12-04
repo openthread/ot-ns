@@ -260,7 +260,7 @@ class BasicTests(OTNSTestCase):
         ns = self.ns
         id = ns.add("router")
         self.go(10)
-        self.assertTrue(ns.get_state(id), 'leader')
+        self.assertEqual('leader', ns.get_state(id))
 
     def testCounters(self):
         ns = self.ns
@@ -590,23 +590,47 @@ class BasicTests(OTNSTestCase):
         ns: OTNS = self.ns
         ns.add('router')
         ns.add('router')
-        self.assertTrue('-100 dBm', ns.cmd('rxsens 1'))
-        self.assertTrue('-100 dBm', ns.cmd('rxsens 2'))
+        self.assertEqual(['-100'], ns.cmd('rfsim 1 rxsens'))
+        self.assertEqual(['-100'], ns.cmd('rfsim 2 rxsens'))
 
-        ns.cmd('rxsens 1 -85')
-        self.assertTrue('-85 dBm', ns.cmd('rxsens 1'))
-        self.assertTrue('-100 dBm', ns.cmd('rxsens 2'))
+        ns.cmd('rfsim 1 rxsens -85')
+        self.assertEqual(['-85'], ns.cmd('rfsim 1 rxsens'))
+        self.assertEqual(['-100'], ns.cmd('rfsim 2 rxsens'))
+
+        ns.cmd('rfsim 2 rxsens 23')
+        self.assertEqual(['23'], ns.cmd('rfsim 2 rxsens'))
 
     def testCcaThreshold(self):
         ns: OTNS = self.ns
         ns.add('router')
         ns.add('router')
-        self.assertTrue('-75 dBm', ns.node_cmd(1,'ccathreshold'))
-        self.assertTrue('-75 dBm', ns.node_cmd(2,'ccathreshold'))
+        self.assertEqual(['-75 dBm'], ns.node_cmd(1,'ccathreshold'))
+        self.assertEqual(['-75 dBm'], ns.node_cmd(2,'ccathreshold'))
+        self.assertEqual(['-75'], ns.cmd('rfsim 1 ccath'))
 
         ns.node_cmd(2, 'ccathreshold -80')
-        self.assertTrue('-75 dBm', ns.node_cmd(1,'ccathreshold'))
-        self.assertTrue('-80 dBm', ns.node_cmd(2,'ccathreshold'))
+        self.assertEqual(['-75 dBm'], ns.node_cmd(1,'ccathreshold'))
+        self.assertEqual(['-80 dBm'], ns.node_cmd(2,'ccathreshold'))
+        self.assertEqual(['-80'], ns.cmd('rfsim 2 ccath'))
+
+        ns.node_cmd(1, 'ccathreshold 42')
+        self.assertEqual(['42 dBm'], ns.node_cmd(1,'ccathreshold'))
+        self.assertEqual(['-80 dBm'], ns.node_cmd(2,'ccathreshold'))
+        self.assertEqual(['42'], ns.cmd('rfsim 1 ccath'))
+
+    def testCslParameters(self):
+        ns: OTNS = self.ns
+        ns.add('router')
+        ns.add('router')
+        self.assertEqual(['20'], ns.cmd('rfsim 1 cslacc'))
+        self.assertEqual(['10'], ns.cmd('rfsim 2 cslunc'))
+
+        ns.cmd('rfsim 1 cslacc 65')
+        self.assertEqual(['65'], ns.cmd('rfsim 1 cslacc'))
+        self.assertEqual(['10'], ns.cmd('rfsim 2 cslunc'))
+
+        ns.cmd('rfsim 2 cslunc 223')
+        self.assertEqual(['223'], ns.cmd('rfsim 2 cslunc'))
 
     def testCmdCommand(self):
         ns: OTNS = self.ns

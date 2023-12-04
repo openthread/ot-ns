@@ -63,7 +63,7 @@ type Command struct {
 	Radio               *RadioCmd               `| @@` //nolint
 	RadioModel          *RadioModelCmd          `| @@` //nolint
 	RadioParam          *RadioParamCmd          `| @@` //nolint
-	RxSens              *RxSensCmd              `| @@` //nolint
+	RfSim               *RfSimCmd               `| @@` //nolint
 	Scan                *ScanCmd                `| @@` //nolint
 	Speed               *SpeedCmd               `| @@` //nolint
 	Time                *TimeCmd                `| @@` //nolint
@@ -478,11 +478,12 @@ type RadioParamCmd struct {
 }
 
 // noinspection GoVetStructTag
-type RxSensCmd struct {
-	Cmd  struct{}     `"rxsens"`     //nolint
-	Id   NodeSelector `@@`           //nolint
-	Sign string       `[@("-"|"+")]` //nolint
-	Val  *int         `[ @Int ]`     //nolint
+type RfSimCmd struct {
+	Cmd   struct{}     `"rfsim"`      //nolint
+	Id    NodeSelector `@@`           //nolint
+	Param string       `[@Ident]`     //nolint
+	Sign  string       `[@("-"|"+")]` //nolint
+	Val   *int         `[ @Int ]`     //nolint
 }
 
 // noinspection GoVetStructTag

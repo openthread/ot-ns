@@ -1,4 +1,4 @@
-// Copyright (c) 2022-2023, The OTNS Authors.
+// Copyright (c) 2023, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -24,36 +24,45 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-package radiomodel
+package types
 
-import (
-	"math"
+import "math"
 
-	. "github.com/openthread/ot-ns/types"
+// RSSI parameter encodings for communication with OT node
+const (
+	RssiInvalid       = 127
+	RssiMax           = 126
+	RssiMin           = -126
+	RssiMinusInfinity = -127
 )
 
-// paround is a custom parameter rounding function (2 digits)
-func paround(param float64) float64 {
-	return math.Round(param*100.0) / 100.0
-}
+// RfSim radio parameters, see ot-rfsim repo for values
+type RfSimParam uint8
 
-// addSignalPowersDbm calculates signal power in dBm of two added, uncorrelated, signals with powers p1 and p2 (dBm).
-func addSignalPowersDbm(p1 DbValue, p2 DbValue) DbValue {
-	if p1 > p2+15.0 { // avoid costly calculation where possible
-		return p1
-	}
-	if p2 > p1+15.0 {
-		return p2
-	}
-	return 10.0 * math.Log10(math.Pow(10, p1/10.0)+math.Pow(10, p2/10.0))
-}
+const (
+	ParamRxSensitivity  RfSimParam = 0
+	ParamCcaThreshold   RfSimParam = 1
+	ParamCslAccuracy    RfSimParam = 2
+	ParamCslUncertainty RfSimParam = 3
+	ParamUnknown        RfSimParam = 255
+)
 
-// clipRssi clips the RSSI value (in dBm, as DbValue) to int8 range for return to OT nodes.
-func clipRssi(rssi DbValue) int8 {
-	if rssi > RssiMax {
-		rssi = RssiMax
-	} else if rssi < RssiMin {
-		rssi = RssiMinusInfinity
+// Rfsim radio parameter values
+type RfSimParamValue int32
+
+const (
+	RfSimValueInvalid RfSimParamValue = math.MaxInt32
+)
+
+var RfSimParamsList = []RfSimParam{ParamRxSensitivity, ParamCcaThreshold, ParamCslAccuracy, ParamCslUncertainty}
+var RfSimParamNamesList = []string{"rxsens", "ccath", "cslacc", "cslunc"}
+var RfSimParamUnitsList = []string{"dBm", "dBm", "PPM", "10-us"}
+
+func ParseRfSimParam(parName string) RfSimParam {
+	for i := 0; i < len(RfSimParamsList); i++ {
+		if parName == RfSimParamNamesList[i] {
+			return RfSimParamsList[i]
+		}
 	}
-	return int8(math.Round(rssi))
+	return ParamUnknown
 }

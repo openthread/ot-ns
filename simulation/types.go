@@ -33,11 +33,25 @@ import (
 	"path/filepath"
 	"strings"
 
+	"regexp"
+
 	. "github.com/openthread/ot-ns/types"
 )
 
 var (
 	CommandInterruptedError = fmt.Errorf("command interrupted due to simulation exit")
+)
+
+var (
+	doneOrErrorRegexp = regexp.MustCompile(`(Done|Error \d+: .*)`)
+)
+
+type NodeUartType int
+
+const (
+	NodeUartTypeUndefined   NodeUartType = iota
+	NodeUartTypeRealTime    NodeUartType = iota
+	NodeUartTypeVirtualTime NodeUartType = iota
 )
 
 type CmdRunner interface {
