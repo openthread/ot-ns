@@ -26,7 +26,11 @@
 
 package radiomodel
 
-import "math"
+import (
+	"math"
+
+	. "github.com/openthread/ot-ns/types"
+)
 
 // default radio & simulation parameters
 const (

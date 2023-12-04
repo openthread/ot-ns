@@ -1,4 +1,4 @@
-// Copyright (c) 2022, The OTNS Authors.
+// Copyright (c) 2023, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -26,13 +26,15 @@
 
 package types
 
-/**
-* OT_ERROR_* error codes from OpenThread that can be returned by OT-NS.
-* (See OpenThread error.h for details)
- */
-
+// OT_ERROR_* error codes from OpenThread that can be sent by OT-NS to the OT nodes.
+// (See OpenThread error.h for details)
 const (
 	OT_ERROR_NONE  = 0
 	OT_ERROR_ABORT = 11
 	OT_ERROR_FCS   = 17
+)
+
+const (
+	InvalidRloc16   uint16 = 0xfffe
+	BroadcastRloc16 uint16 = 0xffff
 )

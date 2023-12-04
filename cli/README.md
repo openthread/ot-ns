@@ -685,11 +685,12 @@ Get or set parameters of the current radiomodel.
 radioparam [param-name] [new-value]
 ```
 
-Use without the optional arguments to get a list of all current 
-radiomodel parameters. Add the `param-name` to get only the value of that parameter. If both `param-name` and `new-value` 
+Use without the optional arguments to get a list of all current radiomodel parameters. These parameters apply to all 
+nodes and links. Add the `param-name` to get only the value of that parameter. If both `param-name` and `new-value` 
 are provided, the parameter value is set to `new-value`. It has to be a numeric value (float).
 
 Note: How the parameter is used by the radiomodel may differ per radiomodel. Some parameters may not be used.
+Note: To change radio hardware parameters of the simulated radio of a specific node, use the [rfsim](#rfsim) command.
 
 ```bash
 > radioparam
@@ -718,33 +719,52 @@ Done
 > 
 ```
 
-### rxsens
+### rfsim
 
-Get or set receiver sensitivity (dBm) for a node.
+Get or set parameters of a node's (OT-RFSIM node) simulated radio.
 
 ```shell
-rxsens <node-id> [sensitivity-value]
+rfsim <node-id>
+rfsim <node-id> <param-name>
+rfsim <node-id> <param-name> <new-value>
 ```
 
-Values range from -126 to 126. For correct radio 
-operation, the receiver sensitivity MUST be kept lower than the current CCA ED threshold. The latter can be set 
-using the OT node CLI command `ccathreshold`.
+Use with the `node-id` argument to get a list of all current OT-RFSIM radio parameters for that node. Add the 
+`param-name` to get only the value of that parameter. If both `param-name` and `new-value`
+are provided, the parameter value is set to `new-value`. It has to be a numeric value (int).
 
-Note: this command may get replaced in the future by a generic command for setting OT node radio parameters.
+In a physical radio platform, most of these parameters are typically fixed. In a simulation, these can be changed to 
+explore different radios or different scenarios.
+
+Note: To change global radio model parameters for all nodes, use the [radioparam](#radioparam) command.
+
+The following parameters are supported:
+
+* `rxsens` - 802.15.4 receiver sensitivity (dBm), in the range -126 to 126. For correct radio
+  operation, the receiver sensitivity MUST be kept lower than the current CCA ED threshold.
+* `ccath`  - 802.15.4 CCA Energy Detect (ED) threshold (dBm), in the range -126 to 126.
+* `cslacc` -  802.15.4 Coordinated Sampled Listening (CSL) accuracy in ppm, range 0-255.
+* `cslunc` - 802.15.4 CSL uncertainty in units of 10 microsec, range 0-255.
 
 ```bash
-> add router
-1
+> rfsim 1
+rxsens               -100 (dBm)
+ccath                -75 (dBm)
+cslacc               20 (PPM)
+cslunc               10 (10-us)
 Done
-> rxsens 1
--100 dBm
+> rfsim 1 cslacc 45
+Done 
+> rfsim 1 cslacc
+45
 Done
-> rxsens 1 -85
+> rfsim 1 
+rxsens               -100 (dBm)
+ccath                -75 (dBm)
+cslacc               45 (PPM)
+cslunc               10 (10-us)
 Done
-> rxsens 1
--85 dBm
-Done
->  
+>
 ```
 
 ### scan

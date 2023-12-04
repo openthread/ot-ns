@@ -35,7 +35,7 @@ import (
 
 type DbValue = float64
 
-const UndefinedDbValue = math.MaxFloat64
+const UndefinedDbValue DbValue = math.MaxFloat64
 
 // IEEE 802.15.4-2015 related parameters for 2.4 GHz O-QPSK PHY
 const (
@@ -43,14 +43,6 @@ const (
 	MaxChannelNumber     ChannelId = 39 // above 26 are currently used as pseudo-BLE-adv-channels
 	DefaultChannelNumber ChannelId = 11
 	TimeUsPerBit                   = 4
-)
-
-// RSSI parameter encodings for communication with OT node (maps to int8)
-const (
-	RssiInvalid       DbValue = 127.0
-	RssiMax           DbValue = 126.0
-	RssiMin           DbValue = -126.0
-	RssiMinusInfinity DbValue = -127.0
 )
 
 // EventQueue is the abstraction of the queue where the radio model sends its outgoing (new) events to.

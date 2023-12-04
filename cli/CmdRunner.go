@@ -269,8 +269,8 @@ func (rt *CmdRunner) execute(cmd *Command, output io.Writer) {
 		rt.executeRadioModel(cc, cc.RadioModel)
 	} else if cmd.RadioParam != nil {
 		rt.executeRadioParam(cc, cc.RadioParam)
-	} else if cmd.RxSens != nil {
-		rt.executeRxSens(cc, cc.RxSens)
+	} else if cmd.RfSim != nil {
+		rt.executeRfSim(cc, cc.RfSim)
 	} else if cmd.Energy != nil {
 		rt.executeEnergy(cc, cc.Energy)
 	} else if cmd.LogLevel != nil {
@@ -875,7 +875,7 @@ func (rt *CmdRunner) executeRadioParam(cc *CommandContext, cmd *RadioParamCmd) {
 	})
 }
 
-func (rt *CmdRunner) executeRxSens(cc *CommandContext, cmd *RxSensCmd) {
+func (rt *CmdRunner) executeRfSim(cc *CommandContext, cmd *RfSimCmd) {
 	rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
 		node, _ := rt.getNode(sim, cmd.Id)
 		if node == nil {
@@ -883,22 +883,42 @@ func (rt *CmdRunner) executeRxSens(cc *CommandContext, cmd *RxSensCmd) {
 			return
 		}
 
-		// variant: rxsens <node-id>
-		if cmd.Val == nil {
-			cc.outputf("%d dBm\n", node.GetRxSensitivity())
+		defer node.DisplayPendingLogEntries()
+
+		// variant: rfsim <nodeid>
+		if len(cmd.Param) == 0 {
+			for i := 0; i < len(RfSimParamsList); i++ {
+				value := node.GetRfSimParam(RfSimParamsList[i])
+				unit := RfSimParamUnitsList[i]
+				if node.CommandResult() != nil {
+					cc.error(node.CommandResult())
+					return
+				}
+				cc.outputf("%-20s %d (%s)\n", RfSimParamNamesList[i], value, unit)
+			}
 			return
 		}
 
-		// variant: rxsens <node-id> <sensitivity-value>
-		rxSens := *cmd.Val
-		if cmd.Sign == "-" {
-			rxSens = -rxSens
-		}
-		if rxSens < int(radiomodel.RssiMin) || rxSens > int(radiomodel.RssiMax) {
-			cc.errorf("value out of range (%d - %d)", int(radiomodel.RssiMin), int(radiomodel.RssiMax))
+		param := ParseRfSimParam(cmd.Param)
+		if param == ParamUnknown {
+			cc.errorf("parameter '%s' not found", cmd.Param)
 			return
 		}
-		node.SetRxSensitivity(rxSens)
+
+		// variant: rfsim <nodeid> <param>
+		if cmd.Val == nil {
+			value := node.GetRfSimParam(param)
+			cc.outputf("%d\n", value)
+			return
+		}
+
+		// variant: rfsim <nodeid> <param> <new-value>
+		newVal := *cmd.Val
+		if cmd.Sign == "-" {
+			newVal = -newVal
+		}
+
+		node.SetRfSimParam(param, RfSimParamValue(newVal))
 		if node.CommandResult() != nil {
 			cc.error(node.CommandResult())
 		}

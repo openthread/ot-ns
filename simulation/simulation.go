@@ -37,6 +37,7 @@ import (
 
 	"github.com/openthread/ot-ns/dispatcher"
 	"github.com/openthread/ot-ns/energy"
+	"github.com/openthread/ot-ns/event"
 	"github.com/openthread/ot-ns/logger"
 	"github.com/openthread/ot-ns/progctx"
 	"github.com/openthread/ot-ns/radiomodel"
@@ -326,16 +327,6 @@ func (s *Simulation) SetVisualizer(vis visualize.Visualizer) {
 	s.vis.SetNetworkInfo(s.GetNetworkInfo())
 }
 
-func (s *Simulation) OnNodeFail(nodeid NodeId) {
-	node := s.nodes[nodeid]
-	logger.AssertNotNil(node)
-}
-
-func (s *Simulation) OnNodeRecover(nodeid NodeId) {
-	node := s.nodes[nodeid]
-	logger.AssertNotNil(node)
-}
-
 // OnUartWrite notifies the simulation that a node has received some data from UART.
 // It is part of implementation of dispatcher.CallbackHandler.
 func (s *Simulation) OnUartWrite(nodeid NodeId, data []byte) {
@@ -353,6 +344,20 @@ func (s *Simulation) OnNextEventTime(nextTs uint64) {
 		node.DisplayPendingLogEntries()
 		node.DisplayPendingLines()
 	})
+}
+
+func (s *Simulation) OnRfSimEvent(nodeid NodeId, evt *event.Event) {
+	node := s.nodes[nodeid]
+	if node == nil {
+		return
+	}
+
+	switch evt.Type {
+	case event.EventTypeRadioRfSimParamRsp:
+		node.pendingEvents <- evt
+	default:
+		break
+	}
 }
 
 // PostAsync will post an asynchronous simulation task in the queue for execution

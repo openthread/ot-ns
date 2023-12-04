@@ -24,9 +24,35 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-package threadconst
+package dispatcher
 
-const (
-	InvalidRloc16   uint16 = 0xfffe
-	BroadcastRloc16 uint16 = 0xffff
+import (
+	"time"
+
+	"github.com/openthread/ot-ns/pcap"
 )
+
+type Config struct {
+	Speed             float64
+	Real              bool
+	DumpPackets       bool
+	PcapEnabled       bool
+	PcapFrameType     pcap.FrameType
+	DefaultWatchOn    bool
+	DefaultWatchLevel string
+	VizUpdateTime     time.Duration
+	SimulationId      int
+}
+
+func DefaultConfig() *Config {
+	return &Config{
+		Speed:          1,
+		Real:           false,
+		DumpPackets:    false,
+		PcapEnabled:    true,
+		PcapFrameType:  pcap.FrameTypeWpanTap,
+		DefaultWatchOn: false,
+		VizUpdateTime:  125 * time.Millisecond,
+		SimulationId:   0,
+	}
+}

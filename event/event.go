@@ -42,22 +42,24 @@ type EventType = uint8
 
 const (
 	// Event type IDs (external, shared between OT-NS and OT node)
-	EventTypeAlarmFired            EventType = 0
-	EventTypeRadioReceived         EventType = 1
-	EventTypeUartWrite             EventType = 2
-	EventTypeRadioSpinelWrite      EventType = 3
-	EventTypePostCmd               EventType = 4
-	EventTypeStatusPush            EventType = 5
-	EventTypeRadioCommStart        EventType = 6
-	EventTypeRadioTxDone           EventType = 7
-	EventTypeRadioChannelSample    EventType = 8
-	EventTypeRadioState            EventType = 9
-	EventTypeRadioRxDone           EventType = 10
-	EventTypeExtAddr               EventType = 11
-	EventTypeNodeInfo              EventType = 12
-	EventTypeNodeDisconnected      EventType = 14
-	EventTypeRadioLog              EventType = 15
-	EventTypeRadioSetRxSensitivity EventType = 16
+	EventTypeAlarmFired         EventType = 0
+	EventTypeRadioReceived      EventType = 1
+	EventTypeUartWrite          EventType = 2
+	EventTypeRadioSpinelWrite   EventType = 3
+	EventTypePostCmd            EventType = 4
+	EventTypeStatusPush         EventType = 5
+	EventTypeRadioCommStart     EventType = 6
+	EventTypeRadioTxDone        EventType = 7
+	EventTypeRadioChannelSample EventType = 8
+	EventTypeRadioState         EventType = 9
+	EventTypeRadioRxDone        EventType = 10
+	EventTypeExtAddr            EventType = 11
+	EventTypeNodeInfo           EventType = 12
+	EventTypeNodeDisconnected   EventType = 14
+	EventTypeRadioLog           EventType = 15
+	EventTypeRadioRfSimParamGet EventType = 16
+	EventTypeRadioRfSimParamSet EventType = 17
+	EventTypeRadioRfSimParamRsp EventType = 18
 )
 
 const (
@@ -83,6 +85,7 @@ type Event struct {
 	RadioCommData  RadioCommEventData
 	RadioStateData RadioStateEventData
 	NodeInfoData   NodeInfoEventData
+	RfSimParamData RfSimParamEventData
 }
 
 // All ...EventData formats below only used by OT nodes supporting advanced
@@ -109,6 +112,12 @@ type RadioStateEventData struct {
 const nodeInfoEventDataHeaderLen = 4 // from OT-RFSIM platform, otSimSendNodeInfoEvent()
 type NodeInfoEventData struct {
 	NodeId types.NodeId
+}
+
+const rfSimParamEventDataHeaderLen = 5 // from OT-RFSIM platform
+type RfSimParamEventData struct {
+	Param types.RfSimParam
+	Value int32
 }
 
 /*
@@ -139,6 +148,11 @@ func (e *Event) Serialize() []byte {
 		extraFields = []byte{e.RadioCommData.Channel, byte(e.RadioCommData.PowerDbm), e.RadioCommData.Error,
 			0, 0, 0, 0, 0, 0, 0, 0}
 		binary.LittleEndian.PutUint64(extraFields[3:], e.RadioCommData.Duration)
+	case EventTypeRadioRfSimParamSet:
+		fallthrough
+	case EventTypeRadioRfSimParamGet:
+		extraFields = []byte{byte(e.RfSimParamData.Param), 0, 0, 0, 0}
+		binary.LittleEndian.PutUint32(extraFields[1:], uint32(e.RfSimParamData.Value))
 	default:
 		break
 	}
@@ -190,6 +204,8 @@ func (e *Event) Deserialize(data []byte) int {
 	case EventTypeNodeInfo:
 		e.NodeInfoData = deserializeNodeInfoData(e.Data)
 		payloadOffset += nodeInfoEventDataHeaderLen
+	case EventTypeRadioRfSimParamRsp:
+		e.RfSimParamData = deserializeRfSimParamData(e.Data)
 	default:
 		break
 	}
@@ -233,6 +249,15 @@ func deserializeNodeInfoData(data []byte) NodeInfoEventData {
 	logger.AssertTrue(len(data) >= nodeInfoEventDataHeaderLen)
 	s := NodeInfoEventData{
 		NodeId: types.NodeId(binary.LittleEndian.Uint32(data[0:4])),
+	}
+	return s
+}
+
+func deserializeRfSimParamData(data []byte) RfSimParamEventData {
+	logger.AssertTrue(len(data) >= rfSimParamEventDataHeaderLen)
+	s := RfSimParamEventData{
+		Param: types.RfSimParam(data[0]),
+		Value: int32(binary.LittleEndian.Uint32(data[1:5])),
 	}
 	return s
 }

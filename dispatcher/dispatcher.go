@@ -49,54 +49,19 @@ import (
 	"github.com/openthread/ot-ns/pcap"
 	"github.com/openthread/ot-ns/progctx"
 	"github.com/openthread/ot-ns/radiomodel"
-	"github.com/openthread/ot-ns/threadconst"
 	. "github.com/openthread/ot-ns/types"
 	"github.com/openthread/ot-ns/visualize"
 )
 
-const (
-	Ever               uint64 = math.MaxUint64 / 2
-	MaxSimulateSpeed          = 1000000
-	DefaultReadTimeout        = time.Second * 5
-)
-
-type Config struct {
-	Speed             float64
-	Real              bool
-	DumpPackets       bool
-	PcapEnabled       bool
-	PcapFrameType     pcap.FrameType
-	DefaultWatchOn    bool
-	DefaultWatchLevel string
-	VizUpdateTime     time.Duration
-	SimulationId      int
-}
-
-func DefaultConfig() *Config {
-	return &Config{
-		Speed:          1,
-		Real:           false,
-		DumpPackets:    false,
-		PcapEnabled:    true,
-		PcapFrameType:  pcap.FrameTypeWpanTap,
-		DefaultWatchOn: false,
-		VizUpdateTime:  125 * time.Millisecond,
-		SimulationId:   0,
-	}
-}
-
 type CallbackHandler interface {
-	// OnNodeFail Notifies that the node's radio went into a simulated "fail" (off) state
-	OnNodeFail(nodeid NodeId)
-
-	// OnNodeRecover Notifies that the node's radio recovered from a simulated "fail" (off) state
-	OnNodeRecover(nodeid NodeId)
-
 	// OnUartWrite Notifies that the node's UART was written with data.
 	OnUartWrite(nodeid NodeId, data []byte)
 
 	// OnNextEventTime Notifies that the Dispatcher simulation will move shortly to the next event time.
 	OnNextEventTime(nextTimeUs uint64)
+
+	// OnRfSimEvent Notifies that Dispatcher received an OT-RFSIM platform event that it didn't handle itself.
+	OnRfSimEvent(nodeid NodeId, evt *Event)
 }
 
 // goDuration represents a particular duration of the simulation at a given speed.
@@ -406,18 +371,10 @@ func (d *Dispatcher) handleRecvEvent(evt *Event) {
 		delay = Ever
 	}
 
-	// should not receive alarm event and radio event in real mode
-	if d.cfg.Real && (evt.Type == EventTypeAlarmFired || evt.Type == EventTypeRadioReceived ||
-		evt.Type == EventTypeRadioCommStart || evt.Type == EventTypeRadioChannelSample ||
-		evt.Type == EventTypeRadioState) {
-		logger.Panicf("unexpected event in real mode: %v", evt.Type)
-		return
-	}
-
 	switch evt.Type {
 	case EventTypeAlarmFired:
 		d.Counters.AlarmEvents += 1
-		if evt.MsgId == node.msgId {
+		if evt.MsgId == node.msgId { // if OT-node has seen my last sent event (so is done processing)
 			d.setSleeping(node.Id)
 		}
 		d.alarmMgr.SetTimestamp(nodeid, d.CurTime+delay) // schedule future wake-up of node
@@ -448,7 +405,8 @@ func (d *Dispatcher) handleRecvEvent(evt *Event) {
 		d.setSleeping(node.Id)
 		d.alarmMgr.SetTimestamp(node.Id, Ever)
 	default:
-		logger.Panicf("received event type not implemented: %v", evt.Type)
+		d.Counters.OtherEvents += 1
+		d.cbHandler.OnRfSimEvent(node.Id, evt)
 	}
 }
 
@@ -750,7 +708,7 @@ func (d *Dispatcher) sendRadioCommRxStartEvents(srcNode *Node, evt *Event) {
 			// extAddr didn't exist or was out of range
 			d.visSendFrame(srcNode.Id, InvalidNodeId, pktFrame, evt.RadioCommData)
 		}
-	} else if dstAddrMode == wpan.AddrModeShort && pktFrame.DstAddrShort != threadconst.BroadcastRloc16 {
+	} else if dstAddrMode == wpan.AddrModeShort && pktFrame.DstAddrShort != BroadcastRloc16 {
 		// unicast short addr frame. May go to multiple if multiple nodes use same short addr.
 		dstNodes := d.rloc16Map[pktFrame.DstAddrShort]
 
@@ -797,7 +755,7 @@ func (d *Dispatcher) sendRadioCommRxDoneEvents(srcNode *Node, evt *Event) {
 		}
 		dispatchedByDstAddr = true
 	} else if dstAddrMode == wpan.AddrModeShort &&
-		pktFrame.DstAddrShort != threadconst.BroadcastRloc16 {
+		pktFrame.DstAddrShort != BroadcastRloc16 {
 		// unicast message should only be dispatched to target node(s) with the rloc16
 		dstNodes := d.rloc16Map[pktFrame.DstAddrShort]
 		dispatchCnt := 0
@@ -1062,13 +1020,13 @@ func (d *Dispatcher) setNodeRloc16(srcid NodeId, rloc16 uint16) {
 
 	node.logger.Debugf("set node RLOC16: %x -> %x", node.Rloc16, rloc16)
 	oldRloc16 := node.Rloc16
-	if oldRloc16 != threadconst.InvalidRloc16 {
+	if oldRloc16 != InvalidRloc16 {
 		// remove node from old rloc map
 		d.rloc16Map.Remove(oldRloc16, node)
 	}
 
 	node.Rloc16 = rloc16
-	if rloc16 != threadconst.InvalidRloc16 {
+	if rloc16 != InvalidRloc16 {
 		// add node to the new rloc map
 		d.rloc16Map.Add(rloc16, node)
 	}
@@ -1126,7 +1084,7 @@ func (d *Dispatcher) visStatusPushTransmit(srcnode *Node, s string) {
 		dstShort := uint16(dstShortVal)
 		visInfo.DstAddrShort = dstShort
 
-		if dstShort != threadconst.BroadcastRloc16 {
+		if dstShort != BroadcastRloc16 {
 			// unicast message should only be dispatched to target node with the rloc16
 			dstnodes := d.rloc16Map[dstShort]
 
@@ -1285,7 +1243,7 @@ func (d *Dispatcher) DeleteNode(id NodeId) {
 	delete(d.nodes, id)
 	delete(d.aliveNodes, id)
 	delete(d.watchingNodes, id)
-	if node.Rloc16 != threadconst.InvalidRloc16 {
+	if node.Rloc16 != InvalidRloc16 {
 		d.rloc16Map.Remove(node.Rloc16, node)
 	}
 	if node.ExtAddr != InvalidExtAddr {

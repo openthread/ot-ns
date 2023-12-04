@@ -26,9 +26,17 @@
 
 package dispatcher
 
+import (
+	"math"
+	"time"
+)
+
 const (
-	// DefaultDispatcherSpeed is used in a speed parameter, to indicate default speed.
+	// DefaultDispatcherSpeed is used in a speed parameter, to indicate Dispatcher's current default speed.
 	DefaultDispatcherSpeed float64 = -1.0
+	Ever                   uint64  = math.MaxUint64 / 2
+	MaxSimulateSpeed               = 1000000
+	DefaultReadTimeout             = time.Second * 5
 )
 
 func min(t1 uint64, t2 uint64) uint64 {

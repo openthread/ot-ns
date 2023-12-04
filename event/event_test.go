@@ -190,6 +190,49 @@ func TestDeserializeNodeInfoEvent(t *testing.T) {
 	assert.Equal(t, len(data), n)
 }
 
+func TestSerializeRfSimGetEvent(t *testing.T) {
+	dataExpected, _ := hex.DecodeString("040302010000000010ffff00000000000005000200000000")
+	evData := RfSimParamEventData{
+		Param: types.ParamCslAccuracy,
+		Value: 0, // value is encoded, but not used by OT-RFSIM platform.
+	}
+	ev := &Event{
+		Delay:          16909060,
+		Type:           EventTypeRadioRfSimParamGet,
+		MsgId:          65535,
+		RfSimParamData: evData,
+	}
+	data := ev.Serialize()
+	assert.Equal(t, dataExpected, data)
+}
+
+func TestSerializeRfSimSetEvent(t *testing.T) {
+	dataExpected, _ := hex.DecodeString("040302010000000011feff000000000000050001abffffff")
+	evData := RfSimParamEventData{
+		Param: types.ParamCcaThreshold,
+		Value: -85,
+	}
+	ev := &Event{
+		Delay:          16909060,
+		Type:           EventTypeRadioRfSimParamSet,
+		MsgId:          65534,
+		RfSimParamData: evData,
+	}
+	data := ev.Serialize()
+	assert.Equal(t, dataExpected, data)
+}
+
+func TestDeserializeRfSimRspEvent(t *testing.T) {
+	data, _ := hex.DecodeString("0403020100000000120400000000000000050002d2040000")
+	var ev Event
+	ev.Deserialize(data)
+	assert.True(t, 16909060 == ev.Delay)
+	assert.Equal(t, EventTypeRadioRfSimParamRsp, ev.Type)
+	assert.Equal(t, uint64(4), ev.MsgId)
+	assert.Equal(t, types.ParamCslAccuracy, ev.RfSimParamData.Param)
+	assert.Equal(t, int32(1234), ev.RfSimParamData.Value)
+}
+
 func TestEventCopy(t *testing.T) {
 	ev := &Event{
 		Type:  EventTypeRadioRxDone,

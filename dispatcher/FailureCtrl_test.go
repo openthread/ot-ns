@@ -27,30 +27,28 @@
 package dispatcher
 
 import (
-	"testing"
-
 	"math/rand"
+	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
+	"github.com/openthread/ot-ns/event"
 	"github.com/openthread/ot-ns/logger"
 	. "github.com/openthread/ot-ns/types"
 	"github.com/openthread/ot-ns/visualize"
-	"github.com/stretchr/testify/assert"
 )
 
 type mockDispatcherCallback struct {
-}
-
-func (m mockDispatcherCallback) OnNodeFail(nodeid NodeId) {
-}
-
-func (m mockDispatcherCallback) OnNodeRecover(nodeid NodeId) {
 }
 
 func (m mockDispatcherCallback) OnUartWrite(nodeid NodeId, data []byte) {
 }
 
 func (m mockDispatcherCallback) OnNextEventTime(nextTimeUs uint64) {
+}
+
+func (m mockDispatcherCallback) OnRfSimEvent(nodeid NodeId, evt *event.Event) {
 }
 
 func mockNode1() *Node {
