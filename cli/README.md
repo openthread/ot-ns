@@ -736,8 +736,6 @@ are provided, the parameter value is set to `new-value`. It has to be a numeric 
 In a physical radio platform, most of these parameters are typically fixed. In a simulation, these can be changed to 
 explore different radios or different scenarios.
 
-Note: To change global radio model parameters for all nodes, use the [radioparam](#radioparam) command.
-
 The following parameters are supported:
 
 * `rxsens` - 802.15.4 receiver sensitivity (dBm), in the range -126 to 126. For correct radio
@@ -745,6 +743,8 @@ The following parameters are supported:
 * `ccath`  - 802.15.4 CCA Energy Detect (ED) threshold (dBm), in the range -126 to 126.
 * `cslacc` -  802.15.4 Coordinated Sampled Listening (CSL) accuracy in ppm, range 0-255.
 * `cslunc` - 802.15.4 CSL uncertainty in units of 10 microsec, range 0-255.
+
+Note: To change global radio model parameters for all nodes, use the [radioparam](#radioparam) command.
 
 ```bash
 > rfsim 1
