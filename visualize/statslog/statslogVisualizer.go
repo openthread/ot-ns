@@ -43,6 +43,7 @@ type statslogVisualizer struct {
 	logFile        *os.File
 	logFileName    string
 	isFileEnabled  bool
+	changed        bool   // flag to track if some node stats changed
 	timestampUs    uint64 // simulation current timestamp
 	logTimestampUs uint64 // last log entry timestamp
 	stats          nodeStats
@@ -71,6 +72,7 @@ func NewStatslogVisualizer(simulationId int) Visualizer {
 	return &statslogVisualizer{
 		logFileName:    getStatsLogFileName(simulationId),
 		isFileEnabled:  true,
+		changed:        true,
 		nodeRoles:      make(map[NodeId]OtDeviceRole, 64),
 		nodeModes:      make(map[NodeId]NodeMode, 64),
 		nodePartitions: make(map[NodeId]uint32, 64),
@@ -109,6 +111,7 @@ func (sv *statslogVisualizer) RemoveChildTable(NodeId, uint64) {
 }
 
 func (sv *statslogVisualizer) DeleteNode(id NodeId) {
+	sv.changed = true
 	delete(sv.nodeRoles, id)
 	delete(sv.nodeModes, id)
 	delete(sv.nodePartitions, id)
@@ -136,8 +139,13 @@ func (sv *statslogVisualizer) Stop() {
 }
 
 func (sv *statslogVisualizer) AddNode(nodeid NodeId, cfg *NodeConfig) {
+	sv.changed = true
 	sv.nodeRoles[nodeid] = OtDeviceRoleDisabled
-	sv.nodeModes[nodeid] = NodeMode{}
+	sv.nodeModes[nodeid] = NodeMode{
+		RxOnWhenIdle:     !cfg.RxOffWhenIdle,
+		FullThreadDevice: !cfg.IsMtd,
+		FullNetworkData:  !cfg.IsMtd,
+	}
 }
 
 func (sv *statslogVisualizer) Send(srcid NodeId, dstid NodeId, mvinfo *MsgVisualizeInfo) {
@@ -147,35 +155,41 @@ func (sv *statslogVisualizer) SetNodeRloc16(id NodeId, rloc16 uint16) {
 }
 
 func (sv *statslogVisualizer) SetNodeRole(nodeid NodeId, role OtDeviceRole) {
+	sv.changed = true
 	sv.nodeRoles[nodeid] = role
 }
 
 func (sv *statslogVisualizer) SetNodeMode(nodeid NodeId, mode NodeMode) {
+	sv.changed = true
 	sv.nodeModes[nodeid] = mode
 }
 
 func (sv *statslogVisualizer) SetNodePartitionId(nodeid NodeId, parid uint32) {
 	logger.AssertTrue(parid > 0, "Partition ID cannot be 0")
+	sv.changed = true
 	sv.nodePartitions[nodeid] = parid
 }
 
 func (sv *statslogVisualizer) AdvanceTime(ts uint64, speed float64) {
-	if sv.checkLogEntryChange() {
-		if ts >= sv.logTimestampUs+1000e3 {
-			sv.writeLogEntry(ts-100e3, sv.oldStats) // extra entry to aid good graph plotting from csv data
+	if sv.changed && sv.checkLogEntryChange() {
+		if sv.timestampUs >= sv.logTimestampUs+1000e3 {
+			sv.writeLogEntry(sv.timestampUs-100e3, sv.oldStats) // extra entry to aid good graph plotting from csv data
 		}
-		sv.writeLogEntry(ts, sv.stats)
-		sv.logTimestampUs = ts
+		sv.writeLogEntry(sv.timestampUs, sv.stats)
+		sv.logTimestampUs = sv.timestampUs
 		sv.oldStats = sv.stats
 	}
+	sv.changed = false
 	sv.timestampUs = ts
 }
 
 func (sv *statslogVisualizer) OnNodeFail(nodeid NodeId) {
+	sv.changed = true
 	sv.nodesFailed[nodeid] = struct{}{}
 }
 
 func (sv *statslogVisualizer) OnNodeRecover(nodeid NodeId) {
+	sv.changed = true
 	delete(sv.nodesFailed, nodeid)
 }
 
