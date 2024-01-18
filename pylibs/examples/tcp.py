@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2023, The OTNS Authors.
+# Copyright (c) 2023-2024, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -73,8 +73,7 @@ def main():
     ns.node_cmd(nid_cl,'tcp benchmark result')
 
     # allow some time for graphics to be displayed in web GUI.
-    ns.speed=0.001
-    ns.go(0.001)
+    ns.web_display()
 
 
 if __name__ == '__main__':
