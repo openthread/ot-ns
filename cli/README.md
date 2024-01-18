@@ -41,7 +41,9 @@ Python libraries use the CLI to manage simulations.
 * [web](#web)
 
 ## OTNS CLI command reference
-
+Note: the below sections including header and contents are automatically read and parsed during the build of OTNS, and 
+used for providing inline help in the CLI via the `help` command. Specific syntax is followed in headers and in the 
+triple backtick marked code segments.
 
 ### add
 

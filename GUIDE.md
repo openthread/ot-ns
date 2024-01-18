@@ -117,8 +117,11 @@ Use a web browser to manage the simulated Thread network:
 * Add, delete, and move various types of OpenThread nodes
 * Disable and recover node radios
 * Adjust simulation speed
+* Pause/start the simulation
+* Inspect properties and state of nodes
+* Open a graph showing node type/status statistics over time
 * See some logged events
-* See nodes' energy usage (Alpha feature - pending validation)
+* See nodes' energy usage (Beta feature - pending validation)
 
 ## Use OTNS CLI
 
@@ -138,9 +141,12 @@ To review the `pyOTNS` documentation:
 2. Open a web browser and navigate to http://localhost:8080/otns.html.
 
 ### Example Python Scripts
-For example test scripts, see [pylibs/examples](pylibs/examples). The scripts in the 
-[pylibs/unittests](pylibs/unittests) and [pylibs/stress_tests](pylibs/stress_tests) 
-directories provide even more versatile examples.
+For example test scripts, see [pylibs/examples](pylibs/examples). 
+
+The scripts in the 
+[pylibs/unittests](pylibs/unittests), [pylibs/stress_tests](pylibs/stress_tests) and [pylibs/case_studies](pylibs/case_studies)
+directories provide even more versatile examples. The executable/runnable .py scripts in these directories 
+can all be run directly from the command line, by typing `./pylibs/<directory>/<script>.py`.
 
 Note that the example [`interactive_cli.py`](pylibs/examples/interactive_cli.py) explains how to set up a Python 
 scripted simulation in combination with a user typing CLI commands interactively. The interaction part then typically 

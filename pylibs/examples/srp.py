@@ -33,19 +33,21 @@ from otns.cli.errors import OTNSExitedError
 
 
 def main():
-    ns = OTNS(otns_args=["-log", "debug"])
+    ns = OTNS(otns_args=['-log', 'debug'])
     ns.radiomodel = 'MIDisc'
     ns.set_title("SRP Example - BR server = 1, Client = 3")
     ns.web()
 
     # start an SRP server
-    id_br = ns.add("router", x=200, y=300)
+    id_br = ns.add('br', x=200, y=300)
     ns.node_cmd(id_br,'srp server enable')
+    ns.go(10)
 
-    ns.add("router", x=400, y=300)
+    ns.add('router', x=400, y=300)
+    ns.go(10)
 
     # start an SRP client
-    id_cl = ns.add("fed", x=600, y=300)
+    id_cl = ns.add('fed', x=600, y=300)
     ns.go(200) # form network
     ns.node_cmd(id_cl,'srp client host name MyExampleHost')
     ns.node_cmd(id_cl,'srp client host address auto')
@@ -86,8 +88,7 @@ def main():
     ns.node_cmd(id_br,'srp server service')
 
     # allow some time for graphics to be displayed in web GUI.
-    ns.speed=0.001
-    ns.go(0.001)
+    ns.web_display()
 
 
 if __name__ == '__main__':
