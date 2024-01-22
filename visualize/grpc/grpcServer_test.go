@@ -1,4 +1,4 @@
-// Copyright (c) 2023, The OTNS Authors.
+// Copyright (c) 2020-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -39,7 +39,7 @@ func TestStartStopServer(t *testing.T) {
 		simctrl: nil,
 		f:       newGrpcField(),
 	}
-	srv := newGrpcServer(vis, "localhost:8997")
+	srv := newGrpcServer(vis, "localhost:8997", nil)
 
 	var err error
 	done := make(chan bool)
@@ -59,7 +59,7 @@ func TestStopBeforeStart(t *testing.T) {
 		simctrl: nil,
 		f:       newGrpcField(),
 	}
-	srv := newGrpcServer(vis, "localhost:8997")
+	srv := newGrpcServer(vis, "localhost:8997", nil)
 
 	var err error
 	done := make(chan bool)

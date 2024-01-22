@@ -1,4 +1,4 @@
-// Copyright (c) 2022, The OTNS Authors.
+// Copyright (c) 2022-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -31,36 +31,44 @@ import (
 )
 
 type grpcNode struct {
-	nodeid      NodeId
-	extaddr     uint64
-	x           int
-	y           int
-	radioRange  int
-	mode        NodeMode
-	rloc16      uint16
-	role        OtDeviceRole
-	partitionId uint32
-	failed      bool
-	parent      uint64
-	routerTable map[uint64]struct{}
-	childTable  map[uint64]struct{}
+	nodeid        NodeId
+	extaddr       uint64
+	x             int
+	y             int
+	radioRange    int
+	nodeType      string
+	mode          NodeMode
+	rloc16        uint16
+	role          OtDeviceRole
+	partitionId   uint32
+	failed        bool
+	parent        uint64
+	routerTable   map[uint64]struct{}
+	childTable    map[uint64]struct{}
+	threadVersion uint16
+	version       string
+	commit        string
 }
 
 func newGprcNode(id NodeId, cfg *NodeConfig) *grpcNode {
 	gn := &grpcNode{
-		nodeid:      id,
-		extaddr:     InvalidExtAddr,
-		x:           cfg.X,
-		y:           cfg.Y,
-		radioRange:  cfg.RadioRange,
-		mode:        DefaultNodeMode(),
-		rloc16:      InvalidRloc16,
-		role:        OtDeviceRoleDisabled,
-		partitionId: 0,
-		failed:      false,
-		parent:      0,
-		routerTable: map[uint64]struct{}{},
-		childTable:  map[uint64]struct{}{},
+		nodeid:        id,
+		extaddr:       InvalidExtAddr,
+		x:             cfg.X,
+		y:             cfg.Y,
+		radioRange:    cfg.RadioRange,
+		nodeType:      cfg.Type,
+		mode:          DefaultNodeMode(),
+		rloc16:        InvalidRloc16,
+		role:          OtDeviceRoleDisabled,
+		partitionId:   0,
+		failed:        false,
+		parent:        0,
+		routerTable:   map[uint64]struct{}{},
+		childTable:    map[uint64]struct{}{},
+		threadVersion: InvalidThreadVersion,
+		version:       cfg.Version,
+		commit:        "",
 	}
 	return gn
 }

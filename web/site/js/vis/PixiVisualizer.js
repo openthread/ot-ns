@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2023, The OTNS Authors.
+// Copyright (c) 2020-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -302,6 +302,7 @@ export default class PixiVisualizer extends VObject {
     }
 
     log(text, color = LOG_WINDOW_FONT_COLOR) {
+        console.log(text);
         if (this.logWindow) {
             this.logWindow.addLog(text, color)
         }
@@ -477,11 +478,11 @@ export default class PixiVisualizer extends VObject {
     }
 
     visShowDemoLegend(x, y, title) {
-        console.log("ShowDemoLegend not implemented")
+        console.error("ShowDemoLegend not implemented")
     }
 
     visCountDown(durationMs, title) {
-        console.log("CountDown not implemented")
+        console.error("CountDown not implemented")
     }
 
     ctrlAddNode(type) {
@@ -515,7 +516,6 @@ export default class PixiVisualizer extends VObject {
         let req = new CommandRequest();
         req.setCommand(cmd);
         this.log(`> ${cmd}`);
-        console.log(`> ${cmd}`);
 
         this.grpcServiceClient.command(req, {}, (err, resp) => {
                 if (err !== null) {

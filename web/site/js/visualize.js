@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2023, The OTNS Authors.
+// Copyright (c) 2020-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -80,7 +80,7 @@ window.addEventListener("resize", function () {
 });
 
 function loadOk() {
-    console.log('connecting to server ' + server);
+    console.log('connecting to gRPC server ' + server);
     grpcServiceClient = new VisualizeGrpcServiceClient(server);
 
     vis = new PixiVisualizer(app, grpcServiceClient);
@@ -91,9 +91,8 @@ function loadOk() {
         vis.update(ticker.deltaMS / 1000)
     });
 
-
     let visualizeRequest = new VisualizeRequest();
-    let metadata = {'custom-header-1': 'value1'};
+    let metadata = {'tab': 'visualize'};
     let stream = grpcServiceClient.visualize(visualizeRequest, metadata);
     stream.on('data', function (resp) {
         let e = null;
@@ -192,7 +191,7 @@ function loadOk() {
                 vis.visSetNetworkInfo(e.getVersion(), e.getCommit(), e.getReal(), e.getNodeId(), e.getThreadVersion());
                 break;
             default:
-                console.log('unknown event!!! ' + resp.getTypeCase());
+                console.error('unknown event!!! ' + resp.getTypeCase());
                 break
         }
 
@@ -200,9 +199,11 @@ function loadOk() {
 
     stream.on('status', function (status) {
         if (status != null) {
-            console.log('visualize gRPC stream status: code = ' + status.code + ' details = ' + status.details);
             if (status.code != StatusCode.OK) {
+                console.error('visualize gRPC stream status: code = ' + status.code + ' details = ' + status.details);
                 vis.stopIdleCheckTimer(); // stop expecting the HeartBeat events
+            }else{
+                console.log('visualize gRPC stream status: code = ' + status.code + ' details = ' + status.details);
             }
         }
     });

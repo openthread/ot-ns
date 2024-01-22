@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2023, The OTNS Authors.
+// Copyright (c) 2020-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -46,8 +46,9 @@ import (
 )
 
 type Simulation struct {
-	Started        chan struct{}
-	Exited         chan struct{}
+	Started chan struct{}
+	Exited  chan struct{}
+
 	ctx            *progctx.ProgCtx
 	stopped        bool
 	cfg            *Config
@@ -173,6 +174,7 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 		ThreadVersion: threadVer,
 	}
 	s.vis.SetNetworkInfo(nodeInfo)
+
 	err = node.CommandResult()
 	if err == nil {
 		node.setupMode()

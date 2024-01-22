@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2023, The OTNS Authors.
+// Copyright (c) 2020-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -769,11 +769,14 @@ func (rt *CmdRunner) executeWeb(cc *CommandContext, webcmd *WebCmd) {
 			tabResource = web.EnergyTab
 		default:
 			cc.errorf("unrecognized web tab identifier: %s", *webcmd.TabName)
+			return
 		}
 	}
-	if err := web.OpenWeb(rt.ctx, tabResource); err != nil {
-		cc.error(err)
-	}
+	rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
+		if err := web.OpenWeb(rt.ctx, tabResource); err != nil {
+			cc.error(err)
+		}
+	})
 }
 
 func (rt *CmdRunner) executeRadioModel(cc *CommandContext, cmd *RadioModelCmd) {

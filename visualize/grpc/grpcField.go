@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2023, The OTNS Authors.
+// Copyright (c) 2020-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -62,6 +62,18 @@ func (f *grpcField) setNodeMode(id NodeId, mode NodeMode) {
 
 func (f *grpcField) setNodePartitionId(id NodeId, parid uint32) {
 	f.nodes[id].partitionId = parid
+}
+
+func (f *grpcField) setNodeVersion(id NodeId, version string) {
+	f.nodes[id].version = version
+}
+
+func (f *grpcField) setNodeCommit(id NodeId, commit string) {
+	f.nodes[id].commit = commit
+}
+
+func (f *grpcField) setNodeThreadVersion(id NodeId, version uint16) {
+	f.nodes[id].threadVersion = version
 }
 
 func (f *grpcField) advanceTime(ts uint64, speed float64) bool {

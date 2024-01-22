@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2023, The OTNS Authors.
+// Copyright (c) 2020-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -64,7 +64,7 @@ type Node struct {
 	cmd           *exec.Cmd
 	cmdErr        error // store the last CLI command error; nil if none.
 	version       string
-	threadVersion int
+	threadVersion uint16
 
 	pendingLines  chan string       // OT node CLI output lines, pending processing.
 	pendingEvents chan *event.Event // OT node emitted events to be processed.
@@ -828,9 +828,9 @@ func (node *Node) ThreadStop() {
 }
 
 // GetThreadVersion gets the Thread version integer of the OpenThread node.
-func (node *Node) GetThreadVersion() int {
+func (node *Node) GetThreadVersion() uint16 {
 	if node.threadVersion == 0 {
-		node.threadVersion = node.CommandExpectInt("thread version", DefaultCommandTimeout)
+		node.threadVersion = uint16(node.CommandExpectInt("thread version", DefaultCommandTimeout))
 	}
 	return node.threadVersion
 }

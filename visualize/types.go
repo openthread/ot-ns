@@ -1,4 +1,4 @@
-// Copyright (c) 2022-2023, The OTNS Authors.
+// Copyright (c) 2022-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -99,7 +99,7 @@ type NetworkInfo struct {
 	Version       string
 	Commit        string
 	NodeId        int
-	ThreadVersion int
+	ThreadVersion uint16
 }
 
 func DefaultNetworkInfo() NetworkInfo {
@@ -108,6 +108,6 @@ func DefaultNetworkInfo() NetworkInfo {
 		Version:       "",
 		Commit:        "",
 		NodeId:        InvalidNodeId,
-		ThreadVersion: 0,
+		ThreadVersion: InvalidThreadVersion,
 	}
 }
