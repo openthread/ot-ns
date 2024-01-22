@@ -1,4 +1,4 @@
-// Copyright (c) 2022-2023, The OTNS Authors.
+// Copyright (c) 2020-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -90,6 +90,9 @@ export default class ActionBar extends VObject {
         });
         this.addButton("SED", "any", "add", (e) => {
             this.actionNewSED(e)
+        });
+        this.addButton("SSED", "any", "add", (e) => {
+            this.actionNewSSED(e)
         });
         this.addButton("BR", "any", "add", (e) => {
             this.actionNewBR(e)
@@ -191,6 +194,10 @@ export default class ActionBar extends VObject {
 
     actionNewSED(e) {
         this.vis.ctrlAddNode("sed")
+    }
+
+    actionNewSSED(e) {
+        this.vis.ctrlAddNode("ssed")
     }
 
     actionNewBR(e) {

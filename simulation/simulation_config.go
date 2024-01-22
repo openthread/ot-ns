@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2023, The OTNS Authors.
+// Copyright (c) 2020-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -36,6 +36,7 @@ const (
 	DefaultNetworkKey  = "00112233445566778899aabbccddeeff"
 	DefaultPanid       = 0xface
 	DefaultChannel     = 11
+	DefaultCslPeriodUs = 160 * 3 * 1000 // MUST be multiple of 160 us
 )
 
 type Config struct {

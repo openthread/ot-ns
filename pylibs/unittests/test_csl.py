@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2023, The OTNS Authors.
+# Copyright (c) 2023-2024, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -49,7 +49,7 @@ class CslTests(OTNSTestCase):
         ns = self.ns
 
         # add SSED
-        nodeid = ns.add("sed", 220, 100)
+        nodeid = ns.add("ssed", 220, 100)
         ns.node_cmd(nodeid,"csl period 288000")
         ns.go(10)
 
@@ -74,7 +74,7 @@ class CslTests(OTNSTestCase):
         # below CSL periods to test (given in units of 160 us)
         aCslPeriods = [3100, 500, 7225, 1024, 3125, 3124, 250, 5999, 777, 1024]
         for n in range(0,N):
-            nodeid = ns.add("sed", 80 + n*20, 150)
+            nodeid = ns.add("ssed", 80 + n*20, 150)
             ns.node_cmd(nodeid,"csl period " + str(aCslPeriods[n] * 160))
             ns.go(1)
         ns.go(45)
@@ -105,7 +105,7 @@ class CslTests(OTNSTestCase):
         # setup a Parent Router with SSED Child
         ns.add("router", 100, 100)
         ns.go(10)
-        nodeid = ns.add("sed", 200, 100)
+        nodeid = ns.add("ssed", 200, 100)
         ns.node_cmd(nodeid,"csl period 288000")
         ns.go(10)
         self.assertFormPartitions(1)

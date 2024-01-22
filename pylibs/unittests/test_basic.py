@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2020-2023, The OTNS Authors.
+# Copyright (c) 2020-2024, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -74,6 +74,7 @@ class BasicTests(OTNSTestCase):
         ns.add("fed")
         ns.add("med")
         ns.add("sed")
+        ns.add("ssed")
 
         self.go(33)
         self.assertFormPartitions(1)
@@ -631,6 +632,13 @@ class BasicTests(OTNSTestCase):
 
         ns.cmd('rfsim 2 cslunc 223')
         self.assertEqual(['223'], ns.cmd('rfsim 2 cslunc'))
+
+        ns.go(20)
+        self.assertFormPartitions(1)
+
+        ns.add('ssed')
+        ns.go(10)
+        self.assertFormPartitions(1)
 
     def testCmdCommand(self):
         ns: OTNS = self.ns

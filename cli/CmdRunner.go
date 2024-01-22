@@ -411,6 +411,11 @@ func (rt *CmdRunner) executeAddNode(cc *CommandContext, cmd *AddCmd) {
 		cfg.InitScript = append(cfg.InitScript, simulation.DefaultBrScript...)
 	}
 
+	// for SSED, do extra CSL init command.
+	if cfg.Type == SSED {
+		cfg.InitScript = append(cfg.InitScript, simulation.DefaultCslScript...)
+	}
+
 	rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
 		node, err := sim.AddNode(&cfg)
 		if err != nil {
