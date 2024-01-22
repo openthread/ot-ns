@@ -43,16 +43,19 @@ from otns.cli import OTNS
 from otns.cli.errors import OTNSExitedError
 
 R = 6 # screen-pixels per meter
-RECEIVER_TX_POWER = 12 # dBm, integer - router
+RECEIVER_TX_POWER = 20 # dBm, integer - router
 HORSE_TX_POWER = 0 #dBm, integer - sensor
 HORSE_NUM = 10
 FARM_RECT = [10 * R, 10 * R, 210 * R, 110 * R] # number in meters
 
 
 def main():
-    ns = OTNS(otns_args=['-log', 'info', '-no-logfile'])
+    #ns = OTNS(otns_args=['-log', 'info', '-no-logfile'])
+    ns = OTNS()
+    ns.loglevel = 'info'
+    ns.logconfig('info')
     ns.speed = 4
-    ns.radiomodel = 'Outdoor'
+    ns.radiomodel = 'MutualInterference'
     ns.set_radioparam('MeterPerUnit', 1/R )
     ns.set_title("Farm Example")
     ns.config_visualization(broadcast_message=False)

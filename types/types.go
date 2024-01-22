@@ -1,4 +1,4 @@
-// Copyright (c) 2022-2023, The OTNS Authors.
+// Copyright (c) 2022-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -38,11 +38,10 @@ const (
 	InvalidNodeId         NodeId = 0
 	BroadcastNodeId       NodeId = -1
 	InitialDispatcherPort        = 9000
-)
 
-const (
 	// InvalidExtAddr defines the invalid extended address for nodes.
-	InvalidExtAddr uint64 = math.MaxUint64
+	InvalidExtAddr       uint64 = math.MaxUint64
+	InvalidThreadVersion uint16 = 0
 )
 
 // Node types and roles

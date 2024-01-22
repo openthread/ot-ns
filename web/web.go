@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2023, The OTNS Authors.
+// Copyright (c) 2020-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -30,6 +30,7 @@ import (
 	"fmt"
 	"os/exec"
 	"runtime"
+	"time"
 
 	"github.com/openthread/ot-ns/logger"
 	"github.com/openthread/ot-ns/progctx"
@@ -39,6 +40,8 @@ const (
 	MainTab   = "visualize"
 	EnergyTab = "energyViewer"
 	StatsTab  = "statsViewer"
+
+	defaultWebClientConnectTime = 200 * time.Millisecond
 )
 
 var (
@@ -67,7 +70,14 @@ func OpenWeb(ctx *progctx.ProgCtx, tabResourceName string) error {
 		return err
 	}
 
-	return openWebBrowser(fmt.Sprintf("http://localhost:%d/%s?addr=localhost:%d", grpcWebProxyParams.webSitePort, tabResourceName, grpcWebProxyParams.serverHttpDebugPort))
+	err := openWebBrowser(fmt.Sprintf("http://localhost:%d/%s?addr=localhost:%d", grpcWebProxyParams.webSitePort, tabResourceName, grpcWebProxyParams.serverHttpDebugPort))
+	if err != nil {
+		return err
+	}
+
+	// give some time for new gRPC client to connect. If it connects later, also no problem.
+	time.Sleep(defaultWebClientConnectTime)
+	return nil
 }
 
 // open opens the specified URL in the default browser of the user.

@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2023, The OTNS Authors.
+// Copyright (c) 2020-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -52,7 +52,7 @@ type grpcVisualizer struct {
 }
 
 // NewGrpcVisualizer creates a new Visualizer that uses Google RPC communication with a web page.
-func NewGrpcVisualizer(address string, replayFn string) visualize.Visualizer {
+func NewGrpcVisualizer(address string, replayFn string, chanNewClientNotifier chan string) visualize.Visualizer {
 	gsv := &grpcVisualizer{
 		simctrl: nil,
 		f:       newGrpcField(),
@@ -62,7 +62,7 @@ func NewGrpcVisualizer(address string, replayFn string) visualize.Visualizer {
 		gsv.replay = replay.NewReplay(replayFn)
 	}
 
-	gsv.server = newGrpcServer(gsv, address)
+	gsv.server = newGrpcServer(gsv, address, chanNewClientNotifier)
 	return gsv
 }
 
@@ -70,7 +70,13 @@ func (gv *grpcVisualizer) SetNetworkInfo(networkInfo visualize.NetworkInfo) {
 	gv.Lock()
 	defer gv.Unlock()
 
-	gv.f.networkInfo = networkInfo
+	if networkInfo.NodeId == InvalidNodeId {
+		gv.f.networkInfo = networkInfo
+	} else {
+		gv.f.setNodeVersion(networkInfo.NodeId, networkInfo.Version)
+		gv.f.setNodeCommit(networkInfo.NodeId, networkInfo.Commit)
+		gv.f.setNodeThreadVersion(networkInfo.NodeId, networkInfo.ThreadVersion)
+	}
 	gv.addVisualizationEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_SetNetworkInfo{SetNetworkInfo: &pb.SetNetworkInfoEvent{
 		Real:          networkInfo.Real,
 		Version:       networkInfo.Version,
@@ -99,7 +105,7 @@ func (gv *grpcVisualizer) Run() {
 				return
 			}
 		}
-		logger.Errorf("gRPC server quit: %v", err)
+		logger.Errorf("gRPC server quit with error: %v", err)
 	}
 }
 
@@ -370,7 +376,7 @@ func (gv *grpcVisualizer) SetTitle(titleInfo visualize.TitleInfo) {
 }
 
 func (gv *grpcVisualizer) prepareStream(stream *grpcStream) error {
-	// set network info
+	// set global network info (not-node-specific)
 	if err := stream.Send(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_SetNetworkInfo{SetNetworkInfo: &pb.SetNetworkInfoEvent{
 		Real:    gv.f.networkInfo.Real,
 		Version: gv.f.networkInfo.Version,
@@ -424,6 +430,7 @@ func (gv *grpcVisualizer) prepareStream(stream *grpcStream) error {
 			X:          int32(node.x),
 			Y:          int32(node.y),
 			RadioRange: int32(node.radioRange),
+			NodeType:   node.nodeType,
 		}}}
 
 		if err := stream.Send(addNodeEvent); err != nil {
@@ -523,6 +530,18 @@ func (gv *grpcVisualizer) prepareStream(stream *grpcStream) error {
 			}); err != nil {
 				return err
 			}
+		}
+		// node type and thread version
+		if err := stream.Send(&pb.VisualizeEvent{
+			Type: &pb.VisualizeEvent_SetNetworkInfo{SetNetworkInfo: &pb.SetNetworkInfoEvent{
+				Real:          false,
+				Version:       node.version,
+				Commit:        node.commit,
+				NodeId:        int32(nodeid),
+				ThreadVersion: int32(node.threadVersion),
+			}},
+		}); err != nil {
+			return err
 		}
 	}
 
