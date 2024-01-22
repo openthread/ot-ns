@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Copyright (c) 2022-2023, The OTNS Authors.
+# Copyright (c) 2022-2024, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -36,6 +36,7 @@ PARENT_X = 500
 PARENT_Y = 500
 MAX_DISTANCE = 200
 CHILDREN_N = 10
+CHILDREN_N_BR = 32
 
 
 class StressTest(BaseStressTest):
@@ -45,6 +46,7 @@ class StressTest(BaseStressTest):
         'fed': 1,
         'med': 1,
         'sed': 1,
+        'ssed': 1,
     }
 
     def __init__(self):
@@ -56,21 +58,27 @@ class StressTest(BaseStressTest):
         self.test('fed')
         self.test('med')
         self.test('sed')
-        self.test('med')
-        self.test('fed')
+        self.test('ssed')
 
-    def test(self, child_type: str):
+        # a BR can support more children (compile-time configured)
+        self.test('fed', 'br', CHILDREN_N_BR)
+        self.test('med', 'br', CHILDREN_N_BR)
+        self.test('sed', 'br', CHILDREN_N_BR)
+        self.test('ssed', 'br', CHILDREN_N_BR)
+
+
+    def test(self, child_type: str, parent_type: str = 'router', n_children_max: int = CHILDREN_N):
         self.reset()
         self.ns.log = 'debug'
         self.ns.watch_default('trace')
-        self.ns.add("router", PARENT_X, PARENT_Y)
+        self.ns.add(parent_type, PARENT_X, PARENT_Y)
         self.ns.go(7)
 
         time_limit = StressTest.TIME_LIMIT[child_type]
         all_children = []
 
-        for i in range(CHILDREN_N):
-            angle = math.pi * 2 * i / CHILDREN_N
+        for i in range(n_children_max):
+            angle = math.pi * 2 * i / n_children_max
             d = random.randint(0, MAX_DISTANCE * MAX_DISTANCE) ** 0.5
             child_x = int(PARENT_X + d * math.cos(angle))
             child_y = int(PARENT_Y + d * math.sin(angle))
@@ -84,14 +92,14 @@ class StressTest(BaseStressTest):
             for child in all_children:
                 if self.ns.get_state(child) == 'child':
                     n_children += 1
-            if n_children == CHILDREN_N:
+            if n_children == n_children_max:
                 logging.info("All %s children has attached successfully within %d minutes.", child_type, i + 1)
                 break
 
         self.ns.speed = 0.01
         self.ns.go(0.01) # trick to ensure final topology is briefly shown in web UI
 
-        if n_children < CHILDREN_N:
+        if n_children < n_children_max:
             raise Exception("Not all %s children attached within time limit of %d minutes." % (child_type, time_limit))
 
 if __name__ == '__main__':

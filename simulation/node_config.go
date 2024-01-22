@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2023, The OTNS Authors.
+// Copyright (c) 2020-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -81,6 +81,10 @@ var DefaultBrScript = []string{
 	"netdata publish route 64:ff9b::/96 sn med",            // infrastructure-defined NAT64 translation
 	"bbr enable",
 	"srp server enable",
+}
+
+var DefaultCslScript = []string{
+	fmt.Sprintf("csl period %d", DefaultCslPeriodUs),
 }
 
 func (cfg *ExecutableConfig) SearchPathsString() string {

@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2023, The OTNS Authors.
+// Copyright (c) 2020-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -175,6 +175,9 @@ export default class Node extends VObject {
         } else if (this.nodeMode.getRxOnWhenIdle()) {
             return Resources().WhiteDashed4Circle64.texture;
         } else {
+            if (this.type == 'ssed'){
+                return Resources().WhiteDashed6Circle64.texture;
+            }
             return Resources().WhiteDashed8Circle64.texture;
         }
     }

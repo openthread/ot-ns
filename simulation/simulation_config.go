@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2023, The OTNS Authors.
+// Copyright (c) 2020-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -32,15 +32,11 @@ import (
 )
 
 const (
-	DefaultChannel         = 11
-	DefaultChannelMask     = 0x07fff800
-	DefaultExtPanid        = "dead00beef00cafe"
-	DefaultMeshLocalPrefix = "fdde:ad00:beef:0::"
-	DefaultNetworkKey      = "00112233445566778899aabbccddeeff"
-	DefaultNetworkName     = "otns"
-	DefaultPanid           = 0xface
-	DefaultPskc            = "3aa55f91ca47d1e4e71a08cb35e91591"
-	DefaultSecurityPolicy  = "672 onrc"
+	DefaultNetworkName = "OTSIM"
+	DefaultNetworkKey  = "00112233445566778899aabbccddeeff"
+	DefaultPanid       = 0xface
+	DefaultChannel     = 11
+	DefaultCslPeriodUs = 160 * 3 * 1000 // MUST be multiple of 160 us
 )
 
 type Config struct {
