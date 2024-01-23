@@ -1,4 +1,4 @@
-// Copyright (c) 2022-2023, The OTNS Authors.
+// Copyright (c) 2022-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -74,7 +74,7 @@ func (nv nopVisualizer) RemoveChildTable(id NodeId, extaddr uint64) {
 func (nv nopVisualizer) DeleteNode(id NodeId) {
 }
 
-func (nv nopVisualizer) SetNodePos(nodeid NodeId, x, y int) {
+func (nv nopVisualizer) SetNodePos(nodeid NodeId, x, y, z int) {
 }
 
 func (nv nopVisualizer) SetController(ctrl SimulationController) {

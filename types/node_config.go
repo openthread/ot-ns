@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2023, The OTNS Authors.
+// Copyright (c) 2020-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -32,7 +32,7 @@ type NodeConfig struct {
 	ID             int
 	Type           string // Type as requested on creation (router, sed, fed, br, etc.)
 	Version        string // Thread version string or "" for default
-	X, Y           int
+	X, Y, Z        int
 	IsAutoPlaced   bool
 	IsMtd          bool
 	IsRouter       bool
@@ -52,6 +52,7 @@ func DefaultNodeConfig() NodeConfig {
 		Version:        "",
 		X:              0,
 		Y:              0,
+		Z:              0,
 		IsAutoPlaced:   true,
 		IsRouter:       true,
 		IsMtd:          false,

@@ -1,4 +1,4 @@
-// Copyright (c) 2023, The OTNS Authors.
+// Copyright (c) 2023-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -73,7 +73,7 @@ export class StatsVisualizer {
         this.arrayStats = [];
     }
 
-    visAdvanceTime(tsUs, speed) {
+    visAdvanceTime(tsUs) {
         this.arrayStats = [];
         this.arrayTimestamps = [];
         if (this.checkDataPointsChange()) {
@@ -90,9 +90,9 @@ export class StatsVisualizer {
     visHeartbeat() {
     }
 
-    visAddNode(nodeId, x, y, radioRange) {
+    visAddNode(nodeId) {
         this.nodeRoles[nodeId] = OtDeviceRole.OT_DEVICE_ROLE_DISABLED;
-        let msg = `Added at (${x},${y})`;
+        let msg = "Added";
         this.logNode(nodeId, msg);
     }
 

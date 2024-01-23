@@ -122,6 +122,27 @@ class BasicTests(OTNSTestCase):
             self.assertFormPartitions(1)
             n += 1
 
+    def testMoveNode(self):
+        ns = self.ns
+        ns.add("router", x=100, y=200)
+        ns.add("router", x=200, y=200)
+        ns.go(25)
+        self.assertFormPartitions(1)
+        ns.move(2, 3200, 3200)
+        ns.go(150)
+        self.assertFormPartitions(2)
+        ns.move(2, 200, 200, 50) # move in 3D
+        ns.go(250)
+        self.assertFormPartitions(1)
+        ns.move(2, 303, 304) # move in 2D plane only. Z stays as it was.
+        ns.go(150)
+        node_info = ns.nodes()[2]
+        print(node_info)
+        self.assertEqual(303, node_info['x'])
+        self.assertEqual(304, node_info['y'])
+        self.assertEqual(50, node_info['z'])
+        self.assertFormPartitions(1)
+
     def testDelNode(self):
         ns = self.ns
         ns.add("router")

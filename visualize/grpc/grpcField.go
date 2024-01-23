@@ -91,10 +91,11 @@ func (f *grpcField) onNodeRecover(id NodeId) {
 	f.nodes[id].failed = false
 }
 
-func (f *grpcField) setNodePos(id NodeId, x int, y int) {
+func (f *grpcField) setNodePos(id NodeId, x, y, z int) {
 	node := f.nodes[id]
 	node.x = x
 	node.y = y
+	node.z = z
 }
 
 func (f *grpcField) deleteNode(id NodeId) {

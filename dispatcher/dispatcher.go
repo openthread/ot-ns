@@ -1227,13 +1227,13 @@ func (d *Dispatcher) GetFailedCount() int {
 	return failCount
 }
 
-func (d *Dispatcher) SetNodePos(id NodeId, x, y int) {
+func (d *Dispatcher) SetNodePos(id NodeId, x, y, z int) {
 	node := d.nodes[id]
 	logger.AssertNotNil(node)
 
-	node.X, node.Y = x, y
-	node.RadioNode.SetNodePos(x, y)
-	d.vis.SetNodePos(id, x, y)
+	node.X, node.Y, node.Z = x, y, z
+	node.RadioNode.SetNodePos(x, y, z)
+	d.vis.SetNodePos(id, x, y, z)
 }
 
 func (d *Dispatcher) DeleteNode(id NodeId) {

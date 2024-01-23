@@ -1,4 +1,4 @@
-// Copyright (c) 2022-2023, The OTNS Authors.
+// Copyright (c) 2022-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -54,14 +54,14 @@ type RadioNode struct {
 	RadioChannel ChannelId
 
 	// Node position in units/pixels.
-	X, Y float64
+	X, Y, Z float64
 
 	// rssiSampleMax tracks the max RSSI detected during a channel sampling operation.
 	rssiSampleMax DbValue
 }
 
 type RadioNodeConfig struct {
-	X, Y       int
+	X, Y, Z    int
 	RadioRange int
 }
 
@@ -72,6 +72,7 @@ func NewRadioNode(nodeid NodeId, cfg *RadioNodeConfig) *RadioNode {
 		RxSensitivity: RssiInvalid,
 		X:             float64(cfg.X),
 		Y:             float64(cfg.Y),
+		Z:             float64(cfg.Z),
 		RadioRange:    float64(cfg.RadioRange),
 		RadioChannel:  DefaultChannelNumber,
 		rssiSampleMax: RssiMinusInfinity,
@@ -93,15 +94,16 @@ func (rn *RadioNode) SetRxSensitivity(rxSens DbValue) {
 	rn.RxSensitivity = rxSens
 }
 
-func (rn *RadioNode) SetNodePos(x int, y int) {
+func (rn *RadioNode) SetNodePos(x, y, z int) {
 	// simplified model: ignore pos changes during Rx.
-	rn.X, rn.Y = float64(x), float64(y)
+	rn.X, rn.Y, rn.Z = float64(x), float64(y), float64(z)
 }
 
 // GetDistanceTo gets the distance to another RadioNode (in grid/pixel units).
 func (rn *RadioNode) GetDistanceTo(other *RadioNode) (dist float64) {
 	dx := other.X - rn.X
 	dy := other.Y - rn.Y
-	dist = math.Sqrt(dx*dx + dy*dy)
+	dz := other.Z - rn.Z
+	dist = math.Sqrt(dx*dx + dy*dy + dz*dz)
 	return
 }

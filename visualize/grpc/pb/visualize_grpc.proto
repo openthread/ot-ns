@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2023, The OTNS Authors.
+// Copyright (c) 2020-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -129,6 +129,7 @@ message SetNodePosEvent {
     int32 node_id = 1;
     int32 x = 2;
     int32 y = 3;
+    int32 z = 4;
 }
 
 message SetNodeRoleEvent {
@@ -165,8 +166,9 @@ message AddNodeEvent {
     int32 node_id = 1;
     int32 x = 2;
     int32 y = 3;
-    int32 radio_range = 4;
-    string node_type = 5;
+    int32 z = 4;
+    int32 radio_range = 5;
+    string node_type = 6;
 }
 
 message NodeMode {

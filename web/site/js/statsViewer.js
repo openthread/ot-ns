@@ -1,4 +1,4 @@
-// Copyright (c) 2023, The OTNS Authors.
+// Copyright (c) 2023-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -55,7 +55,7 @@ function loadOk() {
         switch (resp.getTypeCase()) {
             case VisualizeEvent.TypeCase.ADD_NODE:
                 e = resp.getAddNode();
-                vis.visAddNode(e.getNodeId(), e.getX(), e.getY(), e.getRadioRange());
+                vis.visAddNode(e.getNodeId());
                 break;
             case VisualizeEvent.TypeCase.DELETE_NODE:
                 e = resp.getDeleteNode();
@@ -76,7 +76,7 @@ function loadOk() {
             case VisualizeEvent.TypeCase.ADVANCE_TIME:
                 e = resp.getAdvanceTime();
                 lastTimestampUs = e.getTs();
-                vis.visAdvanceTime(lastTimestampUs, e.getSpeed());
+                vis.visAdvanceTime(lastTimestampUs);
                 const [aTs,aStat] = vis.getNewDataPoints();
                 for( let i in aTs) {
                     nodeNumbersChart.addData(aTs[i], aStat[i]);

@@ -386,6 +386,10 @@ func (rt *CmdRunner) executeAddNode(cc *CommandContext, cmd *AddCmd) {
 		cfg.Y = *cmd.Y
 		cfg.IsAutoPlaced = false
 	}
+	if cmd.Z != nil {
+		cfg.Z = *cmd.Z
+		cfg.IsAutoPlaced = false
+	}
 
 	if cmd.Id != nil {
 		cfg.ID = cmd.Id.Val
@@ -668,7 +672,7 @@ func (rt *CmdRunner) executeRadio(cc *CommandContext, radio *RadioCmd) {
 
 func (rt *CmdRunner) executeMoveNode(cc *CommandContext, cmd *MoveCmd) {
 	rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
-		cc.error(sim.MoveNodeTo(cmd.Target.Id, cmd.X, cmd.Y))
+		cc.error(sim.MoveNodeTo(cmd.Target.Id, cmd.X, cmd.Y, cmd.Z))
 	})
 }
 
@@ -678,8 +682,8 @@ func (rt *CmdRunner) executeLsNodes(cc *CommandContext, cmd *NodesCmd) {
 			snode := sim.Nodes()[nodeid]
 			dnode := sim.Dispatcher().GetNode(nodeid)
 			var line strings.Builder
-			line.WriteString(fmt.Sprintf("id=%d\textaddr=%016x\trloc16=%04x\tx=%d\ty=%d\tstate=%s\tfailed=%v", nodeid, dnode.ExtAddr, dnode.Rloc16,
-				dnode.X, dnode.Y, dnode.Role, dnode.IsFailed()))
+			line.WriteString(fmt.Sprintf("id=%d\ttype=%-6s  extaddr=%016x  rloc16=%04x  x=%d\ty=%d\tz=%d\tstate=%s\tfailed=%v", nodeid, dnode.Type, dnode.ExtAddr, dnode.Rloc16,
+				dnode.X, dnode.Y, dnode.Z, dnode.Role, dnode.IsFailed()))
 			line.WriteString(fmt.Sprintf("\texe=%s", snode.GetExecutableName()))
 			cc.outputf("%s\n", line.String())
 		}

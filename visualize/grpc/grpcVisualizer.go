@@ -128,6 +128,7 @@ func (gv *grpcVisualizer) AddNode(nodeid NodeId, cfg *NodeConfig) {
 		NodeId:     int32(nodeid),
 		X:          int32(cfg.X),
 		Y:          int32(cfg.Y),
+		Z:          int32(cfg.Z),
 		RadioRange: int32(cfg.RadioRange),
 		NodeType:   cfg.Type,
 	}}}, false)
@@ -262,15 +263,16 @@ func (gv *grpcVisualizer) SetController(ctrl visualize.SimulationController) {
 	gv.simctrl = ctrl
 }
 
-func (gv *grpcVisualizer) SetNodePos(nodeid NodeId, x, y int) {
+func (gv *grpcVisualizer) SetNodePos(nodeid NodeId, x, y, z int) {
 	gv.Lock()
 	defer gv.Unlock()
 
-	gv.f.setNodePos(nodeid, x, y)
+	gv.f.setNodePos(nodeid, x, y, z)
 	gv.addVisualizationEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_SetNodePos{SetNodePos: &pb.SetNodePosEvent{
 		NodeId: int32(nodeid),
 		X:      int32(x),
 		Y:      int32(y),
+		Z:      int32(z),
 	}}}, false)
 }
 

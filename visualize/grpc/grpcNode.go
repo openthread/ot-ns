@@ -33,8 +33,7 @@ import (
 type grpcNode struct {
 	nodeid        NodeId
 	extaddr       uint64
-	x             int
-	y             int
+	x, y, z       int
 	radioRange    int
 	nodeType      string
 	mode          NodeMode
@@ -56,6 +55,7 @@ func newGprcNode(id NodeId, cfg *NodeConfig) *grpcNode {
 		extaddr:       InvalidExtAddr,
 		x:             cfg.X,
 		y:             cfg.Y,
+		z:             cfg.Z,
 		radioRange:    cfg.RadioRange,
 		nodeType:      cfg.Type,
 		mode:          DefaultNodeMode(),

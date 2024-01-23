@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2023, The OTNS Authors.
+// Copyright (c) 2020-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -276,6 +276,7 @@ type AddCmd struct {
 	Type       NodeTypeOrRole  `@@`                   //nolint
 	X          *int            `( "x" (@Int|@Float) ` //nolint
 	Y          *int            `| "y" (@Int|@Float) ` //nolint
+	Z          *int            `| "z" (@Int|@Float) ` //nolint
 	Id         *AddNodeId      `| @@`                 //nolint
 	RadioRange *RadioRangeFlag `| @@`                 //nolint
 	Restore    *RestoreFlag    `| @@`                 //nolint
@@ -426,10 +427,11 @@ type YesOrNoFlag struct {
 
 // noinspection GoVetStructTag
 type MoveCmd struct {
-	Cmd    struct{}     `"move"` //nolint
-	Target NodeSelector `@@`     //nolint
-	X      int          `@Int`   //nolint
-	Y      int          `@Int`   //nolint
+	Cmd    struct{}     `"move"`   //nolint
+	Target NodeSelector `@@`       //nolint
+	X      int          `@Int`     //nolint
+	Y      int          `@Int`     //nolint
+	Z      *int         `[ @Int ]` //nolint
 }
 
 // noinspection GoVetStructTag

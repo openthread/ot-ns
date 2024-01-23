@@ -34,6 +34,7 @@ import {NODE_ID_INVALID, NODE_LABEL_FONT_FAMILY, NODE_LABEL_FONT_SIZE, POWER_DBM
 
 const NODE_SHAPE_SCALE = 64;
 const NODE_SELECTION_SCALE = 128;
+const NODE_Z_SCALER = 2000;
 const CIRCULAR_SHAPE_RADIUS = 20;
 const HEXAGONAL_SHAPE_RADIUS = 22;
 const SQUARE_SHAPE_RADIUS = 22;
@@ -41,7 +42,7 @@ const SQUARE_SHAPE_RADIUS = 22;
 let vis = Visualizer();
 
 export default class Node extends VObject {
-    constructor(nodeId, x, y, radioRange, nodeType) {
+    constructor(nodeId, x, y, z, radioRange, nodeType) {
         super();
 
         this.id = nodeId;
@@ -71,6 +72,7 @@ export default class Node extends VObject {
         this._root = new PIXI.Container();
         this.x = x;
         this.y = y;
+        this.z = z;
         this.position.set(x, y);
 
         let radius = CIRCULAR_SHAPE_RADIUS;
@@ -195,11 +197,16 @@ export default class Node extends VObject {
         }
     }
 
-    setPosition(x, y) {
+    setPosition(x, y, z) {
+        let zChanged = z != this.z;
         this.x = x;
         this.y = y;
+        this.z = z;
         if (!this.isDragging()) {
             this.position.set(x, y)
+        }
+        if (zChanged) {
+            this._updateSize(); // higher (z coord) nodes appear larger.
         }
     }
 
@@ -210,6 +217,7 @@ export default class Node extends VObject {
 
     _updateSize() {
         let radius = CIRCULAR_SHAPE_RADIUS;
+        let heightScale = 1.0 + this.z / NODE_Z_SCALER;
         if (this.type === 'br') {
             radius = SQUARE_SHAPE_RADIUS;
         }
@@ -218,8 +226,8 @@ export default class Node extends VObject {
             case OtDeviceRole.OT_DEVICE_ROLE_ROUTER:
                 radius = HEXAGONAL_SHAPE_RADIUS
         }
-        this._statusSprite.scale.x = this._statusSprite.scale.y = radius * 2 / NODE_SHAPE_SCALE;
-        this._partitionSprite.scale.x = this._partitionSprite.scale.y = radius * 2 / NODE_SHAPE_SCALE / 1.5;
+        this._statusSprite.scale.x = this._statusSprite.scale.y = radius * 2 / NODE_SHAPE_SCALE * heightScale;
+        this._partitionSprite.scale.x = this._partitionSprite.scale.y = radius * 2 / NODE_SHAPE_SCALE / 1.5  * heightScale;
     }
 
     setRloc16(rloc16) {
