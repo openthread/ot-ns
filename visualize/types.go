@@ -52,7 +52,7 @@ type Visualizer interface {
 	OnNodeFail(nodeId NodeId)
 	OnNodeRecover(nodeId NodeId)
 	SetController(ctrl SimulationController)
-	SetNodePos(nodeid NodeId, x, y int)
+	SetNodePos(nodeid NodeId, x, y, z int)
 	DeleteNode(id NodeId)
 	AddRouterTable(id NodeId, extaddr uint64)
 	RemoveRouterTable(id NodeId, extaddr uint64)

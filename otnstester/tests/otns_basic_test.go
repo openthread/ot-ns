@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2023, The OTNS Authors.
+// Copyright (c) 2020-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -63,8 +63,9 @@ func testAddNodes(test *otnstester.OtnsTest) {
 	fedInfo := test.ListNodes()[fed]
 	test.ExpectTrue(fedInfo.X == 50)
 	test.ExpectTrue(fedInfo.Y == 60)
+	test.ExpectTrue(fedInfo.Z == 0)
 
-	test.Command("add med x 10 y 20 rr 121")
+	test.Command("add med x 10 y 20 z 1 rr 121")
 	med := 4
 	test.Go(time.Second * 10)
 	test.ExpectTrue(test.GetNodeState(med) == RoleChild)
@@ -73,6 +74,7 @@ func testAddNodes(test *otnstester.OtnsTest) {
 	medInfo := test.ListNodes()[med]
 	test.ExpectTrue(medInfo.X == 10)
 	test.ExpectTrue(medInfo.Y == 20)
+	test.ExpectTrue(medInfo.Z == 1)
 
 	test.Command("add sed x 30 y 40")
 	sed := 5
@@ -82,6 +84,7 @@ func testAddNodes(test *otnstester.OtnsTest) {
 	sedInfo := test.ListNodes()[sed]
 	test.ExpectTrue(sedInfo.X == 30)
 	test.ExpectTrue(sedInfo.Y == 40)
+	test.ExpectTrue(sedInfo.Z == 0)
 }
 
 func TestDelManyNodes(t *testing.T) {

@@ -1,4 +1,4 @@
-// Copyright (c) 2022-2023, The OTNS Authors.
+// Copyright (c) 2022-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -141,9 +141,9 @@ func (mv *multiVisualizer) SetController(ctrl visualize.SimulationController) {
 	}
 }
 
-func (mv *multiVisualizer) SetNodePos(nodeid NodeId, x, y int) {
+func (mv *multiVisualizer) SetNodePos(nodeid NodeId, x, y, z int) {
 	for _, v := range mv.vs {
-		v.SetNodePos(nodeid, x, y)
+		v.SetNodePos(nodeid, x, y, z)
 	}
 }
 

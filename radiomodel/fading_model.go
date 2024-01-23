@@ -1,4 +1,4 @@
-// Copyright (c) 2023, The OTNS Authors.
+// Copyright (c) 2023-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -131,27 +131,33 @@ func (sf *fadingModel) clearCaches() {
 
 func calcLinkUID(src *RadioNode, dst *RadioNode, meterPerUnit float64) int64 {
 	// calc node positions in grid units of 5 m, using only positive values (uint16 range)
-	x1 := uint16(math.Round(src.X*meterPerUnit*0.2) + 32768)
-	y1 := uint16(math.Round(src.Y*meterPerUnit*0.2) + 32768)
-	x2 := uint16(math.Round(dst.X*meterPerUnit*0.2) + 32768)
-	y2 := uint16(math.Round(dst.Y*meterPerUnit*0.2) + 32768)
+	x1 := uint16(math.Round(src.X*meterPerUnit*0.2) + 2048)
+	y1 := uint16(math.Round(src.Y*meterPerUnit*0.2) + 2048)
+	z1 := uint16(math.Round(src.Z*meterPerUnit*0.2) + 128)
+	x2 := uint16(math.Round(dst.X*meterPerUnit*0.2) + 2048)
+	y2 := uint16(math.Round(dst.Y*meterPerUnit*0.2) + 2048)
+	z2 := uint16(math.Round(dst.Z*meterPerUnit*0.2) + 128)
 	xL := x2
 	yL := y2
+	zL := z2
 	xR := x1
 	yR := y1
+	zR := z1
 
-	// use left-most node (and in case of doubt, top-most) - screen coordinates
-	if x1 < x2 || (x1 == x2 && y1 < y2) {
+	// use left-most node (and in case of doubt, top-most, lowest-height) - screen coordinates
+	if x1 < x2 || (x1 == x2 && y1 < y2) || (x1 == x2 && y1 == y2 && z1 < z2) {
 		xL = x1
 		yL = y1
+		zL = z1
 		xR = x2
 		yR = y2
+		zR = z2
 	}
 
 	// Give each (xL,yL) & (xR,yR) coordinate combination its own fixed int64 seed-value.
-	// Also each radio-channel could have its own seed, by adding:  424242*int64(src.RadioChannel)
+	// Also each radio-channel could have its own seed, by adding e.g.:  424242*int64(src.RadioChannel)
 	// However, radio-channels are relatively near in spectrum terms, so we may assume little influence on SF.
 	// TODO: in case sub-GHz channels are allowed, this argument doesn't hold anymore.
-	uid := int64(xL) + int64(yL)<<16 + int64(xR)<<32 + int64(yR)<<48
+	uid := int64(xL) + int64(yL)<<12 + int64(xR)<<24 + int64(yR)<<36 + int64(zL)<<48 + int64(zR)<<56
 	return uid
 }

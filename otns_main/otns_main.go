@@ -207,7 +207,7 @@ func Main(ctx *progctx.ProgCtx, visualizerCreator func(ctx *progctx.ProgCtx, arg
 	if args.OpenWeb {
 		sim.PostAsync(func() {
 			err := web.OpenWeb(ctx, web.MainTab)
-			if err == nil {
+			if err != nil {
 				logger.Error(err)
 			}
 		})

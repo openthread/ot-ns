@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2020-2023, The OTNS Authors.
+# Copyright (c) 2020-2024, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -48,6 +48,7 @@ class OTNS(object):
     DEFAULT_SIMULATE_SPEED = MAX_SIMULATE_SPEED
     PAUSE_SIMULATE_SPEED = 0
     MAX_PING_DELAY = 10000  # Max delay assigned to a failed ping
+    NO_CHANGE = -9223372036854775807
 
     CLI_PROMPT = '> '
     CLI_USER_HINT = 'OTNS command CLI - type \'exit\' to exit, or \'help\' for command overview.'
@@ -506,15 +507,19 @@ class OTNS(object):
         cmd = f'unwatch all'
         self._do_command(cmd)
 
-    def move(self, nodeid: int, x: int, y: int) -> None:
+    def move(self, nodeid: int, x: int, y: int, z: int = NO_CHANGE) -> None:
         """
-        Move node to the target position.
+        Move node to the 2D, or 3D, target position.
 
         :param nodeid: target node ID
         :param x: target position X
         :param y: target position Y
+        :param z: (optional) target position Z
         """
-        cmd = f'move {nodeid} {x} {y}'
+        if z == OTNS.NO_CHANGE:
+            cmd = f'move {nodeid} {x} {y}'
+        else:
+            cmd = f'move {nodeid} {x} {y} {z}'
         self._do_command(cmd)
 
     def ping(self, srcid: int, dst: Union[int, str, ipaddress.IPv6Address], addrtype: str = 'any', datasize: int = 4,
@@ -574,7 +579,7 @@ class OTNS(object):
             nodeinfo = {}
             for kv in line.split():
                 k, v = kv.split('=')
-                if k in ('id', 'x', 'y'):
+                if k in ('id', 'x', 'y', 'z'):
                     v = int(v)
                 elif k in ('extaddr', 'rloc16'):
                     v = int(v, 16)

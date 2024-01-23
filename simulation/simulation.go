@@ -120,9 +120,9 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 
 	// node position may use the nodePlacer
 	if cfg.IsAutoPlaced {
-		cfg.X, cfg.Y = s.nodePlacer.NextNodePosition(cfg.IsMtd || !cfg.IsRouter)
+		cfg.X, cfg.Y, cfg.Z = s.nodePlacer.NextNodePosition(cfg.IsMtd || !cfg.IsRouter)
 	} else {
-		s.nodePlacer.UpdateReference(cfg.X, cfg.Y)
+		s.nodePlacer.UpdateReference(cfg.X, cfg.Y, cfg.Z)
 	}
 
 	// selection of Executable by simulation's policy, based on cfg
@@ -391,14 +391,18 @@ func (s *Simulation) VisitNodesInOrder(cb func(node *Node)) {
 	}
 }
 
-func (s *Simulation) MoveNodeTo(nodeid NodeId, x, y int) error {
+func (s *Simulation) MoveNodeTo(nodeid NodeId, x, y int, z *int) error {
 	dn := s.d.GetNode(nodeid)
 	if dn == nil {
 		err := fmt.Errorf("node %d not found", nodeid)
 		return err
 	}
-	s.d.SetNodePos(nodeid, x, y)
-	s.nodePlacer.UpdateReference(x, y)
+	zNew := dn.Z
+	if z != nil { // only adapt z-coordinate if provided (!= nil)
+		zNew = *z
+	}
+	s.d.SetNodePos(nodeid, x, y, zNew)
+	s.nodePlacer.UpdateReference(x, y, zNew)
 	return nil
 }
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2023, The OTNS Authors.
+// Copyright (c) 2020-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -189,9 +189,10 @@ func (ot *OtnsTest) RemoveAllNodes() {
 }
 
 type NodeInfo struct {
+	Type    string
 	ExtAddr uint64
 	Rloc16  uint16
-	X, Y    int
+	X, Y, Z int
 	Failed  bool
 }
 
@@ -203,18 +204,22 @@ func (ot *OtnsTest) ListNodes() map[NodeId]*NodeInfo {
 	for _, line := range lines {
 		var err error
 		var id NodeId
+		var tp string
 		var extaddr uint64
 		var rloc16 uint16
-		var x, y int
+		var x, y, z int
 		failed := false
+		line = strings.ReplaceAll(line, "\t", "  ") // tabs to spaces
 
-		for _, sec := range strings.Split(line, "\t") {
+		for _, sec := range strings.Split(line, "  ") {
 			kv := strings.Split(sec, "=")
 
 			switch kv[0] {
 			case "id":
 				id, err = strconv.Atoi(kv[1])
 				ot.ExpectNoError(err)
+			case "type":
+				tp = kv[1]
 			case "extaddr":
 				extaddr, err = strconv.ParseUint(kv[1], 16, 64)
 				ot.ExpectNoError(err)
@@ -229,16 +234,21 @@ func (ot *OtnsTest) ListNodes() map[NodeId]*NodeInfo {
 			case "y":
 				y, err = strconv.Atoi(kv[1])
 				ot.ExpectNoError(err)
+			case "z":
+				z, err = strconv.Atoi(kv[1])
+				ot.ExpectNoError(err)
 			case "failed":
 				ot.ExpectTrue(kv[1] == "false" || kv[1] == "true")
 				failed = kv[1] == "failed"
 			}
 		}
 		nodes[id] = &NodeInfo{
+			Type:    tp,
 			ExtAddr: extaddr,
 			Rloc16:  rloc16,
 			X:       x,
 			Y:       y,
+			Z:       z,
 			Failed:  failed,
 		}
 	}

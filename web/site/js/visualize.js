@@ -103,7 +103,7 @@ function loadOk() {
                 break;
             case VisualizeEvent.TypeCase.ADD_NODE:
                 e = resp.getAddNode();
-                vis.visAddNode(e.getNodeId(), e.getX(), e.getY(), e.getRadioRange(), e.getNodeType());
+                vis.visAddNode(e.getNodeId(), e.getX(), e.getY(), e.getZ(), e.getRadioRange(), e.getNodeType());
                 break;
             case VisualizeEvent.TypeCase.DELETE_NODE:
                 e = resp.getDeleteNode();
@@ -111,7 +111,7 @@ function loadOk() {
                 break;
             case VisualizeEvent.TypeCase.SET_NODE_POS:
                 e = resp.getSetNodePos();
-                vis.visSetNodePos(e.getNodeId(), e.getX(), e.getY());
+                vis.visSetNodePos(e.getNodeId(), e.getX(), e.getY(), e.getZ());
                 break;
             case VisualizeEvent.TypeCase.ON_NODE_FAIL:
                 e = resp.getOnNodeFail();

@@ -44,7 +44,7 @@ type ExecutableConfig struct {
 }
 
 type NodeAutoPlacer struct {
-	X, Y            int
+	X, Y, Z         int
 	Xref, Yref      int
 	Xmax            int
 	NodeDeltaCoarse int
@@ -155,6 +155,7 @@ func NewNodeAutoPlacer() *NodeAutoPlacer {
 		Xmax:            1450,
 		X:               100,
 		Y:               100,
+		Z:               0,
 		NodeDeltaCoarse: 100,
 		NodeDeltaFine:   40,
 		fineCount:       0,
@@ -175,17 +176,19 @@ func (nap *NodeAutoPlacer) UpdateYReference(y int) {
 }
 
 // UpdateReference updates the reference position of the NodeAutoPlacer to 'x', 'y'. It starts placing from there.
-func (nap *NodeAutoPlacer) UpdateReference(x, y int) {
+func (nap *NodeAutoPlacer) UpdateReference(x, y, z int) {
 	nap.Xref = x
 	nap.X = x
 	nap.Yref = y
 	nap.Y = y
+	nap.Z = z
 	nap.isReset = false
 }
 
 // NextNodePosition lets the autoplacer pick the next position for a new node to be placed.
-func (nap *NodeAutoPlacer) NextNodePosition(isBelowParent bool) (int, int) {
-	var x, y int
+func (nap *NodeAutoPlacer) NextNodePosition(isBelowParent bool) (int, int, int) {
+	var x, y, z int
+
 	if isBelowParent {
 		y = nap.Y + nap.NodeDeltaCoarse/2
 		x = nap.X + nap.fineCount*nap.NodeDeltaFine - nap.NodeDeltaFine
@@ -203,7 +206,8 @@ func (nap *NodeAutoPlacer) NextNodePosition(isBelowParent bool) (int, int) {
 		x = nap.X
 		y = nap.Y
 	}
-	return x, y
+	z = nap.Z
+	return x, y, z
 }
 
 // ReuseNextNodePosition instructs the autoplacer to re-use the NextNodePosition() that was given out in the
