@@ -136,6 +136,15 @@ class BasicTests_MIDisc(BasicTests):
         self.ns.radiomodel = 'MIDisc'
 
 
+class BasicTests_Outdoor(BasicTests):
+
+    # override
+    def setUp(self):
+        super().setUp()
+        self.ns.radiomodel = 'Outdoor'
+        self.ns.set_radioparam('MeterPerUnit', 0.10)
+
+
 class CommissioningTests_Ideal(CommissioningTests):
 
     # override

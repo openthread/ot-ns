@@ -236,7 +236,8 @@ The `br` (Border Router) node type is an FTD with some additional functions, and
 
 The line `Executables search path` lists the paths where the executable of that given name will be searched first.
 Finally, the lines `Detected ... path` lists the final detected path where the executable has been found. This 
-is provided as a sanity check that the right executable has been detected for to-be-created OT nodes.
+is provided as a sanity check that the right executable has been detected for to-be-created OT nodes. If no explicit 
+path is listed as detected path, it means that OT-NS2 will try to launch the executable using the OS $PATH.
 
 ```bash
 > exe

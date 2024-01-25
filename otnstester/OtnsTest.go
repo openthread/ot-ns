@@ -39,12 +39,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/chzyer/readline"
+	"github.com/stretchr/testify/assert"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
-	visualize_grpc_pb "github.com/openthread/ot-ns/visualize/grpc/pb"
-	"google.golang.org/grpc"
-
-	"github.com/chzyer/readline"
 	"github.com/openthread/ot-ns/cli"
 	"github.com/openthread/ot-ns/dispatcher"
 	"github.com/openthread/ot-ns/logger"
@@ -52,7 +51,7 @@ import (
 	"github.com/openthread/ot-ns/progctx"
 	. "github.com/openthread/ot-ns/types"
 	"github.com/openthread/ot-ns/visualize"
-	"github.com/stretchr/testify/assert"
+	visualize_grpc_pb "github.com/openthread/ot-ns/visualize/grpc/pb"
 )
 
 var (
@@ -209,9 +208,9 @@ func (ot *OtnsTest) ListNodes() map[NodeId]*NodeInfo {
 		var rloc16 uint16
 		var x, y, z int
 		failed := false
-		line = strings.ReplaceAll(line, "\t", "  ") // tabs to spaces
+		line = strings.ReplaceAll(line, "\t", " ") // tabs to spaces
 
-		for _, sec := range strings.Split(line, "  ") {
+		for _, sec := range strings.Split(line, " ") {
 			kv := strings.Split(sec, "=")
 
 			switch kv[0] {
@@ -273,6 +272,17 @@ func (ot *OtnsTest) ExpectTrue(value bool, msgAndArgs ...interface{}) {
 	assert.True(ot, value, msgAndArgs...)
 
 	if !value {
+		ot.FailNow()
+	}
+}
+
+func (ot *OtnsTest) ExpectEqual(expected, actual interface{}, msgAndArgs ...interface{}) {
+	if expected != actual {
+		ot.Shutdown()
+	}
+	assert.Equal(ot, expected, actual, msgAndArgs...)
+
+	if expected != actual {
 		ot.FailNow()
 	}
 }

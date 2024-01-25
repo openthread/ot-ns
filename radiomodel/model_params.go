@@ -96,8 +96,11 @@ func setIndoorModelParams3gpp(params *RadioModelParams) {
 // experimental outdoor model with LoS
 func setOutdoorModelParams(params *RadioModelParams) {
 	params.MeterPerUnit = 0.5
+
 	params.ExponentDb = 17.3
 	params.FixedLossDb = paround(32.4 + 20*math.Log10(2.4))
+	params.NlosExponentDb = 0.0
+	params.NlosFixedLossDb = 0.0
 	params.NoiseFloorDbm = defaultNoiseFloorIndoorDbm
 	params.SnrMinThresholdDb = -4.0 // see calcber.m Octave file
 	params.ShadowFadingSigmaDb = 3.0

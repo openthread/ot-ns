@@ -659,6 +659,14 @@ class OTNS(object):
 
         return pings
 
+    def print_pings(self, pings):
+        """
+        Print a set of ping results, obtained via pings().
+        """
+        for p in pings:
+            time_ms = round(p[3])
+            print(f"ping {p[0]} {p[1]}\tdatasz={p[2]}\t{time_ms} ms")
+
     def joins(self) -> List[Tuple[int, float, float]]:
         """
         Get join results.

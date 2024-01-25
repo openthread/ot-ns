@@ -1,4 +1,4 @@
-// Copyright (c) 2023, The OTNS Authors.
+// Copyright (c) 2023-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -43,8 +43,8 @@ func testAddOneRouter(test *otnstester.OtnsTest) {
 	test.Start("testAddOneRouter")
 
 	nodeid := test.AddNode("router", 100, 100)
-	test.ExpectTrue(nodeid == 1)
+	test.ExpectEqual(1, nodeid)
 	test.Go(time.Second * 10)
-	test.ExpectTrue(test.GetNodeState(nodeid) == RoleLeader)
+	test.ExpectEqual(RoleLeader, test.GetNodeState(nodeid))
 	test.ExpectVisualizeAddNode(nodeid, 100, 100, DefaultRadioRange)
 }

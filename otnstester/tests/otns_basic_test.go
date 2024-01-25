@@ -43,48 +43,48 @@ func testAddNodes(test *otnstester.OtnsTest) {
 	test.Start("testAddNodes")
 
 	nodeid := test.AddNode("router", 100, 100)
-	test.ExpectTrue(nodeid == 1)
+	test.ExpectEqual(1, nodeid)
 	test.Go(time.Second * 10)
-	test.ExpectTrue(test.GetNodeState(nodeid) == RoleLeader)
+	test.ExpectEqual(RoleLeader, test.GetNodeState(nodeid))
 	test.ExpectVisualizeAddNode(nodeid, 100, 100, DefaultRadioRange)
 
 	router2 := test.AddNode("router", 120, 120)
-	test.ExpectTrue(router2 == 2)
+	test.ExpectEqual(2, router2)
 	test.Go(time.Second * 121)
-	test.ExpectTrue(test.GetNodeState(router2) == RoleRouter)
+	test.ExpectEqual(RoleRouter, test.GetNodeState(router2))
 	test.ExpectVisualizeAddNode(router2, 120, 120, DefaultRadioRange)
 
 	test.Command("add fed x 50 y 60")
 	fed := 3
 	test.Go(time.Second * 10)
-	test.ExpectTrue(test.GetNodeState(fed) == RoleChild)
+	test.ExpectEqual(RoleChild, test.GetNodeState(fed))
 	test.ExpectVisualizeAddNode(fed, 50, 60, DefaultRadioRange)
 
 	fedInfo := test.ListNodes()[fed]
-	test.ExpectTrue(fedInfo.X == 50)
-	test.ExpectTrue(fedInfo.Y == 60)
-	test.ExpectTrue(fedInfo.Z == 0)
+	test.ExpectEqual(50, fedInfo.X)
+	test.ExpectEqual(60, fedInfo.Y)
+	test.ExpectEqual(0, fedInfo.Z)
 
 	test.Command("add med x 10 y 20 z 1 rr 121")
 	med := 4
 	test.Go(time.Second * 10)
-	test.ExpectTrue(test.GetNodeState(med) == RoleChild)
+	test.ExpectEqual(RoleChild, test.GetNodeState(med))
 	test.ExpectVisualizeAddNode(med, 10, 20, 121)
 
 	medInfo := test.ListNodes()[med]
-	test.ExpectTrue(medInfo.X == 10)
-	test.ExpectTrue(medInfo.Y == 20)
-	test.ExpectTrue(medInfo.Z == 1)
+	test.ExpectEqual(10, medInfo.X)
+	test.ExpectEqual(20, medInfo.Y)
+	test.ExpectEqual(1, medInfo.Z)
 
 	test.Command("add sed x 30 y 40")
 	sed := 5
 	test.Go(time.Second * 10)
-	test.ExpectTrue(test.GetNodeState(sed) == RoleChild)
+	test.ExpectEqual(RoleChild, test.GetNodeState(sed))
 	test.ExpectVisualizeAddNode(sed, 30, 40, DefaultRadioRange)
 	sedInfo := test.ListNodes()[sed]
-	test.ExpectTrue(sedInfo.X == 30)
-	test.ExpectTrue(sedInfo.Y == 40)
-	test.ExpectTrue(sedInfo.Z == 0)
+	test.ExpectEqual(30, sedInfo.X)
+	test.ExpectEqual(40, sedInfo.Y)
+	test.ExpectEqual(0, sedInfo.Z)
 }
 
 func TestDelManyNodes(t *testing.T) {
@@ -102,15 +102,15 @@ func testDelManyNodes(test *otnstester.OtnsTest) {
 
 	test.Go(time.Second * 10)
 	list := test.ListNodes()
-	test.ExpectTrue(len(list) == 32)
+	test.ExpectEqual(32, len(list))
 
 	for i := 0; i < 32; i++ {
 		test.DeleteNode(i + 1)
 		list = test.ListNodes()
-		test.ExpectTrue(len(list) == 31-i)
+		test.ExpectEqual(31-i, len(list))
 		test.Go(time.Second * 5)
 	}
 
 	list = test.ListNodes()
-	test.ExpectTrue(len(list) == 0)
+	test.ExpectEqual(0, len(list))
 }

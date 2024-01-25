@@ -682,7 +682,7 @@ func (rt *CmdRunner) executeLsNodes(cc *CommandContext, cmd *NodesCmd) {
 			snode := sim.Nodes()[nodeid]
 			dnode := sim.Dispatcher().GetNode(nodeid)
 			var line strings.Builder
-			line.WriteString(fmt.Sprintf("id=%d\ttype=%-6s  extaddr=%016x  rloc16=%04x  x=%d\ty=%d\tz=%d\tstate=%s\tfailed=%v", nodeid, dnode.Type, dnode.ExtAddr, dnode.Rloc16,
+			line.WriteString(fmt.Sprintf("id=%d\ttype=%-6s  extaddr=%016x  rloc16=%04x  x=%-2d\ty=%-3d\tz=%-3d\tstate=%s\tfailed=%v", nodeid, dnode.Type, dnode.ExtAddr, dnode.Rloc16,
 				dnode.X, dnode.Y, dnode.Z, dnode.Role, dnode.IsFailed()))
 			line.WriteString(fmt.Sprintf("\texe=%s", snode.GetExecutableName()))
 			cc.outputf("%s\n", line.String())

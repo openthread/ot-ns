@@ -51,7 +51,8 @@ class OTNSTestCase(unittest.TestCase):
 
     def assertFormPartitions(self, count: int):
         pars = self.ns.partitions()
-        self.assertTrue(len(pars) == count and 0 not in pars, pars)
+        self.assertEqual(count, len(pars), f"Partitions count mismatch: expected {count}, but is {len(pars)}")
+        self.assertTrue(0 not in pars, pars)
 
     def go(self, duration: float) -> None:
         """

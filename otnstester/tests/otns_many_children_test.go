@@ -1,4 +1,4 @@
-// Copyright (c) 2023, The OTNS Authors.
+// Copyright (c) 2023-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -48,9 +48,9 @@ func testAddManySEDs(test *otnstester.OtnsTest) {
 	x := 500
 	y := 500
 	nodeid := test.AddNode("router", x, y)
-	test.ExpectTrue(nodeid == 1)
+	test.ExpectEqual(1, nodeid)
 	test.Go(time.Second * 10)
-	test.ExpectTrue(test.GetNodeState(nodeid) == RoleLeader)
+	test.ExpectEqual(RoleLeader, test.GetNodeState(nodeid))
 
 	N := 10 // number of SED Children - 10 is the limit for a minimally Thread compliant Router.
 	var r float64
@@ -64,6 +64,6 @@ func testAddManySEDs(test *otnstester.OtnsTest) {
 	test.Go(time.Second * 60)
 
 	for n := 2; n <= N+1; n++ {
-		test.ExpectTrue(test.GetNodeState(n) == RoleChild)
+		test.ExpectEqual(RoleChild, test.GetNodeState(n))
 	}
 }
