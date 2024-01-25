@@ -127,6 +127,7 @@ func (cfg *ExecutableConfig) FindExecutable(exeName string) string {
 			return "./" + exePath
 		}
 	}
+	// if not found, try to relay on OS $PATH to find the executables.
 	return exeName
 }
 
