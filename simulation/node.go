@@ -55,11 +55,11 @@ const (
 )
 
 type Node struct {
-	S     *Simulation
-	Id    int
-	DNode *dispatcher.Node
+	S      *Simulation
+	Id     int
+	DNode  *dispatcher.Node
+	Logger *logger.NodeLogger
 
-	Logger        *logger.NodeLogger
 	cfg           *NodeConfig
 	cmd           *exec.Cmd
 	cmdErr        error // store the last CLI command error; nil if none.
@@ -88,7 +88,13 @@ func newNode(s *Simulation, nodeid NodeId, cfg *NodeConfig, dnode *dispatcher.No
 		}
 	}
 
-	cmd := exec.CommandContext(context.Background(), cfg.ExecutablePath, strconv.Itoa(nodeid), s.d.GetUnixSocketName())
+	var cmd *exec.Cmd
+	if cfg.RandomSeed == 0 {
+		cmd = exec.CommandContext(context.Background(), cfg.ExecutablePath, strconv.Itoa(nodeid), s.d.GetUnixSocketName())
+	} else {
+		seedParam := fmt.Sprintf("%d", cfg.RandomSeed)
+		cmd = exec.CommandContext(context.Background(), cfg.ExecutablePath, strconv.Itoa(nodeid), s.d.GetUnixSocketName(), seedParam)
+	}
 
 	node := &Node{
 		S:             s,
@@ -104,10 +110,10 @@ func newNode(s *Simulation, nodeid NodeId, cfg *NodeConfig, dnode *dispatcher.No
 		version:       "",
 	}
 
-	node.Logger.Debugf("Node config: IsMtd=%t IsRouter=%t IsBR=%t RxOffWhenIdle=%t", cfg.IsMtd, cfg.IsRouter,
+	node.Logger.Debugf("Node config: type=%s IsMtd=%t IsRouter=%t IsBR=%t RxOffWhenIdle=%t", cfg.Type, cfg.IsMtd, cfg.IsRouter,
 		cfg.IsBorderRouter, cfg.RxOffWhenIdle)
-	node.Logger.Debugf("  exe path: %s", cfg.ExecutablePath)
-	node.Logger.Debugf("  position: (%d,%d)", cfg.X, cfg.Y)
+	node.Logger.Debugf("  exe cmd : %v", cmd)
+	node.Logger.Debugf("  position: (%d,%d,%d)", cfg.X, cfg.Y, cfg.Z)
 
 	if node.pipeIn, err = cmd.StdinPipe(); err != nil {
 		return node, err
@@ -181,7 +187,7 @@ func (node *Node) exit() error {
 	isKilled := false
 	if node.cmd.Process != nil {
 		processDone := make(chan bool)
-		node.Logger.Trace("Waiting for process PID %d to exit ...", node.cmd.Process.Pid)
+		node.Logger.Tracef("Waiting for process PID %d to exit ...", node.cmd.Process.Pid)
 		timeout := time.After(NodeExitTimeout)
 		go func() {
 			select {
@@ -925,10 +931,12 @@ func (node *Node) onStart() {
 	node.Logger.Infof("         version=%s", node.GetVersion())
 }
 
-func (node *Node) onProcessFailure(err error) {
-	node.Logger.Errorf("node process failed")
+func (node *Node) onProcessFailure() {
+	node.Logger.Errorf("Node process exited after an error occurred.")
+	node.S.Dispatcher().NotifyNodeProcessFailure(node.Id)
 	node.S.PostAsync(func() {
-		if node.S.ctx.Err() == nil {
+		_, nodeExists := node.S.nodes[node.Id]
+		if node.S.ctx.Err() == nil && nodeExists {
 			logger.Warnf("Deleting node %v due to process failure.", node.Id)
 			_ = node.S.DeleteNode(node.Id)
 		}
@@ -953,7 +961,7 @@ func (node *Node) lineReaderStdErr(reader io.Reader) {
 
 	// when the stderr of the node closes and any error was raised, inform simulation of node's failure.
 	if errProc != nil {
-		node.onProcessFailure(errProc)
+		node.onProcessFailure()
 	}
 }
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2023, The OTNS Authors.
+// Copyright (c) 2020-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -27,9 +27,8 @@
 package dispatcher
 
 import (
-	"math/rand"
-
 	"github.com/openthread/ot-ns/logger"
+	"github.com/openthread/ot-ns/prng"
 )
 
 type FailTime struct {
@@ -120,7 +119,7 @@ func (fc *FailureCtrl) calcNextFailTimestamp() {
 	}
 	logger.AssertTrue(fc.failTime.FailDuration > 0 && fc.failTime.FailInterval > fc.failTime.FailDuration)
 	failStartTimeMax := int(fc.failTime.FailInterval - fc.failTime.FailDuration)
-	failTsRel := uint64(rand.Intn(failStartTimeMax))
+	failTsRel := prng.NewFailTime(failStartTimeMax)
 	fc.failTs = failTsRel + fc.owner.CurTime + fc.remainTm
 	fc.remainTm = fc.failTime.FailInterval - fc.failTime.FailDuration - failTsRel
 	logger.AssertTrue(fc.remainTm < fc.failTime.FailInterval)

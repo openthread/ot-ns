@@ -1,4 +1,4 @@
-// Copyright (c) 2023, The OTNS Authors.
+// Copyright (c) 2023-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -30,11 +30,10 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math"
-	"math/rand"
-
-	"github.com/openthread/ot-ns/logger"
 
 	. "github.com/openthread/ot-ns/event"
+	"github.com/openthread/ot-ns/logger"
+	"github.com/openthread/ot-ns/prng"
 	. "github.com/openthread/ot-ns/types"
 )
 
@@ -46,20 +45,29 @@ var (
 
 func applyBerModel(sirDb DbValue, srcNodeId NodeId, evt *Event) (bool, string) {
 	pSuccess := 1.0
+	rnd := 0.5
+	logMsg := ""
 	var nbits int
-	// if sirDb >= 6.0, then ratio SIR=~2, and pSuccess for any regular 15.4 frame is =~ 1.0 always.
-	// Save time (?) by not doing the calculation then.
-	if sirDb < 6.0 {
+	// if sirDb >= 6.0, then ratio SIR>=~3.98, and pSuccess for any regular 15.4 frame is =~ 1.0 always.
+	// if sirDb <= -10.0, then ratio SIR<=~0.1, and pSuccess for shortest frame is < 10e-8 always.
+	// Save time (?) by not doing the calculation in these cases.
+	if sirDb < -10.0 {
+		pSuccess = 0.0
+	} else if sirDb < 6.0 {
 		pSuccess, nbits = computePacketSuccessRate(sirDb, evt.RadioCommData.Duration)
+		rnd = prng.NewUnitRandom()
 	}
-	if pSuccess < 1.0 && rand.Float64() > pSuccess {
-		evt.Data = interferePsduData(evt.Data)
-		evt.RadioCommData.Error = OT_ERROR_FCS
-		logMsg := fmt.Sprintf("applied OT_ERROR_FCS sirDb=%f src=%d dst=%d Psuc=%f FrLen=%dB",
-			sirDb, srcNodeId, evt.NodeId, pSuccess, nbits/8)
-		return true, logMsg
+
+	if pSuccess < 1.0 {
+		if rnd > pSuccess { // failure case
+			evt.Data = interferePsduData(evt.Data)
+			evt.RadioCommData.Error = OT_ERROR_FCS
+			logMsg = fmt.Sprintf("applied OT_ERROR_FCS sirDb=%f src=%d dst=%d Psuc=%f FrLen=%dB",
+				sirDb, srcNodeId, evt.NodeId, pSuccess, nbits/8) // TODO not format this if trace logging is off.
+			return true, logMsg
+		}
 	}
-	return false, ""
+	return false, logMsg
 }
 
 func computePacketSuccessRate(sirDb DbValue, frameDurationUs uint64) (float64, int) {

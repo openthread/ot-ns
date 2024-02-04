@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2023, The OTNS Authors.
+// Copyright (c) 2020-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -50,7 +50,7 @@ func DefaultConfig() *Config {
 		Real:           false,
 		DumpPackets:    false,
 		PcapEnabled:    true,
-		PcapFrameType:  pcap.FrameTypeWpanTap,
+		PcapFrameType:  pcap.FrameTypeWpan,
 		DefaultWatchOn: false,
 		VizUpdateTime:  125 * time.Millisecond,
 		SimulationId:   0,

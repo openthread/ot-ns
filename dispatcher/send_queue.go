@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2023, The OTNS Authors.
+// Copyright (c) 2020-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -42,7 +42,12 @@ func (sq *sendQueue) Len() int {
 }
 
 func (sq *sendQueue) Less(i, j int) bool {
-	return sq.q[i].Timestamp < sq.q[j].Timestamp
+	ti := sq.q[i].Timestamp
+	tj := sq.q[j].Timestamp
+	if ti == tj {
+		return sq.q[i].NodeId < sq.q[j].NodeId
+	}
+	return ti < tj
 }
 
 func (sq *sendQueue) Swap(i, j int) {

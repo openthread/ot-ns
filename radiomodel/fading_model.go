@@ -31,6 +31,7 @@ import (
 	"math/rand"
 
 	"github.com/openthread/ot-ns/logger"
+	"github.com/openthread/ot-ns/prng"
 )
 
 const (
@@ -39,7 +40,7 @@ const (
 )
 
 type fadingModel struct {
-	rndSeed          int64
+	rndSeed          prng.RandomSeed
 	ts               uint64
 	shFadeMap        map[int64]DbValue
 	tvFadeMap        map[int64]DbValue
@@ -47,9 +48,9 @@ type fadingModel struct {
 	changeTvfTimeMap map[int64]uint64
 }
 
-func newFadingModel() *fadingModel {
+func newFadingModel(rndSeed prng.RandomSeed) *fadingModel {
 	sf := &fadingModel{
-		rndSeed:          rand.Int63(),
+		rndSeed:          rndSeed,
 		ts:               0,
 		shFadeMap:        make(map[int64]DbValue, initialCacheSize),
 		tvFadeSigmaMap:   make(map[int64]DbValue, initialCacheSize),
@@ -78,7 +79,7 @@ func newFadingModel() *fadingModel {
 // TODO: better implement the autocorrelation of SF over a correlation length d_cor = 6 m (NLOS case)
 func (sf *fadingModel) computeFading(src *RadioNode, dst *RadioNode, params *RadioModelParams) DbValue {
 	// each unique (src,dst) link gets a unique random seed
-	seed := sf.rndSeed + calcLinkUID(src, dst, params.MeterPerUnit)
+	seed := int64(sf.rndSeed) + calcLinkUID(src, dst, params.MeterPerUnit)
 
 	var vSF, vTVF float64
 	if v, ok := sf.shFadeMap[seed]; ok { // look up if that seed (radio link) was already precomputed.
