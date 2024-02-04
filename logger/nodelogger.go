@@ -1,4 +1,4 @@
-// Copyright (c) 2023, The OTNS Authors.
+// Copyright (c) 2023-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -154,13 +154,6 @@ func (nl *NodeLogger) Logf(level Level, format string, args []interface{}) {
 		return
 	}
 	NodeLogf(nl.Id, level, format, args)
-}
-
-func (nl *NodeLogger) Trace(args ...interface{}) {
-	if TraceLevel > nl.CurrentLevel {
-		return
-	}
-	NodeLogf(nl.Id, TraceLevel, "", args...)
 }
 
 func (nl *NodeLogger) Tracef(format string, args ...interface{}) {

@@ -24,7 +24,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-import logging
+
 # This script simulates a farm where sensors are installed on horses.
 # 6 Routers are installed at the borders of the farm which has a transmission range of 300m.
 # One of the Routers is selected as the Gateway.
@@ -36,8 +36,9 @@ import logging
 #
 # Inspired by https://www.threadgroup.org/Farm-Jenny
 
-import random
+import logging
 import math
+import random
 
 from otns.cli import OTNS
 from otns.cli.errors import OTNSExitedError
@@ -51,13 +52,23 @@ FARM_RECT = [20 * R, 20 * R, 440 * R, 260 * R] # number in meters
 
 
 def main():
-    #ns = OTNS(otns_args=['-log', 'info', '-no-logfile'])
-    ns = OTNS()
+    ns = OTNS(otns_args=['-no-logfile'])
+
+    if False: # Optional forcing of random-seed for OTNS and Python. This gives exact reproducable simulation.
+        # The pcap parameter is to select another PCAP type that includes channel info.
+        random_seed = 2142142
+        ns = OTNS(otns_args=['-seed', f'{random_seed}', '-pcap', 'wpan-tap'])
+        random.seed(random_seed)
+
     ns.loglevel = 'info'
-    ns.logconfig(logging.DEBUG)
+    ns.watch_default('note')
+    ns.logconfig(logging.INFO)
     ns.speed = 4
     ns.radiomodel = 'Outdoor'
     ns.set_radioparam('MeterPerUnit', 1/R )
+    ns.set_radioparam('ShadowFadingSigmaDb', 0.0)
+    ns.set_radioparam('TimeFadingSigmaMaxDb', 0.0)
+
     ns.set_title("Farm Example")
     ns.config_visualization(broadcast_message=False)
     ns.web()
@@ -132,6 +143,8 @@ def main():
             if not found:
                 sid_last_ping = 0
                 time_accum = 0
+
+    ns.web_display()
 
 
 if __name__ == '__main__':

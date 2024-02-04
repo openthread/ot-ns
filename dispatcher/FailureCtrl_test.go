@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2023, The OTNS Authors.
+// Copyright (c) 2020-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -27,14 +27,13 @@
 package dispatcher
 
 import (
-	"math/rand"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 
 	"github.com/openthread/ot-ns/event"
 	"github.com/openthread/ot-ns/logger"
+	"github.com/openthread/ot-ns/prng"
 	. "github.com/openthread/ot-ns/types"
 	"github.com/openthread/ot-ns/visualize"
 )
@@ -59,6 +58,8 @@ func mockNode1() *Node {
 }
 
 func TestFailureCtrlNonFailure(t *testing.T) {
+	prng.Init(0)
+
 	node1 := mockNode1()
 	node1.failureCtrl = newFailureCtrl(node1, NonFailTime)
 
@@ -87,7 +88,7 @@ func TestFailureCtrlNonFailure(t *testing.T) {
 }
 
 func TestFailureCtrlFailingHalfOfTheTime(t *testing.T) {
-	rand.Seed(time.Now().UnixNano())
+	prng.Init(0)
 
 	node1 := mockNode1()
 	ft := FailTime{
@@ -123,7 +124,7 @@ func TestFailureCtrlFailingHalfOfTheTime(t *testing.T) {
 }
 
 func TestFailureCtrlFailingMostOfTheTime(t *testing.T) {
-	rand.Seed(time.Now().UnixNano())
+	prng.Init(0)
 
 	node1 := mockNode1()
 	ft := FailTime{
@@ -159,6 +160,8 @@ func TestFailureCtrlFailingMostOfTheTime(t *testing.T) {
 }
 
 func TestFailureCtrlAddedOnAlreadyFailedNode(t *testing.T) {
+	prng.Init(0)
+
 	node1 := mockNode1()
 	node1.D = &Dispatcher{
 		cbHandler: &mockDispatcherCallback{},

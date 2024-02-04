@@ -1,4 +1,4 @@
-// Copyright (c) 2022-2023, The OTNS Authors.
+// Copyright (c) 2022-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -30,6 +30,7 @@ import (
 	"math"
 
 	. "github.com/openthread/ot-ns/event"
+	"github.com/openthread/ot-ns/prng"
 	. "github.com/openthread/ot-ns/types"
 )
 
@@ -100,6 +101,8 @@ type RadioModel interface {
 // NewRadioModel creates a new RadioModel with given name, or nil if model not found.
 func NewRadioModel(modelName string) RadioModel {
 	var model RadioModel
+	rndSeed := prng.NewRadioModelRandomSeed()
+
 	switch modelName {
 	case "Ideal", "I", "1":
 		model = &RadioModelIdeal{name: "Ideal", params: newRadioModelParams()}
@@ -121,14 +124,14 @@ func NewRadioModel(modelName string) RadioModel {
 			name:       "MutualInterference",
 			params:     newRadioModelParams(),
 			prevParams: *newRadioModelParams(),
-			fading:     newFadingModel(),
+			fading:     newFadingModel(rndSeed),
 		}
 		setIndoorModelParams3gpp(model.GetParameters())
 	case "MIDisc", "MID", "4":
 		model = &RadioModelMutualInterference{
 			name:   "MIDisc",
 			params: newRadioModelParams(),
-			fading: newFadingModel(),
+			fading: newFadingModel(rndSeed),
 		}
 		p := model.GetParameters()
 		setIndoorModelParams3gpp(p)
@@ -137,7 +140,7 @@ func NewRadioModel(modelName string) RadioModel {
 		model = &RadioModelMutualInterference{
 			name:   "Outdoor",
 			params: newRadioModelParams(),
-			fading: newFadingModel(),
+			fading: newFadingModel(rndSeed),
 		}
 		setOutdoorModelParams(model.GetParameters())
 	default:

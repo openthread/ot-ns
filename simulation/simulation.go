@@ -155,12 +155,12 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 		return nil, CommandInterruptedError
 	}
 
-	logger.AssertFalse(s.d.IsAlive(nodeid))
 	if !dnode.IsConnected() {
 		_ = s.DeleteNode(nodeid)
 		s.nodePlacer.ReuseNextNodePosition()
 		return nil, errors.Errorf("simulation AddNode: new node %d did not respond (evtCnt=%d)", nodeid, evtCnt)
 	}
+	logger.AssertFalse(s.d.IsAlive(nodeid))
 
 	// run setup and script(s) for the node
 	node.Logger.Debugf("start setup of node (version/commit, mode, init script)")

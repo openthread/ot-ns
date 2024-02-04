@@ -32,7 +32,6 @@ import (
 	"fmt"
 	"io"
 	"math"
-	"math/rand"
 	"net"
 	"os"
 	"sort"
@@ -47,6 +46,7 @@ import (
 	. "github.com/openthread/ot-ns/event"
 	"github.com/openthread/ot-ns/logger"
 	"github.com/openthread/ot-ns/pcap"
+	"github.com/openthread/ot-ns/prng"
 	"github.com/openthread/ot-ns/progctx"
 	"github.com/openthread/ot-ns/radiomodel"
 	. "github.com/openthread/ot-ns/types"
@@ -87,6 +87,7 @@ type Dispatcher struct {
 	alarmMgr              *alarmMgr
 	eventQueue            *sendQueue
 	nodes                 map[NodeId]*Node
+	nodesArray            []*Node
 	deletedNodes          map[NodeId]struct{}
 	aliveNodes            map[NodeId]struct{}
 	pcap                  pcap.File
@@ -142,6 +143,7 @@ func NewDispatcher(ctx *progctx.ProgCtx, cfg *Config, cbHandler CallbackHandler)
 		eventQueue:         newSendQueue(),
 		alarmMgr:           newAlarmMgr(),
 		nodes:              make(map[NodeId]*Node),
+		nodesArray:         make([]*Node, 0),
 		deletedNodes:       map[NodeId]struct{}{},
 		aliveNodes:         make(map[NodeId]struct{}),
 		extaddrMap:         map[uint64]*Node{},
@@ -220,8 +222,21 @@ func (d *Dispatcher) GetUnixSocketName() string {
 	return d.socketName
 }
 
-func (d *Dispatcher) Nodes() map[NodeId]*Node {
-	return d.nodes
+// Nodes returns an array of dispatcher Node pointers, sorted on NodeId.
+func (d *Dispatcher) Nodes() []*Node {
+	return d.nodesArray
+}
+
+func (d *Dispatcher) reconstructNodesArray() {
+	d.nodesArray = make([]*Node, 0, len(d.nodes))
+	nodeIds := make([]NodeId, 0, len(d.nodes))
+	for nodeId := range d.nodes {
+		nodeIds = append(nodeIds, nodeId)
+	}
+	sort.Ints(nodeIds)
+	for _, nodeId := range nodeIds {
+		d.nodesArray = append(d.nodesArray, d.nodes[nodeId])
+	}
 }
 
 func (d *Dispatcher) Go(duration time.Duration) <-chan error {
@@ -380,13 +395,11 @@ func (d *Dispatcher) handleRecvEvent(evt *Event) {
 		d.alarmMgr.SetTimestamp(nodeid, d.CurTime+delay) // schedule future wake-up of node
 	case EventTypeRadioCommStart:
 		fallthrough
+	case EventTypeRadioState:
+		fallthrough
 	case EventTypeRadioChannelSample:
 		d.Counters.RadioEvents += 1
-		d.radioModel.HandleEvent(node.RadioNode, d.eventQueue, evt)
-	case EventTypeRadioState:
-		d.Counters.RadioEvents += 1
-		d.handleRadioState(node, evt)
-		d.radioModel.HandleEvent(node.RadioNode, d.eventQueue, evt)
+		d.eventQueue.Add(evt)
 	case EventTypeStatusPush:
 		d.Counters.StatusPushEvents += 1
 		d.handleStatusPush(node, string(evt.Data))
@@ -422,7 +435,7 @@ loop:
 		shouldBlock := len(d.aliveNodes) > 0
 		if shouldBlock {
 			select {
-			case evt := <-d.eventChan: // new event
+			case evt := <-d.eventChan: // get new event
 				count += 1
 				d.handleRecvEvent(evt)
 			case <-blockTimeout: // timeout
@@ -534,7 +547,10 @@ func (d *Dispatcher) processNextEvent(simSpeed float64) bool {
 					case EventTypeAlarmFired:
 						d.advanceNodeTime(node, evt.Timestamp, false)
 					case EventTypeRadioLog:
-						node.logger.Trace(evt.Data)
+						node.logger.Tracef("%s", string(evt.Data))
+					case EventTypeRadioState:
+						d.handleRadioState(node, evt)
+						d.radioModel.HandleEvent(node.RadioNode, d.eventQueue, evt)
 					default:
 						d.radioModel.HandleEvent(node.RadioNode, d.eventQueue, evt)
 					}
@@ -686,7 +702,7 @@ func (d *Dispatcher) sendRadioCommRxStartEvents(srcNode *Node, evt *Event) {
 
 	// dispatch the message to all in range that are receiving.
 	neighborNodes := map[NodeId]*Node{}
-	for _, dstNode := range d.nodes {
+	for _, dstNode := range d.nodesArray {
 		if d.checkRadioReachable(srcNode, dstNode) {
 			d.sendOneRadioFrame(evt, srcNode, dstNode)
 			neighborNodes[dstNode.Id] = dstNode
@@ -777,7 +793,7 @@ func (d *Dispatcher) sendRadioCommRxDoneEvents(srcNode *Node, evt *Event) {
 	// if not dispatched yet, dispatch to all nodes able to receive. Works e.g. for Acks that don't have
 	// a destination address.
 	if !dispatchedByDstAddr {
-		for _, dstNode := range d.nodes {
+		for _, dstNode := range d.nodesArray {
 			if d.checkRadioReachable(srcNode, dstNode) {
 				d.sendOneRadioFrame(evt, srcNode, dstNode)
 			}
@@ -808,7 +824,7 @@ func (d *Dispatcher) sendOneRadioFrame(evt *Event,
 	if d.globalPacketLossRatio > 0 {
 		datalen := len(evt.Data)
 		succRate := math.Pow(1.0-d.globalPacketLossRatio, float64(datalen)/128.0)
-		if rand.Float64() >= succRate {
+		if prng.NewUnitRandom() >= succRate {
 			return
 		}
 	}
@@ -866,8 +882,8 @@ func (d *Dispatcher) syncAliveNodes() {
 
 // syncAllNodes advances all the node's time to current dispatcher time.
 func (d *Dispatcher) syncAllNodes() {
-	for nodeid := range d.nodes {
-		d.advanceNodeTime(d.nodes[nodeid], d.CurTime, false)
+	for _, node := range d.nodesArray {
+		d.advanceNodeTime(node, d.CurTime, false)
 	}
 	d.RecvEvents() // blocks until all nodes asleep again.
 }
@@ -1000,6 +1016,7 @@ func (d *Dispatcher) AddNode(nodeid NodeId, cfg *NodeConfig) *Node {
 
 	node := newNode(d, nodeid, cfg)
 	d.nodes[nodeid] = node
+	d.reconstructNodesArray()
 	d.alarmMgr.AddNode(nodeid)
 	d.energyAnalyser.AddNode(nodeid, d.CurTime)
 	d.vis.AddNode(nodeid, cfg)
@@ -1219,7 +1236,7 @@ func (d *Dispatcher) GetNode(id NodeId) *Node {
 
 func (d *Dispatcher) GetFailedCount() int {
 	failCount := 0
-	for _, dn := range d.nodes {
+	for _, dn := range d.nodesArray {
 		if dn.IsFailed() {
 			failCount += 1
 		}
@@ -1241,6 +1258,7 @@ func (d *Dispatcher) DeleteNode(id NodeId) {
 	logger.AssertNotNil(node)
 
 	delete(d.nodes, id)
+	d.reconstructNodesArray()
 	delete(d.aliveNodes, id)
 	delete(d.watchingNodes, id)
 	if node.Rloc16 != InvalidRloc16 {
@@ -1352,6 +1370,17 @@ func (d *Dispatcher) NotifyCommand(nodeid NodeId) {
 	d.setAlive(nodeid)
 }
 
+// NotifyNodeFailure is called by other goroutines to notify the dispatcher that a node process has
+// failed. From failed nodes, we don't expect further messages and they can't be alive.
+func (d *Dispatcher) NotifyNodeProcessFailure(nodeid NodeId) {
+	d.eventChan <- &Event{
+		Delay:  0,
+		Type:   EventTypeNodeDisconnected,
+		NodeId: nodeid,
+		Conn:   nil,
+	}
+}
+
 func (d *Dispatcher) dumpPacket(item *Event) {
 	sb := strings.Builder{}
 	_, _ = fmt.Fprintf(&sb, "DUMP:PACKET:%d:%d:", item.Timestamp, item.NodeId)
@@ -1440,9 +1469,9 @@ func (d *Dispatcher) GetRadioModel() radiomodel.RadioModel {
 func (d *Dispatcher) SetRadioModel(model radiomodel.RadioModel) {
 	if d.radioModel != model && d.radioModel != nil {
 		// when setting a new model, transfer all nodes into it.
-		for id, node := range d.nodes {
-			d.radioModel.DeleteNode(id)
-			model.AddNode(id, node.RadioNode)
+		for _, node := range d.nodesArray {
+			d.radioModel.DeleteNode(node.Id)
+			model.AddNode(node.Id, node.RadioNode)
 		}
 	}
 	d.radioModel = model

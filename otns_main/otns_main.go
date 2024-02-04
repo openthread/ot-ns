@@ -29,13 +29,11 @@ package otns_main
 import (
 	"flag"
 	"fmt"
-	"math/rand"
 	"os"
 	"os/signal"
 	"strconv"
 	"strings"
 	"syscall"
-	"time"
 
 	"github.com/pkg/errors"
 
@@ -43,6 +41,7 @@ import (
 	"github.com/openthread/ot-ns/dispatcher"
 	"github.com/openthread/ot-ns/logger"
 	"github.com/openthread/ot-ns/pcap"
+	"github.com/openthread/ot-ns/prng"
 	"github.com/openthread/ot-ns/progctx"
 	"github.com/openthread/ot-ns/simulation"
 	. "github.com/openthread/ot-ns/types"
@@ -73,6 +72,7 @@ type MainArgs struct {
 	PcapType       string
 	NoReplay       bool
 	NoLogFile      bool
+	RandomSeed     int64
 }
 
 var (
@@ -107,7 +107,7 @@ func parseArgs() {
 	flag.StringVar(&args.PcapType, "pcap", pcap.FrameTypeWpanStr, "PCAP file type: 'off', 'wpan', or 'wpan-tap' (name is \"current.pcap\")")
 	flag.BoolVar(&args.NoReplay, "no-replay", false, "do not generate Replay file (named \"otns_?.replay\")")
 	flag.BoolVar(&args.NoLogFile, "no-logfile", false, "do not generate node log files (named \"tmp/?_?.log\")")
-
+	flag.Int64Var(&args.RandomSeed, "seed", 0, "set specific random-seed value (for reproducability)")
 	flag.Parse()
 }
 
@@ -142,7 +142,7 @@ func Main(ctx *progctx.ProgCtx, visualizerCreator func(ctx *progctx.ProgCtx, arg
 	logger.SetLevelFromString(args.LogLevel)
 	simId := parseListenAddr()
 
-	rand.Seed(time.Now().UnixNano())
+	prng.Init(args.RandomSeed)
 
 	var vis visualize.Visualizer
 	if visualizerCreator != nil {
@@ -287,11 +287,15 @@ func createSimulation(simId int, ctx *progctx.ProgCtx) *simulation.Simulation {
 		}
 	}
 	simcfg.LogLevel = logger.ParseLevelString(args.LogLevel)
+	simcfg.RandomSeed = prng.RandomSeed(args.RandomSeed)
 
 	dispatcherCfg := dispatcher.DefaultConfig()
 	dispatcherCfg.SimulationId = simcfg.Id
 	dispatcherCfg.PcapEnabled = args.PcapType != pcap.FrameTypeOffStr
 	dispatcherCfg.PcapFrameType = pcap.ParseFrameTypeStr(args.PcapType)
+	if dispatcherCfg.PcapFrameType == pcap.FrameTypeUnknown {
+		logger.Fatalf("Unknown PCAP frame type '%s', use -h flag for an overview.", args.PcapType)
+	}
 	dispatcherCfg.DefaultWatchLevel = args.WatchLevel
 	dispatcherCfg.DefaultWatchOn = logger.ParseLevelString(args.WatchLevel) != logger.OffLevel
 

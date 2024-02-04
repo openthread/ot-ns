@@ -35,11 +35,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openthread/ot-ns/logger"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v3"
 
 	"github.com/openthread/ot-ns/dispatcher"
+	"github.com/openthread/ot-ns/logger"
+	"github.com/openthread/ot-ns/prng"
 	"github.com/openthread/ot-ns/progctx"
 	"github.com/openthread/ot-ns/radiomodel"
 	"github.com/openthread/ot-ns/simulation"
@@ -410,6 +411,11 @@ func (rt *CmdRunner) executeAddNode(cc *CommandContext, cmd *AddCmd) {
 
 	cfg.Restore = cmd.Restore != nil
 
+	// in case of specified simulation random seed, each node gets a PRNG-predictable random seed assigned.
+	if simCfg.RandomSeed != 0 {
+		cfg.RandomSeed = prng.NewNodeRandomSeed()
+	}
+
 	// for a BR, do extra init steps to set prefix/routes/etc.
 	if cfg.IsBorderRouter {
 		cfg.InitScript = append(cfg.InitScript, simulation.DefaultBrScript...)
@@ -694,9 +700,9 @@ func (rt *CmdRunner) executeLsPartitions(cc *CommandContext) {
 	pars := map[uint32][]NodeId{}
 
 	rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
-		for nodeid, dnode := range sim.Dispatcher().Nodes() {
+		for _, dnode := range sim.Dispatcher().Nodes() {
 			parid := dnode.PartitionId
-			pars[parid] = append(pars[parid], nodeid)
+			pars[parid] = append(pars[parid], dnode.Id)
 		}
 	})
 
@@ -716,10 +722,10 @@ func (rt *CmdRunner) executeCollectPings(cc *CommandContext, pings *PingsCmd) {
 	allPings := make(map[NodeId][]*dispatcher.PingResult)
 	rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
 		d := sim.Dispatcher()
-		for nodeid, node := range d.Nodes() {
+		for _, node := range d.Nodes() {
 			pings := node.CollectPings()
 			if len(pings) > 0 {
-				allPings[nodeid] = pings
+				allPings[node.Id] = pings
 			}
 		}
 	})
@@ -736,10 +742,10 @@ func (rt *CmdRunner) executeCollectJoins(cc *CommandContext, joins *JoinsCmd) {
 
 	rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
 		d := sim.Dispatcher()
-		for nodeid, node := range d.Nodes() {
+		for _, node := range d.Nodes() {
 			joins := node.CollectJoins()
 			if len(joins) > 0 {
-				allJoins[nodeid] = joins
+				allJoins[node.Id] = joins
 			}
 		}
 	})

@@ -43,6 +43,7 @@ type NodeConfig struct {
 	ExecutablePath string // executable full path or "" for auto-determined
 	Restore        bool
 	InitScript     []string
+	RandomSeed     int32
 }
 
 func DefaultNodeConfig() NodeConfig {
@@ -63,6 +64,7 @@ func DefaultNodeConfig() NodeConfig {
 		ExecutablePath: "",
 		Restore:        false,
 		InitScript:     nil,
+		RandomSeed:     0, // 0 means not specified, i.e. truly unpredictable.
 	}
 }
 

@@ -26,7 +26,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
+import filecmp
 import logging
+import os.path
 import time
 import unittest
 from typing import Dict
@@ -670,6 +672,50 @@ class BasicTests(OTNSTestCase):
         output = ns.cmd('') # test empty command (like pressing enter, only newline is sent to OTNS)
         self.assertEqual(0, len(output))
 
+    def testRandomSeedSetting(self):
+        self.tearDown()
+        nodes = range(1,6)
+
+        # create a new OTNS with 'seed' parameter.
+        with OTNS(otns_args=['-log', 'debug', '-seed', '20242025']) as ns:
+            self.ns = ns
+
+            mleid_addr = ['']
+            for i in nodes:
+                ns.add("router")
+                mleid_addr.append(str(ns.get_ipaddrs(i, 'mleid')[0]))
+            ns.go(150)
+            self.assertFormPartitions(1)
+
+            node_states = ['']
+            for i in nodes:
+                node_states.append(ns.get_state(i))
+
+        # after closing of OTNS, save PCAP file of simulation
+        pcap_path = "tmp/unittest_pcap"
+        pcap_fn_1 = self.name() + "_session_1.pcap"
+        self.ns.save_pcap(pcap_path, pcap_fn_1)
+
+        # create a new OTNS with same 'seed' parameter. By using same seed, it becomes
+        # predictable who will become the Leader and what random address a node will use, etc.
+        # The PCAP output will also be identical.
+        with OTNS(otns_args=['-log', 'debug', '-seed', '20242025']) as ns:
+            self.ns = ns
+
+            for i in nodes:
+                ns.add("router")
+                self.assertEqual(mleid_addr[i], str(ns.get_ipaddrs(i, 'mleid')[0]))
+            ns.go(150)
+            self.assertFormPartitions(1)
+
+            for i in nodes:
+                self.assertNodeState(i, node_states[i])
+
+        # after closing OTNS, save PCAP for second simulation
+        pcap_fn_2 = self.name() + "_session_2.pcap"
+        self.ns.save_pcap(pcap_path, pcap_fn_2)
+        cmp_res = filecmp.cmp(os.path.join(pcap_path, pcap_fn_1), os.path.join(pcap_path, pcap_fn_2), shallow = False)
+        self.assertTrue(cmp_res)
 
 if __name__ == '__main__':
     unittest.main()
