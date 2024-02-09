@@ -25,7 +25,9 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+from .errors import *
 import ipaddress
+import json
 import logging
 import os
 import readline
@@ -36,7 +38,6 @@ import threading
 import time
 from typing import List, Union, Optional, Tuple, Dict, Any, Collection
 import yaml
-from .errors import *
 
 
 class OTNS(object):
@@ -1121,6 +1122,43 @@ class OTNS(object):
         lines = self._do_command('coaps')
         messages = yaml.safe_load('\n'.join(lines))
         return messages
+
+    def kpi_start(self) -> None:
+        """
+        Start OTNS KPI collection.
+        """
+        self._do_command('kpi start')
+
+    def kpi_stop(self) -> None:
+        """
+        Stop OTNS KPI collection.
+        """
+        self._do_command('kpi stop')
+
+    def kpi_save(self, filename: str = None) -> Dict:
+        """
+        Save collected OTNS KPI data to a JSON file.
+        @:param filename the name of the file to save to or None for no filename provided (This will save to
+        the OTNS default file ?_kpi.json)
+        """
+        if filename is None:
+            filename = 'tmp/0_kpi.json'  # TODO: 0_ only works for default -listen port 9000.
+            self._do_command('kpi save')
+        else:
+            self._do_command(f'kpi save "{filename}"')
+
+        f = open(filename)
+        j = json.load(f)
+        f.close()
+        return j
+
+    def kpi(self) -> bool:
+        """
+        Return the status of OTNS KPI collection.
+        :return: True if KPI collection is running/started, False if not-running/stopped.
+        """
+        status = self._expect_str(self._do_command('kpi'))
+        return status == 'on'
 
     @staticmethod
     def _expect_int(output: List[str]) -> int:

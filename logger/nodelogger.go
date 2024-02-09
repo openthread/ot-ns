@@ -53,7 +53,7 @@ var (
 )
 
 // GetNodeLogger gets the NodeLogger instance for the given ( simulation ID, node config ) and configures it.
-func GetNodeLogger(simulationId int, cfg *NodeConfig) *NodeLogger {
+func GetNodeLogger(outputDir string, simulationId int, cfg *NodeConfig) *NodeLogger {
 	mutex.Lock()
 	defer mutex.Unlock()
 
@@ -65,7 +65,7 @@ func GetNodeLogger(simulationId int, cfg *NodeConfig) *NodeLogger {
 			Id:            nodeid,
 			CurrentLevel:  ErrorLevel,
 			entries:       make(chan logEntry, 1000),
-			logFileName:   getLogFileName(simulationId, nodeid),
+			logFileName:   getLogFileName(outputDir, simulationId, nodeid),
 			isFileEnabled: cfg.NodeLogFile,
 		}
 		nodeLogs[nodeid] = log
@@ -82,8 +82,8 @@ func GetNodeLogger(simulationId int, cfg *NodeConfig) *NodeLogger {
 	return log
 }
 
-func getLogFileName(simId int, nodeId NodeId) string {
-	return fmt.Sprintf("tmp/%d_%d.log", simId, nodeId)
+func getLogFileName(outputPath string, simId int, nodeId NodeId) string {
+	return fmt.Sprintf("%s/%d_%d.log", outputPath, simId, nodeId)
 }
 
 func (nl *NodeLogger) createLogFile() {

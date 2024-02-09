@@ -106,7 +106,7 @@ func parseArgs() {
 	flag.BoolVar(&args.DumpPackets, "dump-packets", false, "dump packets")
 	flag.StringVar(&args.PcapType, "pcap", pcap.FrameTypeWpanStr, "PCAP file type: 'off', 'wpan', or 'wpan-tap' (name is \"current.pcap\")")
 	flag.BoolVar(&args.NoReplay, "no-replay", false, "do not generate Replay file (named \"otns_?.replay\")")
-	flag.BoolVar(&args.NoLogFile, "no-logfile", false, "do not generate node log files (named \"tmp/?_?.log\")")
+	flag.BoolVar(&args.NoLogFile, "no-logfile", false, "do not generate node log files (named \"?_?.log\")")
 	flag.Int64Var(&args.RandomSeed, "seed", 0, "set specific random-seed value (for reproducability)")
 	flag.Parse()
 }
@@ -143,6 +143,7 @@ func Main(ctx *progctx.ProgCtx, visualizerCreator func(ctx *progctx.ProgCtx, arg
 	simId := parseListenAddr()
 
 	prng.Init(args.RandomSeed)
+	sim := createSimulation(simId, ctx)
 
 	var vis visualize.Visualizer
 	if visualizerCreator != nil {
@@ -161,12 +162,12 @@ func Main(ctx *progctx.ProgCtx, visualizerCreator func(ctx *progctx.ProgCtx, arg
 		vis = visualizeMulti.NewMultiVisualizer(
 			vis,
 			visualizeGrpc.NewGrpcVisualizer(visGrpcServerAddr, replayFn, chanGrpcClientNotifier),
-			visualizeStatslog.NewStatslogVisualizer(simId),
+			visualizeStatslog.NewStatslogVisualizer(sim.GetConfig().OutputDir, simId),
 		)
 	} else {
 		vis = visualizeMulti.NewMultiVisualizer(
 			visualizeGrpc.NewGrpcVisualizer(visGrpcServerAddr, replayFn, chanGrpcClientNotifier),
-			visualizeStatslog.NewStatslogVisualizer(simId),
+			visualizeStatslog.NewStatslogVisualizer(sim.GetConfig().OutputDir, simId),
 		)
 	}
 
@@ -181,7 +182,6 @@ func Main(ctx *progctx.ProgCtx, visualizerCreator func(ctx *progctx.ProgCtx, arg
 	}()
 	<-webSite.Started
 
-	sim := createSimulation(simId, ctx)
 	rt := cli.NewCmdRunner(ctx, sim)
 	vis.Init()
 	sim.SetVisualizer(vis)

@@ -62,6 +62,7 @@ type Simulation struct {
 	networkInfo    visualize.NetworkInfo
 	energyAnalyser *energy.EnergyAnalyser
 	nodePlacer     *NodeAutoPlacer
+	kpiMgr         *KpiManager
 }
 
 func NewSimulation(ctx *progctx.ProgCtx, cfg *Config, dispatcherCfg *dispatcher.Config) (*Simulation, error) {
@@ -76,6 +77,7 @@ func NewSimulation(ctx *progctx.ProgCtx, cfg *Config, dispatcherCfg *dispatcher.
 		autoGoChange: make(chan bool, 1),
 		networkInfo:  visualize.DefaultNetworkInfo(),
 		nodePlacer:   NewNodeAutoPlacer(),
+		kpiMgr:       NewKpiManager(),
 	}
 	s.SetLogLevel(cfg.LogLevel)
 	s.networkInfo.Real = cfg.Real
@@ -93,10 +95,10 @@ func NewSimulation(ctx *progctx.ProgCtx, cfg *Config, dispatcherCfg *dispatcher.
 	s.d.SetRadioModel(radiomodel.NewRadioModel(cfg.RadioModel))
 	s.vis = s.d.GetVisualizer()
 	if err := s.createTmpDir(); err != nil {
-		logger.Panicf("creating ./tmp/ directory failed: %+v", err)
+		logger.Panicf("creating %s/ directory failed: %+v", cfg.OutputDir, err)
 	}
 	if err := s.cleanTmpDir(cfg.Id); err != nil {
-		logger.Panicf("cleaning ./tmp/ directory files '%d_*.*' failed: %+v", cfg.Id, err)
+		logger.Panicf("cleaning %s/ directory files '%d_*.*' failed: %+v", cfg.OutputDir, cfg.Id, err)
 	}
 
 	//TODO add a flag to turn on/off the energy analyzer
@@ -104,6 +106,8 @@ func NewSimulation(ctx *progctx.ProgCtx, cfg *Config, dispatcherCfg *dispatcher.
 	s.d.SetEnergyAnalyser(s.energyAnalyser)
 	s.vis.SetEnergyAnalyser(s.energyAnalyser)
 
+	s.kpiMgr.Init(s)
+	s.kpiMgr.Start()
 	return s, nil
 }
 
@@ -146,7 +150,7 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 	s.nodes[nodeid] = node
 
 	// init of the sim/dispatcher nodes
-	node.uartType = NodeUartTypeVirtualTime
+	node.uartType = nodeUartTypeVirtualTime
 	logger.AssertTrue(s.d.IsAlive(nodeid))
 	evtCnt := s.d.RecvEvents() // allow new node to connect, and to receive its startup events.
 
@@ -222,7 +226,6 @@ func (s *Simulation) Run() {
 	s.ctx.WaitAdd("dispatcher", 1)
 	close(s.Started)
 	s.d.Run()
-	s.ctx.Cancel("simulation-run")
 	s.Stop()
 	close(s.Exited)
 	s.d.Stop()
@@ -305,6 +308,9 @@ func (s *Simulation) Stop() {
 
 	logger.Infof("stopping simulation and exiting nodes ...")
 	s.stopped = true
+	s.kpiMgr.Stop()
+
+	s.ctx.Cancel("simulation-stop")
 
 	// for faster process, signal node exit first in parallel.
 	for _, node := range s.nodes {
@@ -312,7 +318,6 @@ func (s *Simulation) Stop() {
 	}
 
 	// then clean up and wait for each node process to stop, sequentially.
-	s.ctx.Cancel("simulation-stop")
 	for _, node := range s.nodes {
 		_ = node.exit()
 	}
@@ -416,6 +421,7 @@ func (s *Simulation) DeleteNode(nodeid NodeId) error {
 	err := node.exit()
 	s.d.RecvEvents()
 	s.d.DeleteNode(nodeid)
+	s.kpiMgr.stopNode(nodeid)
 	delete(s.nodes, nodeid)
 	return err
 }
@@ -454,17 +460,17 @@ func (s *Simulation) GoAtSpeed(duration time.Duration, speed float64) <-chan err
 
 func (s *Simulation) cleanTmpDir(simulationId int) error {
 	// tmp directory is used by nodes for saving *.flash files. Need to be cleaned when simulation started
-	err := removeAllFiles(fmt.Sprintf("tmp/%d_*.flash", simulationId))
+	err := removeAllFiles(fmt.Sprintf("%s/%d_*.flash", s.cfg.OutputDir, simulationId))
 	if err != nil {
 		return err
 	}
-	err = removeAllFiles(fmt.Sprintf("tmp/%d_*.log", simulationId))
+	err = removeAllFiles(fmt.Sprintf("%s/%d_*.log", s.cfg.OutputDir, simulationId))
 	return err
 }
 
 func (s *Simulation) createTmpDir() error {
 	// tmp directory is used by nodes for saving *.flash files. Need to be present when simulation started
-	err := os.Mkdir("tmp", 0775)
+	err := os.Mkdir(s.cfg.OutputDir, 0775)
 	if errors.Is(err, fs.ErrExist) {
 		return nil // ok, already present
 	}
@@ -492,6 +498,10 @@ func (s *Simulation) SetNetworkInfo(networkInfo visualize.NetworkInfo) {
 
 func (s *Simulation) GetEnergyAnalyser() *energy.EnergyAnalyser {
 	return s.energyAnalyser
+}
+
+func (s *Simulation) GetKpiManager() *KpiManager {
+	return s.kpiMgr
 }
 
 func (s *Simulation) GetConfig() *Config {

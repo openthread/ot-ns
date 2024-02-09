@@ -81,7 +81,7 @@ func newNode(s *Simulation, nodeid NodeId, cfg *NodeConfig, dnode *dispatcher.No
 	var err error
 
 	if !cfg.Restore {
-		flashFile := fmt.Sprintf("tmp/%d_%d.flash", s.cfg.Id, nodeid)
+		flashFile := fmt.Sprintf("%s/%d_%d.flash", s.cfg.OutputDir, s.cfg.Id, nodeid)
 		if err = os.RemoveAll(flashFile); err != nil {
 			logger.Errorf("Remove flash file %s failed: %+v", flashFile, err)
 			return nil, err
@@ -99,13 +99,13 @@ func newNode(s *Simulation, nodeid NodeId, cfg *NodeConfig, dnode *dispatcher.No
 	node := &Node{
 		S:             s,
 		Id:            nodeid,
-		Logger:        logger.GetNodeLogger(s.cfg.Id, cfg),
+		Logger:        logger.GetNodeLogger(s.cfg.OutputDir, s.cfg.Id, cfg),
 		DNode:         dnode,
 		cfg:           cfg,
 		cmd:           cmd,
 		pendingLines:  make(chan string, 10000),
 		pendingEvents: make(chan *event.Event, 100),
-		uartType:      NodeUartTypeUndefined,
+		uartType:      nodeUartTypeUndefined,
 		uartReader:    make(chan []byte, 10000),
 		version:       "",
 	}
@@ -242,11 +242,11 @@ func (node *Node) assurePrompt() {
 }
 
 func (node *Node) inputCommand(cmd string) error {
-	logger.AssertTrue(node.uartType != NodeUartTypeUndefined)
+	logger.AssertTrue(node.uartType != nodeUartTypeUndefined)
 	var err error
 	node.cmdErr = nil // reset last command error
 
-	if node.uartType == NodeUartTypeRealTime {
+	if node.uartType == nodeUartTypeRealTime {
 		_, err = node.pipeIn.Write([]byte(cmd + "\n"))
 		node.S.Dispatcher().NotifyCommand(node.Id)
 	} else {
@@ -870,6 +870,25 @@ func (node *Node) GetSingleton() bool {
 		node.Logger.Errorf("expected true/false, but read: '%#v'", s)
 		return false
 	}
+}
+
+func (node *Node) GetCounters(counterType string, keyPrefix string) NodeCounters {
+	lines := node.Command("counters "+counterType, DefaultCommandTimeout)
+	res := make(NodeCounters)
+	for _, line := range lines {
+		kv := strings.Split(line, ": ")
+		if len(kv) != 2 {
+			node.Logger.Errorf("GetCounters(): unexpected data '%v'", line)
+			return nil
+		}
+		val, err := strconv.Atoi(kv[1])
+		if err != nil {
+			node.Logger.Errorf("GetCounters(): unexpected value string '%v' (not int)", kv[1])
+			return nil
+		}
+		res[keyPrefix+kv[0]] = val
+	}
+	return res
 }
 
 func (node *Node) processUartData() {

@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2024, The OTNS Authors.
+// Copyright (c) 2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -26,60 +26,37 @@
 
 package simulation
 
-import (
-	"github.com/openthread/ot-ns/logger"
-	"github.com/openthread/ot-ns/prng"
-	. "github.com/openthread/ot-ns/types"
-)
+import . "github.com/openthread/ot-ns/types"
 
-const (
-	DefaultNetworkName = "OTSIM"
-	DefaultNetworkKey  = "00112233445566778899aabbccddeeff"
-	DefaultPanid       = 0xface
-	DefaultChannel     = 11
-	DefaultCslPeriodUs = 160 * 3 * 1000 // MUST be multiple of 160 us
-)
-
-type Config struct {
-	InitScript       []string
-	ExeConfig        ExecutableConfig
-	ExeConfigDefault ExecutableConfig
-	NewNodeConfig    NodeConfig
-	Speed            float64
-	ReadOnly         bool
-	RawMode          bool
-	Real             bool
-	AutoGo           bool
-	DumpPackets      bool
-	DispatcherHost   string
-	DispatcherPort   int
-	RadioModel       string
-	Id               int
-	Channel          ChannelId
-	LogLevel         logger.Level
-	RandomSeed       prng.RandomSeed
-	OutputDir        string
+type KpiTimeUs struct {
+	StartTimeUs uint64 `json:"start"`
+	EndTimeUs   uint64 `json:"end"`
+	PeriodUs    uint64 `json:"duration"`
 }
 
-func DefaultConfig() *Config {
-	return &Config{
-		InitScript:       DefaultNodeInitScript,
-		ExeConfig:        DefaultExecutableConfig,
-		ExeConfigDefault: DefaultExecutableConfig,
-		NewNodeConfig:    DefaultNodeConfig(),
-		Speed:            1,
-		ReadOnly:         false,
-		RawMode:          false,
-		Real:             false,
-		AutoGo:           true,
-		DumpPackets:      false,
-		DispatcherHost:   "localhost",
-		DispatcherPort:   InitialDispatcherPort,
-		RadioModel:       "MutualInterference",
-		Id:               0,
-		Channel:          DefaultChannel,
-		LogLevel:         logger.WarnLevel,
-		RandomSeed:       0,
-		OutputDir:        "tmp",
-	}
+type KpiTimeSec struct {
+	StartTimeSec float64 `json:"start"`
+	EndTimeSec   float64 `json:"end"`
+	PeriodSec    float64 `json:"duration"`
+}
+
+type KpiChannel struct {
+	TxTimeUs     uint64  `json:"tx_time_us"`
+	TxPercentage float64 `json:"tx_percent"`
+	NumFrames    uint64  `json:"tx_frames"`
+	AvgFps       float64 `json:"tx_avg_fps"`
+}
+
+type KpiMac struct {
+	NoAckPercentage map[NodeId]float64 `json:"noack_percent"`
+}
+
+type Kpi struct {
+	FileTime string                   `json:"created"`
+	Status   string                   `json:"status"`
+	TimeUs   KpiTimeUs                `json:"time_us"`
+	TimeSec  KpiTimeSec               `json:"time_sec"`
+	Channels map[ChannelId]KpiChannel `json:"channels"`
+	Mac      KpiMac                   `json:"mac"`
+	Counters map[NodeId]NodeCounters  `json:"counters"`
 }

@@ -1,4 +1,4 @@
-// Copyright (c) 2022-2023, The OTNS Authors.
+// Copyright (c) 2022-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -28,6 +28,7 @@ package radiomodel
 
 import (
 	. "github.com/openthread/ot-ns/event"
+	"github.com/openthread/ot-ns/logger"
 	. "github.com/openthread/ot-ns/types"
 )
 
@@ -36,14 +37,15 @@ import (
 // based on an average RF propagation model. There is a hard stop of reception beyond the
 // radioRange of the node i.e. ideal disc model.
 type RadioModelIdeal struct {
-	name   string
-	params *RadioModelParams
-
-	nodes map[NodeId]*RadioNode
+	name         string
+	params       *RadioModelParams
+	nodes        map[NodeId]*RadioNode
+	eventQ       EventQueue
+	channelStats map[ChannelId]*ChannelStats
 }
 
-func (rm *RadioModelIdeal) AddNode(nodeid NodeId, radioNode *RadioNode) {
-	rm.nodes[nodeid] = radioNode
+func (rm *RadioModelIdeal) AddNode(radioNode *RadioNode) {
+	rm.nodes[radioNode.Id] = radioNode
 }
 
 func (rm *RadioModelIdeal) DeleteNode(nodeid NodeId) {
@@ -98,13 +100,17 @@ func (rm *RadioModelIdeal) OnParametersModified() {
 }
 
 func (rm *RadioModelIdeal) HandleEvent(node *RadioNode, q EventQueue, evt *Event) {
+	rm.eventQ = q
+
 	switch evt.Type {
 	case EventTypeRadioCommStart:
-		rm.txStart(node, q, evt)
+		rm.txStart(node, evt)
+		rm.statsTxStart(node, evt)
 	case EventTypeRadioTxDone:
-		rm.txStop(node, q, evt)
+		rm.txStop(node, evt)
+		rm.statsTxStop(node, evt)
 	case EventTypeRadioChannelSample:
-		rm.channelSampleStart(node, q, evt)
+		rm.channelSampleStart(node, evt)
 	case EventTypeRadioState:
 		node.SetRadioState(evt.RadioStateData.EnergyState, evt.RadioStateData.SubState)
 		node.SetChannel(evt.RadioStateData.Channel)
@@ -122,11 +128,28 @@ func (rm *RadioModelIdeal) GetParameters() *RadioModelParams {
 	return rm.params
 }
 
-func (rm *RadioModelIdeal) init() {
-	rm.nodes = map[NodeId]*RadioNode{}
+func (rm *RadioModelIdeal) GetChannelStats(channel ChannelId, curTimeUs uint64) *ChannelStats {
+	if chanStats, ok := rm.channelStats[channel]; ok {
+		// check if an operation is ongoing - if so, include portion of to-be-added Tx duration in stats.
+		if chanStats.numTransmitters > 0 && curTimeUs > chanStats.txStartTime {
+			chanStats.TxTimeUs += curTimeUs - chanStats.txStartTime
+			chanStats.txStartTime = curTimeUs
+		}
+		return chanStats
+	}
+	return nil // no channel stats for this channel
 }
 
-func (rm *RadioModelIdeal) txStart(srcNode *RadioNode, q EventQueue, evt *Event) {
+func (rm *RadioModelIdeal) ResetChannelStats(channel ChannelId) {
+	delete(rm.channelStats, channel)
+}
+
+func (rm *RadioModelIdeal) init() {
+	rm.nodes = map[NodeId]*RadioNode{}
+	rm.channelStats = make(map[ChannelId]*ChannelStats)
+}
+
+func (rm *RadioModelIdeal) txStart(srcNode *RadioNode, evt *Event) {
 	srcNode.TxPower = DbValue(evt.RadioCommData.PowerDbm) // get last node's properties from the OT node's event params.
 	srcNode.SetChannel(evt.RadioCommData.Channel)
 
@@ -135,7 +158,7 @@ func (rm *RadioModelIdeal) txStart(srcNode *RadioNode, q EventQueue, evt *Event)
 	rxStartEvt.Type = EventTypeRadioCommStart
 	rxStartEvt.RadioCommData.Error = OT_ERROR_NONE
 	rxStartEvt.MustDispatch = true
-	q.Add(&rxStartEvt)
+	rm.eventQ.Add(&rxStartEvt)
 
 	// schedule new internal event to call txStop() at end of duration.
 	txDoneEvt := evt.Copy()
@@ -143,25 +166,57 @@ func (rm *RadioModelIdeal) txStart(srcNode *RadioNode, q EventQueue, evt *Event)
 	txDoneEvt.RadioCommData.Error = OT_ERROR_NONE
 	txDoneEvt.MustDispatch = false
 	txDoneEvt.Timestamp += evt.RadioCommData.Duration
-	q.Add(&txDoneEvt)
+	rm.eventQ.Add(&txDoneEvt)
 }
 
-func (rm *RadioModelIdeal) txStop(node *RadioNode, q EventQueue, evt *Event) {
+func (rm *RadioModelIdeal) txStop(node *RadioNode, evt *Event) {
 	// Dispatch TxDone event back to the source
 	txDoneEvt := evt.Copy()
 	txDoneEvt.Type = EventTypeRadioTxDone
 	txDoneEvt.RadioCommData.Error = OT_ERROR_NONE
 	txDoneEvt.MustDispatch = true
-	q.Add(&txDoneEvt)
+	rm.eventQ.Add(&txDoneEvt)
 
 	// Create RxDone event, to signal nearby node(s) the frame Rx is done.
 	rxDoneEvt := evt.Copy()
 	rxDoneEvt.Type = EventTypeRadioRxDone
 	rxDoneEvt.MustDispatch = true
-	q.Add(&rxDoneEvt)
+	rm.eventQ.Add(&rxDoneEvt)
 }
 
-func (rm *RadioModelIdeal) channelSampleStart(node *RadioNode, q EventQueue, evt *Event) {
+func (rm *RadioModelIdeal) statsTxStart(node *RadioNode, evt *Event) {
+	ch := evt.RadioCommData.Channel
+	chStats, ok := rm.channelStats[ch]
+	if !ok {
+		chStats = &ChannelStats{
+			Channel:         ch,
+			TxTimeUs:        0,
+			NumFrames:       0,
+			numTransmitters: 0,
+		}
+		rm.channelStats[ch] = chStats
+	}
+	if chStats.numTransmitters == 0 {
+		chStats.txStartTime = evt.Timestamp
+	}
+	chStats.numTransmitters++
+	chStats.NumFrames++
+}
+
+func (rm *RadioModelIdeal) statsTxStop(node *RadioNode, evt *Event) {
+	ch := evt.RadioCommData.Channel
+	chStats, ok := rm.channelStats[ch]
+	logger.AssertTrue(ok)
+	logger.AssertTrue(chStats.numTransmitters > 0)
+
+	chStats.numTransmitters--
+	if chStats.numTransmitters == 0 {
+		txDur := evt.Timestamp - chStats.txStartTime
+		chStats.TxTimeUs += txDur
+	}
+}
+
+func (rm *RadioModelIdeal) channelSampleStart(node *RadioNode, evt *Event) {
 	node.rssiSampleMax = RssiMinusInfinity // Ideal model never has CCA failure.
 	node.SetChannel(evt.RadioCommData.Channel)
 
@@ -170,5 +225,5 @@ func (rm *RadioModelIdeal) channelSampleStart(node *RadioNode, q EventQueue, evt
 	sampleDoneEvt.Type = EventTypeRadioChannelSample
 	sampleDoneEvt.Timestamp += evt.RadioCommData.Duration
 	sampleDoneEvt.MustDispatch = true
-	q.Add(&sampleDoneEvt)
+	rm.eventQ.Add(&sampleDoneEvt)
 }

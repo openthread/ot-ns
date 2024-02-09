@@ -288,6 +288,8 @@ func (rt *CmdRunner) execute(cmd *Command, output io.Writer) {
 		rt.executeExe(cc, cmd.Exe)
 	} else if cmd.AutoGo != nil {
 		rt.executeAutoGo(cc, cmd.AutoGo)
+	} else if cmd.Kpi != nil {
+		rt.executeKpi(cc, cmd.Kpi)
 	} else {
 		logger.Panicf("unimplemented command: %#v", cmd)
 	}
@@ -1242,4 +1244,31 @@ func (rt *CmdRunner) executeHelp(cc *CommandContext, cmd *HelpCmd) {
 	} else {
 		cc.outputStr(rt.help.outputGeneralHelp())
 	}
+}
+
+func (rt *CmdRunner) executeKpi(cc *CommandContext, cmd *KpiCmd) {
+	rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
+		if len(cmd.Operation) == 0 {
+			isRunning := sim.GetKpiManager().IsRunning()
+			if isRunning {
+				cc.outputf("on\n")
+			} else {
+				cc.outputf("off\n")
+			}
+			return
+		}
+
+		switch cmd.Operation {
+		case "start":
+			sim.GetKpiManager().Start()
+		case "stop":
+			sim.GetKpiManager().Stop()
+		case "save":
+			if len(cmd.Filename) == 0 {
+				sim.GetKpiManager().SaveDefaultFile()
+			} else {
+				sim.GetKpiManager().SaveFile(cmd.Filename)
+			}
+		}
+	})
 }

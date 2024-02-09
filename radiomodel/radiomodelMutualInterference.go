@@ -1,4 +1,4 @@
-// Copyright (c) 2022-2023, The OTNS Authors.
+// Copyright (c) 2022-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -41,21 +41,17 @@ import (
 // is also radio reception possible beyond the radioRange. Also, devices with better Rx sensitivity will receive
 // radio frames at longer distances beyond the radioRange.
 type RadioModelMutualInterference struct {
-	name       string
-	params     *RadioModelParams
-	prevParams RadioModelParams
-	fading     *fadingModel
-
-	nodes                 map[NodeId]*RadioNode
+	RadioModelIdeal
+	prevParams            RadioModelParams
+	fading                *fadingModel
 	activeTransmitters    map[ChannelId]map[NodeId]*RadioNode
 	activeChannelSamplers map[ChannelId]map[NodeId]*RadioNode
 	interferedBy          map[NodeId]map[NodeId]*RadioNode
-	eventQ                EventQueue
 }
 
-func (rm *RadioModelMutualInterference) AddNode(nodeid NodeId, radioNode *RadioNode) {
-	rm.nodes[nodeid] = radioNode
-	rm.interferedBy[nodeid] = map[NodeId]*RadioNode{}
+func (rm *RadioModelMutualInterference) AddNode(radioNode *RadioNode) {
+	rm.nodes[radioNode.Id] = radioNode
+	rm.interferedBy[radioNode.Id] = map[NodeId]*RadioNode{}
 }
 
 func (rm *RadioModelMutualInterference) DeleteNode(nodeid NodeId) {
@@ -157,9 +153,11 @@ func (rm *RadioModelMutualInterference) HandleEvent(node *RadioNode, q EventQueu
 	switch evt.Type {
 	case EventTypeRadioCommStart:
 		rm.txStart(node, evt)
+		rm.statsTxStart(node, evt)
 		rm.updateChannelSamplingNodes(node, evt) // all channel-sampling nodes detect the new Tx
 	case EventTypeRadioTxDone:
 		rm.txStop(node, evt)
+		rm.statsTxStop(node, evt)
 	case EventTypeRadioChannelSample:
 		rm.channelSampleStart(node, evt)
 	case EventTypeRadioState:
@@ -167,20 +165,13 @@ func (rm *RadioModelMutualInterference) HandleEvent(node *RadioNode, q EventQueu
 		node.SetChannel(evt.RadioStateData.Channel)
 		node.SetRxSensitivity(DbValue(evt.RadioStateData.RxSensDbm))
 	default:
-		break // Unknown events not handled.
+		break
 	}
 }
 
-func (rm *RadioModelMutualInterference) GetName() string {
-	return rm.name
-}
-
-func (rm *RadioModelMutualInterference) GetParameters() *RadioModelParams {
-	return rm.params
-}
-
 func (rm *RadioModelMutualInterference) init() {
-	rm.nodes = map[NodeId]*RadioNode{}
+	rm.RadioModelIdeal.init()
+
 	rm.activeTransmitters = map[ChannelId]map[NodeId]*RadioNode{}
 	rm.activeChannelSamplers = map[ChannelId]map[NodeId]*RadioNode{}
 	for c := MinChannelNumber; c <= MaxChannelNumber; c++ {

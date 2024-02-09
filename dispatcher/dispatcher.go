@@ -1059,7 +1059,7 @@ func (d *Dispatcher) AddNode(nodeid NodeId, cfg *NodeConfig) *Node {
 	d.alarmMgr.AddNode(nodeid)
 	d.energyAnalyser.AddNode(nodeid, d.CurTime)
 	d.vis.AddNode(nodeid, cfg)
-	d.radioModel.AddNode(nodeid, node.RadioNode)
+	d.radioModel.AddNode(node.RadioNode)
 	d.setAlive(nodeid)
 
 	if d.cfg.DefaultWatchOn {
@@ -1510,7 +1510,7 @@ func (d *Dispatcher) SetRadioModel(model radiomodel.RadioModel) {
 		// when setting a new model, transfer all nodes into it.
 		for _, node := range d.nodesArray {
 			d.radioModel.DeleteNode(node.Id)
-			model.AddNode(node.Id, node.RadioNode)
+			model.AddNode(node.RadioNode)
 		}
 	}
 	d.radioModel = model

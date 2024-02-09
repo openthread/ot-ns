@@ -104,6 +104,8 @@ def main():
 
         return False
 
+    ns.interactive_cli_threaded()
+
     time_accum = 0
     sid_last_ping = 0
 

@@ -116,7 +116,7 @@ func newNode(d *Dispatcher, nodeid NodeId, cfg *NodeConfig) *Node {
 		err:         nil, // keep track of connection errors.
 		RadioNode:   radiomodel.NewRadioNode(nodeid, radioCfg),
 		joinerState: OtJoinerStateIdle,
-		logger:      logger.GetNodeLogger(d.cfg.SimulationId, cfg),
+		logger:      logger.GetNodeLogger(d.cfg.OutputDir, d.cfg.SimulationId, cfg),
 	}
 
 	nc.failureCtrl = newFailureCtrl(nc, NonFailTime)

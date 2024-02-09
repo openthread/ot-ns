@@ -42,6 +42,7 @@ type Config struct {
 	DefaultWatchLevel string
 	VizUpdateTime     time.Duration
 	SimulationId      int
+	OutputDir         string
 }
 
 func DefaultConfig() *Config {
@@ -54,5 +55,6 @@ func DefaultConfig() *Config {
 		DefaultWatchOn: false,
 		VizUpdateTime:  125 * time.Millisecond,
 		SimulationId:   0,
+		OutputDir:      "tmp",
 	}
 }
