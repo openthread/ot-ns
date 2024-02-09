@@ -51,6 +51,7 @@ type Command struct {
 	Go                  *GoCmd                  `| @@` //nolint
 	Help                *HelpCmd                `| @@` //nolint
 	Joins               *JoinsCmd               `| @@` //nolint
+	Kpi                 *KpiCmd                 `| @@` //nolint
 	LogLevel            *LogLevelCmd            `| @@` //nolint
 	Move                *MoveCmd                `| @@` //nolint
 	NetInfo             *NetInfoCmd             `| @@` //nolint
@@ -513,6 +514,13 @@ type UnwatchCmd struct {
 type HelpCmd struct {
 	Cmd       struct{} `"help"`       //nolint
 	HelpTopic string   `[ (@Ident) ]` //nolint
+}
+
+// noinspection GoVetStructTag
+type KpiCmd struct {
+	Cmd       struct{} `"kpi"`                        //nolint
+	Operation string   `[ @("start"|"stop"|"save") ]` //nolint
+	Filename  string   `[ @String ]`                  //nolint
 }
 
 // noinspection GoVetStructTag

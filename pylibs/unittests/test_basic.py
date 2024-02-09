@@ -717,5 +717,55 @@ class BasicTests(OTNSTestCase):
         cmp_res = filecmp.cmp(os.path.join(pcap_path, pcap_fn_1), os.path.join(pcap_path, pcap_fn_2), shallow = False)
         self.assertTrue(cmp_res)
 
+    def testKpi(self):
+        ns: OTNS = self.ns
+
+        self.assertTrue(ns.kpi())
+        ns.add('router')
+        ns.add('router')
+        ns.add('router')
+        ns.go(50)
+
+        ns.kpi_start() # restart KPIs
+        self.assertTrue(ns.kpi())
+        kpi_data = ns.kpi_save()
+        self.assertEqual(0, kpi_data["time_sec"]["duration"])
+        self.assertEqual(50, kpi_data["time_sec"]["start"])
+
+        for n in range(0,10):
+            ns.ping(1,3)
+            ns.go(5)
+        ns.kpi_stop()
+        self.assertFalse(ns.kpi())
+
+        kpi_data = ns.kpi_save()
+
+        self.assertFalse(ns.kpi())
+        self.assertEqual(50, kpi_data["time_sec"]["duration"])
+        self.assertEqual(100, kpi_data["time_sec"]["end"])
+        self.assertIsNotNone(kpi_data["created"])
+        self.assertEqual("ok", kpi_data["status"])
+        self.assertIsNotNone(kpi_data["time_us"])
+        self.assertIsNotNone(kpi_data["mac"])
+        self.assertEqual(3, len(kpi_data["counters"]))
+
+        ns.go(30)
+        self.assertFalse(ns.kpi())
+        self.assertEqual(50, kpi_data["time_sec"]["duration"])
+        self.assertEqual(100, kpi_data["time_sec"]["end"])
+
+        ns.kpi_start()
+        self.assertTrue(ns.kpi())
+        ns.go(50)
+        ns.delete(1)  # delete a node just before KPI collection is done
+        ns.go(5)
+
+        # save while running
+        kpi_data = ns.kpi_save('tmp/unittest_kpi_test.json')
+        self.assertTrue(ns.kpi())
+        self.assertEqual("ok", kpi_data["status"])
+        self.assertEqual(2, len(kpi_data["counters"]))
+
+
 if __name__ == '__main__':
     unittest.main()

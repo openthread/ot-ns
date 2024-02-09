@@ -53,7 +53,7 @@ func (m mockDispatcherCallback) OnRfSimEvent(nodeid NodeId, evt *event.Event) {
 func mockNode1() *Node {
 	return &Node{
 		Id:     0x1,
-		logger: logger.GetNodeLogger(1, &NodeConfig{ID: 1, NodeLogFile: false}),
+		logger: logger.GetNodeLogger("tmp", 1, &NodeConfig{ID: 1, NodeLogFile: false}),
 	}
 }
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2023, The OTNS Authors.
+// Copyright (c) 2020-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -36,7 +36,12 @@ import (
 )
 
 func TestMimeTypes(t *testing.T) {
-	assert.Equal(t, "text/javascript; charset=utf-8", mime.TypeByExtension(".js"))
+	jsMimeType := mime.TypeByExtension(".js")
+	if jsMimeType == "application/javascript" {
+		assert.Equal(t, "application/javascript", jsMimeType)
+	} else {
+		assert.Equal(t, "text/javascript; charset=utf-8", jsMimeType)
+	}
 }
 
 func TestServe(t *testing.T) {

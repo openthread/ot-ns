@@ -12,6 +12,7 @@ Python libraries use the CLI to manage simulations.
 * [coaps](#coaps)
 * [counters](#counters)
 * [cv](#cv)
+* [debug](#debug)
 * [del](#del)
 * [energy](#energy)
 * [exe](#exe)
@@ -19,6 +20,7 @@ Python libraries use the CLI to manage simulations.
 * [go](#go)
 * [help](#help)
 * [joins](#joins)
+* [kpi](#kpi)
 * [log](#log)
 * [move](#move)
 * [netinfo](#netinfo)
@@ -41,7 +43,7 @@ Python libraries use the CLI to manage simulations.
 * [web](#web)
 
 ## OTNS CLI command reference
-Note: the below sections including header and contents are automatically read and parsed during the build of OTNS, and 
+NOTE: the below sections including header and contents are automatically read and parsed during the build of OTNS, and 
 used for providing inline help in the CLI via the `help` command. Specific syntax is followed in headers and in the 
 triple backtick marked code segments.
 
@@ -199,6 +201,20 @@ rtb=on
 ctb=on
 Done
 ```
+
+### debug
+
+A command that is optionally used to debug the CLI interaction with OTNS itself.
+
+```shell
+debug
+debug echo "<string>"
+debug fail
+```
+
+`debug` alone will do nothing except print "Done" to mark command completion. 
+`debug echo` will echo (print) the given string on the command line.
+`debug fail` will deliberately raise an error, for testing purposes.
 
 ### del
 
@@ -387,6 +403,44 @@ node=2    join=4.899s session=5.000s
 Done
 ```
 
+### kpi
+
+Control the generation of Key Performance Indicators (KPIs) for a simulation. 
+
+```shell
+kpi [ start | stop ]
+kpi save [ "<filename>" ]
+```
+
+By default, a simulation will start data recording for KPIs at time t=0 and automatically stop at simulation exit. The 
+KPI data is saved to a JSON file `?_kpi.json` in the simulation's output folder. This command can be used to change the 
+default operation: `kpi start` will start/restart KPI data recording at the current simulation time.
+`kpi stop` will stop the KPI data recording again at the current simulation time.
+And `kpi save` can be used at any moment, whether KPI data recording is active or not, to save the latest set of 
+recorded KPI data to a file. If a filename is not provided, the default JSON file is used/overwritten.
+`kpi` without arguments inspects the state of the KPI collection.
+
+```bash
+> kpi start
+Done
+> go 3600
+Done
+> kpi
+on
+Done
+> kpi save "kpi_scenario_1.json"
+Done
+> kpi stop
+Done
+> kpi
+off
+Done
+> 
+```
+
+NOTE: if any counters of nodes are reset using the OT CLI command `counters <type> reset` while KPI collection is ongoing, 
+the results of KPI collection will become incorrect.
+
 ### log
 Inspect current log level, or set a new log level.
 
@@ -546,6 +600,7 @@ ping <src-id> "<dst-addr>" [datasize <sz>] [count <cnt>] [interval <intval>] [ho
 ```
 
 where `<addr-type>` can be `linklocal`, `rloc`, `mleid`, `slaac`, or `any`.
+
 NOTE: Sleepy End Devices (SEDs) typically don't respond to a ping request, while Synchronized Sleepy End Devices
 (SSEDs) do. A regular SED can be turned into a SSED by using the `csl period` command on the SED node.
 
@@ -587,7 +642,7 @@ plr [<loss-value>]
 Value `0` means no random packet loss, `0.5` means 
 50% of packets are randomly lost, while `1.0` means 100% of packets are lost.
 
-Note that packets can be lost even if PLR is 0, for example if the RSSI of a frame is below the receiver's 
+NOTE: packets can be lost even if PLR is 0, for example if the RSSI of a frame is below the receiver's 
 detection threshold, or if it has been interfered by another transmission. The PLR defines just an additional 
 mechanism of purely random loss.
 
@@ -692,8 +747,9 @@ Use without the optional arguments to get a list of all current radiomodel param
 nodes and links. Add the `param-name` to get only the value of that parameter. If both `param-name` and `new-value` 
 are provided, the parameter value is set to `new-value`. It has to be a numeric value (float).
 
-Note: How the parameter is used by the radiomodel may differ per radiomodel. Some parameters may not be used.
-Note: To change radio hardware parameters of the simulated radio of a specific node, use the [rfsim](#rfsim) command.
+NOTE: How the parameter is used by the radiomodel may differ per radiomodel. Some parameters may not be used.
+
+NOTE: To change radio hardware parameters of the simulated radio of a specific node, use the [rfsim](#rfsim) command.
 
 ```bash
 > radioparam
@@ -747,7 +803,7 @@ The following parameters are supported:
 * `cslacc` -  802.15.4 Coordinated Sampled Listening (CSL) accuracy in ppm, range 0-255.
 * `cslunc` - 802.15.4 CSL uncertainty in units of 10 microsec, range 0-255.
 
-Note: To change global radio model parameters for all nodes, use the [radioparam](#radioparam) command.
+NOTE: To change global radio model parameters for all nodes, use the [radioparam](#radioparam) command.
 
 ```bash
 > rfsim 1

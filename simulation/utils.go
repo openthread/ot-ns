@@ -27,59 +27,42 @@
 package simulation
 
 import (
-	"github.com/openthread/ot-ns/logger"
-	"github.com/openthread/ot-ns/prng"
-	. "github.com/openthread/ot-ns/types"
+	"os"
+	"path/filepath"
+	"strings"
 )
 
-const (
-	DefaultNetworkName = "OTSIM"
-	DefaultNetworkKey  = "00112233445566778899aabbccddeeff"
-	DefaultPanid       = 0xface
-	DefaultChannel     = 11
-	DefaultCslPeriodUs = 160 * 3 * 1000 // MUST be multiple of 160 us
-)
-
-type Config struct {
-	InitScript       []string
-	ExeConfig        ExecutableConfig
-	ExeConfigDefault ExecutableConfig
-	NewNodeConfig    NodeConfig
-	Speed            float64
-	ReadOnly         bool
-	RawMode          bool
-	Real             bool
-	AutoGo           bool
-	DumpPackets      bool
-	DispatcherHost   string
-	DispatcherPort   int
-	RadioModel       string
-	Id               int
-	Channel          ChannelId
-	LogLevel         logger.Level
-	RandomSeed       prng.RandomSeed
-	OutputDir        string
+func removeAllFiles(globPath string) error {
+	files, err := filepath.Glob(globPath)
+	if err != nil {
+		return err
+	}
+	for _, f := range files {
+		if err := os.Remove(f); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
-func DefaultConfig() *Config {
-	return &Config{
-		InitScript:       DefaultNodeInitScript,
-		ExeConfig:        DefaultExecutableConfig,
-		ExeConfigDefault: DefaultExecutableConfig,
-		NewNodeConfig:    DefaultNodeConfig(),
-		Speed:            1,
-		ReadOnly:         false,
-		RawMode:          false,
-		Real:             false,
-		AutoGo:           true,
-		DumpPackets:      false,
-		DispatcherHost:   "localhost",
-		DispatcherPort:   InitialDispatcherPort,
-		RadioModel:       "MutualInterference",
-		Id:               0,
-		Channel:          DefaultChannel,
-		LogLevel:         logger.WarnLevel,
-		RandomSeed:       0,
-		OutputDir:        "tmp",
+func getCommitFromOtVersion(ver string) string {
+	if strings.HasPrefix(ver, "OPENTHREAD/") && len(ver) >= 13 {
+		commit := ver[11:]
+		idx := strings.Index(commit, ";")
+		if idx > 0 {
+			commit = commit[0:idx]
+			return commit
+		}
 	}
+	return ""
+}
+
+func mergeNodeCounters(counters ...NodeCounters) NodeCounters {
+	res := make(NodeCounters)
+	for _, c := range counters {
+		for k, v := range c {
+			res[k] = v
+		}
+	}
+	return res
 }

@@ -51,11 +51,21 @@ type EventQueue interface {
 	Add(*Event)
 }
 
+// ChannelStats contains statistics and usage data for a radio channel.
+type ChannelStats struct {
+	Channel   ChannelId
+	TxTimeUs  uint64 // total time (us) that >= 1 nodes have been transmitting on this channel
+	NumFrames uint64 // total number of frame transmissions on channel
+
+	numTransmitters int    // internal bookkeeping: number of tx nodes
+	txStartTime     uint64 // internal bookkeeping: start of an initial tx on a clear channel
+}
+
 // RadioModel provides access to any type of radio model.
 type RadioModel interface {
 
 	// AddNode registers a (new) RadioNode to the model.
-	AddNode(nodeid NodeId, radioNode *RadioNode)
+	AddNode(radioNode *RadioNode)
 
 	// DeleteNode removes a RadioNode from the model.
 	DeleteNode(nodeid NodeId)
@@ -94,6 +104,12 @@ type RadioModel interface {
 	// OnParametersModified is called when one or more parameters (RadioModelParams) were modified.
 	OnParametersModified()
 
+	// GetChannelStats gets statistics of use for a radio channel.
+	GetChannelStats(channel ChannelId, curTimeUs uint64) *ChannelStats
+
+	// ResetChannelStats resets the statistics of use for a radio channel to zero.
+	ResetChannelStats(channel ChannelId)
+
 	// init initializes the RadioModel.
 	init()
 }
@@ -112,37 +128,35 @@ func NewRadioModel(modelName string) RadioModel {
 		p.RssiMaxDbm = -60.0
 
 	case "Ideal_Rssi", "IR", "2", "default":
-		model = &RadioModelIdeal{
-			name:   "Ideal_Rssi",
-			params: newRadioModelParams(),
-		}
+		model = &RadioModelIdeal{name: "Ideal_Rssi", params: newRadioModelParams()}
 		p := model.GetParameters()
 		setIndoorModelParamsItu(p)
 		p.IsDiscLimit = true
+
 	case "MutualInterference", "MI", "M", "3":
 		model = &RadioModelMutualInterference{
-			name:       "MutualInterference",
-			params:     newRadioModelParams(),
-			prevParams: *newRadioModelParams(),
-			fading:     newFadingModel(rndSeed),
+			RadioModelIdeal: RadioModelIdeal{name: "MutualInterference", params: newRadioModelParams()},
+			prevParams:      *newRadioModelParams(),
+			fading:          newFadingModel(rndSeed),
 		}
 		setIndoorModelParams3gpp(model.GetParameters())
+
 	case "MIDisc", "MID", "4":
 		model = &RadioModelMutualInterference{
-			name:   "MIDisc",
-			params: newRadioModelParams(),
-			fading: newFadingModel(rndSeed),
+			RadioModelIdeal: RadioModelIdeal{name: "MIDisc", params: newRadioModelParams()},
+			fading:          newFadingModel(rndSeed),
 		}
 		p := model.GetParameters()
 		setIndoorModelParams3gpp(p)
 		p.IsDiscLimit = true
+
 	case "Outdoor", "5":
 		model = &RadioModelMutualInterference{
-			name:   "Outdoor",
-			params: newRadioModelParams(),
-			fading: newFadingModel(rndSeed),
+			RadioModelIdeal: RadioModelIdeal{name: "Outdoor", params: newRadioModelParams()},
+			fading:          newFadingModel(rndSeed),
 		}
 		setOutdoorModelParams(model.GetParameters())
+
 	default:
 		model = nil
 	}

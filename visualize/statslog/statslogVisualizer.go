@@ -68,9 +68,9 @@ type nodeStats struct {
 }
 
 // NewStatslogVisualizer creates a new Visualizer that writes a log of network stats to file.
-func NewStatslogVisualizer(simulationId int) Visualizer {
+func NewStatslogVisualizer(outputDir string, simulationId int) Visualizer {
 	return &statslogVisualizer{
-		logFileName:    getStatsLogFileName(simulationId),
+		logFileName:    getStatsLogFileName(outputDir, simulationId),
 		isFileEnabled:  true,
 		changed:        true,
 		nodeRoles:      make(map[NodeId]OtDeviceRole, 64),
@@ -273,8 +273,8 @@ func (sv *statslogVisualizer) close() {
 	}
 }
 
-func getStatsLogFileName(simId int) string {
-	return fmt.Sprintf("tmp/%d_stats.csv", simId)
+func getStatsLogFileName(outputDir string, simId int) string {
+	return fmt.Sprintf("%s/%d_stats.csv", outputDir, simId)
 }
 
 func countRole(nodeRoles *map[NodeId]OtDeviceRole, role OtDeviceRole) int {
