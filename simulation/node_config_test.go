@@ -30,8 +30,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-
-	"github.com/openthread/ot-ns/types"
 )
 
 func TestDetermineExecutableBasedOnConfig(t *testing.T) {
@@ -43,7 +41,7 @@ func TestDetermineExecutableBasedOnConfig(t *testing.T) {
 	}
 
 	// if file could not be located, same name is returned.
-	nodeCfg := types.DefaultNodeConfig()
+	nodeCfg := DefaultNodeConfig()
 	exe := cfg.FindExecutableBasedOnConfig(&nodeCfg)
 	assert.Equal(t, "my-ftd-fail", exe)
 

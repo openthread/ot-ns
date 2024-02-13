@@ -261,7 +261,6 @@ func createSimulation(simId int, ctx *progctx.ProgCtx) *simulation.Simulation {
 
 	simcfg.ExeConfig.Ftd = args.OtCliPath
 	simcfg.ExeConfig.Mtd = args.OtCliMtdPath
-	simcfg.NewNodeConfig.InitScript = simulation.DefaultNodeInitScript
 	simcfg.NewNodeConfig.NodeLogFile = !args.NoLogFile
 	args.Speed = strings.ToLower(args.Speed)
 	if args.Speed == "max" {

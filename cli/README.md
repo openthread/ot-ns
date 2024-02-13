@@ -21,6 +21,7 @@ Python libraries use the CLI to manage simulations.
 * [help](#help)
 * [joins](#joins)
 * [kpi](#kpi)
+* [load](#load)
 * [log](#log)
 * [move](#move)
 * [netinfo](#netinfo)
@@ -33,7 +34,8 @@ Python libraries use the CLI to manage simulations.
 * [radio](#radio)
 * [radiomodel](#radiomodel)
 * [radioparam](#radioparam)
-* [rxsens](#rxsens)
+* [rfsim](#rfsim)
+* [save](#save)
 * [scan](#scan)
 * [speed](#speed)
 * [time](#time)
@@ -123,19 +125,18 @@ Done
 
 Enable collecting info on CoAP messages or show collected info in YAML.
 
-#### coaps enable
+```shell
+coaps [enable]
+```
 
-Enable collecting info of CoAP messages. CoAP message transmission and reception is detected through the special 
+Use `coaps enable` to enable collecting info on CoAP messages. CoAP message transmission and reception is detected through the special 
 "coap" OTNS push events sent from the OT node binary to the simulator.
+Use `coaps` to show info of collected CoAP messages in YAML format.
 
 ```bash
 > coaps enable
 Done
 ```
-
-#### coaps
-
-Show info of collected CoAP messages in YAML format.
 
 ```bash
 > coaps
@@ -440,6 +441,22 @@ Done
 
 NOTE: if any counters of nodes are reset using the OT CLI command `counters <type> reset` while KPI collection is ongoing, 
 the results of KPI collection will become incorrect.
+
+### load
+
+Load a network topology from a YAML file.
+
+```shell
+load "<filename.yaml>" [add]
+```
+
+If the optional `add` parameter is used, the node IDs as defined in the YAML file will be incremented as needed 
+to be higher than all current node IDs, and the new nodes will be added on top of nodes that are already there. 
+All nodes in the YAML file can also be position-shifted prior to loading by changing the `pos-shift` parameter 
+in the YAML file to a non-zero value. See [`save`](#save) for saving a network topology into a YAML file.
+
+There is an example of the YAML format in the file `./pylibs/test_mesh_topology.yaml`.
+
 
 ### log
 Inspect current log level, or set a new log level.
@@ -825,6 +842,18 @@ cslunc               10 (10-us)
 Done
 >
 ```
+
+### save
+
+Save current network topology (nodes) into a YAML file.
+
+```shell
+save "<filename.yaml>"
+```
+
+Information about a node that will be saved in the file: type, position, and Thread version. Any 
+internal state like 802.15.4 addresses, IP addresses, routing information, flash, counters etc is not 
+saved. The saved YAML file can be loaded again with [`load`](#load)
 
 ### scan
 

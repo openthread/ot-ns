@@ -766,6 +766,37 @@ class BasicTests(OTNSTestCase):
         self.assertEqual("ok", kpi_data["status"])
         self.assertEqual(2, len(kpi_data["counters"]))
 
+    def testLoadYamlTopology(self):
+        ns: OTNS = self.ns
+        self.assertEqual(0,len(ns.nodes()))
+        ns.load('pylibs/test_mesh_topology.yaml')
+        self.assertEqual(57,len(ns.nodes()))
+        ns.go(1)
+
+    def testSaveYamlTopology(self):
+        ns: OTNS = self.ns
+        self.assertEqual(0,len(ns.nodes()))
+        ns.add('router')
+        ns.go(10)
+        ns.add('router')
+        ns.add('router', version='v12')
+        ns.add('router', version='v11')
+        ns.add('ssed', version='v13')
+        ns.go(25)
+        self.assertEqual(5,len(ns.nodes()))
+        self.assertFormPartitions(1)
+
+        ns.save('tmp/save_topology.yaml')
+        self.assertEqual(5,len(ns.nodes()))
+
+        ns.delete(1,2,3,4,5)
+        self.assertEqual(0,len(ns.nodes()))
+
+        ns.load('tmp/save_topology.yaml')
+        self.assertEqual(5,len(ns.nodes()))
+        ns.go(125)
+        self.assertFormPartitions(1)
+
 
 if __name__ == '__main__':
     unittest.main()

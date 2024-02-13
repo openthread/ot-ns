@@ -1160,6 +1160,20 @@ class OTNS(object):
         status = self._expect_str(self._do_command('kpi'))
         return status == 'on'
 
+    def load(self, filename: str) -> None:
+        """
+        Load new nodes / network topology from a YAML file.
+        :param filename: file name to load from
+        """
+        self._do_command(f'load "{filename}"')
+
+    def save(self, filename:str) -> None:
+        """
+        Save nodes / network topology to a YAML file.
+        :param filename: file name to save to
+        """
+        self._do_command(f'save "{filename}"')
+
     @staticmethod
     def _expect_int(output: List[str]) -> int:
         assert len(output) == 1, output

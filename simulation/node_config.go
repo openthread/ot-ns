@@ -33,10 +33,12 @@ import (
 	"strings"
 
 	"github.com/openthread/ot-ns/logger"
+	"github.com/openthread/ot-ns/prng"
 	. "github.com/openthread/ot-ns/types"
 )
 
 type ExecutableConfig struct {
+	Version     string
 	Ftd         string
 	Mtd         string
 	Br          string
@@ -54,14 +56,15 @@ type NodeAutoPlacer struct {
 }
 
 var DefaultExecutableConfig ExecutableConfig = ExecutableConfig{
+	Version:     "",
 	Ftd:         "ot-cli-ftd",
 	Mtd:         "ot-cli-mtd",
 	Br:          "ot-cli-ftd_br",
 	SearchPaths: []string{".", "./ot-rfsim/ot-versions", "./build/bin"},
 }
 
-// DefaultNodeInitScript is an array of commands, sent to a new node by default (unless changed).
-var DefaultNodeInitScript = []string{
+// defaultNodeInitScript is an array of commands, sent to a new node by default (unless changed).
+var defaultNodeInitScript = []string{
 	"networkname " + DefaultNetworkName,
 	"networkkey " + DefaultNetworkKey,
 	fmt.Sprintf("panid 0x%x", DefaultPanid),
@@ -71,8 +74,8 @@ var DefaultNodeInitScript = []string{
 	"thread start",
 }
 
-// DefaultBrScript is an array of commands, sent to a new BR by default (unless changed).
-var DefaultBrScript = []string{
+// defaultBrScript is an array of commands, sent to a new BR by default (unless changed).
+var defaultBrScript = []string{
 	"routerselectionjitter 1",                              // BR wants to become Router early on.
 	"routerdowngradethreshold 33",                          // BR never wants to downgrade.
 	"routerupgradethreshold 33",                            // BR always wants to upgrade.
@@ -83,8 +86,71 @@ var DefaultBrScript = []string{
 	"srp server enable",
 }
 
-var DefaultCslScript = []string{
+var defaultCslScript = []string{
 	fmt.Sprintf("csl period %d", DefaultCslPeriodUs),
+}
+
+var defaultLegacyCslScript = []string{
+	fmt.Sprintf("csl period %d", DefaultCslPeriod),
+}
+
+var defaultRadioRange = 220
+
+func DefaultNodeConfig() NodeConfig {
+	return NodeConfig{
+		ID:             -1, // < 0 for the next available nodeid
+		Type:           ROUTER,
+		Version:        "",
+		X:              0,
+		Y:              0,
+		Z:              0,
+		IsAutoPlaced:   true,
+		IsRouter:       true,
+		IsMtd:          false,
+		IsBorderRouter: false,
+		RxOffWhenIdle:  false,
+		NodeLogFile:    true,
+		RadioRange:     defaultRadioRange,
+		ExecutablePath: "",
+		Restore:        false,
+		InitScript:     defaultNodeInitScript,
+		RandomSeed:     0, // 0 means not specified, i.e. truly unpredictable.
+	}
+}
+
+// NodeConfigFinalize finalizes the configuration for a new Node before it's used to create it. This is not
+// mandatory to call, but a convenience method for the caller to avoid setting all details itself.
+func (s *Simulation) NodeConfigFinalize(nodeCfg *NodeConfig) {
+	if nodeCfg.ID <= 0 {
+		nodeCfg.ID = s.genNodeId()
+	}
+
+	nodeCfg.UpdateNodeConfigFromType()
+	nodeCfg.ExecutablePath = s.cfg.ExeConfig.FindExecutableBasedOnConfig(nodeCfg)
+
+	// check for an implicit Thread-version setting in the executable-selection.
+	if len(s.cfg.ExeConfig.Version) > 0 && len(nodeCfg.Version) == 0 {
+		nodeCfg.Version = s.cfg.ExeConfig.Version
+	}
+
+	// in case of specified simulation random seed, each node gets a PRNG-predictable random seed assigned.
+	if s.cfg.RandomSeed != 0 {
+		nodeCfg.RandomSeed = prng.NewNodeRandomSeed()
+	}
+
+	// for a BR, do extra init steps to set prefix/routes/etc.
+	if nodeCfg.IsBorderRouter {
+		nodeCfg.InitScript = append(nodeCfg.InitScript, defaultBrScript...)
+	}
+
+	// for SSED, do extra CSL init command.
+	if nodeCfg.Type == SSED {
+		cslScript := defaultCslScript
+		if len(nodeCfg.Version) > 0 && nodeCfg.Version <= "v13" {
+			cslScript = defaultLegacyCslScript // older nodes use different parameter unit
+		}
+		nodeCfg.InitScript = append(nodeCfg.InitScript, cslScript...)
+	}
 }
 
 func (cfg *ExecutableConfig) SearchPathsString() string {
@@ -103,11 +169,12 @@ func (cfg *ExecutableConfig) SetVersion(version string, defaultConfig *Executabl
 	cfg.Ftd = defaultConfig.Ftd + "_" + version
 	cfg.Mtd = defaultConfig.Mtd + "_" + version
 	cfg.Br = defaultConfig.Br // BR is currently not adapted to versions.
+	cfg.Version = version
 }
 
 func isFile(exePath string) bool {
-	if _, err := os.Stat(exePath); err == nil {
-		return true
+	if fileInfo, err := os.Stat(exePath); err == nil {
+		return !fileInfo.IsDir()
 	}
 	return false
 }

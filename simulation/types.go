@@ -50,12 +50,42 @@ const (
 	nodeUartTypeVirtualTime NodeUartType = iota
 )
 
+// CmdRunner can point to an external package that can run a user's CLI commands.
 type CmdRunner interface {
 	RunCommand(cmd string, output io.Writer) error
-
-	// GetContextNodeId gets the user's current selected node ID context for running commands, or
-	// types.InvalidNodeId if no node context selected.
-	GetContextNodeId() NodeId
 }
 
+// NodeCounters keeps track of a node's internal diagnostic counters.
 type NodeCounters map[string]int
+
+// YamlConfigFile is the complete YAML structure for a config file for load/save.
+type YamlConfigFile struct {
+	NetworkConfig YamlNetworkConfig `yaml:"network"`
+	NodesList     []YamlNodeConfig  `yaml:"nodes"`
+}
+
+// YamlNetworkConfig is a global network config that can be loaded/saved in YAML.
+type YamlNetworkConfig struct {
+	Position   [3]int `yaml:"pos-shift,flow"`        // provides an optional 3D position shift of all nodes.
+	RadioRange *int   `yaml:"radio-range,omitempty"` // provides optional default radio-range.
+	BaseId     *int   `yaml:"base-id,omitempty"`     // provides an optional node ID base (offset) for all nodes.
+}
+
+// YamlNodeConfig is a node config that can be loaded/saved in YAML.
+type YamlNodeConfig struct {
+	ID         int     `yaml:"id"`
+	Type       string  `yaml:"type"`              // Node type (router, sed, fed, br, etc.)
+	Version    *string `yaml:"version,omitempty"` // Thread version string or "" for default
+	Position   [3]int  `yaml:"pos,flow"`
+	RadioRange *int    `yaml:"radio-range,omitempty"`
+}
+
+func (yc *YamlConfigFile) MinNodeId() NodeId {
+	var m NodeId = 0
+	for _, n := range yc.NodesList {
+		if n.ID < m || m == 0 {
+			m = n.ID
+		}
+	}
+	return m
+}
