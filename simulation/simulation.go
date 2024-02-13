@@ -111,12 +111,9 @@ func NewSimulation(ctx *progctx.ProgCtx, cfg *Config, dispatcherCfg *dispatcher.
 	return s, nil
 }
 
+// AddNode adds a node to the simulation as defined by the config cfg.
 func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 	nodeid := cfg.ID
-	if nodeid <= 0 {
-		nodeid = s.genNodeId()
-		cfg.ID = nodeid
-	}
 
 	if s.nodes[nodeid] != nil {
 		return nil, errors.Errorf("node %d already exists", nodeid)
@@ -127,13 +124,6 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 		cfg.X, cfg.Y, cfg.Z = s.nodePlacer.NextNodePosition(cfg.IsMtd || !cfg.IsRouter)
 	} else {
 		s.nodePlacer.UpdateReference(cfg.X, cfg.Y, cfg.Z)
-	}
-
-	// selection of Executable by simulation's policy, based on cfg
-	if len(cfg.Version) > 0 {
-		cfg.ExecutablePath = s.cfg.ExeConfigDefault.FindExecutableBasedOnConfig(cfg)
-	} else {
-		cfg.ExecutablePath = s.cfg.ExeConfig.FindExecutableBasedOnConfig(cfg)
 	}
 
 	// creation of the dispatcher and simulation nodes
@@ -245,6 +235,17 @@ func (s *Simulation) GetNodes() []NodeId {
 	}
 	sort.Ints(keys)
 	return keys
+}
+
+// MaxNodeId gets the largest Node Id of current nodes in the simulation.
+func (s *Simulation) MaxNodeId() NodeId {
+	m := 0
+	for nid := range s.nodes {
+		if nid > m || m == 0 {
+			m = nid
+		}
+	}
+	return m
 }
 
 func (s *Simulation) AutoGo() bool {

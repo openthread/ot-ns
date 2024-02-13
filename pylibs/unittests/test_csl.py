@@ -149,5 +149,30 @@ class CslTests(OTNSTestCase):
                 ns.go(5)
             self.verifyPings(ns.pings(), 15, maxDelay=3000, maxFails=1)
 
+    def testSsedVersions(self):
+        ns = self.ns
+
+        ns.add("router", 100, 100)
+        ns.go(10)
+        nodeid = ns.add("ssed", version="v12")
+        nodeid = ns.add("ssed", version="v13")
+        nodeid = ns.add("ssed", version="v131")
+        nodeid = ns.add("ssed")
+        ns.go(10)
+        self.assertFormPartitions(1)
+
+        # SSED pings parent
+        for n in range(2,6):
+            ns.ping(n,1,datasize=n+10)
+            ns.go(5)
+        self.verifyPings(ns.pings(), 4, maxDelay=3000, maxFails=1)
+
+        # parent pings SSED
+        for n in range(2,6):
+            ns.ping(1,n,datasize=n+10)
+            ns.go(5)
+        self.verifyPings(ns.pings(), 4, maxDelay=3000, maxFails=1)
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -30,6 +30,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"reflect"
 	"strconv"
 	"strings"
@@ -40,7 +41,6 @@ import (
 
 	"github.com/openthread/ot-ns/dispatcher"
 	"github.com/openthread/ot-ns/logger"
-	"github.com/openthread/ot-ns/prng"
 	"github.com/openthread/ot-ns/progctx"
 	"github.com/openthread/ot-ns/radiomodel"
 	"github.com/openthread/ot-ns/simulation"
@@ -185,10 +185,6 @@ func (rt *CmdRunner) GetPrompt() string {
 	}
 }
 
-func (rt *CmdRunner) GetContextNodeId() NodeId {
-	return rt.contextNodeId
-}
-
 func (rt *CmdRunner) execute(cmd *Command, output io.Writer) {
 	cc := &CommandContext{
 		Command:         cmd,
@@ -290,6 +286,10 @@ func (rt *CmdRunner) execute(cmd *Command, output io.Writer) {
 		rt.executeAutoGo(cc, cmd.AutoGo)
 	} else if cmd.Kpi != nil {
 		rt.executeKpi(cc, cmd.Kpi)
+	} else if cmd.Load != nil {
+		rt.executeLoad(cc, cmd.Load)
+	} else if cmd.Save != nil {
+		rt.executeSave(cc, cmd.Save)
 	} else {
 		logger.Panicf("unimplemented command: %#v", cmd)
 	}
@@ -381,6 +381,7 @@ func (rt *CmdRunner) executeAddNode(cc *CommandContext, cmd *AddCmd) {
 	simCfg := cc.rt.sim.GetConfig()
 	cfg := simCfg.NewNodeConfig // copy current new-node config for simulation, and modify it.
 
+	cfg.Type = cmd.Type.Val
 	if cmd.X != nil {
 		cfg.X = *cmd.X
 		cfg.IsAutoPlaced = false
@@ -393,42 +394,22 @@ func (rt *CmdRunner) executeAddNode(cc *CommandContext, cmd *AddCmd) {
 		cfg.Z = *cmd.Z
 		cfg.IsAutoPlaced = false
 	}
-
 	if cmd.Id != nil {
 		cfg.ID = cmd.Id.Val
 	}
-
 	if cmd.RadioRange != nil {
 		cfg.RadioRange = cmd.RadioRange.Val
 	}
-
-	cfg.Type = cmd.Type.Val
-	cfg.UpdateNodeConfigFromType()
-
-	if cmd.Executable != nil {
-		cfg.ExecutablePath = simCfg.ExeConfig.FindExecutable(cmd.Executable.Path)
-	} else if cmd.Version != nil {
+	cfg.Restore = cmd.Restore != nil
+	if cmd.Version != nil {
 		cfg.Version = cmd.Version.Val
 	}
-
-	cfg.Restore = cmd.Restore != nil
-
-	// in case of specified simulation random seed, each node gets a PRNG-predictable random seed assigned.
-	if simCfg.RandomSeed != 0 {
-		cfg.RandomSeed = prng.NewNodeRandomSeed()
-	}
-
-	// for a BR, do extra init steps to set prefix/routes/etc.
-	if cfg.IsBorderRouter {
-		cfg.InitScript = append(cfg.InitScript, simulation.DefaultBrScript...)
-	}
-
-	// for SSED, do extra CSL init command.
-	if cfg.Type == SSED {
-		cfg.InitScript = append(cfg.InitScript, simulation.DefaultCslScript...)
+	if cmd.Executable != nil {
+		cfg.ExecutablePath = cmd.Executable.Path
 	}
 
 	rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
+		sim.NodeConfigFinalize(&cfg)
 		node, err := sim.AddNode(&cfg)
 		if err != nil {
 			cc.error(err)
@@ -1269,6 +1250,75 @@ func (rt *CmdRunner) executeKpi(cc *CommandContext, cmd *KpiCmd) {
 			} else {
 				sim.GetKpiManager().SaveFile(cmd.Filename)
 			}
+		}
+	})
+}
+
+func (rt *CmdRunner) executeSave(cc *CommandContext, cmd *SaveCmd) {
+	var rootYaml yaml.Node
+
+	// test filename if valid
+	_, err := os.Stat(cmd.Filename)
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		cc.errorf("Invalid save file name: %s", cmd.Filename)
+		return
+	}
+
+	rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
+		networkConfig := sim.ExportNetwork()
+		nodesConfig := sim.ExportNodes(&networkConfig)
+
+		root := simulation.YamlConfigFile{
+			NetworkConfig: networkConfig,
+			NodesList:     nodesConfig,
+		}
+		err = rootYaml.Encode(root)
+		logger.PanicIfError(err)
+
+		var data []byte
+		data, err = yaml.Marshal(&rootYaml)
+		err = os.WriteFile(cmd.Filename, data, 0644)
+	})
+
+	if err != nil {
+		cc.errorf("Error writing file '%s': %v", cmd.Filename, err)
+	}
+}
+
+func (rt *CmdRunner) executeLoad(cc *CommandContext, cmd *LoadCmd) {
+	// test filename if valid
+	fileInfo, err := os.Stat(cmd.Filename)
+	if err != nil || fileInfo.IsDir() {
+		cc.errorf("Invalid load file name: %s", cmd.Filename)
+		return
+	}
+
+	rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
+		b, err := os.ReadFile(cmd.Filename)
+		if err != nil {
+			cc.errorf("Could not load file '%s': %v", cmd.Filename, err)
+			return
+		}
+		cfgFile := simulation.YamlConfigFile{}
+		err = yaml.Unmarshal(b, &cfgFile)
+		if err != nil {
+			cc.errorf("Error in YAML file: %v", err)
+			return
+		}
+		if len(cfgFile.NodesList) == 0 {
+			cc.errorf("No nodes defined in YAML file")
+			return
+		}
+
+		if cmd.Add != nil {
+			yamlMinNodeId := cfgFile.MinNodeId()
+			nodeIdOffset := sim.MaxNodeId() + 1 - yamlMinNodeId
+			cfgFile.NetworkConfig.BaseId = &nodeIdOffset
+		}
+
+		err = sim.ImportNodes(cfgFile.NetworkConfig, cfgFile.NodesList)
+		if err != nil {
+			cc.outputf("Warning: %v\n", err)
 		}
 	})
 }

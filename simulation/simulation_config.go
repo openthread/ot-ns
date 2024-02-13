@@ -37,7 +37,8 @@ const (
 	DefaultNetworkKey  = "00112233445566778899aabbccddeeff"
 	DefaultPanid       = 0xface
 	DefaultChannel     = 11
-	DefaultCslPeriodUs = 160 * 3 * 1000 // MUST be multiple of 160 us
+	DefaultCslPeriod   = 3 * 1000               // in units of 160 us
+	DefaultCslPeriodUs = 160 * DefaultCslPeriod // MUST be multiple of 160 us
 )
 
 type Config struct {
@@ -63,7 +64,7 @@ type Config struct {
 
 func DefaultConfig() *Config {
 	return &Config{
-		InitScript:       DefaultNodeInitScript,
+		InitScript:       defaultNodeInitScript,
 		ExeConfig:        DefaultExecutableConfig,
 		ExeConfigDefault: DefaultExecutableConfig,
 		NewNodeConfig:    DefaultNodeConfig(),

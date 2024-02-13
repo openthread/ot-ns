@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2024, The OTNS Authors.
+// Copyright (c) 2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -24,57 +24,54 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-package types
+package cli
 
-// NodeConfig is a generic config for a new simulated node (used in dispatcher, simulation, radiomodel,
-// ... packages).
-type NodeConfig struct {
-	ID             int
-	Type           string // Type as requested on creation (router, sed, fed, br, etc.)
-	Version        string // Thread version string or "" for default
-	X, Y, Z        int
-	IsAutoPlaced   bool
-	IsMtd          bool
-	IsRouter       bool
-	IsBorderRouter bool
-	RxOffWhenIdle  bool
-	NodeLogFile    bool
-	RadioRange     int
-	ExecutablePath string // executable full path or "" for auto-determined
-	Restore        bool
-	InitScript     []string
-	RandomSeed     int32
+import (
+	"testing"
+
+	"github.com/openthread/ot-ns/simulation"
+	"github.com/stretchr/testify/assert"
+	"gopkg.in/yaml.v3"
+)
+
+var testYamlArray = `
+[4,5,6]
+`
+
+var testYamlFile = `
+network:
+    pos-shift: [0, 0, 0]
+nodes:
+    - id: 1
+      type: router
+      pos: [100, 100, 0]
+    - id: 2
+      type: fed
+      pos: [60, 150, 0]
+    - id: 3
+      type: med
+      version: v11
+      pos: [100, 150, 0]
+    - id: 4
+      type: router
+      version: v12
+      pos: [200, 100, 0]
+`
+
+func TestYamlArrayUnmarshall(t *testing.T) {
+	myArray := [3]int{0, 0, 0}
+	err := yaml.Unmarshal([]byte(testYamlArray), &myArray)
+	assert.Nil(t, err)
+	assert.Equal(t, 4, myArray[0])
+	assert.Equal(t, 5, myArray[1])
+	assert.Equal(t, 6, myArray[2])
 }
 
-// UpdateNodeConfigFromType sets NodeConfig flags correctly, based on chosen node type cfg.Type
-func (cfg *NodeConfig) UpdateNodeConfigFromType() {
-	switch cfg.Type {
-	case ROUTER, REED, FTD:
-		cfg.IsRouter = true
-		cfg.IsMtd = false
-		cfg.IsBorderRouter = false
-		cfg.RxOffWhenIdle = false
-	case FED:
-		cfg.IsRouter = false
-		cfg.IsMtd = false
-		cfg.IsBorderRouter = false
-		cfg.RxOffWhenIdle = false
-	case MED, MTD:
-		cfg.IsRouter = false
-		cfg.IsMtd = true
-		cfg.IsBorderRouter = false
-		cfg.RxOffWhenIdle = false
-	case SED, SSED:
-		cfg.IsRouter = false
-		cfg.IsMtd = true
-		cfg.IsBorderRouter = false
-		cfg.RxOffWhenIdle = true
-	case BR:
-		cfg.IsRouter = true
-		cfg.IsMtd = false
-		cfg.IsBorderRouter = true
-		cfg.RxOffWhenIdle = false
-	default:
-		panic("unknown node type cfg.Type")
-	}
+func TestYamlConfigUnmarshall(t *testing.T) {
+	cfgFile := simulation.YamlConfigFile{}
+	err := yaml.Unmarshal([]byte(testYamlFile), &cfgFile)
+	assert.Nil(t, err)
+	assert.Equal(t, 3, len(cfgFile.NetworkConfig.Position))
+	assert.Equal(t, 4, len(cfgFile.NodesList))
+	assert.Equal(t, "v11", *cfgFile.NodesList[2].Version)
 }
