@@ -149,6 +149,10 @@ func (node *Node) error(err error) {
 
 func (node *Node) runScript(cfg []string) error {
 	logger.AssertNotNil(cfg)
+	if len(cfg) == 0 {
+		return nil
+	}
+
 	for _, cmd := range cfg {
 		if node.CommandResult() != nil {
 			return node.CommandResult()

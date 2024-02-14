@@ -63,7 +63,6 @@ type MainArgs struct {
 	LogLevel       string
 	WatchLevel     string
 	OpenWeb        bool
-	RawMode        bool
 	Real           bool
 	ListenAddr     string
 	DispatcherHost string
@@ -94,13 +93,12 @@ func parseArgs() {
 	flag.StringVar(&args.Speed, "speed", "1", "set simulation speed")
 	flag.StringVar(&args.OtCliPath, "ot-cli", defaultOtCli, "specify the OT CLI executable, for FTD and also for MTD if not configured otherwise.")
 	flag.StringVar(&args.OtCliMtdPath, "ot-cli-mtd", defaultOtCliMtd, "specify the OT CLI MTD executable, separately from FTD executable.")
-	flag.StringVar(&args.InitScriptName, "ot-script", "", "specify the OT node init script filename, to use for init of new nodes. By default an internal script is used.")
+	flag.StringVar(&args.InitScriptName, "ot-script", "", "specify the OT node init script filename, to use for init of new nodes. By default an internal script is used. Use 'none' for no script.")
 	flag.BoolVar(&args.AutoGo, "autogo", true, "auto go (runs the simulation at given speed, without issuing 'go' commands.)")
 	flag.BoolVar(&args.ReadOnly, "readonly", false, "readonly simulation can not be manipulated")
 	flag.StringVar(&args.LogLevel, "log", "warn", "set logging level: trace, debug, info, warn, error.")
 	flag.StringVar(&args.WatchLevel, "watch", "off", "set default watch level for all new nodes: off, trace, debug, info, note, warn, error.")
 	flag.BoolVar(&args.OpenWeb, "web", true, "open web visualization")
-	flag.BoolVar(&args.RawMode, "raw", false, "use raw mode (skips OT node init by script)")
 	flag.BoolVar(&args.Real, "real", false, "use real mode (for real devices - currently NOT SUPPORTED)")
 	flag.StringVar(&args.ListenAddr, "listen", fmt.Sprintf("localhost:%d", InitialDispatcherPort), "specify UDP listen address and port-base")
 	flag.BoolVar(&args.DumpPackets, "dump-packets", false, "dump packets")
@@ -271,7 +269,6 @@ func createSimulation(simId int, ctx *progctx.ProgCtx) *simulation.Simulation {
 	}
 	simcfg.Speed = speed
 	simcfg.ReadOnly = args.ReadOnly
-	simcfg.RawMode = args.RawMode
 	simcfg.Real = args.Real
 	simcfg.DispatcherHost = args.DispatcherHost
 	simcfg.DispatcherPort = args.DispatcherPort
@@ -279,10 +276,14 @@ func createSimulation(simId int, ctx *progctx.ProgCtx) *simulation.Simulation {
 	simcfg.AutoGo = args.AutoGo
 	simcfg.Id = simId
 	if len(args.InitScriptName) > 0 {
-		simcfg.InitScript, err = simulation.ReadNodeScript(args.InitScriptName)
-		if err != nil {
-			logger.Error(err)
-			return nil
+		if args.InitScriptName == "none" {
+			simcfg.NewNodeConfig.InitScript = []string{} // zero lines of init-script
+		} else {
+			simcfg.NewNodeConfig.InitScript, err = simulation.ReadNodeScript(args.InitScriptName)
+			if err != nil {
+				logger.Error(err)
+				return nil
+			}
 		}
 	}
 	simcfg.LogLevel = logger.ParseLevelString(args.LogLevel)
