@@ -56,7 +56,6 @@ type Simulation struct {
 	d              *dispatcher.Dispatcher
 	vis            visualize.Visualizer
 	cmdRunner      CmdRunner
-	rawMode        bool
 	autoGo         bool
 	autoGoChange   chan bool
 	networkInfo    visualize.NetworkInfo
@@ -72,7 +71,6 @@ func NewSimulation(ctx *progctx.ProgCtx, cfg *Config, dispatcherCfg *dispatcher.
 		ctx:          ctx,
 		cfg:          cfg,
 		nodes:        map[NodeId]*Node{},
-		rawMode:      cfg.RawMode,
 		autoGo:       cfg.AutoGo,
 		autoGoChange: make(chan bool, 1),
 		networkInfo:  visualize.DefaultNetworkInfo(),
@@ -127,7 +125,7 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 	}
 
 	// creation of the dispatcher and simulation nodes
-	logger.Debugf("simulation:AddNode: %+v, rawMode=%v", cfg, s.rawMode)
+	logger.Debugf("simulation:AddNode: %+v", cfg)
 	dnode := s.d.AddNode(nodeid, cfg)
 	node, err := newNode(s, nodeid, cfg, dnode)
 	if err != nil {
@@ -174,7 +172,7 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 		node.setupMode()
 		err = node.CommandResult()
 	}
-	if !s.rawMode && err == nil {
+	if err == nil {
 		err = node.runScript(cfg.InitScript)
 	}
 
