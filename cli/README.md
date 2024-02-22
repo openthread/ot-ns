@@ -459,15 +459,15 @@ There is an example of the YAML format in the file `./pylibs/test_mesh_topology.
 
 
 ### log
-Inspect current log level, or set a new log level.
+Inspect current OTNS log level, or set a new log level.
 
 ```shell
 log [ debug | info | warn | error ]
 ```
 
-The default is taken from the command line argument,
-or 'warn' if nothing is specified yet. Use 'debug' to see detailed log messages.
-Log level 'info' or lower is needed to see any OT node's stack + application log messages.
+The default log level is taken from the command line argument `-log`, or 'warn' is used if nothing is specified. 
+Use 'debug' to see detailed log messages about OTNS internals. Log items display for OT nodes can be separately set 
+using the [watch](#watch) CLI command.
 
 ```bash
 > log
@@ -956,7 +956,7 @@ Using the `all` parameter will disable the watch status for all nodes. See [watc
 
 ### watch
 
-Enable additional, detailed logging on selected node(s).
+Configure detailed logging for selected node(s).
 
 ```shell
 watch [<node-id>] [<node-id> ...]
@@ -965,10 +965,12 @@ watch all [<LogLevel>]
 watch default [<LogLevel>]
 ```
 
-This can be useful for interactive debugging or 
-inspection of a node's behavior. 
+The log entries of nodes are displayed in the CLI. This can be useful for interactive debugging or inspection of a 
+node's behavior. The watch function is mostly independent from the OT node's log file: entries that are not displayed, 
+are typically still written to the OT node log file.
 
 * To see all nodes currently being watched, use "watch" without parameters.
+* Any log entries that are displayed due to watch, are also written to the OT node log file (if active).
 * With the below examples, watching a node will only display OT stack log messages from level Info (I) or up. To see Debug (D) 
   messages, or only Warn (W) or Error/Critical (C) messages, use the `<LogLevel>` parameter as shown further down.
 

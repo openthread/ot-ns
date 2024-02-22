@@ -1,4 +1,4 @@
-// Copyright (c) 2022-2023, The OTNS Authors.
+// Copyright (c) 2022-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -26,32 +26,53 @@
 
 package logger
 
+import "fmt"
+
 const (
 	OffLevelString     = "off"
 	NoneLevelString    = "none"
 	DefaultLevelString = "default"
 )
 
-func ParseLevelString(level string) Level {
+func ParseLevelString(level string) (Level, error) {
 	switch level {
 	case "micro":
-		return MicroLevel
+		return MicroLevel, nil
 	case "trace", "T":
-		return TraceLevel
+		return TraceLevel, nil
 	case "debug", "D":
-		return DebugLevel
+		return DebugLevel, nil
 	case "info", "I":
-		return InfoLevel
+		return InfoLevel, nil
 	case "note", "N":
-		return NoteLevel
+		return NoteLevel, nil
 	case "warn", "warning", "W":
-		return WarnLevel
+		return WarnLevel, nil
 	case "crit", "critical", "error", "err", "C", "E":
-		return ErrorLevel
+		return ErrorLevel, nil
 	case "off", "none":
-		return OffLevel
+		return OffLevel, nil
 	case "default", "def":
-		fallthrough
+		return DefaultLevel, nil
+	default:
+		return DefaultLevel, fmt.Errorf("invalid log level string: %s", level)
+	}
+}
+
+func ParseOtLevelChar(level byte) Level {
+	switch level {
+	case 'T':
+		return TraceLevel
+	case 'D':
+		return DebugLevel
+	case 'I':
+		return InfoLevel
+	case 'N':
+		return NoteLevel
+	case 'W':
+		return WarnLevel
+	case 'C', 'E':
+		return ErrorLevel
 	default:
 		return DefaultLevel
 	}

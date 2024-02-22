@@ -110,8 +110,9 @@ func newNode(s *Simulation, nodeid NodeId, cfg *NodeConfig, dnode *dispatcher.No
 		version:       "",
 	}
 
-	node.Logger.Debugf("Node config: type=%s IsMtd=%t IsRouter=%t IsBR=%t RxOffWhenIdle=%t", cfg.Type, cfg.IsMtd, cfg.IsRouter,
-		cfg.IsBorderRouter, cfg.RxOffWhenIdle)
+	node.Logger.SetFileLevel(s.cfg.LogFileLevel)
+	node.Logger.Debugf("Node config: type=%s IsMtd=%t IsRouter=%t IsBR=%t RxOffWhenIdle=%t", cfg.Type, cfg.IsMtd,
+		cfg.IsRouter, cfg.IsBorderRouter, cfg.RxOffWhenIdle)
 	node.Logger.Debugf("  exe cmd : %v", cmd)
 	node.Logger.Debugf("  position: (%d,%d,%d)", cfg.X, cfg.Y, cfg.Z)
 
@@ -913,7 +914,7 @@ loop:
 			lineTrim := strings.TrimSpace(line)
 			isLogLine, otLevelChar := otoutfilter.DetectLogLine(line)
 			if isLogLine {
-				lev := logger.ParseLevelString(otLevelChar)
+				lev := logger.ParseOtLevelChar(otLevelChar)
 				node.Logger.Log(lev, lineTrim)
 			} else if idxNewLine == -1 { // if no newline, get more items until a line can be formed.
 				deadline = time.After(dispatcher.DefaultReadTimeout)

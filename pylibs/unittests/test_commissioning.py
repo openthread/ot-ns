@@ -37,7 +37,7 @@ tracemalloc.start()
 class CommissioningTests(OTNSTestCase):
 
     def setUp(self) -> None:
-        self.ns = OTNS(otns_args=['-raw', '-log', 'debug'])
+        self.ns = OTNS(otns_args=['-ot-script', 'none', '-log', 'debug'])
         self.ns.speed = float('inf')
 
     def testRawNoSetup(self):

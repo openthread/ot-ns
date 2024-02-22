@@ -37,7 +37,7 @@ from otns.cli.errors import OTNSCliError, OTNSExitedError
 class MultipleChannelsExample:
 
     def __init__(self):
-        self.ns = OTNS(otns_args=["-raw", "-pcap", "wpan-tap"])
+        self.ns = OTNS(otns_args=["-ot-script", "none", "-pcap", "wpan-tap"])
         self.ns.set_title("Multiple Channels Example")
         self.ns.web()
 

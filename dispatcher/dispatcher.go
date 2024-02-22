@@ -1024,9 +1024,12 @@ func (d *Dispatcher) AddNode(nodeid NodeId, cfg *NodeConfig) *Node {
 	d.setAlive(nodeid)
 
 	if d.cfg.DefaultWatchOn {
-		d.WatchNode(nodeid, logger.ParseLevelString(d.cfg.DefaultWatchLevel))
-	} else {
-		node.logger.CurrentLevel = logger.ErrorLevel
+		lev, err := logger.ParseLevelString(d.cfg.DefaultWatchLevel)
+		if err == nil {
+			d.WatchNode(nodeid, lev)
+		} else {
+			logger.Error(err)
+		}
 	}
 	return node
 }
@@ -1207,14 +1210,14 @@ func (d *Dispatcher) WatchNode(nodeid NodeId, watchLevel logger.Level) {
 	d.watchingNodes[nodeid] = struct{}{}
 	node := d.nodes[nodeid]
 	if node != nil {
-		node.logger.CurrentLevel = watchLevel
+		node.logger.SetDisplayLevel(watchLevel)
 	}
 }
 
 func (d *Dispatcher) UnwatchNode(nodeid NodeId) {
 	node := d.nodes[nodeid]
 	if node != nil {
-		node.logger.CurrentLevel = logger.ErrorLevel
+		node.logger.SetDisplayLevel(logger.ErrorLevel)
 	}
 	delete(d.watchingNodes, nodeid)
 }

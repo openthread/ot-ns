@@ -786,13 +786,13 @@ class BasicTests(OTNSTestCase):
         self.assertEqual(5,len(ns.nodes()))
         self.assertFormPartitions(1)
 
-        ns.save('tmp/save_topology.yaml')
+        ns.save('tmp/unittest_save_topology.yaml')
         self.assertEqual(5,len(ns.nodes()))
 
         ns.delete(1,2,3,4,5)
         self.assertEqual(0,len(ns.nodes()))
 
-        ns.load('tmp/save_topology.yaml')
+        ns.load('tmp/unittest_save_topology.yaml')
         self.assertEqual(5,len(ns.nodes()))
         ns.go(125)
         self.assertFormPartitions(1)

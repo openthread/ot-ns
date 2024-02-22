@@ -36,7 +36,7 @@ YGAP = 100
 
 
 def main():
-    ns = OTNS(otns_args=["-log", "debug", '-no-logfile'])
+    ns = OTNS(otns_args=["-log", "debug", '-logfile', 'none'])
     ns.set_title("Form Partition Example")
     ns.web()
     ns.speed = float('inf')

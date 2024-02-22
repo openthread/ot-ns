@@ -29,6 +29,7 @@ package dispatcher
 import (
 	"time"
 
+	"github.com/openthread/ot-ns/logger"
 	"github.com/openthread/ot-ns/pcap"
 )
 
@@ -47,14 +48,15 @@ type Config struct {
 
 func DefaultConfig() *Config {
 	return &Config{
-		Speed:          1,
-		Real:           false,
-		DumpPackets:    false,
-		PcapEnabled:    true,
-		PcapFrameType:  pcap.FrameTypeWpan,
-		DefaultWatchOn: false,
-		VizUpdateTime:  125 * time.Millisecond,
-		SimulationId:   0,
-		OutputDir:      "tmp",
+		Speed:             1,
+		Real:              false,
+		DumpPackets:       false,
+		PcapEnabled:       true,
+		PcapFrameType:     pcap.FrameTypeWpan,
+		DefaultWatchOn:    false,
+		DefaultWatchLevel: logger.OffLevelString,
+		VizUpdateTime:     125 * time.Millisecond,
+		SimulationId:      0,
+		OutputDir:         "tmp",
 	}
 }

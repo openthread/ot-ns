@@ -78,8 +78,8 @@ class TopologiesTests(OTNSTestCase):
 
     def testMultiChannel(self):
         self.ns.close()
-        # use -raw option to prevent standard network data init script to run.
-        self.ns = OTNS(otns_args=['-raw'])
+        # use ot-script option to prevent standard network data init script to run.
+        self.ns = OTNS(otns_args=['-ot-script','none'])
         ns = self.ns
         ns.loglevel = 'info'
         ns.watch_default('warn') # show errors+warnings from all OT nodes

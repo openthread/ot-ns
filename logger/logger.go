@@ -112,12 +112,6 @@ func SetLevel(lv Level) {
 	currentLevel = lv
 }
 
-// SetLevelFromString sets the log level based on a string identifier of the level.
-func SetLevelFromString(level string) Level {
-	SetLevel(ParseLevelString(level))
-	return currentLevel
-}
-
 // GetLevel get the current log level
 func GetLevel() Level {
 	return currentLevel
