@@ -52,7 +52,7 @@ FARM_RECT = [20 * R, 20 * R, 440 * R, 260 * R] # number in meters
 
 
 def main():
-    ns = OTNS(otns_args=['-no-logfile'])
+    ns = OTNS(otns_args=['-logfile','none'])
 
     if False: # Optional forcing of random-seed for OTNS and Python. This gives exact reproducable simulation.
         # The pcap parameter is to select another PCAP type that includes channel info.

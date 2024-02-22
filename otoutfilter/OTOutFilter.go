@@ -122,11 +122,10 @@ func NewOTOutFilter(reader io.Reader, logPrintPrefix string,
 	return &otOutFilter{subr: reader, logPrintPrefix: logPrintPrefix, logHandler: handlerLogMsg}
 }
 
-func DetectLogLine(line string) (bool, string) {
+func DetectLogLine(line string) (bool, byte) {
 	logIdx := logPattern.FindStringSubmatchIndex(line)
 	if logIdx == nil {
-		return false, ""
+		return false, 0
 	}
-	logLevelIndicatorStr := line[logIdx[2] : logIdx[2]+1]
-	return true, logLevelIndicatorStr
+	return true, line[logIdx[2]]
 }

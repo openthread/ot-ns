@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2020-2023, The OTNS Authors.
+# Copyright (c) 2024, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -25,22 +25,46 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+# Case study on 6LoWPAN fragment reassembly of long (ping) messages.
+
+import logging
 from otns.cli import OTNS
 from otns.cli.errors import OTNSExitedError
 
+NUM_NODES = 4
+
+def ping_test(ns, datasz, count):
+    id_src = 1
+    id_dst = max(ns.nodes())
+    for i in range(0,count):
+        ns.ping(id_src, id_dst, datasize=datasz)
+        ns.go(6)
+    ns.print_pings(ns.pings())
 
 def main():
-    ns = OTNS(otns_args=["-log", "debug", "-logfile", "none"])
-    ns.set_title("Simple Example")
+    ns = OTNS(otns_args=['-seed','550','-logfile', 'trace'])
+    ns.speed = 1e6
+    ns.radiomodel = 'MutualInterference'
+    #ns.radiomodel = 'MIDisc'
+    #ns.radiomodel = 'Ideal_Rssi'
+    ns.set_radioparam('TimeFadingSigmaMaxDb', 0.0)
     ns.web()
 
-    ns.add("router", x=300, y=300)
-    ns.add("router", x=200, y=300)
-    ns.add("fed", x=300, y=200)
-    ns.add("med", x=400, y=300)
-    ns.add("sed", x=300, y=400)
+    # setup of line topology test network
+    for i in range(0, NUM_NODES):
+        nid = ns.add("router", x=100 + 175 * i, y=100)
+        if i == 0:
+            ns.go(10) # Leader starts first
+        print(f'Node {nid}: {ns.get_ipaddrs(nid,"mleid")[0]}' )
+    ns.go(300)
+    ping_test(ns, datasz=4, count=2) # do the address queries for ML-EID destinations
 
-    ns.go()
+    # do tests and collect KPIs
+    ns.kpi_start()
+    ping_test(ns, datasz=1150, count = 100)
+    ns.kpi_stop()
+
+    ns.web_display()
 
 
 if __name__ == '__main__':

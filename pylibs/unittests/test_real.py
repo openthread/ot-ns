@@ -119,7 +119,7 @@ class GRPCClient(object):
 class RealTests(OTNSTestCase):
     def setUp(self) -> None:
         self.ns = OTNS(otns_args=[
-                "-raw", "-real",
+                "-ot-script", "none", "-real",
                 "-ot-cli", "otns-silk-proxy",
                 "-listen", ":9000",
                 "-log", "debug"])

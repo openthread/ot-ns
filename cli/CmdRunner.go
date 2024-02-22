@@ -930,7 +930,12 @@ func (rt *CmdRunner) executeLogLevel(cc *CommandContext, cmd *LogLevelCmd) {
 	if cmd.Level == "" {
 		cc.outputf("%v\n", logger.GetLevelString(rt.sim.GetLogLevel()))
 	} else {
-		rt.sim.SetLogLevel(logger.ParseLevelString(cmd.Level))
+		lev, err := logger.ParseLevelString(cmd.Level)
+		if err == nil {
+			rt.sim.SetLogLevel(lev)
+		} else {
+			cc.error(err)
+		}
 	}
 }
 
@@ -938,9 +943,14 @@ func (rt *CmdRunner) executeWatch(cc *CommandContext, cmd *WatchCmd) {
 	rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
 		levelStr := ""
 		var level = logger.DefaultLevel
+		var err error
 		if len(cmd.Level) > 0 {
 			levelStr = cmd.Level
-			level = logger.ParseLevelString(levelStr)
+			level, err = logger.ParseLevelString(levelStr)
+			if err != nil {
+				cc.error(err)
+				return
+			}
 		}
 		nodesToWatch := cmd.Nodes
 

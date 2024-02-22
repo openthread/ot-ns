@@ -35,10 +35,11 @@ import (
 	. "github.com/openthread/ot-ns/types"
 )
 
-// NodeLogger is a node-specific log object. Level and output file can be set per individual node.
+// NodeLogger is a node-specific log object. Levels and output file can be set per individual node.
 type NodeLogger struct {
 	Id           NodeId
-	CurrentLevel Level
+	fileLevel    Level
+	displayLevel Level
 
 	logFile       *os.File
 	logFileName   string
@@ -57,29 +58,30 @@ func GetNodeLogger(outputDir string, simulationId int, cfg *NodeConfig) *NodeLog
 	mutex.Lock()
 	defer mutex.Unlock()
 
-	var log *NodeLogger
+	var nl *NodeLogger
 	nodeid := cfg.ID
-	log, ok := nodeLogs[nodeid]
+	nl, ok := nodeLogs[nodeid]
 	if !ok {
-		log = &NodeLogger{
+		nl = &NodeLogger{
 			Id:            nodeid,
-			CurrentLevel:  ErrorLevel,
+			fileLevel:     ErrorLevel,
+			displayLevel:  ErrorLevel,
 			entries:       make(chan logEntry, 1000),
 			logFileName:   getLogFileName(outputDir, simulationId, nodeid),
 			isFileEnabled: cfg.NodeLogFile,
 		}
-		nodeLogs[nodeid] = log
-		if log.isFileEnabled {
-			log.createLogFile()
+		nodeLogs[nodeid] = nl
+		if nl.isFileEnabled {
+			nl.createLogFile()
 		}
 	} else {
 		// if logger already exists, adjust the configuration to latest provided and open file if needed.
-		log.isFileEnabled = cfg.NodeLogFile
-		if log.isFileEnabled && log.logFile == nil {
-			log.openLogFile()
+		nl.isFileEnabled = cfg.NodeLogFile
+		if nl.isFileEnabled && nl.logFile == nil {
+			nl.openLogFile()
 		}
 	}
-	return log
+	return nl
 }
 
 func getLogFileName(outputPath string, simId int, nodeId NodeId) string {
@@ -123,8 +125,8 @@ func (nl *NodeLogger) writeLogFileHeader() {
 
 // NodeLogf logs a formatted log message for the specific nodeid; correct NodeLogger object will be auto-found.
 func NodeLogf(nodeid NodeId, level Level, format string, args ...interface{}) {
-	log := nodeLogs[nodeid]
-	if level > log.CurrentLevel && !log.isFileEnabled {
+	nl := nodeLogs[nodeid]
+	if level > nl.fileLevel && level > nl.displayLevel {
 		return
 	}
 	msg := getMessage(format, args)
@@ -134,32 +136,31 @@ func NodeLogf(nodeid NodeId, level Level, format string, args ...interface{}) {
 		Msg:    msg,
 	}
 	select {
-	case log.entries <- entry:
+	case nl.entries <- entry:
 		break
 	default:
-		log.DisplayPendingLogEntries(log.timestampUs)
-		log.entries <- entry
+		nl.DisplayPendingLogEntries(nl.timestampUs)
+		nl.entries <- entry
 	}
 }
 
+func (nl *NodeLogger) SetFileLevel(level Level) {
+	nl.fileLevel = level
+}
+
+func (nl *NodeLogger) SetDisplayLevel(level Level) {
+	nl.displayLevel = level
+}
+
 func (nl *NodeLogger) Log(level Level, msg string) {
-	if level > nl.CurrentLevel && !nl.isFileEnabled {
-		return
-	}
 	NodeLogf(nl.Id, level, msg)
 }
 
 func (nl *NodeLogger) Logf(level Level, format string, args []interface{}) {
-	if level > nl.CurrentLevel && !nl.isFileEnabled {
-		return
-	}
 	NodeLogf(nl.Id, level, format, args)
 }
 
 func (nl *NodeLogger) Tracef(format string, args ...interface{}) {
-	if TraceLevel > nl.CurrentLevel {
-		return
-	}
 	NodeLogf(nl.Id, TraceLevel, format, args...)
 }
 
@@ -199,9 +200,6 @@ func (nl *NodeLogger) Panicf(format string, args ...interface{}) {
 }
 
 func (nl *NodeLogger) writeToLogFile(line string) error {
-	if !nl.isFileEnabled {
-		return nil
-	}
 	_, err := nl.logFile.WriteString(line + "\n")
 	if err != nil {
 		nl.Close()
@@ -212,23 +210,27 @@ func (nl *NodeLogger) writeToLogFile(line string) error {
 }
 
 // DisplayPendingLogEntries displays all pending log entries for the node, using given simulation time ts.
+// This includes writing any pending entries to the node log file.
 func (nl *NodeLogger) DisplayPendingLogEntries(ts uint64) {
 	nl.timestampUs = ts
 	tsStr := fmt.Sprintf("%11d ", ts)
 	nodeStr := GetNodeName(nl.Id)
 	for {
 		select {
-		case ent := <-nl.entries:
-			isDisplayEntry := nl.CurrentLevel >= ent.Level
-			if ent.Level <= DebugLevel || isDisplayEntry {
-				logStr := tsStr + ent.Msg
+		case entry := <-nl.entries:
+			isSaveEntry := nl.fileLevel >= entry.Level
+			isDisplayEntry := nl.displayLevel >= entry.Level
+			logStr := tsStr + entry.Msg
+			// whatever is displayed (watch), will also be logged to file.
+			if (isDisplayEntry || isSaveEntry) && nl.isFileEnabled {
 				if logStr[len(logStr)-1:] == "\n" { // remove duplicate newline chars
-					logStr = logStr[:len(logStr)-1]
+					_ = nl.writeToLogFile(logStr[:len(logStr)-1])
+				} else {
+					_ = nl.writeToLogFile(logStr)
 				}
-				_ = nl.writeToLogFile(logStr)
-				if isDisplayEntry {
-					logAlways(ent.Level, nodeStr+logStr)
-				}
+			}
+			if isDisplayEntry {
+				logAlways(entry.Level, nodeStr+logStr)
 			}
 			break
 		default:
@@ -242,6 +244,7 @@ func (nl *NodeLogger) IsFileEnabled() bool {
 	return nl.isFileEnabled
 }
 
+// Close closes the node log file and also saves/displays any pending entries.
 func (nl *NodeLogger) Close() {
 	if nl.logFile != nil {
 		nl.Debugf("Closing log file.")

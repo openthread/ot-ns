@@ -61,6 +61,7 @@ type MainArgs struct {
 	AutoGo         bool
 	ReadOnly       bool
 	LogLevel       string
+	LogFileLevel   string
 	WatchLevel     string
 	OpenWeb        bool
 	Real           bool
@@ -70,7 +71,6 @@ type MainArgs struct {
 	DumpPackets    bool
 	PcapType       string
 	NoReplay       bool
-	NoLogFile      bool
 	RandomSeed     int64
 }
 
@@ -96,24 +96,24 @@ func parseArgs() {
 	flag.StringVar(&args.InitScriptName, "ot-script", "", "specify the OT node init script filename, to use for init of new nodes. By default an internal script is used. Use 'none' for no script.")
 	flag.BoolVar(&args.AutoGo, "autogo", true, "auto go (runs the simulation at given speed, without issuing 'go' commands.)")
 	flag.BoolVar(&args.ReadOnly, "readonly", false, "readonly simulation can not be manipulated")
-	flag.StringVar(&args.LogLevel, "log", "warn", "set logging level: trace, debug, info, warn, error.")
-	flag.StringVar(&args.WatchLevel, "watch", "off", "set default watch level for all new nodes: off, trace, debug, info, note, warn, error.")
+	flag.StringVar(&args.LogLevel, "log", "warn", "set OTNS display logging level: trace, debug, info, warn, error.")
+	flag.StringVar(&args.LogFileLevel, "logfile", "debug", "set OTNS + node file logging level: trace, debug, info, warn, error, off.")
+	flag.StringVar(&args.WatchLevel, "watch", "off", "set default watch (display) level for new nodes: trace, debug, info, note, warn, error, off.")
 	flag.BoolVar(&args.OpenWeb, "web", true, "open web visualization")
 	flag.BoolVar(&args.Real, "real", false, "use real mode (for real devices - currently NOT SUPPORTED)")
 	flag.StringVar(&args.ListenAddr, "listen", fmt.Sprintf("localhost:%d", InitialDispatcherPort), "specify UDP listen address and port-base")
 	flag.BoolVar(&args.DumpPackets, "dump-packets", false, "dump packets")
 	flag.StringVar(&args.PcapType, "pcap", pcap.FrameTypeWpanStr, "PCAP file type: 'off', 'wpan', or 'wpan-tap' (name is \"current.pcap\")")
 	flag.BoolVar(&args.NoReplay, "no-replay", false, "do not generate Replay file (named \"otns_?.replay\")")
-	flag.BoolVar(&args.NoLogFile, "no-logfile", false, "do not generate node log files (named \"?_?.log\")")
 	flag.Int64Var(&args.RandomSeed, "seed", 0, "set specific random-seed value (for reproducability)")
 	flag.Parse()
 }
 
-func parseListenAddr() int {
+func parseListenAddr() (int, error) {
 	var err error
 
 	notifyInvalidListenAddr := func() {
-		logger.Fatalf("invalid listen address: %s (port must be larger than or equal to 9000 and must be a multiple of 10.", args.ListenAddr)
+		err = fmt.Errorf("invalid listen address: %s (port must be larger than or equal to 9000 and must be a multiple of 10", args.ListenAddr)
 	}
 
 	subs := strings.Split(args.ListenAddr, ":")
@@ -131,17 +131,18 @@ func parseListenAddr() int {
 	}
 
 	simId := (args.DispatcherPort - InitialDispatcherPort) / 10
-	return simId
+	return simId, err
 }
 
 func Main(ctx *progctx.ProgCtx, visualizerCreator func(ctx *progctx.ProgCtx, args *MainArgs) visualize.Visualizer, cliOptions *cli.CliOptions) {
 	handleSignals(ctx)
 	parseArgs()
-	logger.SetLevelFromString(args.LogLevel)
-	simId := parseListenAddr()
+	simId, err := parseListenAddr()
+	logger.FatalIfError(err)
 
 	prng.Init(args.RandomSeed)
-	sim := createSimulation(simId, ctx)
+	sim, err := createSimulation(simId, ctx)
+	logger.FatalIfError(err)
 
 	var vis visualize.Visualizer
 	if visualizerCreator != nil {
@@ -251,21 +252,34 @@ func handleSignals(ctx *progctx.ProgCtx) {
 	<-sigHandlerReady
 }
 
-func createSimulation(simId int, ctx *progctx.ProgCtx) *simulation.Simulation {
+func createSimulation(simId int, ctx *progctx.ProgCtx) (*simulation.Simulation, error) {
 	var speed float64
 	var err error
 
 	simcfg := simulation.DefaultConfig()
 
+	simcfg.LogLevel, err = logger.ParseLevelString(args.LogLevel)
+	if err != nil {
+		return nil, err
+	}
+	logger.SetLevel(simcfg.LogLevel)
+	simcfg.LogFileLevel, err = logger.ParseLevelString(args.LogFileLevel)
+	if err != nil {
+		return nil, err
+	}
+	if args.LogFileLevel == logger.NoneLevelString || args.LogFileLevel == logger.OffLevelString {
+		simcfg.NewNodeConfig.NodeLogFile = false
+	}
 	simcfg.ExeConfig.Ftd = args.OtCliPath
 	simcfg.ExeConfig.Mtd = args.OtCliMtdPath
-	simcfg.NewNodeConfig.NodeLogFile = !args.NoLogFile
 	args.Speed = strings.ToLower(args.Speed)
 	if args.Speed == "max" {
 		speed = dispatcher.MaxSimulateSpeed
 	} else {
 		speed, err = strconv.ParseFloat(args.Speed, 64)
-		logger.PanicIfError(err)
+		if err != nil {
+			return nil, err
+		}
 	}
 	simcfg.Speed = speed
 	simcfg.ReadOnly = args.ReadOnly
@@ -281,12 +295,10 @@ func createSimulation(simId int, ctx *progctx.ProgCtx) *simulation.Simulation {
 		} else {
 			simcfg.NewNodeConfig.InitScript, err = simulation.ReadNodeScript(args.InitScriptName)
 			if err != nil {
-				logger.Error(err)
-				return nil
+				return nil, err
 			}
 		}
 	}
-	simcfg.LogLevel = logger.ParseLevelString(args.LogLevel)
 	simcfg.RandomSeed = prng.RandomSeed(args.RandomSeed)
 
 	dispatcherCfg := dispatcher.DefaultConfig()
@@ -297,9 +309,12 @@ func createSimulation(simId int, ctx *progctx.ProgCtx) *simulation.Simulation {
 		logger.Fatalf("Unknown PCAP frame type '%s', use -h flag for an overview.", args.PcapType)
 	}
 	dispatcherCfg.DefaultWatchLevel = args.WatchLevel
-	dispatcherCfg.DefaultWatchOn = logger.ParseLevelString(args.WatchLevel) != logger.OffLevel
+	watchLevel, err := logger.ParseLevelString(args.WatchLevel)
+	if err != nil {
+		return nil, err
+	}
+	dispatcherCfg.DefaultWatchOn = watchLevel != logger.OffLevel
 
 	sim, err := simulation.NewSimulation(ctx, simcfg, dispatcherCfg)
-	logger.FatalIfError(err)
-	return sim
+	return sim, err
 }
