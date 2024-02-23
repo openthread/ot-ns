@@ -111,6 +111,9 @@ func NewSimulation(ctx *progctx.ProgCtx, cfg *Config, dispatcherCfg *dispatcher.
 
 // AddNode adds a node to the simulation as defined by the config cfg.
 func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
+	var node *Node
+	var dnode *dispatcher.Node
+	var err error
 	nodeid := cfg.ID
 
 	if s.nodes[nodeid] != nil {
@@ -124,15 +127,25 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 		s.nodePlacer.UpdateReference(cfg.X, cfg.Y, cfg.Z)
 	}
 
+	// exit code for when an error occurrs - cleanup state
+	defer func() {
+		if err != nil {
+			logger.Errorf("simulation add node %d failed: %v", nodeid, err)
+			if node != nil {
+				_ = node.exit()
+			}
+			delete(s.nodes, nodeid)
+			if dnode != nil {
+				s.d.DeleteNode(nodeid)
+			}
+			s.nodePlacer.ReuseNextNodePosition()
+		}
+	}()
+
 	// creation of the dispatcher and simulation nodes
 	logger.Debugf("simulation:AddNode: %+v", cfg)
-	dnode := s.d.AddNode(nodeid, cfg)
-	node, err := newNode(s, nodeid, cfg, dnode)
-	if err != nil {
-		logger.Errorf("simulation add node failed: %v", err)
-		_ = node.exit()        // delete the simulation node
-		s.d.DeleteNode(nodeid) // delete dispatcher node again.
-		s.nodePlacer.ReuseNextNodePosition()
+	dnode = s.d.AddNode(nodeid, cfg)
+	if node, err = newNode(s, nodeid, cfg, dnode); err != nil {
 		return nil, err
 	}
 	s.nodes[nodeid] = node
@@ -143,21 +156,26 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 	evtCnt := s.d.RecvEvents() // allow new node to connect, and to receive its startup events.
 
 	if s.IsStopping() { // stop early when exiting the simulation.
-		_ = s.DeleteNode(nodeid)
-		return nil, CommandInterruptedError
+		err = CommandInterruptedError
+		return nil, err
 	}
 
 	if !dnode.IsConnected() {
-		_ = s.DeleteNode(nodeid)
-		s.nodePlacer.ReuseNextNodePosition()
-		return nil, errors.Errorf("simulation AddNode: new node %d did not respond (evtCnt=%d)", nodeid, evtCnt)
+		err = errors.Errorf("simulation AddNode: new node %d did not respond (evtCnt=%d)", nodeid, evtCnt)
+		return nil, err
 	}
 	logger.AssertFalse(s.d.IsAlive(nodeid))
 
 	// run setup and script(s) for the node
 	node.Logger.Debugf("start setup of node (version/commit, mode, init script)")
 	ver := node.GetVersion()
+	if err = node.CommandResult(); err != nil {
+		return nil, err
+	}
 	threadVer := node.GetThreadVersion()
+	if err = node.CommandResult(); err != nil {
+		return nil, err
+	}
 	nodeInfo := visualize.NetworkInfo{
 		Real:          s.networkInfo.Real,
 		Version:       ver,
@@ -167,28 +185,23 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 	}
 	s.vis.SetNetworkInfo(nodeInfo)
 
-	err = node.CommandResult()
-	if err == nil {
+	if !cfg.IsRaw {
 		node.setupMode()
-		err = node.CommandResult()
-	}
-	if err == nil {
-		err = node.runScript(cfg.InitScript)
+		if err = node.CommandResult(); err != nil {
+			return nil, err
+		}
+		if err = node.runScript(cfg.InitScript); err != nil {
+			return nil, err
+		}
 	}
 
 	if s.IsStopping() { // stop here when exiting the simulation.
-		_ = s.DeleteNode(nodeid)
-		return nil, CommandInterruptedError
-	}
-
-	if err != nil {
-		node.Logger.Errorf("simulation node init failed, deleting node - %v", err)
-		_ = s.DeleteNode(node.Id)
-		s.nodePlacer.ReuseNextNodePosition()
+		err = CommandInterruptedError
 		return nil, err
 	}
 
 	node.onStart()
+	err = node.CommandResult()
 	node.DisplayPendingLogEntries()
 	node.DisplayPendingLines()
 

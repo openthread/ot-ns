@@ -407,6 +407,9 @@ func (rt *CmdRunner) executeAddNode(cc *CommandContext, cmd *AddCmd) {
 	if cmd.Executable != nil {
 		cfg.ExecutablePath = cmd.Executable.Path
 	}
+	if cmd.Raw != nil {
+		cfg.IsRaw = true
+	}
 
 	rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
 		sim.NodeConfigFinalize(&cfg)

@@ -400,7 +400,7 @@ class OTNS(object):
             return True
 
     def add(self, type: str, x: float = None, y: float = None, id=None, radio_range=None, executable=None,
-            restore=False, txpower: int=None, version: str = None) -> int:
+            restore=False, txpower: int=None, version: str = None, script: str = None) -> int:
         """
         Add a new node to the simulation.
 
@@ -413,6 +413,7 @@ class OTNS(object):
         :param restore: whether the node restores network configuration from persistent storage
         :param txpower: Tx power in dBm of node, or None for OT node default
         :param version: optional OT node version string like 'v11', 'v12', 'v13', or 'v131', etc.
+        :param script: optional OT node init script as a single string.
 
         :return: added node ID
         """
@@ -437,12 +438,18 @@ class OTNS(object):
         if version is not None:
             cmd += f' {version}'
 
-        if txpower is not None:
-            nodeid = self._expect_int(self._do_command(cmd))
-            self.node_cmd(nodeid,f'txpower {txpower}')
-            return nodeid
+        if script is not None:
+            cmd += ' raw'
 
-        return self._expect_int(self._do_command(cmd))
+        nodeid = self._expect_int(self._do_command(cmd))
+
+        if script is not None:
+            self.node_script(nodeid, script)
+
+        if txpower is not None:
+            self.node_cmd(nodeid,f'txpower {txpower}')
+
+        return nodeid
 
     def delete(self, *nodeids: int) -> None:
         """
@@ -751,6 +758,27 @@ class OTNS(object):
         """
         cmd = f'node {nodeid} "{cmd}"'
         output = self._do_command(cmd)
+        return output
+
+    def node_script(self, nodeid: int, script: str) -> List[str]:
+        """
+        Run script of one or more commands on node.
+
+        :param nodeid: target node ID
+        :param script: script to execute
+
+        :return: lines of command output
+        """
+        output = []
+        lines = script.split('\n')
+        for line in lines:
+            line = line.strip()
+            if len(line)==0 or line[0]=='#':
+                continue
+            output_one = self.node_cmd(nodeid, line)
+            for o in output_one:
+                output.append(o)
+
         return output
 
     def get_state(self, nodeid: int) -> str:

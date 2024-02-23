@@ -34,6 +34,7 @@ type NodeConfig struct {
 	Version        string // Thread version string or "" for default
 	X, Y, Z        int
 	IsAutoPlaced   bool
+	IsRaw          bool // A raw node skips all initialization CLI commands, including any init-script.
 	IsMtd          bool
 	IsRouter       bool
 	IsBorderRouter bool

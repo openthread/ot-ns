@@ -284,6 +284,7 @@ type AddCmd struct {
 	RadioRange *RadioRangeFlag `| @@`                 //nolint
 	Restore    *RestoreFlag    `| @@`                 //nolint
 	Version    *ThreadVersion  `| @@`                 //nolint
+	Raw        *RawFlag        `| @@`                 //nolint
 	Executable *ExecutableFlag `| @@ )*`              //nolint
 }
 
@@ -316,6 +317,11 @@ type ThreadVersion struct {
 type ExecutableFlag struct {
 	Dummy struct{} `"exe"`   //nolint
 	Path  string   `@String` //nolint
+}
+
+// noinspection GoVetStructTag
+type RawFlag struct {
+	Dummy struct{} `"raw"` //nolint
 }
 
 // noinspection GoVetStructTag
