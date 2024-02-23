@@ -84,6 +84,8 @@ var defaultBrScript = []string{
 	"netdata publish route 64:ff9b::/96 sn med",            // infrastructure-defined NAT64 translation
 	"bbr enable",
 	"srp server enable",
+	"br init 1 1", // see https://github.com/openthread/openthread/blob/main/src/cli/README_BR.md
+	"br enable",
 }
 
 var defaultCslScript = []string{
@@ -105,6 +107,7 @@ func DefaultNodeConfig() NodeConfig {
 		Y:              0,
 		Z:              0,
 		IsAutoPlaced:   true,
+		IsRaw:          false,
 		IsRouter:       true,
 		IsMtd:          false,
 		IsBorderRouter: false,

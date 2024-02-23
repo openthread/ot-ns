@@ -98,6 +98,17 @@ class BasicTests(OTNSTestCase):
         self.go(1)
         self.assertRaises(errors.OTNSCliError, lambda: ns.add("router", id=new_id))
 
+    def testAddNodeWithRawFlag(self):
+        ns = self.ns
+        nid = ns.add("router", script="# No CLI commands send in this node-script.")
+        self.assertEqual(1,nid)
+        ns.add("router")
+        ns.add("router")
+        self.go(20)
+        pars = self.ns.partitions()
+        self.assertEqual(2,len(pars))
+        self.assertEqual([1],pars[0]) # Node 1 is expected to be unconnected
+
     def testRestoreNode(self):
         ns = self.ns
         ns.add("router", x=0, y=0)
