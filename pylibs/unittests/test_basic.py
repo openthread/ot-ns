@@ -808,6 +808,16 @@ class BasicTests(OTNSTestCase):
         ns.go(125)
         self.assertFormPartitions(1)
 
+    def testRealtimeMode(self):
+        self.tearDown()
+        with OTNS(otns_args=['-log', 'debug', '-realtime']) as ns:
+            ns.add('router')
+            ns.add('router')
+            self.assertEqual(True, ns.autogo)
+            self.assertEqual(1.0, ns.speed)
+            ns.speed = 23
+            self.assertEqual(1.0, ns.speed)
+
 
 if __name__ == '__main__':
     unittest.main()

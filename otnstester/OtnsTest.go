@@ -336,7 +336,7 @@ func (ot *OtnsTest) visualizeStreamReadRoutine() {
 
 		ot.ExpectTrue(err == nil || ot.visualizeStream.Context().Err() != nil)
 		if err == nil {
-			logger.Warnf("Visualize: %+v", evt)
+			logger.Infof("Visualize: %+v", evt)
 			ot.pendingVisualizeEvents <- evt
 		}
 	}
@@ -367,6 +367,17 @@ func (ot *OtnsTest) ExpectVisualizeAddNode(nodeid NodeId, x int, y int, radioRan
 	})
 }
 
+func (ot *OtnsTest) ExpectVisualizeDeleteNode(nodeid NodeId) {
+	ot.ExpectVisualizeEvent(func(evt *visualize_grpc_pb.VisualizeEvent) bool {
+		delNode := evt.GetDeleteNode()
+		if delNode == nil {
+			return false
+		}
+
+		return delNode.NodeId == int32(nodeid)
+	})
+}
+
 func Instance(t *testing.T) *OtnsTest {
 	if otnsTestSingleton == nil {
 		otnsTestSingleton = NewOtnsTest(t)
@@ -387,7 +398,7 @@ func NewOtnsTest(t *testing.T) *OtnsTest {
 		T:                      t,
 		otnsDone:               make(chan struct{}),
 		pendingOutput:          make(chan string, 1000),
-		pendingVisualizeEvents: make(chan *visualize_grpc_pb.VisualizeEvent, 1000),
+		pendingVisualizeEvents: make(chan *visualize_grpc_pb.VisualizeEvent, 100000),
 	}
 
 	os.Args = append(os.Args, "-log", "debug", "-web=false", "-autogo=false", "-watch", "info")

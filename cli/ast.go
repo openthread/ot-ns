@@ -178,10 +178,9 @@ type PingCmd struct {
 
 // noinspection GoVetStructTag
 type NetInfoCmd struct {
-	Cmd     struct{}     `"netinfo" (`         //nolint
-	Version *string      `  "version" @String` //nolint
-	Commit  *string      `| "commit" @String`  //nolint
-	Real    *YesOrNoFlag `| "real" @@ )+`      //nolint
+	Cmd     struct{} `"netinfo" (`           //nolint
+	Version *string  `  "version" @String`   //nolint
+	Commit  *string  `| "commit" @String )+` //nolint
 }
 
 // noinspection GoVetStructTag

@@ -64,7 +64,7 @@ type MainArgs struct {
 	LogFileLevel   string
 	WatchLevel     string
 	OpenWeb        bool
-	Real           bool
+	Realtime       bool
 	ListenAddr     string
 	DispatcherHost string
 	DispatcherPort int
@@ -100,7 +100,7 @@ func parseArgs() {
 	flag.StringVar(&args.LogFileLevel, "logfile", "debug", "set OTNS + node file logging level: trace, debug, info, warn, error, off.")
 	flag.StringVar(&args.WatchLevel, "watch", "off", "set default watch (display) level for new nodes: trace, debug, info, note, warn, error, off.")
 	flag.BoolVar(&args.OpenWeb, "web", true, "open web visualization")
-	flag.BoolVar(&args.Real, "real", false, "use real mode (for real devices - currently NOT SUPPORTED)")
+	flag.BoolVar(&args.Realtime, "realtime", false, "use real-time mode (forced speed=1 and autogo)")
 	flag.StringVar(&args.ListenAddr, "listen", fmt.Sprintf("localhost:%d", InitialDispatcherPort), "specify UDP listen address and port-base")
 	flag.BoolVar(&args.DumpPackets, "dump-packets", false, "dump packets")
 	flag.StringVar(&args.PcapType, "pcap", pcap.FrameTypeWpanStr, "PCAP file type: 'off', 'wpan', or 'wpan-tap' (name is \"current.pcap\")")
@@ -283,7 +283,7 @@ func createSimulation(simId int, ctx *progctx.ProgCtx) (*simulation.Simulation, 
 	}
 	simcfg.Speed = speed
 	simcfg.ReadOnly = args.ReadOnly
-	simcfg.Real = args.Real
+	simcfg.Realtime = args.Realtime
 	simcfg.DispatcherHost = args.DispatcherHost
 	simcfg.DispatcherPort = args.DispatcherPort
 	simcfg.DumpPackets = args.DumpPackets

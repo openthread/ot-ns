@@ -1147,9 +1147,6 @@ func (rt *CmdRunner) executeNetInfo(cc *CommandContext, cmd *NetInfoCmd) {
 		if cmd.Commit != nil {
 			netinfo.Commit = *cmd.Commit
 		}
-		if cmd.Real != nil {
-			netinfo.Real = cmd.Real.Yes != nil
-		}
 		sim.SetNetworkInfo(netinfo)
 	})
 }
