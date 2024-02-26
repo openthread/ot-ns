@@ -680,7 +680,7 @@ class BasicTests(OTNSTestCase):
         self.assertEqual(1, len(output))
         self.assertEqual('0', output[0])
 
-        output = ns.cmd('') # test empty command (like pressing enter, only newline is sent to OTNS)
+        output = ns.cmd('') # test empty command (like pressing enter)
         self.assertEqual(0, len(output))
 
     def testRandomSeedSetting(self):

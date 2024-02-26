@@ -286,8 +286,12 @@ class OTNS(object):
         return which_otns
 
     def _do_command(self, cmd: str, do_logging: bool = True,
-                          raise_cli_err: bool = True,
-                          output_donestrings: bool = False) -> List[str]:
+                    raise_cli_err: bool = True,
+                    output_donestrings: bool = False,
+                    force_global_scope: bool = True) -> List[str]:
+        if force_global_scope and len(cmd)>0 and cmd[0] != '!':
+            cmd = '!' + cmd
+
         with self._lock_otns_do_command:
             if do_logging:
                 logging.info("OTNS <<< %s", cmd)
@@ -337,13 +341,26 @@ class OTNS(object):
         return self._do_command(cmd)
 
     def _interactive_cli_thread(self, prompt: str, close_otns_on_exit: bool) -> None:
+        cur_prompt = prompt
+        is_global_context = True  # tracks the context of the prompt: global, or node-specific.
         while True:
-            cmd = input(prompt)
-            if len(cmd.strip()) == 0:
-                continue
-            if cmd == 'exit':
+            cmd = input(cur_prompt)
+            if cmd == 'exit' and is_global_context:
                 break
-            output_lines = self._do_command(cmd, raise_cli_err=False, do_logging=True, output_donestrings=True)
+            if cmd == '':
+                # force a 'Done' from OTNS. This allows collecting async outputlines with Enter key.
+                output_lines = self._do_command('debug', raise_cli_err=False, do_logging=False, output_donestrings=False)
+            else:
+                output_lines = self._do_command(cmd, raise_cli_err=False, do_logging=True, output_donestrings=True, force_global_scope=False)
+
+            # CLI context tracking - only done to display the right prompt (node-context) to user
+            if cmd == 'node 0' or cmd == 'exit':
+                is_global_context = True
+                cur_prompt = prompt
+            elif cmd.startswith('node ') and output_lines[0] == 'Done':
+                is_global_context = False
+                cur_prompt = cmd + prompt
+
             for line in output_lines:
                 print(line)
 
@@ -551,7 +568,7 @@ class OTNS(object):
             if isinstance(dst, ipaddress.IPv6Address):
                 dst = dst.compressed
 
-        cmd = f'ping {srcid} {dst!r} {addrtype} datasize {datasize} count {count} interval {interval}'
+        cmd = f'!ping {srcid} {dst!r} {addrtype} datasize {datasize} count {count} interval {interval}'
         self._do_command(cmd)
 
     @property
