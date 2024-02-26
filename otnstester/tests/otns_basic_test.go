@@ -97,7 +97,10 @@ func testDelManyNodes(test *otnstester.OtnsTest) {
 	test.Start("testDelManyNodes")
 
 	for i := 0; i < 32; i++ {
-		test.AddNode("router", (i%6)*100, (i/6)*150)
+		x := (i % 6) * 100
+		y := (i / 6) * 150
+		test.AddNode("router", x, y)
+		test.ExpectVisualizeAddNode(i+1, x, y, DefaultRadioRange)
 	}
 
 	test.Go(time.Second * 10)
@@ -106,6 +109,7 @@ func testDelManyNodes(test *otnstester.OtnsTest) {
 
 	for i := 0; i < 32; i++ {
 		test.DeleteNode(i + 1)
+		test.ExpectVisualizeDeleteNode(i + 1)
 		list = test.ListNodes()
 		test.ExpectEqual(31-i, len(list))
 		test.Go(time.Second * 5)

@@ -35,7 +35,7 @@ import (
 
 type Config struct {
 	Speed             float64
-	Real              bool
+	Realtime          bool
 	DumpPackets       bool
 	PcapEnabled       bool
 	PcapFrameType     pcap.FrameType
@@ -49,7 +49,7 @@ type Config struct {
 func DefaultConfig() *Config {
 	return &Config{
 		Speed:             1,
-		Real:              false,
+		Realtime:          false,
 		DumpPackets:       false,
 		PcapEnabled:       true,
 		PcapFrameType:     pcap.FrameTypeWpan,

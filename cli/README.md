@@ -498,25 +498,20 @@ Done
 Set default network and nodes info.
 
 ```shell
-netinfo [version "<string>"] [commit "<string>"] [real y|n]
+netinfo [version "<string>"] [commit "<string>"]
 ```
 
-Sets information about OpenThread version and commit used for simulation nodes, as well as whether nodes are real 
-or simulated. This default information is then shown in the GUI, whenever a node is not selected. When a node is 
+Sets information about OpenThread version and commit used for simulation nodes. This default information is then 
+shown in the GUI, whenever a node is not selected. When a node is 
 selected, the node-specific version/commit information will be used instead.
 
 In the GUI, when the version/commit message is clicked, a web browser tab will be opened with the Github code for 
-the particular version/commit. 
-
-NOTE: setting `real` enabled (y) will disable some of the GUI controls of the simulation, such as speed/pause. The 
-`real` setting remains as set by this command and is not impacted by selecting nodes in the GUI.
+the particular OpenThread version/commit. 
 
 ```bash
 > netinfo version "Latest"
 Done
 > netinfo version "Latest" commit "a1816c1"
-Done
-> netinfo real y
 Done
 > netinfo version "please select a node and then click this text to see the node's code." commit ""
 Done

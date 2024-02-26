@@ -1082,27 +1082,6 @@ class OTNS(object):
 
         self._do_command(cmd)
 
-    def set_network_info(self, version: str = None, commit: str = None, real: bool = None) -> None:
-        """
-        Set network info.
-
-        :param version: The OpenThread version.
-        :param commit: The OpenThread commit.
-        :param real: If the network uses real devices.
-        """
-        cmd = 'netinfo'
-
-        if version is not None:
-            cmd += f' version "{version}"'
-
-        if commit is not None:
-            cmd += f' commit "{commit}"'
-
-        if real is not None:
-            cmd += f' real {1 if real else 0}'
-
-        self._do_command(cmd)
-
     def __enter__(self):
         return self
 

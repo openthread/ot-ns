@@ -47,7 +47,7 @@ type Config struct {
 	NewNodeConfig    NodeConfig
 	Speed            float64
 	ReadOnly         bool
-	Real             bool
+	Realtime         bool
 	AutoGo           bool
 	DumpPackets      bool
 	DispatcherHost   string
@@ -68,7 +68,7 @@ func DefaultConfig() *Config {
 		NewNodeConfig:    DefaultNodeConfig(),
 		Speed:            1,
 		ReadOnly:         false,
-		Real:             false,
+		Realtime:         false,
 		AutoGo:           true,
 		DumpPackets:      false,
 		DispatcherHost:   "localhost",

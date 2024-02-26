@@ -128,7 +128,7 @@ type Dispatcher struct {
 }
 
 func NewDispatcher(ctx *progctx.ProgCtx, cfg *Config, cbHandler CallbackHandler) *Dispatcher {
-	logger.AssertTrue(!cfg.Real || cfg.Speed == 1)
+	logger.AssertTrue(!cfg.Realtime || cfg.Speed == 1)
 	var err error
 	ln, unixSocketFile := newUnixSocket(cfg.SimulationId)
 	vis := visualize.NewNopVisualizer()
@@ -497,13 +497,7 @@ func (d *Dispatcher) processNextEvent(simSpeed float64) bool {
 			}
 			time.Sleep(sleepTime)
 
-			if d.cfg.Real {
-				curTime := d.speedStartTime + uint64(float64(time.Since(d.speedStartRealTime)/time.Microsecond)*simSpeed)
-				if curTime > d.pauseTime {
-					curTime = d.pauseTime
-				}
-				d.advanceTime(curTime)
-			} else if time.Since(d.lastVizTime) >= d.cfg.VizUpdateTime {
+			if time.Since(d.lastVizTime) >= d.cfg.VizUpdateTime {
 				curTime := d.speedStartTime + uint64(float64(time.Since(d.speedStartRealTime)/time.Microsecond)*simSpeed)
 				if curTime > d.pauseTime {
 					curTime = d.pauseTime
@@ -659,11 +653,6 @@ func (d *Dispatcher) eventsReader() {
 func (d *Dispatcher) advanceNodeTime(node *Node, timestamp uint64, force bool) {
 	logger.AssertNotNil(node)
 
-	if d.cfg.Real {
-		node.CurTime = timestamp
-		return
-	}
-
 	oldTime := node.CurTime
 	if timestamp <= oldTime && !force {
 		// node time was already equal to or newer than the requested timestamp
@@ -808,9 +797,7 @@ func (d *Dispatcher) checkRadioReachable(src *Node, dst *Node) bool {
 		d.radioModel.CheckRadioReachable(src.RadioNode, dst.RadioNode)
 }
 
-func (d *Dispatcher) sendOneRadioFrame(evt *Event,
-	srcnode *Node, dstnode *Node) {
-	logger.AssertFalse(d.cfg.Real)
+func (d *Dispatcher) sendOneRadioFrame(evt *Event, srcnode *Node, dstnode *Node) {
 	logger.AssertTrue(EventTypeRadioCommStart == evt.Type || EventTypeRadioRxDone == evt.Type)
 	logger.AssertTrue(srcnode != dstnode)
 
@@ -843,7 +830,6 @@ func (d *Dispatcher) sendOneRadioFrame(evt *Event,
 }
 
 func (d *Dispatcher) setAlive(nodeid NodeId) {
-	logger.AssertFalse(d.cfg.Real)
 	logger.AssertFalse(d.isDeleted(nodeid))
 	d.aliveNodes[nodeid] = struct{}{}
 }
@@ -863,7 +849,6 @@ func (d *Dispatcher) isDeleted(nodeid NodeId) bool {
 }
 
 func (d *Dispatcher) setSleeping(nodeid NodeId) {
-	logger.AssertFalse(d.cfg.Real)
 	logger.AssertFalse(d.isDeleted(nodeid))
 	delete(d.aliveNodes, nodeid)
 }
@@ -927,7 +912,8 @@ func (d *Dispatcher) handleStatusPush(srcnode *Node, data string) {
 			continue
 		}
 		if sp[0] == "transmit" {
-			d.visStatusPushTransmit(srcnode, sp[1])
+			// 'transmit' status is currently not visualized: This is already done by OTNS based on
+			// radio frames transmitted.
 		} else if sp[0] == "role" {
 			role, err := strconv.Atoi(sp[1])
 			logger.PanicIfError(err)
@@ -1004,7 +990,7 @@ func (d *Dispatcher) handleStatusPush(srcnode *Node, data string) {
 			mode := ParseNodeMode(sp[1])
 			d.vis.SetNodeMode(srcid, mode)
 		} else {
-			logger.Warnf("received unknown status push: %s=%s", sp[0], sp[1])
+			logger.Errorf("received unknown status push: %s=%s", sp[0], sp[1])
 		}
 	}
 }
@@ -1054,75 +1040,6 @@ func (d *Dispatcher) setNodeRloc16(srcid NodeId, rloc16 uint16) {
 	d.vis.SetNodeRloc16(srcid, rloc16)
 }
 
-func (d *Dispatcher) visStatusPushTransmit(srcnode *Node, s string) {
-	var fcf wpan.FrameControl
-
-	// only visualize `transmit` status emitting in real mode because simulation nodes already have radio events visualized
-	if !d.cfg.Real {
-		return
-	}
-
-	parts := strings.Split(s, ",")
-
-	if len(parts) < 3 {
-		logger.Panicf("invalid status push: transmit=%s", s)
-	}
-
-	channel, err := strconv.Atoi(parts[0])
-	logger.PanicIfError(err)
-	fcfval, err := strconv.ParseUint(parts[1], 16, 16)
-	logger.PanicIfError(err)
-	fcf = wpan.FrameControl(fcfval)
-
-	seq, err := strconv.Atoi(parts[2])
-	logger.PanicIfError(err)
-
-	dstAddrMode := fcf.DestAddrMode()
-
-	visInfo := &visualize.MsgVisualizeInfo{
-		Channel:      uint8(channel),
-		FrameControl: fcf,
-		Seq:          uint8(seq),
-	}
-
-	if dstAddrMode == wpan.AddrModeExtended {
-		dstExtend, err := strconv.ParseUint(parts[3], 16, 64)
-		logger.PanicIfError(err)
-
-		visInfo.DstAddrExtended = dstExtend
-
-		dstnode := d.extaddrMap[dstExtend]
-		if dstnode != srcnode && dstnode != nil {
-			d.visSend(srcnode.Id, dstnode.Id, visInfo)
-		} else {
-			d.visSend(srcnode.Id, InvalidNodeId, visInfo)
-		}
-	} else if dstAddrMode == wpan.AddrModeShort {
-		dstShortVal, err := strconv.ParseUint(parts[3], 16, 16)
-		logger.PanicIfError(err)
-
-		dstShort := uint16(dstShortVal)
-		visInfo.DstAddrShort = dstShort
-
-		if dstShort != BroadcastRloc16 {
-			// unicast message should only be dispatched to target node with the rloc16
-			dstnodes := d.rloc16Map[dstShort]
-
-			if len(dstnodes) > 0 {
-				for _, dstnode := range dstnodes {
-					d.visSend(srcnode.Id, dstnode.Id, visInfo)
-				}
-			} else {
-				d.visSend(srcnode.Id, InvalidNodeId, visInfo)
-			}
-		} else {
-			d.vis.Send(srcnode.Id, BroadcastNodeId, visInfo)
-		}
-	} else {
-		d.vis.Send(srcnode.Id, BroadcastNodeId, visInfo)
-	}
-}
-
 func (d *Dispatcher) visSendFrame(srcid NodeId, dstid NodeId, pktframe *wpan.MacFrame, commData RadioCommEventData) {
 	d.visSend(srcid, dstid, &visualize.MsgVisualizeInfo{
 		Channel:         pktframe.Channel,
@@ -1159,9 +1076,6 @@ func (d *Dispatcher) advanceTime(ts uint64) {
 	logger.AssertTrue(d.CurTime <= ts, "%v > %v", d.CurTime, ts)
 	if d.CurTime < ts {
 		d.CurTime = ts
-		if d.cfg.Real {
-			d.syncAllNodes()
-		}
 	}
 
 	if time.Since(d.lastVizTime) >= d.cfg.VizUpdateTime {
