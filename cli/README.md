@@ -57,7 +57,8 @@ Add a node to the simulation and get the node ID.
 add <type> [x <x>] [y <y>] [rr <radio-range>] [id <node-id>] [restore] [exe <path>] [v11|v12|v13|v131]
 ```
 
-Node ID can be specified, otherwise OTNS assigns the next available 
+The `<type>` can be `router`, `fed`, `med`, `sed`, `ssed`, `br` (Border Router), or `wifi` (for a Wi-Fi interferer node).
+Node ID can be specified using the `id` parameter, otherwise OTNS assigns the next available 
 one. If the `restore` option is specified, the node restores its network configuration from persistent storage.
 
 The (advanced) `exe` option can be used to specify a node executable for the new node; either a name only which is 
@@ -814,6 +815,8 @@ The following parameters are supported:
 * `ccath`  - 802.15.4 CCA Energy Detect (ED) threshold (dBm), in the range -126 to 126.
 * `cslacc` -  802.15.4 Coordinated Sampled Listening (CSL) accuracy in ppm, range 0-255.
 * `cslunc` - 802.15.4 CSL uncertainty in units of 10 microsec, range 0-255.
+* `txintf` - for the `wifi` node type, sets the percentage of Wi-Fi traffic, range 0 to 100. Must not be >0 on other 
+  node types.
 
 NOTE: To change global radio model parameters for all nodes, use the [radioparam](#radioparam) command.
 
@@ -823,6 +826,7 @@ rxsens               -100 (dBm)
 ccath                -75 (dBm)
 cslacc               20 (PPM)
 cslunc               10 (10-us)
+txintf               0 (%)
 Done
 > rfsim 1 cslacc 45
 Done 
@@ -834,6 +838,7 @@ rxsens               -100 (dBm)
 ccath                -75 (dBm)
 cslacc               45 (PPM)
 cslunc               10 (10-us)
+txintf               0 (%)
 Done
 >
 ```
@@ -849,6 +854,12 @@ save "<filename.yaml>"
 Information about a node that will be saved in the file: type, position, and Thread version. Any 
 internal state like 802.15.4 addresses, IP addresses, routing information, flash, counters etc is not 
 saved. The saved YAML file can be loaded again with [`load`](#load)
+
+```bash
+> save "./tmp/mynetwork.yaml"
+Done
+>
+```
 
 ### scan
 

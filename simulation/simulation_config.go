@@ -37,8 +37,6 @@ const (
 	DefaultNetworkKey  = "00112233445566778899aabbccddeeff"
 	DefaultPanid       = 0xface
 	DefaultChannel     = 11
-	DefaultCslPeriod   = 3 * 1000               // in units of 160 us
-	DefaultCslPeriodUs = 160 * DefaultCslPeriod // MUST be multiple of 160 us
 )
 
 type Config struct {

@@ -388,17 +388,16 @@ func (node *Node) SetChannel(ch ChannelId) {
 
 func (node *Node) GetRfSimParam(param RfSimParam) RfSimParamValue {
 	switch param {
-	case ParamRxSensitivity:
-		fallthrough
-	case ParamCslUncertainty:
-		fallthrough
-	case ParamCslAccuracy:
-		return node.getOrSetRfSimParam(false, param, 0) // TODO
+	case ParamRxSensitivity,
+		ParamCslUncertainty,
+		ParamTxInterferer,
+		ParamCslAccuracy:
+		return node.getOrSetRfSimParam(false, param, 0)
 	case ParamCcaThreshold:
 		return node.GetCcaThreshold()
 	default:
 		node.error(fmt.Errorf("unknown RfSim parameter: %d", param))
-		return 0 // FIXME
+		return 0
 	}
 }
 
@@ -410,9 +409,9 @@ func (node *Node) SetRfSimParam(param RfSimParam, value RfSimParamValue) {
 			return
 		}
 		node.getOrSetRfSimParam(true, param, value)
-	case ParamCslAccuracy:
-		fallthrough
-	case ParamCslUncertainty:
+	case ParamCslAccuracy,
+		ParamCslUncertainty,
+		ParamTxInterferer:
 		if value < 0 || value > 255 {
 			node.error(fmt.Errorf("parameter out of range 0-255"))
 			return
@@ -949,10 +948,15 @@ loop:
 }
 
 func (node *Node) onStart() {
-	node.Logger.Infof("started, panid=0x%04x, chan=%d, eui64=%#v, extaddr=%#v, state=%s, key=%#v, mode=%v",
-		node.GetPanid(), node.GetChannel(), node.GetEui64(), node.GetExtAddr(), node.GetState(),
-		node.GetNetworkKey(), node.GetMode())
-	node.Logger.Infof("         version=%s", node.GetVersion())
+	if node.Logger.IsLevelVisible(logger.InfoLevel) {
+		node.Logger.Infof("started, panid=0x%04x, chan=%d, eui64=%#v, extaddr=%#v, state=%s, key=%#v, mode=%v",
+			node.GetPanid(), node.GetChannel(), node.GetEui64(), node.GetExtAddr(), node.GetState(),
+			node.GetNetworkKey(), node.GetMode())
+		node.Logger.Infof("         version=%s", node.GetVersion())
+	}
+	if node.cfg.Type == WIFI {
+		node.SetRfSimParam(ParamTxInterferer, defaultWiFiTxInterfererPercentage)
+	}
 }
 
 func (node *Node) onProcessFailure() {

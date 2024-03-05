@@ -75,6 +75,11 @@ func (cfg *NodeConfig) UpdateNodeConfigFromType() {
 		cfg.IsMtd = false
 		cfg.IsBorderRouter = true
 		cfg.RxOffWhenIdle = false
+	case WIFI:
+		cfg.IsRouter = true
+		cfg.IsMtd = false
+		cfg.IsBorderRouter = false
+		cfg.RxOffWhenIdle = false
 	default:
 		panic("unknown node type cfg.Type")
 	}

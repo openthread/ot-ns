@@ -28,6 +28,7 @@ package simulation
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -37,31 +38,13 @@ import (
 	. "github.com/openthread/ot-ns/types"
 )
 
-type ExecutableConfig struct {
-	Version     string
-	Ftd         string
-	Mtd         string
-	Br          string
-	SearchPaths []string
-}
-
-type NodeAutoPlacer struct {
-	X, Y, Z         int
-	Xref, Yref      int
-	Xmax            int
-	NodeDeltaCoarse int
-	NodeDeltaFine   int
-	fineCount       int
-	isReset         bool
-}
-
-var DefaultExecutableConfig ExecutableConfig = ExecutableConfig{
-	Version:     "",
-	Ftd:         "ot-cli-ftd",
-	Mtd:         "ot-cli-mtd",
-	Br:          "ot-cli-ftd_br",
-	SearchPaths: []string{".", "./ot-rfsim/ot-versions", "./build/bin"},
-}
+const (
+	DefaultCslPeriod                  = 3 * 1000               // in units of 160 us
+	DefaultCslPeriodUs                = 160 * DefaultCslPeriod // MUST be multiple of 160 us
+	defaultRadioRange                 = 220
+	wifiCcaThreshold                  = 20.0 // in dBm above the noise floor
+	defaultWiFiTxInterfererPercentage = 10
+)
 
 // defaultNodeInitScript is an array of commands, sent to a new node by default (unless changed).
 var defaultNodeInitScript = []string{
@@ -96,7 +79,35 @@ var defaultLegacyCslScript = []string{
 	fmt.Sprintf("csl period %d", DefaultCslPeriod),
 }
 
-var defaultRadioRange = 220
+var defaultWifiInterfererScript = []string{
+	"txpower 20",
+}
+
+type ExecutableConfig struct {
+	Version     string
+	Ftd         string
+	Mtd         string
+	Br          string
+	SearchPaths []string
+}
+
+type NodeAutoPlacer struct {
+	X, Y, Z         int
+	Xref, Yref      int
+	Xmax            int
+	NodeDeltaCoarse int
+	NodeDeltaFine   int
+	fineCount       int
+	isReset         bool
+}
+
+var DefaultExecutableConfig ExecutableConfig = ExecutableConfig{
+	Version:     "",
+	Ftd:         "ot-cli-ftd",
+	Mtd:         "ot-cli-mtd",
+	Br:          "ot-cli-ftd_br",
+	SearchPaths: []string{".", "./ot-rfsim/ot-versions", "./build/bin"},
+}
 
 func DefaultNodeConfig() NodeConfig {
 	return NodeConfig{
@@ -153,6 +164,13 @@ func (s *Simulation) NodeConfigFinalize(nodeCfg *NodeConfig) {
 			cslScript = defaultLegacyCslScript // older nodes use different parameter unit
 		}
 		nodeCfg.InitScript = append(nodeCfg.InitScript, cslScript...)
+	}
+
+	// for Wifi interferer, run specific script.
+	if nodeCfg.Type == WIFI {
+		nodeCfg.InitScript = defaultWifiInterfererScript
+		ccaThresh := math.Round(s.Dispatcher().GetRadioModel().GetParameters().NoiseFloorDbm + wifiCcaThreshold)
+		nodeCfg.InitScript = append(nodeCfg.InitScript, fmt.Sprintf("ccathreshold %d", int(ccaThresh)))
 	}
 }
 

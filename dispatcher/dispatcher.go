@@ -393,11 +393,9 @@ func (d *Dispatcher) handleRecvEvent(evt *Event) {
 			d.setSleeping(node.Id)
 		}
 		d.alarmMgr.SetTimestamp(nodeid, d.CurTime+delay) // schedule future wake-up of node
-	case EventTypeRadioCommStart:
-		fallthrough
-	case EventTypeRadioState:
-		fallthrough
-	case EventTypeRadioChannelSample:
+	case EventTypeRadioCommStart,
+		EventTypeRadioState,
+		EventTypeRadioChannelSample:
 		d.Counters.RadioEvents += 1
 		d.eventQueue.Add(evt)
 	case EventTypeStatusPush:
@@ -542,6 +540,12 @@ func (d *Dispatcher) processNextEvent(simSpeed float64) bool {
 						d.advanceNodeTime(node, evt.Timestamp, false)
 					case EventTypeRadioLog:
 						node.logger.Tracef("%s", string(evt.Data))
+					case EventTypeRadioCommStart:
+						if evt.RadioCommData.Error == OT_TX_TYPE_INTF {
+							// for interference transmissions, visualized here.
+							d.visSendInterference(evt.NodeId, BroadcastNodeId, evt.RadioCommData)
+						}
+						d.radioModel.HandleEvent(node.RadioNode, d.eventQueue, evt)
 					case EventTypeRadioState:
 						d.handleRadioState(node, evt)
 						d.radioModel.HandleEvent(node.RadioNode, d.eventQueue, evt)
@@ -1047,6 +1051,18 @@ func (d *Dispatcher) visSendFrame(srcid NodeId, dstid NodeId, pktframe *wpan.Mac
 		Seq:             pktframe.Seq,
 		DstAddrShort:    pktframe.DstAddrShort,
 		DstAddrExtended: pktframe.DstAddrExtended,
+		SendDurationUs:  uint32(commData.Duration),
+		PowerDbm:        commData.PowerDbm,
+	})
+}
+
+func (d *Dispatcher) visSendInterference(srcid NodeId, dstid NodeId, commData RadioCommEventData) {
+	d.visSend(srcid, dstid, &visualize.MsgVisualizeInfo{
+		Channel:         commData.Channel,
+		FrameControl:    0x04,
+		Seq:             0,
+		DstAddrShort:    0,
+		DstAddrExtended: 0,
 		SendDurationUs:  uint32(commData.Duration),
 		PowerDbm:        commData.PowerDbm,
 	})
