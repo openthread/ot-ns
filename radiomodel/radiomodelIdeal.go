@@ -153,17 +153,18 @@ func (rm *RadioModelIdeal) txStart(srcNode *RadioNode, evt *Event) {
 	srcNode.TxPower = DbValue(evt.RadioCommData.PowerDbm) // get last node's properties from the OT node's event params.
 	srcNode.SetChannel(evt.RadioCommData.Channel)
 
-	// dispatch radio event RadioComm 'start of frame Rx' to listening nodes.
-	rxStartEvt := evt.Copy()
-	rxStartEvt.Type = EventTypeRadioCommStart
-	rxStartEvt.RadioCommData.Error = OT_ERROR_NONE
-	rxStartEvt.MustDispatch = true
-	rm.eventQ.Add(&rxStartEvt)
+	if evt.RadioCommData.Error == OT_ERROR_NONE {
+		// dispatch radio event RadioComm 'start of frame Rx' to listening nodes.
+		rxStartEvt := evt.Copy()
+		rxStartEvt.Type = EventTypeRadioCommStart
+		rxStartEvt.RadioCommData.Error = OT_ERROR_NONE
+		rxStartEvt.MustDispatch = true
+		rm.eventQ.Add(&rxStartEvt)
+	}
 
 	// schedule new internal event to call txStop() at end of duration.
 	txDoneEvt := evt.Copy()
 	txDoneEvt.Type = EventTypeRadioTxDone
-	txDoneEvt.RadioCommData.Error = OT_ERROR_NONE
 	txDoneEvt.MustDispatch = false
 	txDoneEvt.Timestamp += evt.RadioCommData.Duration
 	rm.eventQ.Add(&txDoneEvt)
@@ -173,15 +174,16 @@ func (rm *RadioModelIdeal) txStop(node *RadioNode, evt *Event) {
 	// Dispatch TxDone event back to the source
 	txDoneEvt := evt.Copy()
 	txDoneEvt.Type = EventTypeRadioTxDone
-	txDoneEvt.RadioCommData.Error = OT_ERROR_NONE
 	txDoneEvt.MustDispatch = true
 	rm.eventQ.Add(&txDoneEvt)
 
-	// Create RxDone event, to signal nearby node(s) the frame Rx is done.
-	rxDoneEvt := evt.Copy()
-	rxDoneEvt.Type = EventTypeRadioRxDone
-	rxDoneEvt.MustDispatch = true
-	rm.eventQ.Add(&rxDoneEvt)
+	if evt.RadioCommData.Error == OT_ERROR_NONE {
+		// Create RxDone event, to signal nearby node(s) the frame Rx is done.
+		rxDoneEvt := evt.Copy()
+		rxDoneEvt.Type = EventTypeRadioRxDone
+		rxDoneEvt.MustDispatch = true
+		rm.eventQ.Add(&rxDoneEvt)
+	}
 }
 
 func (rm *RadioModelIdeal) statsTxStart(node *RadioNode, evt *Event) {

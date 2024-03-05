@@ -229,17 +229,18 @@ func (rm *RadioModelMutualInterference) txStart(node *RadioNode, evt *Event) {
 
 	rm.activeTransmitters[ch][node.Id] = node
 
-	// dispatch radio event RadioComm 'start of frame Rx' to listening nodes.
-	rxStartEvt := evt.Copy()
-	rxStartEvt.Type = EventTypeRadioCommStart
-	rxStartEvt.RadioCommData.Error = OT_ERROR_NONE
-	rxStartEvt.MustDispatch = true
-	rm.eventQ.Add(&rxStartEvt)
+	if evt.RadioCommData.Error == OT_ERROR_NONE {
+		// dispatch radio event RadioComm 'start of frame Rx' to listening nodes.
+		rxStartEvt := evt.Copy()
+		rxStartEvt.Type = EventTypeRadioCommStart
+		rxStartEvt.RadioCommData.Error = OT_ERROR_NONE
+		rxStartEvt.MustDispatch = true
+		rm.eventQ.Add(&rxStartEvt)
+	}
 
 	// schedule new internal event to call txStop() at end of duration.
 	txDoneEvt := evt.Copy()
 	txDoneEvt.Type = EventTypeRadioTxDone
-	txDoneEvt.RadioCommData.Error = OT_ERROR_NONE
 	txDoneEvt.MustDispatch = false
 	txDoneEvt.Timestamp += evt.RadioCommData.Duration
 	rm.eventQ.Add(&txDoneEvt)
@@ -259,19 +260,20 @@ func (rm *RadioModelMutualInterference) txStop(node *RadioNode, evt *Event) {
 	// Dispatch TxDone event back to the source, at time==now
 	txDoneEvt := evt.Copy()
 	txDoneEvt.Type = EventTypeRadioTxDone
-	txDoneEvt.RadioCommData.Error = OT_ERROR_NONE
 	txDoneEvt.MustDispatch = true
 	rm.eventQ.Add(&txDoneEvt)
 
-	// Create RxDone event, to signal nearby node(s) that the frame Rx is done, at time==now
-	rxDoneEvt := evt.Copy()
-	rxDoneEvt.Type = EventTypeRadioRxDone
-	rxDoneEvt.RadioCommData.Error = OT_ERROR_NONE
-	if isChannelChangedDuringTx {
-		rxDoneEvt.RadioCommData.Error = OT_ERROR_FCS
+	if evt.RadioCommData.Error == OT_ERROR_NONE {
+		// Create RxDone event, to signal nearby node(s) that the frame Rx is done, at time==now
+		rxDoneEvt := evt.Copy()
+		rxDoneEvt.Type = EventTypeRadioRxDone
+		rxDoneEvt.RadioCommData.Error = OT_ERROR_NONE
+		if isChannelChangedDuringTx {
+			rxDoneEvt.RadioCommData.Error = OT_ERROR_FCS
+		}
+		rxDoneEvt.MustDispatch = true
+		rm.eventQ.Add(&rxDoneEvt)
 	}
-	rxDoneEvt.MustDispatch = true
-	rm.eventQ.Add(&rxDoneEvt)
 }
 
 func (rm *RadioModelMutualInterference) applyInterference(src *RadioNode, dst *RadioNode, evt *Event) {

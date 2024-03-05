@@ -55,6 +55,7 @@ const (
 	BR     = "br"
 	MTD    = "mtd"
 	FTD    = "ftd"
+	WIFI   = "wifi" // Wi-Fi interferer node
 )
 
 func GetNodeName(id NodeId) string {
@@ -188,6 +189,8 @@ const (
 	RFSIM_RADIO_SUBSTATE_RX_ENERGY_SCAN    RadioSubStates = iota
 	RFSIM_RADIO_SUBSTATE_STARTUP           RadioSubStates = iota
 	RFSIM_RADIO_SUBSTATE_INVALID           RadioSubStates = iota
+	RFSIM_RADIO_SUBSTATE_AWAIT_CCA         RadioSubStates = iota
+	RFSIM_RADIO_SUBSTATE_CW_BACKOFF        RadioSubStates = iota
 )
 
 func (s RadioSubStates) String() string {
@@ -224,6 +227,10 @@ func (s RadioSubStates) String() string {
 		return "Startup"
 	case RFSIM_RADIO_SUBSTATE_INVALID:
 		return "Invalid"
+	case RFSIM_RADIO_SUBSTATE_AWAIT_CCA:
+		return "WaitCCA"
+	case RFSIM_RADIO_SUBSTATE_CW_BACKOFF:
+		return "CwBackf"
 	default:
 		return "???????"
 	}

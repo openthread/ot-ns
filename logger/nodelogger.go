@@ -152,6 +152,10 @@ func (nl *NodeLogger) SetDisplayLevel(level Level) {
 	nl.displayLevel = level
 }
 
+func (nl *NodeLogger) IsLevelVisible(level Level) bool {
+	return nl.displayLevel >= level
+}
+
 func (nl *NodeLogger) Log(level Level, msg string) {
 	NodeLogf(nl.Id, level, msg)
 }

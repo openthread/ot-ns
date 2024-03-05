@@ -818,6 +818,15 @@ class BasicTests(OTNSTestCase):
             ns.speed = 23
             self.assertEqual(1.0, ns.speed)
 
+    def testWifiInterferers(self):
+        ns: OTNS = self.ns
+        ns.add('router')
+        ns.add('router')
+        ns.add('router')
+        ns.add('wifi')
+        ns.go(20)
+        # the wifi node stays on partition 0 (Thread is disabled)
+        self.assertEqual(2, len(ns.partitions()))
 
 if __name__ == '__main__':
     unittest.main()
