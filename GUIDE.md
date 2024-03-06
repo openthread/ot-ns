@@ -60,6 +60,7 @@ $ ./script/build_v11
 $ ./script/build_v12
 $ ./script/build_v13
 $ ./script/build_v131
+$ ./script/build_latest
 $ cd ..
 ```
 
