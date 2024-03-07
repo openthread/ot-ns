@@ -26,8 +26,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 # Case study on fast key rotation (low Rotation Time field in Security Policy)
+# Grep the OT node log outputs to see the KeySeqCntr event happen every 2 hour.
 
-import logging
 from otns.cli import OTNS
 from otns.cli.errors import OTNSExitedError
 
@@ -40,8 +40,7 @@ def test_ping(ns):
 
 def main():
     ns = OTNS()
-    ns.logconfig(logging.DEBUG)
-    ns.loglevel = 'debug'
+    ns.loglevel = 'info'
     ns.web()
 
     # Router/Leader
@@ -50,10 +49,11 @@ def main():
 
     # make a copy of Active Dataset into the dataset buffer. Change security policy only.
     ns.node_cmd(1, "dataset init active")
-    ns.node_cmd(1, "dataset securitypolicy 1")
+    ns.node_cmd(1, "dataset securitypolicy 2 onrc 0")
 
     # set pending dataset parameters.
-    ns.node_cmd(1, "dataset delay 200")
+    ns.node_cmd(1, "dataset delay 500")
+    ns.node_cmd(1,"dataset activetimestamp 1696177379")
     ns.node_cmd(1,"dataset pendingtimestamp 1696177379")
 
     # commit as the Pending Dataset. Delay timer starts counting down from then on.
@@ -67,9 +67,10 @@ def main():
     ns.go(10)
 
     for i in range(10):
+        print(f"Simulating time period {i}")
         #ns.node_cmd(1, "keysequence guardtime 0") # use this to force Router to accept new +1 tKSC value
         test_ping(ns)
-        ns.go(3600)   # pass time period for next key rotation
+        ns.go(7200)   # pass time period for next key rotation
 
     #ns.interactive_cli() # enable this in case interactive CLI status checking is needed at the end.
     ns.web_display()
