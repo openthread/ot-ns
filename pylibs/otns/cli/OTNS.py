@@ -235,6 +235,8 @@ class OTNS(object):
     @property
     def loglevel(self) -> str:
         """
+        Get current log-level.
+
         :return: current log-level setting for OT-NS and Node log messages.
         """
         level = self._expect_str(self._do_command(f'log'))
@@ -262,9 +264,11 @@ class OTNS(object):
     @property
     def time(self) -> int:
         """
-        :return: current simulation time in microseconds (us)
+        Get simulation time.
+
+        :return: current simulation time in seconds (us resolution)
         """
-        return self._expect_int(self._do_command(f'time'))
+        return self._expect_int(self._do_command(f'time')) /1.0e6
 
     def set_poll_period(self, nodeid: int, period: float) -> None:
         ms = int(period * 1000)
@@ -379,7 +383,6 @@ class OTNS(object):
         :param prompt: (optional) custom prompt string
         :param user_hint: (optional) user hint about being in CLI mode
         :param close_otns_on_exit: (optional) behavior to close OTNS when user exits the CLI.
-
         :return: True if interactive CLI was started and concluded, False if it could not be
                  started (e.g. already running via a thread).
         """
@@ -403,7 +406,6 @@ class OTNS(object):
         :param prompt: (optional) custom prompt string
         :param user_hint: (optional) user hint about being in CLI mode
         :param close_otns_on_exit: (optional) behavior to close OTNS when user exits the CLI.
-
         :return: True if thread could be started, False if not (e.g. already running).
         """
         with self._lock_interactive_cli:
@@ -432,7 +434,6 @@ class OTNS(object):
         :param txpower: Tx power in dBm of node, or None for OT node default
         :param version: optional OT node version string like 'v11', 'v12', 'v13', or 'v131', etc.
         :param script: optional OT node init script as a single string.
-
         :return: added node ID
         """
         cmd = f'add {type}'
@@ -771,7 +772,6 @@ class OTNS(object):
 
         :param nodeid: target node ID
         :param cmd: command to execute
-
         :return: lines of command output
         """
         cmd = f'node {nodeid} "{cmd}"'
@@ -784,7 +784,6 @@ class OTNS(object):
 
         :param nodeid: target node ID
         :param script: script to execute
-
         :return: lines of command output
         """
         output = []
@@ -823,7 +822,6 @@ class OTNS(object):
 
         :param nodeid: node ID
         :param addrtype: address type (one of mleid, rloc, linklocal), or None for all addresses
-
         :return: list of filtered addresses
         """
         cmd = "ipaddr"
@@ -837,7 +835,6 @@ class OTNS(object):
         Get the MLEID of a node.
 
         :param nodeid: the node ID
-
         :return: the MLEID
         """
         ips = self.get_ipaddrs(nodeid, 'mleid')
@@ -858,7 +855,6 @@ class OTNS(object):
         Get network name.
 
         :param nodeid: node ID
-
         :return: network name
         """
         return self._expect_str(self.node_cmd(nodeid, 'networkname'))
@@ -886,7 +882,6 @@ class OTNS(object):
         Get node pan ID.
 
         :param nodeid: node ID
-
         :return: pan ID
         """
         return self._expect_hex(self.node_cmd(nodeid, 'panid'))
@@ -905,7 +900,6 @@ class OTNS(object):
         Get node pan ID.
 
         :param nodeid: node ID
-
         :return: IEEE 802.15.4 channel number
         """
         return self._expect_hex(self.node_cmd(nodeid, 'channel'))
@@ -915,7 +909,6 @@ class OTNS(object):
         Get node extended pan ID.
 
         :param nodeid: node ID
-
         :return: extended pan ID
         """
         return self._expect_hex(self.node_cmd(nodeid, 'extpanid'))
@@ -925,7 +918,6 @@ class OTNS(object):
         Get network key.
 
         :param nodeid: target node ID
-
         :return: network key as a hex string (without '0x' prefix)
         """
         return self._expect_str(self.node_cmd(nodeid, 'networkkey'))
@@ -1095,6 +1087,7 @@ class OTNS(object):
     def get_router_upgrade_threshold(self, nodeid: int) -> int:
         """
         Get Router upgrade threshold.
+
         :param nodeid: the node ID
         :return: the Router upgrade threshold
         """
@@ -1103,6 +1096,7 @@ class OTNS(object):
     def set_router_upgrade_threshold(self, nodeid: int, val: int) -> None:
         """
         Set Router upgrade threshold.
+
         :param nodeid: the node ID
         :param val: the Router upgrade threshold
         """
@@ -1111,6 +1105,7 @@ class OTNS(object):
     def get_router_downgrade_threshold(self, nodeid: int) -> int:
         """
         Get Router downgrade threshold.
+
         :param nodeid: the node ID
         :return: the Router downgrade threshold
         """
@@ -1119,6 +1114,7 @@ class OTNS(object):
     def set_router_downgrade_threshold(self, nodeid: int, val: int) -> None:
         """
         Set Router downgrade threshold.
+
         :param nodeid: the node ID
         :param val: the Router downgrade threshold
         """
@@ -1127,6 +1123,7 @@ class OTNS(object):
     def get_thread_version(self, nodeid: int) -> int:
         """
         Get Thread version (integer) of a node.
+
         :param nodeid: the node ID
         :return: the Thread version
         """
@@ -1135,6 +1132,7 @@ class OTNS(object):
     def get_node_uptime(self, nodeid: int) -> int:
         """
         Get a node's self-reported uptime in seconds. Resolution is milliseconds.
+
         :param nodeid: the node ID
         :return: the uptime in seconds (converted from node's Dd.hh:mm:ss.ms format)
         """
@@ -1151,6 +1149,7 @@ class OTNS(object):
     def set_node_clock_drift(self, nodeid: int, drift: int):
         """
         Set the clock drift (in PPM) for a node.
+
         :param nodeid: the Node ID
         :param drift: the clock drift in PPM (integer < 0, 0 or > 0)
         :return:
@@ -1167,6 +1166,7 @@ class OTNS(object):
         """
         Get recent CoAP messages collected by OTNS. The 'coaps' function should be enabled prior to
         calling this.
+
         :return: a List of CoAP messages. Each message is a Dict with metadata about the message.
         """
         lines = self._do_command('coaps')
@@ -1188,6 +1188,7 @@ class OTNS(object):
     def kpi_save(self, filename: str = None) -> Dict:
         """
         Save collected OTNS KPI data to a JSON file.
+
         @:param filename the name of the file to save to or None for no filename provided (This will save to
         the OTNS default file ?_kpi.json)
         """
@@ -1204,7 +1205,8 @@ class OTNS(object):
 
     def kpi(self) -> bool:
         """
-        Return the status of OTNS KPI collection.
+        Get the status of OTNS KPI collection.
+
         :return: True if KPI collection is running/started, False if not-running/stopped.
         """
         status = self._expect_str(self._do_command('kpi'))
@@ -1213,6 +1215,7 @@ class OTNS(object):
     def load(self, filename: str) -> None:
         """
         Load new nodes / network topology from a YAML file.
+
         :param filename: file name to load from
         """
         self._do_command(f'load "{filename}"')
@@ -1220,6 +1223,7 @@ class OTNS(object):
     def save(self, filename:str) -> None:
         """
         Save nodes / network topology to a YAML file.
+
         :param filename: file name to save to
         """
         self._do_command(f'save "{filename}"')
@@ -1250,7 +1254,6 @@ class OTNS(object):
         Escape string by replace <whitespace> by \\<whitespace>.
 
         :param s: string to escape
-
         :return: the escaped string
         """
         for c in "\\ \t\r\n":
