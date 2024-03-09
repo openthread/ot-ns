@@ -391,6 +391,7 @@ func (node *Node) GetRfSimParam(param RfSimParam) RfSimParamValue {
 	case ParamRxSensitivity,
 		ParamCslUncertainty,
 		ParamTxInterferer,
+		ParamClockDrift,
 		ParamCslAccuracy:
 		return node.getOrSetRfSimParam(false, param, 0)
 	case ParamCcaThreshold:
@@ -419,6 +420,12 @@ func (node *Node) SetRfSimParam(param RfSimParam, value RfSimParamValue) {
 		node.getOrSetRfSimParam(true, param, value)
 	case ParamCcaThreshold:
 		node.SetCcaThreshold(value)
+	case ParamClockDrift:
+		if value < -127 || value > 127 {
+			node.error(fmt.Errorf("parameter out of range -127 - +127"))
+			return
+		}
+		node.getOrSetRfSimParam(true, param, value)
 	default:
 		node.error(fmt.Errorf("unknown RfSim parameter: %d", param))
 	}

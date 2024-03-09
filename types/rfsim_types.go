@@ -45,6 +45,7 @@ const (
 	ParamCslAccuracy    RfSimParam = 2
 	ParamCslUncertainty RfSimParam = 3
 	ParamTxInterferer   RfSimParam = 4
+	ParamClockDrift     RfSimParam = 5
 	ParamUnknown        RfSimParam = 255
 )
 
@@ -55,9 +56,10 @@ const (
 	RfSimValueInvalid RfSimParamValue = math.MaxInt32
 )
 
-var RfSimParamsList = []RfSimParam{ParamRxSensitivity, ParamCcaThreshold, ParamCslAccuracy, ParamCslUncertainty, ParamTxInterferer}
-var RfSimParamNamesList = []string{"rxsens", "ccath", "cslacc", "cslunc", "txintf"}
-var RfSimParamUnitsList = []string{"dBm", "dBm", "PPM", "10-us", "%"}
+var RfSimParamsList = []RfSimParam{ParamRxSensitivity, ParamCcaThreshold, ParamCslAccuracy, ParamCslUncertainty,
+	ParamTxInterferer, ParamClockDrift}
+var RfSimParamNamesList = []string{"rxsens", "ccath", "cslacc", "cslunc", "txintf", "clkdrift"}
+var RfSimParamUnitsList = []string{"dBm", "dBm", "PPM", "10-us", "%", "PPM"}
 
 func ParseRfSimParam(parName string) RfSimParam {
 	for i := 0; i < len(RfSimParamsList); i++ {
