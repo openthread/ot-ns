@@ -30,6 +30,7 @@ import ipaddress
 import json
 import logging
 import os
+import re
 import readline
 import shutil
 import signal
@@ -1131,10 +1132,34 @@ class OTNS(object):
         """
         return self._expect_int(self.node_cmd(nodeid, 'thread version'))
 
+    def get_node_uptime(self, nodeid: int) -> int:
+        """
+        Get a node's self-reported uptime in seconds. Resolution is milliseconds.
+        :param nodeid: the node ID
+        :return: the uptime in seconds (converted from node's Dd.hh:mm:ss.ms format)
+        """
+        uptime_str = self._expect_str(self.node_cmd(nodeid,'uptime'))
+        # example 'uptime' command OT node output: 1d.00:33:20.020
+        m = re.search('((\d+)d\.)?(\d\d):(\d\d):(\d\d)\.(\d\d\d)', uptime_str)
+        assert m is not None, uptime_str
+        g = m.groups()
+        time_sec = int(g[2]) * 3600 + int(g[3]) * 60 + int(g[4]) + int(g[5]) / 1000.0
+        if g[1] is not None:
+            time_sec += int(g[1]) * 24 * 3600
+        return round(time_sec,3)
+
+    def set_node_clock_drift(self, nodeid: int, drift: int):
+        """
+        Set the clock drift (in PPM) for a node.
+        :param nodeid: the Node ID
+        :param drift: the clock drift in PPM (integer < 0, 0 or > 0)
+        :return:
+        """
+        self._do_command(f'rfsim {nodeid} clkdrift {drift}')
+
     def coaps_enable(self) -> None:
         """
         Enable the 'coaps' function of OTNS to collect info about CoAP messages.
-        :return:
         """
         self._do_command('coaps enable')
 
@@ -1142,6 +1167,7 @@ class OTNS(object):
         """
         Get recent CoAP messages collected by OTNS. The 'coaps' function should be enabled prior to
         calling this.
+        :return: a List of CoAP messages. Each message is a Dict with metadata about the message.
         """
         lines = self._do_command('coaps')
         messages = yaml.safe_load('\n'.join(lines))

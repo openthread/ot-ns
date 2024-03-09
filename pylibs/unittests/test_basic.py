@@ -828,5 +828,32 @@ class BasicTests(OTNSTestCase):
         # the wifi node stays on partition 0 (Thread is disabled)
         self.assertEqual(2, len(ns.partitions()))
 
+    def testClockDriftSetting(self):
+        ns: OTNS = self.ns
+        ns.add('router')
+        ns.add('router')
+        ns.add('router')
+
+        ns.set_node_clock_drift(1,  0)
+        ns.set_node_clock_drift(2, 20)
+        ns.set_node_clock_drift(3, -1)
+
+        ns.go(1000)
+
+        # each node reports a different uptime value, due to their different clock drifts.]
+        self.assertEqual(1000.000, ns.get_node_uptime(1))
+        self.assertEqual(round(1000.0 * (1 + 20e-6),3), ns.get_node_uptime(2))
+        self.assertEqual(round(1000.0 * (1 -  1e-6),3), ns.get_node_uptime(3))
+
+        ns.set_node_clock_drift(2, 0)
+        ns.go(1000)
+        n2_uptime = round(1000.0 * (1 + 20e-6) + 1000.0, 3)
+        self.assertEqual(n2_uptime, ns.get_node_uptime(2))
+
+        # delete other nodes for faster simulation
+        ns.delete(1,3)
+        ns.go(24*3600) # simulate 1 full day - to test the 'uptime' parsing of day values.
+        self.assertEqual(n2_uptime + 24*3600.0, ns.get_node_uptime(2))
+
 if __name__ == '__main__':
     unittest.main()
