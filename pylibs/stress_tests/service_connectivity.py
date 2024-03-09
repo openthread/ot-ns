@@ -145,7 +145,7 @@ class ServiceConnectivityStressTest(BaseStressTest):
         self.result.fail_if(max(delays) > MAX_DELAY_TIME, "Max Delay (%ds)> %ds" % (max(delays), MAX_DELAY_TIME))
 
     def _collect_pings(self, lastIntervalSec):
-        current_sim_time = self.ns.time/1e6
+        current_sim_time = self.ns.time
         for srcid, dstaddr, _, delay in self.ns.pings():
             if delay >= 10000:
                 # ignore failed pings

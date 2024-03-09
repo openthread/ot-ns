@@ -76,7 +76,7 @@ class StressTest(BaseStressTest):
             durations.append(dt)
             par_cnt = len(self.ns.partitions())
             partition_counts.append(par_cnt)
-            sim_time = self.ns.time // 1e6
+            sim_time = self.ns.time
             self.result.append_row('%d' % nrep, '%ds' % sim_time, '%ds' % sum(durations), '%d' % par_cnt)
 
         return durations, partition_counts

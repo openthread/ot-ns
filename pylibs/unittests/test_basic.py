@@ -130,7 +130,7 @@ class BasicTests(OTNSTestCase):
             self.assertEqual(nodeid, ns.add(type, x=n*10, y=10, restore=True))
             self.assertEqual(rloc16, ns.get_rloc16(nodeid))
             self.go(0.1)
-            while len(ns.partitions()) > 1 and ns.time < 100e6:
+            while len(ns.partitions()) > 1 and ns.time < 100:
                 self.go(0.1)
             self.assertFormPartitions(1)
             n += 1
@@ -359,7 +359,7 @@ class BasicTests(OTNSTestCase):
             nid = ns.add("router")
             self.assertEqual(1, nid)
             ns.go(10)
-            self.assertEqual(10e6,ns.time)
+            self.assertEqual(10, ns.time)
 
         # run a second time to make sure the previous simulation is properly terminated
         with OTNS(otns_args=['-log', 'warn', '-speed', '18123']) as ns:
@@ -367,13 +367,13 @@ class BasicTests(OTNSTestCase):
             nid = ns.add("router")
             self.assertEqual(1, nid)
             ns.go(10)
-            self.assertEqual(10e6,ns.time)
+            self.assertEqual(10, ns.time)
 
         with OTNS() as ns:
             ns.add('router')
             ns.add('router')
             self.assertEqual(OTNS.DEFAULT_SIMULATE_SPEED, ns.speed)
-            self.assertEqual(0,ns.time)
+            self.assertEqual(0, ns.time)
 
     def testSetRouterUpgradeThreshold(self):
         ns: OTNS = self.ns
@@ -517,21 +517,21 @@ class BasicTests(OTNSTestCase):
         ns.add('router')
 
         ns.go(10)
-        self.assertEqual(10e6, ns.time) # ns.time returns microseconds
+        self.assertEqual(10.0, ns.time) # ns.time returns microseconds
         ns.go(0.001)
-        self.assertEqual(10001e3, ns.time)
+        self.assertEqual(10.001, ns.time)
         ns.go(1e-3)
-        self.assertEqual(10002e3, ns.time)
+        self.assertEqual(10.002, ns.time)
         ns.go(1e-6)
-        self.assertEqual(10002001, ns.time)
+        self.assertEqual(10.002001, ns.time)
         ns.go(3e-5)
-        self.assertEqual(10002031, ns.time)
+        self.assertEqual(10.002031, ns.time)
         ns.go(1e-7)
-        self.assertEqual(10002031, ns.time) # no time advance: rounded to nearest microsecond.
+        self.assertEqual(10.002031, ns.time) # no time advance: rounded to nearest microsecond.
         ns.go(0.000999) # almost 1 ms
-        self.assertEqual(10003030, ns.time)
+        self.assertEqual(10.003030, ns.time)
         ns.go(4.0000004)
-        self.assertEqual(14003030, ns.time) # rounded to nearest microsecond.
+        self.assertEqual(14.003030, ns.time) # rounded to nearest microsecond.
 
     def testScan(self):
         ns: OTNS = self.ns
@@ -603,7 +603,7 @@ class BasicTests(OTNSTestCase):
         ns.add('router')
         ns.add('router')
         ns.go(60)
-        self.assertEqual(60e6, ns.time)
+        self.assertEqual(60, ns.time)
 
         # With 1 realtime second of autogo, simulation moves approx speed * 1 =~ 5 seconds forward.
         # It can be somewhat lower if the simulation doesn't manage to run at requested speed.
@@ -611,14 +611,14 @@ class BasicTests(OTNSTestCase):
         ns.speed = 5
         ns.autogo = True
         time.sleep(3)
-        self.assertTrue(ns.time > 11e6 + t1)
+        self.assertTrue(ns.time > 11 + t1)
         self.assertTrue(ns.autogo)
 
         # When autogo is disabled, it finishes the current autogo duration of 1 second.
         ns.autogo = False
         t2 = ns.time
         time.sleep(1)
-        self.assertTrue(ns.time <= t2 + 1e6)
+        self.assertTrue(ns.time <= t2 + 1)
         self.assertFalse(ns.autogo)
 
     def testRxSensitivity(self):
