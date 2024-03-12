@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright (c) 2020-2023, The OTNS Authors.
+# Copyright (c) 2020-2024, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -74,38 +74,45 @@ get_openthread_versions()
     fi
 }
 
-rebuild_openthread()
+function get_build_options()
+{
+    local cov=${COVERAGE:-0}
+    if [[ $cov == 1 ]]; then
+        echo "-DOT_COVERAGE=ON"
+    else
+        # TODO: MacOS CI build fails for empty options. So we give one option here that is anyway set.
+        echo "-DOT_OTNS=ON"
+    fi
+}
+
+build_openthread()
 {
     get_openthread
     install_openthread_buildtools
-
     (
         cd ot-rfsim
-        rm -rf ./build
-
-        # TODO: MacOS CI build fails for empty options. So we give one option here that is anyway set.
-        local options=("-DOT_OTNS=ON")
-
-        local COVERAGE=${COVERAGE:-0}
-        if [[ $COVERAGE == 1 ]]; then
-            options+=(
-                "-DOT_COVERAGE=ON"
-            )
-        fi
-
-        ./script/build "${options[@]}"
-        cp ./build/bin/ot-cli-ftd ./ot-versions
+        ./script/build_latest "$(get_build_options)"
     )
+}
+
+build_openthread_br()
+{
+    if [[ ! -f ./ot-rfsim/ot-versions/ot-cli-ftd_br ]]; then
+        get_openthread
+        install_openthread_buildtools
+        (
+            cd ot-rfsim
+            ./script/build_br "$(get_build_options)"
+        )
+    fi
 }
 
 build_openthread_versions()
 {
     get_openthread_versions
     install_openthread_buildtools
-
     (
         cd ot-rfsim
-
-        ./script/build_all
+        ./script/build_all "$(get_build_options)"
     )
 }

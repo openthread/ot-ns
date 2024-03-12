@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2023, The OTNS Authors.
+# Copyright (c) 2023-2024, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -92,7 +92,7 @@ class ExeVersionTests(OTNSTestCase):
         self.assertEqual(7, len(ns.nodes()))
         self.assertEqual(1, len(ns.partitions()))
 
-def testAddVersionNodes(self):
+    def testAddVersionNodes(self):
         ns: OTNS = self.ns
         ns.add('router', x=250, y=250)
         ns.go(10)
@@ -110,6 +110,40 @@ def testAddVersionNodes(self):
         ns.go(10)
         self.assertEqual(5, len(ns.nodes()))
         self.assertEqual(1, len(ns.partitions()))
+
+    def testSsedVersions(self):
+        ns = self.ns
+
+        ns.add("router", 100, 100)
+        ns.go(10)
+        nodeid = ns.add("ssed", version="v12")
+        nodeid = ns.add("ssed", version="v13")
+        nodeid = ns.add("ssed", version="v131")
+        nodeid = ns.add("ssed")
+        ns.go(10)
+        self.assertFormPartitions(1)
+
+        # SSED pings parent
+        for n in range(2,6):
+            ns.ping(n,1,datasize=n+10)
+            ns.go(5)
+        self.assertPings(ns.pings(), 4, max_delay=3000, max_fails=1)
+
+        # parent pings SSED
+        for n in range(2,6):
+            ns.ping(1,n,datasize=n+10)
+            ns.go(5)
+        self.assertPings(ns.pings(), 4, max_delay=3000, max_fails=1)
+
+    def testWifiInterferers(self):
+        ns: OTNS = self.ns
+        ns.add('router')
+        ns.add('router')
+        ns.add('router')
+        ns.add('wifi')
+        ns.go(20)
+        # the wifi node stays on partition 0 (Thread is disabled)
+        self.assertEqual(2, len(ns.partitions()))
 
 
 if __name__ == '__main__':

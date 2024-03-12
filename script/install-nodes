@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright (c) 2020-2023, The OTNS Authors.
+# Copyright (c) 2024, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -24,30 +24,16 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-
-# This script installs OTNS (without any OT node executables) and pyOTNS.
+#
+# This script installs the full set of OT node executables used by OTNS. This
+# includes different Thread protocol version nodes and special node types (BR).
 
 # shellcheck source=script/common.sh
 . "$(dirname "$0")"/common.sh
 
-install_otns()
-{
-    go mod tidy
-    repeat 3 go_install ./cmd/...
-    echo "otns installed: $(command -v otns)"
-}
-
-install_pyotns()
-{
-    cd pylibs
-    python3 setup.py install --user --prefix= 2>/dev/null
-    cd -
-}
-
 main()
 {
-    install_pyotns
-    install_otns
+    build_openthread_versions
 }
 
 main

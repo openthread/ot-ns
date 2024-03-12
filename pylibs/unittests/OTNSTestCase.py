@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2020-2022, The OTNS Authors.
+# Copyright (c) 2020-2024, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -49,11 +49,6 @@ class OTNSTestCase(unittest.TestCase):
         self.ns.close()
         self.ns.save_pcap("tmp/unittest_pcap", self.name() + ".pcap" )
 
-    def assertFormPartitions(self, count: int):
-        pars = self.ns.partitions()
-        self.assertEqual(count, len(pars), f"Partitions count mismatch: expected {count}, but is {len(pars)}")
-        self.assertTrue(0 not in pars, pars)
-
     def go(self, duration: float) -> None:
         """
         Run the simulation for a given duration.
@@ -62,6 +57,21 @@ class OTNSTestCase(unittest.TestCase):
         """
         self.ns.go(duration)
 
+    def assertFormPartitions(self, count: int):
+        pars = self.ns.partitions()
+        self.assertEqual(count, len(pars), f"Partitions count mismatch: expected {count}, but is {len(pars)}")
+        self.assertTrue(0 not in pars, pars)
+
     def assertNodeState(self, nodeid: int, state: str):
         cur_state = self.ns.get_state(nodeid)
         self.assertEqual(state, cur_state, f"Node {nodeid} state mismatch: expected {state}, but is {cur_state}")
+
+    def assertPings(self, pings, n, max_delay=1000, max_fails=0):
+        self.assertEqual(n, len(pings))
+        n_fails = 0
+        for srcid, dst, datasize, delay in pings:
+            if delay == OTNS.MAX_PING_DELAY:
+                n_fails += 1
+            else:
+                self.assertTrue(delay <= max_delay)
+        self.assertTrue(n_fails <= max_fails)
