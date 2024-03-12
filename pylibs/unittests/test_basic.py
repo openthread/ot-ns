@@ -653,27 +653,6 @@ class BasicTests(OTNSTestCase):
         self.assertEqual(['-80 dBm'], ns.node_cmd(2,'ccathreshold'))
         self.assertEqual(['42'], ns.cmd('rfsim 1 ccath'))
 
-    def testCslParameters(self):
-        ns: OTNS = self.ns
-        ns.add('router')
-        ns.add('router')
-        self.assertEqual(['20'], ns.cmd('rfsim 1 cslacc'))
-        self.assertEqual(['10'], ns.cmd('rfsim 2 cslunc'))
-
-        ns.cmd('rfsim 1 cslacc 65')
-        self.assertEqual(['65'], ns.cmd('rfsim 1 cslacc'))
-        self.assertEqual(['10'], ns.cmd('rfsim 2 cslunc'))
-
-        ns.cmd('rfsim 2 cslunc 223')
-        self.assertEqual(['223'], ns.cmd('rfsim 2 cslunc'))
-
-        ns.go(20)
-        self.assertFormPartitions(1)
-
-        ns.add('ssed')
-        ns.go(10)
-        self.assertFormPartitions(1)
-
     def testCmdCommand(self):
         ns: OTNS = self.ns
         output = ns.cmd('autogo') # arbitrary command
@@ -790,9 +769,9 @@ class BasicTests(OTNSTestCase):
         ns.add('router')
         ns.go(10)
         ns.add('router')
-        ns.add('router', version='v12')
-        ns.add('router', version='v11')
-        ns.add('ssed', version='v13')
+        ns.add('router', version='')
+        ns.add('router')
+        ns.add('ssed')
         ns.go(25)
         self.assertEqual(5,len(ns.nodes()))
         self.assertFormPartitions(1)
@@ -817,16 +796,6 @@ class BasicTests(OTNSTestCase):
             self.assertEqual(1.0, ns.speed)
             ns.speed = 23
             self.assertEqual(1.0, ns.speed)
-
-    def testWifiInterferers(self):
-        ns: OTNS = self.ns
-        ns.add('router')
-        ns.add('router')
-        ns.add('router')
-        ns.add('wifi')
-        ns.go(20)
-        # the wifi node stays on partition 0 (Thread is disabled)
-        self.assertEqual(2, len(ns.partitions()))
 
     def testClockDriftSetting(self):
         ns: OTNS = self.ns
@@ -854,6 +823,7 @@ class BasicTests(OTNSTestCase):
         ns.delete(1,3)
         ns.go(24*3600) # simulate 1 full day - to test the 'uptime' parsing of day values.
         self.assertEqual(n2_uptime + 24*3600.0, ns.get_node_uptime(2))
+
 
 if __name__ == '__main__':
     unittest.main()

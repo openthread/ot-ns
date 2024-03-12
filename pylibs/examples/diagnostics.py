@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2023, The OTNS Authors.
+# Copyright (c) 2023-2024, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -25,7 +25,6 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-#
 # Network diagnostics example.
 
 import logging
@@ -54,7 +53,7 @@ def main():
     ns.node_cmd(nid_cl,"netdata register") # TODO check for propagation?
     ns.go(10)
 
-    nid_srv=ns.add("router", x=600, y=500, version="v131") # Router DUT
+    nid_srv=ns.add("router", x=600, y=500) # Router DUT
     ns.go(10)
     # Add Children to the Router
     ns.add("med")

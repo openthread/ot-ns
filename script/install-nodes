@@ -1,4 +1,5 @@
-# Copyright (c) 2020-2024, The OTNS Authors.
+#!/bin/bash
+# Copyright (c) 2024, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -23,38 +24,16 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+#
+# This script installs the full set of OT node executables used by OTNS. This
+# includes different Thread protocol version nodes and special node types (BR).
 
-name: Build
+# shellcheck source=script/common.sh
+. "$(dirname "$0")"/common.sh
 
-on:
-  pull_request:
-    branches:
-      - 'main'
+main()
+{
+    build_openthread_versions
+}
 
-jobs:
-  cancel-previous-runs:
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: rokroskar/workflow-run-cleanup-action@master
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        if: "github.ref != 'refs/heads/main'"
-
-  build:
-    name: Build (Go ${{ matrix.go }}, ${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        go: [ 1.18 ]
-        os: [ ubuntu-22.04, macos-11 ]
-    steps:
-      - uses: actions/setup-go@v4
-        with:
-          go-version: ${{ matrix.go }}
-      - uses: actions/checkout@v3
-      - name: Build
-        run: |
-          ./script/install-deps
-          ./script/install
-          ./script/install-nodes
+main
