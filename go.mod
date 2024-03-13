@@ -36,7 +36,7 @@ require (
 	github.com/simonlingoogle/go-simplelogger v0.0.0-20191122025812-962af3877d65
 	github.com/stretchr/testify v1.7.0
 	google.golang.org/grpc v1.48.0
-	google.golang.org/protobuf v1.27.1
+	google.golang.org/protobuf v1.33.0
 	gopkg.in/yaml.v3 v3.0.0
 )
 
