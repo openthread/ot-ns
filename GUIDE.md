@@ -28,12 +28,28 @@ cd otns
 ./script/install
 ```
 
-This command also builds and installs the required OpenThread nodes.
+This installs `otns` in the Go binary directory of the user (typically `~/go/bin`) and makes the command available in 
+the path. Also, it installs the pyOTNS library in the user's Python `site-packages` (typically in `~/.local/lib`).
+The OT nodes required for running a simulation are not yet installed, however.
 
-## Build OpenThread for OTNS (Optional)
+## Install OT nodes
+
+```bash
+./script/install-nodes
+```
+
+This checks for availability of prebuilt OT nodes, and builds any OT nodes not yet present. This includes a standard 
+set of nodes like FTD, MTD, Border Router (BR) and different Thread versions (1.1, 1.2, 1.3.0, 1.3.1). This build 
+can take a long time. During the build specific commits of the `openthread` Git repo will be checked out in order to 
+access older OpenThread codebases.
+
+These nodes of specific versions can be added to a simulation using specific flags in the `add` command that adds
+a node. Type `help add` in OTNS to see this.
+
+## Manually Build OpenThread for OTNS (Optional)
 
 This fork of OTNS uses POSIX simulation to simulate Thread nodes, with a specific platform `ot-rfsim`.
-The simulator uses node executables such as `ot-cli-ftd`. By default, the `install` script will build 
+The simulator uses node executables such as `ot-cli-ftd`. By default, the `install-nodes` script will build 
 a common set of OpenThread nodes of different version (v1.1, v1.2, v1.3.0, v1.3.1, and "latest") that 
 are used in the various examples and unit-tests of OTNS.
 
@@ -64,14 +80,12 @@ $ ./script/build_latest
 $ cd ..
 ```
 
-These nodes of specific versions can be added to a simulation using specific flags in the `add` command that adds 
-a node. Type `help add` in OTNS to see this.
-
 NOTE: all of the above version-specific build scripts may manipulate the submodule 'openthread' to get a specific 
 desired historical commit.
 
 The generic build script can be invoked as shown below. This will build whatever code is currently 
-residing in the 'openthread' submodule without switching to a specific OT version.
+residing in the 'openthread' submodule without switching to a specific OT version and without clearing any previous 
+build files. So, it can be used for (faster) incremental builds while developing code.
 
 ```bash
 $ cd ot-rfsim
