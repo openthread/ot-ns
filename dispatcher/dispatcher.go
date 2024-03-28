@@ -1377,15 +1377,16 @@ func (d *Dispatcher) handleCoapEvent(node *Node, argsStr string) {
 	}
 }
 
+// EnableCoaps enables CoAP message tracking (if already enabled, it does nothing)
 func (d *Dispatcher) EnableCoaps() {
 	if d.coaps == nil {
 		d.coaps = newCoapsHandler()
 	}
 }
 
-func (d *Dispatcher) CollectCoapMessages() []*CoapMessage {
+func (d *Dispatcher) CollectCoapMessages(clearCollectedMessages bool) []*CoapMessage {
 	if d.coaps != nil {
-		return d.coaps.DumpMessages()
+		return d.coaps.DumpMessages(clearCollectedMessages)
 	} else {
 		return nil
 	}

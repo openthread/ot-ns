@@ -33,6 +33,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/openthread/ot-ns/dispatcher"
 	"github.com/openthread/ot-ns/logger"
 	"github.com/openthread/ot-ns/radiomodel"
 	. "github.com/openthread/ot-ns/types"
@@ -44,6 +45,7 @@ type KpiManager struct {
 	startCounters NodeCountersStore
 	curCounters   NodeCountersStore
 	curRadioStats RadioStatsStore
+	curCoaps      []*dispatcher.CoapMessage
 	isRunning     bool
 }
 
@@ -64,24 +66,29 @@ func (km *KpiManager) Init(sim *Simulation) {
 	km.data = &Kpi{Status: "ok"}
 	km.startCounters = NodeCountersStore{}
 	km.curCounters = NodeCountersStore{}
+	km.curRadioStats = RadioStatsStore{}
 }
 
 func (km *KpiManager) Start() {
 	logger.AssertNotNil(km.sim)
+	d := km.sim.Dispatcher()
 	km.startCounters = km.retrieveNodeCounters()
-	km.data.TimeUs.StartTimeUs = km.sim.Dispatcher().CurTime
-	rm := km.sim.Dispatcher().GetRadioModel()
+	km.data.TimeUs.StartTimeUs = d.CurTime
+	rm := d.GetRadioModel()
 	for ch := radiomodel.MinChannelNumber; ch <= radiomodel.MaxChannelNumber; ch++ {
 		rm.ResetChannelStats(ch)
 	}
+	d.EnableCoaps()
+	_ = d.CollectCoapMessages(true)
 	km.isRunning = true
-	km.SaveFile(km.getDefaultSaveFileName())
 }
 
 func (km *KpiManager) Stop() {
+	logger.AssertNotNil(km.sim)
 	if km.isRunning {
 		km.curCounters = km.retrieveNodeCounters()
 		km.curRadioStats = km.retrieveRadioModelStats()
+		km.curCoaps = km.sim.Dispatcher().CollectCoapMessages(true)
 		km.isRunning = false
 		km.calculateKpis()
 		km.SaveDefaultFile()
@@ -101,6 +108,7 @@ func (km *KpiManager) SaveFile(fn string) {
 	if km.isRunning {
 		km.curCounters = km.retrieveNodeCounters()
 		km.curRadioStats = km.retrieveRadioModelStats()
+		km.curCoaps = km.sim.Dispatcher().CollectCoapMessages(false)
 		km.calculateKpis()
 	}
 
@@ -152,9 +160,9 @@ func (km *KpiManager) retrieveRadioModelStats() RadioStatsStore {
 			if stats != nil {
 				chanKpi := KpiChannel{
 					TxTimeUs:     stats.TxTimeUs,
-					TxPercentage: 100.0 * float64(stats.TxTimeUs) / float64(passedTime),
+					TxPercentage: math.Round(100.0e3*float64(stats.TxTimeUs)/float64(passedTime)) / 1.0e3,
 					NumFrames:    stats.NumFrames,
-					AvgFps:       1.0e6 * float64(stats.NumFrames) / float64(passedTime),
+					AvgFps:       math.Round(1.0e9*float64(stats.NumFrames)/float64(passedTime)) / 1.0e3,
 				}
 				ret[ch] = chanKpi
 			}
@@ -199,8 +207,39 @@ func (km *KpiManager) calculateKpis() {
 			if math.IsNaN(noAckPercent) {
 				noAckPercent = 0.0
 			}
-			km.data.Mac.NoAckPercentage[nid] = noAckPercent
+			km.data.Mac.NoAckPercentage[nid] = math.Round(noAckPercent*1.0e3) / 1.0e3
 			km.data.Counters[nid] = counters
+		}
+	}
+
+	// coaps
+	km.data.Coap.Uri = make(map[string]*KpiCoapUri)
+	for _, c := range km.curCoaps { // create entries per URI
+		if _, ok := km.data.Coap.Uri[c.URI]; !ok {
+			km.data.Coap.Uri[c.URI] = &KpiCoapUri{}
+		}
+	}
+
+	for _, c := range km.curCoaps {
+		uriData := km.data.Coap.Uri[c.URI]
+		uriData.Count += 1
+		latencyMs := 0.0
+		for _, r := range c.Receivers {
+			latencyMs += float64(r.Timestamp-c.Timestamp) / 1.0e3
+		}
+		if len(c.Receivers) >= 1 { // multicast case - average latencies
+			latencyMs /= float64(len(c.Receivers))
+			uriData.LatencyMs += latencyMs
+		} else {
+			uriData.CountLost += 1
+		}
+	}
+
+	for _, ud := range km.data.Coap.Uri {
+		if ud.Count > ud.CountLost { // calc avg latency in ms, rounded to us-units.
+			ud.LatencyMs = math.Round(1.0e3*ud.LatencyMs/float64(ud.Count-ud.CountLost)) / 1.0e3
+		} else {
+			ud.LatencyMs = -1.0 // mark as undefined
 		}
 	}
 }

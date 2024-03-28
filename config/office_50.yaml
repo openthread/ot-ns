@@ -1,0 +1,156 @@
+#
+# OTNS YAML topology file for a 50-node office network
+#
+network:
+    pos-shift: [0, 0, 0]
+nodes:
+    - id: 1
+      type: br
+      pos: [412, 85, 0]
+    - id: 2
+      type: router
+      pos: [446, 85, 0]
+    - id: 3
+      type: router
+      pos: [533, 83, 0]
+    - id: 4
+      type: router
+      pos: [573, 65, 0]
+    - id: 5
+      type: router
+      pos: [609, 82, 0]
+    - id: 6
+      type: router
+      pos: [651, 65, 0]
+    - id: 7
+      type: router
+      pos: [691, 83, 0]
+    - id: 8
+      type: router
+      pos: [689, 120, 0]
+    - id: 9
+      type: router
+      pos: [411, 119, 0]
+    - id: 10
+      type: router
+      pos: [411, 165, 0]
+    - id: 11
+      type: router
+      pos: [451, 122, 0]
+    - id: 12
+      type: router
+      pos: [447, 163, 0]
+    - id: 13
+      type: router
+      pos: [529, 123, 0]
+    - id: 14
+      type: router
+      pos: [533, 163, 0]
+    - id: 15
+      type: router
+      pos: [574, 140, 0]
+    - id: 16
+      type: router
+      pos: [608, 120, 0]
+    - id: 17
+      type: router
+      pos: [610, 161, 0]
+    - id: 18
+      type: router
+      pos: [653, 141, 0]
+    - id: 19
+      type: router
+      pos: [686, 160, 0]
+    - id: 20
+      type: router
+      pos: [687, 198, 0]
+    - id: 21
+      type: router
+      pos: [416, 236, 0]
+    - id: 22
+      type: router
+      pos: [407, 198, 0]
+    - id: 23
+      type: router
+      pos: [450, 235, 0]
+    - id: 24
+      type: router
+      pos: [443, 196, 0]
+    - id: 25
+      type: router
+      pos: [536, 200, 0]
+    - id: 26
+      type: router
+      pos: [535, 237, 0]
+    - id: 27
+      type: router
+      pos: [572, 216, 0]
+    - id: 28
+      type: router
+      pos: [614, 238, 0]
+    - id: 29
+      type: router
+      pos: [618, 201, 0]
+    - id: 30
+      type: router
+      pos: [650, 216, 0]
+    - id: 31
+      type: router
+      pos: [275, 296, 0]
+    - id: 32
+      type: router
+      pos: [336, 293, 0]
+    - id: 33
+      type: router
+      pos: [356, 314, 0]
+    - id: 34
+      type: router
+      pos: [385, 317, 0]
+    - id: 35
+      type: router
+      pos: [410, 297, 0]
+    - id: 36
+      type: router
+      pos: [468, 315, 0]
+    - id: 37
+      type: router
+      pos: [511, 315, 0]
+    - id: 38
+      type: router
+      pos: [541, 306, 0]
+    - id: 39
+      type: router
+      pos: [291, 352, 0]
+    - id: 40
+      type: router
+      pos: [295, 397, 0]
+    - id: 41
+      type: router
+      pos: [355, 356, 0]
+    - id: 42
+      type: router
+      pos: [386, 352, 0]
+    - id: 43
+      type: router
+      pos: [451, 353, 0]
+    - id: 44
+      type: router
+      pos: [452, 390, 0]
+    - id: 45
+      type: router
+      pos: [536, 353, 0]
+    - id: 46
+      type: router
+      pos: [533, 391, 0]
+    - id: 47
+      type: router
+      pos: [296, 432, 0]
+    - id: 48
+      type: router
+      pos: [294, 472, 0]
+    - id: 49
+      type: router
+      pos: [447, 437, 0]
+    - id: 50
+      type: router
+      pos: [449, 468, 0]

@@ -170,21 +170,13 @@ func (ot *OtnsTest) Start(testFunc string) {
 func (ot *OtnsTest) Reset() {
 	ot.SetSpeed(dispatcher.MaxSimulateSpeed)
 	ot.SetPacketLossRatio(0)
-	ot.RemoveAllNodes()
+	ot.DeleteAllNodes()
 	ot.Go(time.Second)
 }
 
 func (ot *OtnsTest) SetPacketLossRatio(ratio float32) {
 	ot.sendCommandf("plr %f", ratio)
 	ot.expectDone()
-}
-
-func (ot *OtnsTest) RemoveAllNodes() {
-	nodes := ot.ListNodes()
-	logger.Infof("Remove all nodes: %+v", nodes)
-	for nodeid := range nodes {
-		ot.DeleteNode(nodeid)
-	}
 }
 
 type NodeInfo struct {
@@ -297,6 +289,10 @@ func (ot *OtnsTest) DeleteNode(ids ...NodeId) {
 		cmd = cmd + fmt.Sprintf(" %d", id)
 	}
 	ot.executeCommand(cmd)
+}
+
+func (ot *OtnsTest) DeleteAllNodes() {
+	ot.executeCommand("del all")
 }
 
 func (ot *OtnsTest) executeCommand(cmd string) []string {

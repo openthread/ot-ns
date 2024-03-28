@@ -107,9 +107,8 @@ func NewSimulation(ctx *progctx.ProgCtx, cfg *Config, dispatcherCfg *dispatcher.
 	s.energyAnalyser = energy.NewEnergyAnalyser()
 	s.d.SetEnergyAnalyser(s.energyAnalyser)
 	s.vis.SetEnergyAnalyser(s.energyAnalyser)
-
 	s.kpiMgr.Init(s)
-	s.kpiMgr.Start()
+
 	return s, nil
 }
 
