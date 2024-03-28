@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2020-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -115,9 +115,12 @@ func (coaps *coapsHandler) findMessage(id int, coapType CoapType, coapCode CoapC
 	return nil
 }
 
-func (coaps *coapsHandler) DumpMessages() (ret []*CoapMessage) {
-	ret, coaps.messages = coaps.messages, nil
-	return
+func (coaps *coapsHandler) DumpMessages(clearCollectedMessages bool) []*CoapMessage {
+	ret := coaps.messages
+	if clearCollectedMessages {
+		coaps.messages = nil
+	}
+	return ret
 }
 
 func newCoapsHandler() *coapsHandler {

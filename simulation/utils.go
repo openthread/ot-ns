@@ -27,6 +27,7 @@
 package simulation
 
 import (
+	"math/rand"
 	"os"
 	"path/filepath"
 	"strings"
@@ -65,4 +66,13 @@ func mergeNodeCounters(counters ...NodeCounters) NodeCounters {
 		}
 	}
 	return res
+}
+
+func randomString(length int) string {
+	chars := "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+	b := make([]byte, length)
+	for i := 0; i < length; i++ {
+		b[i] = chars[rand.Intn(len(chars))]
+	}
+	return string(b)
 }

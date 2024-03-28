@@ -24,6 +24,8 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+// OpenThread-specific types and definitions.
+
 package types
 
 // OT_ERROR_* error codes from OpenThread that can be sent by OT-NS to the OT nodes.
@@ -39,3 +41,66 @@ const (
 	InvalidRloc16   uint16 = 0xfffe
 	BroadcastRloc16 uint16 = 0xffff
 )
+
+type OtDeviceRole int
+
+const (
+	OtDeviceRoleDisabled OtDeviceRole = 0 ///< The Thread stack is disabled.
+	OtDeviceRoleDetached OtDeviceRole = 1 ///< Not currently participating in a Thread network/partition.
+	OtDeviceRoleChild    OtDeviceRole = 2 ///< The Thread Child role.
+	OtDeviceRoleRouter   OtDeviceRole = 3 ///< The Thread Router role.
+	OtDeviceRoleLeader   OtDeviceRole = 4 ///< The Thread Leader role.
+)
+
+func (r OtDeviceRole) String() string {
+	switch r {
+	case OtDeviceRoleDisabled:
+		return "disabled"
+	case OtDeviceRoleDetached:
+		return "detached"
+	case OtDeviceRoleChild:
+		return "child"
+	case OtDeviceRoleRouter:
+		return "router"
+	case OtDeviceRoleLeader:
+		return "leader"
+	default:
+		return "INVALID"
+	}
+}
+
+type OtJoinerState int
+
+const (
+	OtJoinerStateIdle      OtJoinerState = 0
+	OtJoinerStateDiscover  OtJoinerState = 1
+	OtJoinerStateConnect   OtJoinerState = 2
+	OtJoinerStateConnected OtJoinerState = 3
+	OtJoinerStateEntrust   OtJoinerState = 4
+	OtJoinerStateJoined    OtJoinerState = 5
+)
+
+type RadioStates byte
+
+const (
+	RadioDisabled RadioStates = 0
+	RadioSleep    RadioStates = 1
+	RadioRx       RadioStates = 2
+	RadioTx       RadioStates = 3
+	RadioInvalid  RadioStates = 255
+)
+
+func (s RadioStates) String() string {
+	switch s {
+	case RadioDisabled:
+		return "Off"
+	case RadioSleep:
+		return "Slp"
+	case RadioRx:
+		return "Rx_"
+	case RadioTx:
+		return "Tx_"
+	default:
+		return "INVALID"
+	}
+}

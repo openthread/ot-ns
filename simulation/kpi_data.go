@@ -51,6 +51,16 @@ type KpiMac struct {
 	NoAckPercentage map[NodeId]float64 `json:"noack_percent"`
 }
 
+type KpiCoapUri struct {
+	Count     uint64  `json:"tx"`
+	CountLost uint64  `json:"tx_lost"`
+	LatencyMs float64 `json:"avg_latency_ms"`
+}
+
+type KpiCoap struct {
+	Uri map[string]*KpiCoapUri `json:"uri"`
+}
+
 type Kpi struct {
 	FileTime string                   `json:"created"`
 	Status   string                   `json:"status"`
@@ -59,4 +69,5 @@ type Kpi struct {
 	Channels map[ChannelId]KpiChannel `json:"channels"`
 	Mac      KpiMac                   `json:"mac"`
 	Counters map[NodeId]NodeCounters  `json:"counters"`
+	Coap     KpiCoap                  `json:"coap"`
 }

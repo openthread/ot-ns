@@ -50,13 +50,15 @@ import (
 )
 
 const (
-	Prompt = "> "
+	prompt         = "> "
+	maxSendGroupId = 1024
 )
+
+type GroupId int
 
 type CommandContext struct {
 	context.Context
 	*Command
-	rt              *CmdRunner
 	err             error
 	output          io.Writer
 	isBackgroundCmd bool
@@ -66,9 +68,9 @@ func (cc *CommandContext) outputStr(msg string) {
 	_, _ = fmt.Fprint(cc.output, msg)
 }
 
-func (cc *CommandContext) outputStrArray(msg []string) {
+func (cc *CommandContext) outputStrArray(msg []string, prefix string) {
 	for _, line := range msg {
-		_, _ = fmt.Fprint(cc.output, line+"\n")
+		_, _ = fmt.Fprint(cc.output, prefix+line+"\n")
 	}
 }
 
@@ -83,6 +85,10 @@ func (cc *CommandContext) outputErr(err error) {
 
 func (cc *CommandContext) outputf(format string, args ...interface{}) {
 	_, _ = fmt.Fprintf(cc.output, format, args...)
+}
+
+func (cc *CommandContext) warnf(format string, args ...interface{}) {
+	cc.outputf("Warn: "+format+"\n", args...)
 }
 
 func (cc *CommandContext) errorf(format string, args ...interface{}) {
@@ -125,6 +131,7 @@ type CmdRunner struct {
 	ctx           *progctx.ProgCtx
 	contextNodeId NodeId
 	help          Help
+	sendGroupId   int
 }
 
 func NewCmdRunner(ctx *progctx.ProgCtx, sim *simulation.Simulation) *CmdRunner {
@@ -133,6 +140,7 @@ func NewCmdRunner(ctx *progctx.ProgCtx, sim *simulation.Simulation) *CmdRunner {
 		sim:           sim,
 		contextNodeId: InvalidNodeId,
 		help:          newHelp(),
+		sendGroupId:   0,
 	}
 	sim.SetCmdRunner(cr)
 	return cr
@@ -158,6 +166,10 @@ func (rt *CmdRunner) RunCommand(cmdline string, output io.Writer) error {
 	return rt.ctx.Err()
 }
 
+func (rt *CmdRunner) GetNodeContext() NodeId {
+	return rt.contextNodeId
+}
+
 func (rt *CmdRunner) HandleCommand(cmdline string, output io.Writer) error {
 	if rt.ctx.Err() == nil {
 		if rt.contextNodeId != InvalidNodeId && !isContextlessCommand(cmdline) {
@@ -179,16 +191,33 @@ func (rt *CmdRunner) HandleCommand(cmdline string, output io.Writer) error {
 
 func (rt *CmdRunner) GetPrompt() string {
 	if rt.contextNodeId == InvalidNodeId {
-		return Prompt
+		return prompt
 	} else {
-		return fmt.Sprintf("node %d%s", rt.contextNodeId, Prompt)
+		return fmt.Sprintf("node %d%s", rt.contextNodeId, prompt)
 	}
+}
+
+// expandNodeSelector expands an []NodeSelector into the array of NodeIds being selected by the expression.
+func (rt *CmdRunner) expandNodeSelector(nss []NodeSelector) []NodeId {
+	nodeIds := make([]NodeId, 0, len(nss))
+	for _, ns := range getUniqueAndSorted(nss) {
+		if ns.All != nil {
+			return rt.sim.GetNodes()
+		}
+		if ns.IdRange > 0 {
+			for j := ns.Id; j <= ns.IdRange; j++ {
+				nodeIds = append(nodeIds, j)
+			}
+			continue
+		}
+		nodeIds = append(nodeIds, ns.Id)
+	}
+	return nodeIds
 }
 
 func (rt *CmdRunner) execute(cmd *Command, output io.Writer) {
 	cc := &CommandContext{
 		Command:         cmd,
-		rt:              rt,
 		output:          output,
 		isBackgroundCmd: isBackgroundCommand(cmd),
 	}
@@ -290,6 +319,8 @@ func (rt *CmdRunner) execute(cmd *Command, output io.Writer) {
 		rt.executeLoad(cc, cmd.Load)
 	} else if cmd.Save != nil {
 		rt.executeSave(cc, cmd.Save)
+	} else if cmd.Send != nil {
+		rt.executeSend(cc, cmd.Send)
 	} else {
 		logger.Panicf("unimplemented command: %#v", cmd)
 	}
@@ -378,7 +409,7 @@ func (rt *CmdRunner) postAsyncWait(cc *CommandContext, f func(sim *simulation.Si
 
 func (rt *CmdRunner) executeAddNode(cc *CommandContext, cmd *AddCmd) {
 	logger.Debugf("Add: %#v", *cmd)
-	simCfg := cc.rt.sim.GetConfig()
+	simCfg := rt.sim.GetConfig()
 	cfg := simCfg.NewNodeConfig // copy current new-node config for simulation, and modify it.
 
 	cfg.Type = cmd.Type.Val
@@ -425,16 +456,16 @@ func (rt *CmdRunner) executeAddNode(cc *CommandContext, cmd *AddCmd) {
 
 func (rt *CmdRunner) executeDelNode(cc *CommandContext, cmd *DelCmd) {
 	rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
-		for _, sel := range cmd.Nodes {
-			node, _ := rt.getNode(sim, sel)
+		for _, nodeId := range rt.expandNodeSelector(cmd.Nodes) {
+			node, _ := rt.getNodeById(nodeId)
 			if node == nil {
-				cc.outputf("Warn: node %d not found, skipping\n", sel.Id)
+				cc.warnf("node %d not found, skipping", nodeId)
 				continue
 			}
 
 			err := sim.DeleteNode(node.Id)
 			if err != nil {
-				cc.errorf("node %d, %+v", sel.Id, err)
+				cc.errorf("node %d, %+v", nodeId, err)
 			}
 		}
 	})
@@ -451,8 +482,9 @@ func (rt *CmdRunner) executeExit(cc *CommandContext, cmd *ExitCmd) {
 
 func (rt *CmdRunner) executePing(cc *CommandContext, cmd *PingCmd) {
 	logger.Debugf("ping %#v", cmd)
+
 	rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
-		src, _ := rt.getNode(sim, cmd.Src)
+		src, _ := rt.getNode(cmd.Src)
 		if src == nil {
 			cc.errorf("src node not found")
 			return
@@ -460,7 +492,7 @@ func (rt *CmdRunner) executePing(cc *CommandContext, cmd *PingCmd) {
 
 		var dstaddr string
 		if cmd.Dst != nil {
-			dst, _ := rt.getNode(sim, *cmd.Dst)
+			dst, _ := rt.getNode(*cmd.Dst)
 
 			if dst == nil {
 				cc.errorf("dst node not found")
@@ -484,7 +516,7 @@ func (rt *CmdRunner) executePing(cc *CommandContext, cmd *PingCmd) {
 		if cmd.DataSize != nil {
 			datasize = cmd.DataSize.Val
 			if datasize < 4 {
-				logger.Warnf("Ping with datasize < 4 is ignored by OT-NS statistics code.")
+				cc.warnf("ping with datasize < 4 is ignored by OT-NS statistics code")
 			}
 		}
 
@@ -504,17 +536,20 @@ func (rt *CmdRunner) executePing(cc *CommandContext, cmd *PingCmd) {
 	})
 }
 
-func (rt *CmdRunner) getNode(sim *simulation.Simulation, sel NodeSelector) (*simulation.Node, *dispatcher.Node) {
-	if sel.Id > 0 {
+func (rt *CmdRunner) getNodeById(nodeId NodeId) (*simulation.Node, *dispatcher.Node) {
+	if nodeId > 0 {
 		var dnode *dispatcher.Node
-		node := sim.Nodes()[sel.Id]
+		node := rt.sim.Nodes()[nodeId]
 		if node != nil {
 			dnode = node.DNode
 		}
 		return node, dnode
 	}
-
 	return nil, nil
+}
+
+func (rt *CmdRunner) getNode(sel NodeSelector) (*simulation.Node, *dispatcher.Node) {
+	return rt.getNodeById(sel.Id)
 }
 
 func (rt *CmdRunner) getAddrs(node *simulation.Node, addrType *AddrTypeFlag) []string {
@@ -552,7 +587,7 @@ func (rt *CmdRunner) getAddrs(node *simulation.Node, addrType *AddrTypeFlag) []s
 }
 
 func (rt *CmdRunner) executeDebug(cc *CommandContext, cmd *DebugCmd) {
-	logger.Infof("debug %#v", *cmd)
+	logger.Debugf("debug %#v", *cmd)
 
 	if cmd.Echo != nil {
 		cc.outputf("%s\n", *cmd.Echo)
@@ -565,8 +600,9 @@ func (rt *CmdRunner) executeDebug(cc *CommandContext, cmd *DebugCmd) {
 
 func (rt *CmdRunner) executeNode(cc *CommandContext, cmd *NodeCmd) {
 	contextNodeId := InvalidNodeId
+
 	rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
-		node, _ := rt.getNode(sim, cmd.Node)
+		node, _ := rt.getNode(cmd.Node)
 		if node == nil {
 			if cmd.Node.Id == 0 && rt.contextNodeId != InvalidNodeId && rt.enterNodeContext(InvalidNodeId) {
 				// the 'node 0' command will exit node context, only when inside a node-context.
@@ -585,12 +621,11 @@ func (rt *CmdRunner) executeNode(cc *CommandContext, cmd *NodeCmd) {
 
 		if cmd.Command != nil {
 			var output []string
-			prefix := ""
+
 			if cc.isBackgroundCmd {
-				output = node.CommandNoDone(*cmd.Command, simulation.DefaultCommandTimeout)
-				prefix = "  "
+				output = node.CommandNoDone(*cmd.Command)
 			} else {
-				output = node.Command(*cmd.Command, simulation.DefaultCommandTimeout)
+				output = node.Command(*cmd.Command)
 			}
 
 			err := node.CommandResult()
@@ -599,9 +634,7 @@ func (rt *CmdRunner) executeNode(cc *CommandContext, cmd *NodeCmd) {
 			if cc.isBackgroundCmd && err == nil {
 				cc.outputf("Started\n")
 			}
-			for _, line := range output {
-				cc.outputf("%s%s\n", prefix, line)
-			}
+			cc.outputStrArray(output, "")
 
 			if err != nil {
 				cc.error(err)
@@ -635,10 +668,10 @@ func (rt *CmdRunner) executeCountDown(cc *CommandContext, cmd *CountDownCmd) {
 
 func (rt *CmdRunner) executeRadio(cc *CommandContext, radio *RadioCmd) {
 	rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
-		for _, sel := range radio.Nodes {
-			node, dnode := rt.getNode(sim, sel)
+		for _, nodeId := range rt.expandNodeSelector(radio.Nodes) {
+			node, dnode := rt.getNodeById(nodeId)
 			if node == nil {
-				cc.errorf("node %d not found", sel.Id)
+				cc.errorf("node %d not found", nodeId)
 				continue
 			}
 
@@ -670,11 +703,10 @@ func (rt *CmdRunner) executeMoveNode(cc *CommandContext, cmd *MoveCmd) {
 
 func (rt *CmdRunner) executeLsNodes(cc *CommandContext, cmd *NodesCmd) {
 	rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
-		for _, nodeid := range sim.GetNodes() {
-			snode := sim.Nodes()[nodeid]
-			dnode := sim.Dispatcher().GetNode(nodeid)
+		for _, nodeId := range sim.GetNodes() {
+			snode, dnode := rt.getNodeById(nodeId)
 			var line strings.Builder
-			line.WriteString(fmt.Sprintf("id=%d\ttype=%-6s  extaddr=%016x  rloc16=%04x  x=%-2d\ty=%-3d\tz=%-3d\tstate=%s\tfailed=%v", nodeid, dnode.Type, dnode.ExtAddr, dnode.Rloc16,
+			line.WriteString(fmt.Sprintf("id=%d\ttype=%-6s  extaddr=%016x  rloc16=%04x  x=%-2d\ty=%-3d\tz=%-3d\tstate=%s\tfailed=%v", nodeId, dnode.Type, dnode.ExtAddr, dnode.Rloc16,
 				dnode.X, dnode.Y, dnode.Z, dnode.Role, dnode.IsFailed()))
 			line.WriteString(fmt.Sprintf("\texe=%s", snode.GetExecutableName()))
 			cc.outputf("%s\n", line.String())
@@ -692,13 +724,13 @@ func (rt *CmdRunner) executeLsPartitions(cc *CommandContext) {
 		}
 	})
 
-	for parid, nodeids := range pars {
+	for parid, nodeIds := range pars {
 		cc.outputf("partition=%08x\tnodes=", parid)
-		for i, nodeid := range nodeids {
+		for i, nodeId := range nodeIds {
 			if i > 0 {
 				cc.outputf(",")
 			}
-			cc.outputf("%d", nodeid)
+			cc.outputf("%d", nodeId)
 		}
 		cc.outputf("\n")
 	}
@@ -706,6 +738,7 @@ func (rt *CmdRunner) executeLsPartitions(cc *CommandContext) {
 
 func (rt *CmdRunner) executeCollectPings(cc *CommandContext, pings *PingsCmd) {
 	allPings := make(map[NodeId][]*dispatcher.PingResult)
+
 	rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
 		d := sim.Dispatcher()
 		for _, node := range d.Nodes() {
@@ -716,9 +749,9 @@ func (rt *CmdRunner) executeCollectPings(cc *CommandContext, pings *PingsCmd) {
 		}
 	})
 
-	for nodeid, pings := range allPings {
+	for nodeId, pings := range allPings {
 		for _, ping := range pings {
-			cc.outputf("node=%-4d dst=%-40s datasize=%-3d delay=%.3fms\n", nodeid, ping.Dst, ping.DataSize, float64(ping.Delay)/1000)
+			cc.outputf("node=%-4d dst=%-40s datasize=%-3d delay=%.3fms\n", nodeId, ping.Dst, ping.DataSize, float64(ping.Delay)/1000)
 		}
 	}
 }
@@ -736,9 +769,9 @@ func (rt *CmdRunner) executeCollectJoins(cc *CommandContext, joins *JoinsCmd) {
 		}
 	})
 
-	for nodeid, joins := range allJoins {
+	for nodeId, joins := range allJoins {
 		for _, join := range joins {
-			cc.outputf("node=%-4d join=%.3fs session=%.3fs\n", nodeid, float64(join.JoinDuration)/1000000, float64(join.SessionDuration)/1000000)
+			cc.outputf("node=%-4d join=%.3fs session=%.3fs\n", nodeId, float64(join.JoinDuration)/1000000, float64(join.SessionDuration)/1000000)
 		}
 	}
 }
@@ -881,7 +914,7 @@ func (rt *CmdRunner) executeRadioParam(cc *CommandContext, cmd *RadioParamCmd) {
 
 func (rt *CmdRunner) executeRfSim(cc *CommandContext, cmd *RfSimCmd) {
 	rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
-		node, _ := rt.getNode(sim, cmd.Id)
+		node, _ := rt.getNode(cmd.Id)
 		if node == nil {
 			cc.errorf("node not found")
 			return
@@ -955,19 +988,19 @@ func (rt *CmdRunner) executeWatch(cc *CommandContext, cmd *WatchCmd) {
 				return
 			}
 		}
-		nodesToWatch := cmd.Nodes
+		nodesToWatch := rt.expandNodeSelector(cmd.Nodes)
 
-		if len(cmd.Nodes) == 0 && len(cmd.All) == 0 && len(cmd.Default) == 0 && len(cmd.Level) == 0 {
+		if len(nodesToWatch) == 0 && len(cmd.Default) == 0 && len(cmd.Level) == 0 {
 			// variant: 'watch'
 			watchedList := strings.Trim(fmt.Sprintf("%v", sim.Dispatcher().GetWatchingNodes()), "[]")
 			cc.outputf("%v\n", watchedList)
 			return
-		} else if len(cmd.Nodes) == 0 && len(cmd.All) == 0 && len(cmd.Default) > 0 && len(cmd.Level) > 0 {
+		} else if len(nodesToWatch) == 0 && len(cmd.Default) > 0 && len(cmd.Level) > 0 {
 			// variant: 'watch default <level>'
 			sim.Dispatcher().GetConfig().DefaultWatchOn = cmd.Level != logger.OffLevelString && cmd.Level != logger.NoneLevelString
 			sim.Dispatcher().GetConfig().DefaultWatchLevel = cmd.Level
 			return
-		} else if len(cmd.Nodes) == 0 && len(cmd.All) == 0 && len(cmd.Default) > 0 && len(cmd.Level) == 0 {
+		} else if len(nodesToWatch) == 0 && len(cmd.Default) > 0 && len(cmd.Level) == 0 {
 			// variant: 'watch default'
 			watchLevelDefault := logger.DefaultLevelString
 			if sim.Dispatcher().GetConfig().DefaultWatchOn {
@@ -975,15 +1008,10 @@ func (rt *CmdRunner) executeWatch(cc *CommandContext, cmd *WatchCmd) {
 			}
 			cc.outputf("%s\n", watchLevelDefault)
 			return
-		} else if len(cmd.Nodes) == 0 && len(cmd.All) > 0 && len(cmd.Default) == 0 {
-			// variant: 'watch all [<level>]'
-			for nodeid := range sim.Nodes() {
-				nodesToWatch = append(nodesToWatch, NodeSelector{Id: nodeid})
-			}
-		} else if len(cmd.Nodes) > 0 && len(cmd.All) == 0 && len(cmd.Default) == 0 {
+		} else if len(nodesToWatch) > 0 && len(cmd.Default) == 0 {
 			// variant: 'watch <nodeid> [<nodeid> ...] [<level>]'
 			// Do nothing here. Will iterate over nodes below.
-		} else if len(cmd.Nodes) == 0 && len(cmd.All) == 0 && len(cmd.Default) == 0 && len(cmd.Level) > 0 {
+		} else if len(nodesToWatch) == 0 && len(cmd.Default) == 0 && len(cmd.Level) > 0 {
 			// variant: 'watch <level>'
 			// Do nothing here. <level> was processed above already.
 		} else {
@@ -991,10 +1019,10 @@ func (rt *CmdRunner) executeWatch(cc *CommandContext, cmd *WatchCmd) {
 			return
 		}
 
-		for _, sel := range nodesToWatch {
-			node, _ := rt.getNode(sim, sel)
+		for _, nodeId := range nodesToWatch {
+			node, _ := rt.getNodeById(nodeId)
 			if node == nil {
-				cc.errorf("node %d not found", sel.Id)
+				cc.errorf("node %d not found", nodeId)
 				continue
 			}
 			sim.Dispatcher().WatchNode(node.Id, level)
@@ -1005,15 +1033,16 @@ func (rt *CmdRunner) executeWatch(cc *CommandContext, cmd *WatchCmd) {
 func (rt *CmdRunner) executeUnwatch(cc *CommandContext, cmd *UnwatchCmd) {
 	rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
 		// if no node-number(s) given, unwatch all.
-		if len(cmd.Nodes) == 0 {
+		nodesToUnwatch := rt.expandNodeSelector(cmd.Nodes)
+		if len(nodesToUnwatch) == 0 {
 			for _, n := range sim.Dispatcher().GetWatchingNodes() {
 				sim.Dispatcher().UnwatchNode(n)
 			}
 		} else {
-			for _, sel := range cmd.Nodes {
-				node, _ := rt.getNode(sim, sel)
+			for _, nodeId := range nodesToUnwatch {
+				node, _ := rt.getNodeById(nodeId)
 				if node == nil {
-					cc.outputf("Warn: node %d not found, skipping\n", sel.Id)
+					cc.warnf("node %d not found, skipping", nodeId)
 					continue
 				}
 				sim.Dispatcher().UnwatchNode(node.Id)
@@ -1044,23 +1073,24 @@ func (rt *CmdRunner) executePlr(cc *CommandContext, cmd *PlrCmd) {
 
 func (rt *CmdRunner) executeScan(cc *CommandContext, cmd *ScanCmd) {
 	rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
-		node, _ := rt.getNode(sim, cmd.Node)
+		node, _ := rt.getNode(cmd.Node)
 		if node == nil {
 			cc.errorf("node %d not found", cmd.Node.Id)
 			return
 		}
-		output := node.CommandNoDone("scan", simulation.DefaultCommandTimeout)
+		output := node.CommandNoDone("scan")
 		err := node.CommandResult()
 		cc.error(err)
 		if err == nil {
 			cc.outputf("Started\n")
 		}
-		cc.outputStrArray(output)
+		cc.outputStrArray(output, node.String())
 	})
 }
 
 func (rt *CmdRunner) executeConfigVisualization(cc *CommandContext, cmd *ConfigVisualizationCmd) {
 	var opts dispatcher.VisualizationOptions
+
 	rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
 		opts = sim.Dispatcher().GetVisualizationOptions()
 
@@ -1101,13 +1131,13 @@ func (rt *CmdRunner) executeConfigVisualization(cc *CommandContext, cmd *ConfigV
 	cc.outputf("ctb=%s\n", bool_to_onoroff(opts.ChildTable))
 }
 
-func (rt *CmdRunner) enterNodeContext(nodeid NodeId) bool {
-	logger.AssertTrue(nodeid == InvalidNodeId || nodeid > 0)
-	if rt.contextNodeId == nodeid {
+func (rt *CmdRunner) enterNodeContext(nodeId NodeId) bool {
+	logger.AssertTrue(nodeId == InvalidNodeId || nodeId > 0)
+	if rt.contextNodeId == nodeId {
 		return false
 	}
 
-	rt.contextNodeId = nodeid
+	rt.contextNodeId = nodeId
 	return true
 }
 
@@ -1132,6 +1162,7 @@ func (rt *CmdRunner) executeTitle(cc *CommandContext, cmd *TitleCmd) {
 
 func (rt *CmdRunner) executeTime(cc *CommandContext, cmd *TimeCmd) {
 	var dispTime uint64
+
 	rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
 		dispTime = sim.Dispatcher().CurTime
 	})
@@ -1159,7 +1190,7 @@ func (rt *CmdRunner) executeCoaps(cc *CommandContext, cmd *CoapsCmd) {
 	} else {
 		var coapMessages []*dispatcher.CoapMessage
 		rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
-			coapMessages = sim.Dispatcher().CollectCoapMessages()
+			coapMessages = sim.Dispatcher().CollectCoapMessages(true)
 		})
 
 		cc.outputItemsAsYaml(coapMessages)
@@ -1328,7 +1359,111 @@ func (rt *CmdRunner) executeLoad(cc *CommandContext, cmd *LoadCmd) {
 
 		err = sim.ImportNodes(cfgFile.NetworkConfig, cfgFile.NodesList)
 		if err != nil {
-			cc.outputf("Warning: %v\n", err)
+			cc.warnf("%v", err)
+		}
+	})
+}
+
+func (rt *CmdRunner) executeSend(cc *CommandContext, cmd *SendCmd) {
+	rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
+		src, _ := rt.getNode(cmd.SrcId)
+
+		if cmd.Protocol == "reset" {
+			if cmd.SrcId.All == nil {
+				cc.warnf("preferably use 'send reset all' to reset state on all nodes")
+			}
+			for _, nodeId := range rt.expandNodeSelector([]NodeSelector{cmd.SrcId}) {
+				node, _ := rt.getNodeById(nodeId)
+				err := node.SendReset()
+				if err != nil {
+					cc.error(err)
+				}
+			}
+			rt.sendGroupId = 1
+			return
+		}
+		if len(cmd.DstId) == 0 {
+			cc.errorf("missing dest node ID parameter(s)")
+			return
+		}
+
+		dst, _ := rt.getNode(cmd.DstId[0])                // unicast destination
+		dstGrpNodeIds := rt.expandNodeSelector(cmd.DstId) // multicast destination node IDs
+		isMulticast := len(dstGrpNodeIds) > 1
+		isUdp := cmd.Protocol == "udp"
+		isCoap := cmd.Protocol == "coap"
+		isCoapCon := cmd.ProtoParam == "con"
+
+		if !isUdp && !isCoap {
+			cc.errorf("unsupported protocol: %s", cmd.Protocol)
+			return
+		}
+		if src == nil {
+			cc.errorf("source node %d not found", cmd.SrcId.Id)
+			return
+		}
+		if dst == nil && !isMulticast {
+			cc.errorf("destination node %d not found", cmd.DstId[0].Id)
+			return
+		}
+
+		if err := src.SendInit(); err != nil {
+			cc.errorf("source node init failed: %v", err)
+			return
+		}
+
+		if isMulticast {
+			if rt.sendGroupId >= maxSendGroupId {
+				cc.errorf("'send' reached max multicast group ID %d, run 'send reset' to reset back to %d", maxSendGroupId, rt.sendGroupId)
+				return
+			}
+			rt.sendGroupId++
+		}
+
+		for _, nodeId := range dstGrpNodeIds {
+			dst, _ = rt.getNodeById(nodeId)
+			if dst == nil {
+				cc.warnf("destination node %d not found, skipping", nodeId)
+				continue
+			}
+
+			if err := dst.SendInit(); err != nil {
+				cc.errorf("destination node %d send-init failed: %v", nodeId, err)
+				return
+			}
+			if isMulticast {
+				if err := dst.SendGroupMembership(rt.sendGroupId, true); err != nil {
+					cc.error(err)
+					return
+				}
+			}
+		}
+
+		var dstAddr string
+		if !isMulticast {
+			dstaddrs := rt.getAddrs(dst, cmd.AddrType)
+			if len(dstaddrs) <= 0 {
+				cc.errorf("dst addr not found")
+				return
+			}
+			dstAddr = dstaddrs[0]
+		} else {
+			dstAddr = fmt.Sprintf("%s:%x", simulation.SendMcastPrefix, rt.sendGroupId)
+		}
+
+		datasz := 32
+		if cmd.DataSize != nil {
+			datasz = cmd.DataSize.Val
+		}
+
+		var err error
+		if isUdp {
+			err = src.UdpSendTestData(dstAddr, simulation.SendUdpPort, datasz)
+		} else if isCoap {
+			err = src.CoapPostTestData(dstAddr, simulation.SendCoapResourceName, isCoapCon, datasz)
+		}
+		if err != nil {
+			cc.error(err)
 		}
 	})
 }

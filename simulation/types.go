@@ -50,9 +50,13 @@ const (
 	nodeUartTypeVirtualTime NodeUartType = iota
 )
 
-// CmdRunner can point to an external package that can run a user's CLI commands.
+// CmdRunner will point to an external package that can run a user's CLI commands.
 type CmdRunner interface {
+	// RunCommand will let the CmdRunner execute/run the user's CLI cmd. CLI output is sent to 'output'.
 	RunCommand(cmd string, output io.Writer) error
+
+	// GetNodeContext returns the current CLI context as selected by the user, or InvalidNodeId if none.
+	GetNodeContext() NodeId
 }
 
 // NodeCounters keeps track of a node's internal diagnostic counters.

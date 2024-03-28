@@ -166,9 +166,16 @@ func TestParseBytes(t *testing.T) {
 
 	assert.True(t, parseBytes([]byte("time"), &cmd) == nil && cmd.Time != nil)
 
+	assert.True(t, parseBytes([]byte("send udp 12 54 mleid datasize 123"), &cmd) == nil && cmd.Send != nil &&
+		len(cmd.Send.DstId) == 1 && cmd.Send.DstId[0].Id == 54 && cmd.Send.AddrType.Type == AddrTypeMleid)
+	assert.True(t, parseBytes([]byte("send udp 2 13-18 27-39 ds 123"), &cmd) == nil && cmd.Send != nil &&
+		len(cmd.Send.DstId) == 2 && cmd.Send.DstId[0].Id == 13 && cmd.Send.DataSize.Val == 123)
+
 	assert.True(t, parseBytes([]byte("watch"), &cmd) == nil && cmd.Watch != nil && cmd.Watch.Nodes == nil)
-	assert.True(t, parseBytes([]byte("watch all"), &cmd) == nil && cmd.Watch != nil && cmd.Watch.Nodes == nil && cmd.Watch.All == "all")
+	assert.True(t, parseBytes([]byte("watch all"), &cmd) == nil && cmd.Watch != nil && len(cmd.Watch.Nodes) == 1 &&
+		cmd.Watch.Nodes[0].All != nil)
 	assert.True(t, parseBytes([]byte("watch 2 5 6"), &cmd) == nil && cmd.Watch != nil && cmd.Watch.Nodes != nil)
+	assert.True(t, parseBytes([]byte("watch 2 50 75-80 93-95"), &cmd) == nil && cmd.Watch != nil && cmd.Watch.Nodes != nil)
 	assert.True(t, parseBytes([]byte("watch 1 2 5 6 debug"), &cmd) == nil && cmd.Watch != nil && cmd.Watch.Nodes != nil &&
 		len(cmd.Watch.Level) == 5)
 	assert.True(t, parseBytes([]byte("watch default T"), &cmd) == nil && cmd.Watch != nil && cmd.Watch.Nodes == nil &&
@@ -267,4 +274,44 @@ func TestCliCommandNotDefined(t *testing.T) {
 	assert.Equal(t, 1, handler.handleCount)
 
 	Cli.Stop() // calling Stop() after CLI has already exited.
+}
+
+func TestNodeSelectorUniqueSorted(t *testing.T) {
+	var inp, outp, exp []NodeSelector
+
+	inp = []NodeSelector{{Id: 3}, {Id: 3}, {Id: 1}, {Id: 2}, {Id: 1234}}
+	exp = []NodeSelector{{Id: 1}, {Id: 2}, {Id: 3}, {Id: 1234}}
+	outp = getUniqueAndSorted(inp)
+	assert.Equal(t, exp, outp)
+
+	inp = []NodeSelector{{Id: 1}, {Id: 18}, {Id: 17}, {Id: 18}, {Id: 2}, {Id: 19}, {Id: 1}}
+	exp = []NodeSelector{{Id: 1}, {Id: 2}, {Id: 17}, {Id: 18}, {Id: 19}}
+	outp = getUniqueAndSorted(inp)
+	assert.Equal(t, exp, outp)
+
+	inp = []NodeSelector{{Id: 42}}
+	exp = []NodeSelector{{Id: 42}}
+	outp = getUniqueAndSorted(inp)
+	assert.Equal(t, exp, outp)
+
+	inp = []NodeSelector{}
+	exp = []NodeSelector{}
+	outp = getUniqueAndSorted(inp)
+	assert.Equal(t, exp, outp)
+
+	inp = []NodeSelector{{Id: 18, IdRange: 40}, {Id: 8}}
+	exp = []NodeSelector{{Id: 8}, {Id: 18, IdRange: 40}}
+	outp = getUniqueAndSorted(inp)
+	assert.Equal(t, exp, outp)
+
+	inp = []NodeSelector{{Id: 200, IdRange: 299}, {Id: 18, IdRange: 40}, {Id: 88}}
+	exp = []NodeSelector{{Id: 18, IdRange: 40}, {Id: 88}, {Id: 200, IdRange: 299}}
+	outp = getUniqueAndSorted(inp)
+	assert.Equal(t, exp, outp)
+
+	allStr := "all"
+	inp = []NodeSelector{{Id: 200, IdRange: 299}, {All: &allStr}, {Id: 88}}
+	exp = []NodeSelector{{All: &allStr}}
+	outp = getUniqueAndSorted(inp)
+	assert.Equal(t, exp, outp)
 }

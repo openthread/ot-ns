@@ -24,6 +24,8 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+// OT-RFSIM-platform-specific types and definitions.
+
 package types
 
 import "math"
@@ -35,6 +37,72 @@ const (
 	RssiMin           = -126
 	RssiMinusInfinity = -127
 )
+
+type RadioSubStates byte
+
+const (
+	RFSIM_RADIO_SUBSTATE_READY             RadioSubStates = 0
+	RFSIM_RADIO_SUBSTATE_IFS_WAIT          RadioSubStates = iota
+	RFSIM_RADIO_SUBSTATE_TX_CCA            RadioSubStates = iota
+	RFSIM_RADIO_SUBSTATE_TX_CCA_TO_TX      RadioSubStates = iota
+	RFSIM_RADIO_SUBSTATE_TX_FRAME_ONGOING  RadioSubStates = iota
+	RFSIM_RADIO_SUBSTATE_TX_TX_TO_RX       RadioSubStates = iota
+	RFSIM_RADIO_SUBSTATE_TX_TX_TO_AIFS     RadioSubStates = iota
+	RFSIM_RADIO_SUBSTATE_TX_AIFS_WAIT      RadioSubStates = iota
+	RFSIM_RADIO_SUBSTATE_TX_ACK_RX_ONGOING RadioSubStates = iota
+	RFSIM_RADIO_SUBSTATE_RX_FRAME_ONGOING  RadioSubStates = iota
+	RFSIM_RADIO_SUBSTATE_RX_AIFS_WAIT      RadioSubStates = iota
+	RFSIM_RADIO_SUBSTATE_RX_ACK_TX_ONGOING RadioSubStates = iota
+	RFSIM_RADIO_SUBSTATE_RX_TX_TO_RX       RadioSubStates = iota
+	RFSIM_RADIO_SUBSTATE_RX_ENERGY_SCAN    RadioSubStates = iota
+	RFSIM_RADIO_SUBSTATE_STARTUP           RadioSubStates = iota
+	RFSIM_RADIO_SUBSTATE_INVALID           RadioSubStates = iota
+	RFSIM_RADIO_SUBSTATE_AWAIT_CCA         RadioSubStates = iota
+	RFSIM_RADIO_SUBSTATE_CW_BACKOFF        RadioSubStates = iota
+)
+
+func (s RadioSubStates) String() string {
+	switch s {
+	case RFSIM_RADIO_SUBSTATE_READY:
+		return "Ready__"
+	case RFSIM_RADIO_SUBSTATE_IFS_WAIT:
+		return "IFS____"
+	case RFSIM_RADIO_SUBSTATE_TX_CCA:
+		return "CCA____"
+	case RFSIM_RADIO_SUBSTATE_TX_CCA_TO_TX:
+		return "CCA2Tx_"
+	case RFSIM_RADIO_SUBSTATE_TX_FRAME_ONGOING:
+		return "FrameTx"
+	case RFSIM_RADIO_SUBSTATE_TX_TX_TO_RX:
+		return "Tx2Rx__"
+	case RFSIM_RADIO_SUBSTATE_TX_TX_TO_AIFS:
+		return "Tx2AIFS"
+	case RFSIM_RADIO_SUBSTATE_TX_AIFS_WAIT:
+		return "TxAIFS_"
+	case RFSIM_RADIO_SUBSTATE_TX_ACK_RX_ONGOING:
+		return "AckRx__"
+	case RFSIM_RADIO_SUBSTATE_RX_FRAME_ONGOING:
+		return "FrameRx"
+	case RFSIM_RADIO_SUBSTATE_RX_AIFS_WAIT:
+		return "RxAIFS_"
+	case RFSIM_RADIO_SUBSTATE_RX_ACK_TX_ONGOING:
+		return "AckTx__"
+	case RFSIM_RADIO_SUBSTATE_RX_TX_TO_RX:
+		return "AckT2Rx"
+	case RFSIM_RADIO_SUBSTATE_RX_ENERGY_SCAN:
+		return "EnrScan"
+	case RFSIM_RADIO_SUBSTATE_STARTUP:
+		return "Startup"
+	case RFSIM_RADIO_SUBSTATE_INVALID:
+		return "Invalid"
+	case RFSIM_RADIO_SUBSTATE_AWAIT_CCA:
+		return "WaitCCA"
+	case RFSIM_RADIO_SUBSTATE_CW_BACKOFF:
+		return "CwBackf"
+	default:
+		return "???????"
+	}
+}
 
 // RfSim radio parameters, see ot-rfsim repo for values
 type RfSimParam uint8

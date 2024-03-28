@@ -115,7 +115,7 @@ func (s *Simulation) ImportNodes(nwConfig YamlNetworkConfig, nodes []YamlNodeCon
 		s.NodeConfigFinalize(&cfg)
 		_, err := s.AddNode(&cfg)
 		if err != nil {
-			logger.Warnf("Warning: %s", err)
+			logger.Warnf("Warn: %s", err)
 			allOk = false // continue trying to import remaining nodes
 		}
 	}

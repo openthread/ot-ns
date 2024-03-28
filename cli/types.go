@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2023, The OTNS Authors.
+// Copyright (c) 2020-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -28,6 +28,7 @@ package cli
 
 import (
 	"regexp"
+	"sort"
 )
 
 var (
@@ -47,4 +48,37 @@ func isBackgroundCommand(cmd *Command) bool {
 		return true
 	}
 	return false
+}
+
+// getUniqueAndSorted returns a unique-ID'd and sorted version of []NodeSelector.
+func getUniqueAndSorted(input []NodeSelector) []NodeSelector {
+	u := make([]int, 0, len(input))
+	m := make(map[int]NodeSelector, len(input))
+
+	// find unique integers
+	for _, ns := range input {
+		if ns.All != nil { // if 'all' nodes are selected, return only the 'all' selector.
+			return []NodeSelector{ns}
+		}
+		if nsExisting, ok := m[ns.Id]; ok {
+			if nsExisting.IdRange > 0 || ns.IdRange == 0 {
+				continue // only consider 1st occurrence of a given NodeId. Ranges have priority.
+			}
+		}
+		m[ns.Id] = ns
+	}
+
+	// sort
+	for id := range m {
+		u = append(u, id)
+	}
+	sort.Ints(u)
+
+	// output as []NodeSelector
+	n := make([]NodeSelector, 0, len(u))
+	for _, id := range u {
+		n = append(n, m[id])
+	}
+
+	return n
 }

@@ -29,6 +29,7 @@ package simulation
 import (
 	"bufio"
 	"context"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"os"
@@ -52,6 +53,9 @@ import (
 const (
 	DefaultCommandTimeout = time.Second * 10
 	NodeExitTimeout       = time.Second * 3
+	SendCoapResourceName  = "t"
+	SendMcastPrefix       = "ff13::deed"
+	SendUdpPort           = 10000
 )
 
 type Node struct {
@@ -65,6 +69,8 @@ type Node struct {
 	cmdErr        error // store the last CLI command error; nil if none.
 	version       string
 	threadVersion uint16
+	isSendStarted bool
+	sendGroupIds  map[int]struct{}
 
 	pendingLines  chan string       // OT node CLI output lines, pending processing.
 	pendingEvents chan *event.Event // OT node emitted events to be processed.
@@ -108,6 +114,7 @@ func newNode(s *Simulation, nodeid NodeId, cfg *NodeConfig, dnode *dispatcher.No
 		uartType:      nodeUartTypeUndefined,
 		uartReader:    make(chan []byte, 10000),
 		version:       "",
+		sendGroupIds:  make(map[int]struct{}),
 	}
 
 	node.Logger.SetFileLevel(s.cfg.LogFileLevel)
@@ -161,7 +168,7 @@ func (node *Node) runScript(cfg []string) error {
 		if node.S.ctx.Err() != nil {
 			return nil
 		}
-		node.Command(cmd, DefaultCommandTimeout)
+		node.Command(cmd)
 	}
 	return node.CommandResult()
 }
@@ -262,14 +269,14 @@ func (node *Node) inputCommand(cmd string) error {
 
 // CommandNoDone executes the command without expecting 'Done' (e.g. it's a background command).
 // It just reads output lines until the node is asleep.
-func (node *Node) CommandNoDone(cmd string, timeout time.Duration) []string {
+func (node *Node) CommandNoDone(cmd string) []string {
 	err := node.inputCommand(cmd)
 	if err != nil {
 		node.error(err)
 		return []string{}
 	}
 
-	_, err = node.expectLine(cmd, timeout)
+	_, err = node.expectLine(cmd, DefaultCommandTimeout)
 	if err != nil {
 		node.error(err)
 		return []string{}
@@ -291,7 +298,9 @@ func (node *Node) CommandNoDone(cmd string, timeout time.Duration) []string {
 }
 
 // Command executes the command and waits for 'Done', or an 'Error', at end of output.
-func (node *Node) Command(cmd string, timeout time.Duration) []string {
+func (node *Node) Command(cmd string) []string {
+	timeout := DefaultCommandTimeout
+
 	err := node.inputCommand(cmd)
 	if err != nil {
 		node.error(err)
@@ -325,8 +334,14 @@ func (node *Node) CommandResult() error {
 	return node.cmdErr
 }
 
-func (node *Node) CommandExpectString(cmd string, timeout time.Duration) string {
-	output := node.Command(cmd, timeout)
+// CommandChecked executes a command, does not provide any output lines, but returns error resulting from the cmd.
+func (node *Node) CommandChecked(cmd string) error {
+	node.Command(cmd)
+	return node.CommandResult()
+}
+
+func (node *Node) CommandExpectString(cmd string) string {
+	output := node.Command(cmd)
 	if len(output) != 1 {
 		err := fmt.Errorf("%v - expected 1 line, but received %d: %#v", node, len(output), output)
 		node.Logger.Error(err)
@@ -335,8 +350,8 @@ func (node *Node) CommandExpectString(cmd string, timeout time.Duration) string 
 	return output[0]
 }
 
-func (node *Node) CommandExpectInt(cmd string, timeout time.Duration) int {
-	s := node.CommandExpectString(cmd, timeout)
+func (node *Node) CommandExpectInt(cmd string) int {
+	s := node.CommandExpectString(cmd)
 	var iv int64
 	var err error
 
@@ -353,8 +368,8 @@ func (node *Node) CommandExpectInt(cmd string, timeout time.Duration) int {
 	return int(iv)
 }
 
-func (node *Node) CommandExpectHex(cmd string, timeout time.Duration) int {
-	s := node.CommandExpectString(cmd, timeout)
+func (node *Node) CommandExpectHex(cmd string) int {
+	s := node.CommandExpectString(cmd)
 	var iv int64
 	var err error
 
@@ -367,8 +382,8 @@ func (node *Node) CommandExpectHex(cmd string, timeout time.Duration) int {
 	return int(iv)
 }
 
-func (node *Node) CommandExpectEnabledOrDisabled(cmd string, timeout time.Duration) bool {
-	output := node.CommandExpectString(cmd, timeout)
+func (node *Node) CommandExpectEnabledOrDisabled(cmd string) bool {
+	output := node.CommandExpectString(cmd)
 	if output == "Enabled" {
 		return true
 	} else if output == "Disabled" {
@@ -383,7 +398,7 @@ func (node *Node) CommandExpectEnabledOrDisabled(cmd string, timeout time.Durati
 }
 
 func (node *Node) SetChannel(ch ChannelId) {
-	node.Command(fmt.Sprintf("channel %d", ch), DefaultCommandTimeout)
+	node.Command(fmt.Sprintf("channel %d", ch))
 }
 
 func (node *Node) GetRfSimParam(param RfSimParam) RfSimParamValue {
@@ -477,7 +492,7 @@ func (node *Node) getOrSetRfSimParam(isSet bool, param RfSimParam, value RfSimPa
 }
 
 func (node *Node) GetCcaThreshold() RfSimParamValue {
-	s := node.CommandExpectString("ccathreshold", DefaultCommandTimeout)
+	s := node.CommandExpectString("ccathreshold")
 	idx := strings.Index(s, " dBm")
 	iv, err := strconv.ParseInt(s[0:idx], 10, 0)
 	if err != nil {
@@ -489,18 +504,18 @@ func (node *Node) GetCcaThreshold() RfSimParamValue {
 
 func (node *Node) SetCcaThreshold(thresh RfSimParamValue) {
 	if thresh >= RssiMin && thresh <= RssiMax {
-		node.Command(fmt.Sprintf("ccathreshold %d", thresh), DefaultCommandTimeout)
+		node.Command(fmt.Sprintf("ccathreshold %d", thresh))
 	} else {
 		node.error(fmt.Errorf("parameter out of range 0-255"))
 	}
 }
 
 func (node *Node) GetChannel() int {
-	return node.CommandExpectInt("channel", DefaultCommandTimeout)
+	return node.CommandExpectInt("channel")
 }
 
 func (node *Node) GetChildList() (childlist []int) {
-	s := node.CommandExpectString("child list", DefaultCommandTimeout)
+	s := node.CommandExpectString("child list")
 	ss := strings.Split(s, " ")
 
 	for _, ids := range ss {
@@ -513,44 +528,40 @@ func (node *Node) GetChildList() (childlist []int) {
 	return
 }
 
-func (node *Node) GetChildTable() {
-	// todo: not implemented yet
-}
-
 func (node *Node) GetChildTimeout() int {
-	return node.CommandExpectInt("childtimeout", DefaultCommandTimeout)
+	return node.CommandExpectInt("childtimeout")
 }
 
 func (node *Node) SetChildTimeout(timeout int) {
-	node.Command(fmt.Sprintf("childtimeout %d", timeout), DefaultCommandTimeout)
+	node.Command(fmt.Sprintf("childtimeout %d", timeout))
 }
 
 func (node *Node) GetContextReuseDelay() int {
-	return node.CommandExpectInt("contextreusedelay", DefaultCommandTimeout)
+	return node.CommandExpectInt("contextreusedelay")
 }
 
 func (node *Node) SetContextReuseDelay(delay int) {
-	node.Command(fmt.Sprintf("contextreusedelay %d", delay), DefaultCommandTimeout)
+	node.Command(fmt.Sprintf("contextreusedelay %d", delay))
 }
 
 func (node *Node) GetNetworkName() string {
-	return node.CommandExpectString("networkname", DefaultCommandTimeout)
+	return node.CommandExpectString("networkname")
 }
 
 func (node *Node) SetNetworkName(name string) {
-	node.Command(fmt.Sprintf("networkname %s", name), DefaultCommandTimeout)
+	node.Command(fmt.Sprintf("networkname %s", name))
 }
 
 func (node *Node) GetEui64() string {
-	return node.CommandExpectString("eui64", DefaultCommandTimeout)
+	return node.CommandExpectString("eui64")
 }
 
 func (node *Node) SetEui64(eui64 string) {
-	node.Command(fmt.Sprintf("eui64 %s", eui64), DefaultCommandTimeout)
+	node.Command(fmt.Sprintf("eui64 %s", eui64))
 }
 
 func (node *Node) GetExtAddr() uint64 {
-	s := node.CommandExpectString("extaddr", DefaultCommandTimeout)
+	s := node.CommandExpectString("extaddr")
 	v, err := strconv.ParseUint(s, 16, 64)
 	if err != nil {
 		if len(s) > 0 {
@@ -564,54 +575,51 @@ func (node *Node) GetExtAddr() uint64 {
 }
 
 func (node *Node) SetExtAddr(extaddr uint64) {
-	node.Command(fmt.Sprintf("extaddr %016x", extaddr), DefaultCommandTimeout)
+	node.Command(fmt.Sprintf("extaddr %016x", extaddr))
 }
 
 func (node *Node) GetExtPanid() string {
-	return node.CommandExpectString("extpanid", DefaultCommandTimeout)
+	return node.CommandExpectString("extpanid")
 }
 
 func (node *Node) SetExtPanid(extpanid string) {
-	node.Command(fmt.Sprintf("extpanid %s", extpanid), DefaultCommandTimeout)
+	node.Command(fmt.Sprintf("extpanid %s", extpanid))
 }
 
 func (node *Node) GetIfconfig() string {
-	return node.CommandExpectString("ifconfig", DefaultCommandTimeout)
+	return node.CommandExpectString("ifconfig")
 }
 
 func (node *Node) IfconfigUp() {
-	node.Command("ifconfig up", DefaultCommandTimeout)
+	node.Command("ifconfig up")
 }
 
 func (node *Node) IfconfigDown() {
-	node.Command("ifconfig down", DefaultCommandTimeout)
+	node.Command("ifconfig down")
 }
 
 func (node *Node) GetIpAddr() []string {
-	// todo: parse IPv6 addresses
-	addrs := node.Command("ipaddr", DefaultCommandTimeout)
+	addrs := node.Command("ipaddr")
 	return addrs
 }
 
 func (node *Node) GetIpAddrLinkLocal() []string {
-	// todo: parse IPv6 addresses
-	addrs := node.Command("ipaddr linklocal", DefaultCommandTimeout)
+	addrs := node.Command("ipaddr linklocal")
 	return addrs
 }
 
 func (node *Node) GetIpAddrMleid() []string {
-	// todo: parse IPv6 addresses
-	addrs := node.Command("ipaddr mleid", DefaultCommandTimeout)
+	addrs := node.Command("ipaddr mleid")
 	return addrs
 }
 
 func (node *Node) GetIpAddrRloc() []string {
-	addrs := node.Command("ipaddr rloc", DefaultCommandTimeout)
+	addrs := node.Command("ipaddr rloc")
 	return addrs
 }
 
 func (node *Node) GetIpAddrSlaac() []string {
-	addrs := node.Command("ipaddr -v", DefaultCommandTimeout)
+	addrs := node.Command("ipaddr -v")
 	slaacAddrs := make([]string, 0)
 	for _, addr := range addrs {
 		idx := strings.Index(addr, " origin:slaac ")
@@ -623,69 +631,68 @@ func (node *Node) GetIpAddrSlaac() []string {
 }
 
 func (node *Node) GetIpMaddr() []string {
-	// todo: parse IPv6 addresses
-	addrs := node.Command("ipmaddr", DefaultCommandTimeout)
+	addrs := node.Command("ipmaddr")
 	return addrs
 }
 
 func (node *Node) GetIpMaddrPromiscuous() bool {
-	return node.CommandExpectEnabledOrDisabled("ipmaddr promiscuous", DefaultCommandTimeout)
+	return node.CommandExpectEnabledOrDisabled("ipmaddr promiscuous")
 }
 
 func (node *Node) IpMaddrPromiscuousEnable() {
-	node.Command("ipmaddr promiscuous enable", DefaultCommandTimeout)
+	node.Command("ipmaddr promiscuous enable")
 }
 
 func (node *Node) IpMaddrPromiscuousDisable() {
-	node.Command("ipmaddr promiscuous disable", DefaultCommandTimeout)
+	node.Command("ipmaddr promiscuous disable")
 }
 
 func (node *Node) GetPromiscuous() bool {
-	return node.CommandExpectEnabledOrDisabled("promiscuous", DefaultCommandTimeout)
+	return node.CommandExpectEnabledOrDisabled("promiscuous")
 }
 
 func (node *Node) PromiscuousEnable() {
-	node.Command("promiscuous enable", DefaultCommandTimeout)
+	node.Command("promiscuous enable")
 }
 
 func (node *Node) PromiscuousDisable() {
-	node.Command("promiscuous disable", DefaultCommandTimeout)
+	node.Command("promiscuous disable")
 }
 
 func (node *Node) GetRouterEligible() bool {
-	return node.CommandExpectEnabledOrDisabled("routereligible", DefaultCommandTimeout)
+	return node.CommandExpectEnabledOrDisabled("routereligible")
 }
 
 func (node *Node) RouterEligibleEnable() {
-	node.Command("routereligible enable", DefaultCommandTimeout)
+	node.Command("routereligible enable")
 }
 
 func (node *Node) RouterEligibleDisable() {
-	node.Command("routereligible disable", DefaultCommandTimeout)
+	node.Command("routereligible disable")
 }
 
 func (node *Node) GetJoinerPort() int {
-	return node.CommandExpectInt("joinerport", DefaultCommandTimeout)
+	return node.CommandExpectInt("joinerport")
 }
 
 func (node *Node) SetJoinerPort(port int) {
-	node.Command(fmt.Sprintf("joinerport %d", port), DefaultCommandTimeout)
+	node.Command(fmt.Sprintf("joinerport %d", port))
 }
 
 func (node *Node) GetKeySequenceCounter() int {
-	return node.CommandExpectInt("keysequence counter", DefaultCommandTimeout)
+	return node.CommandExpectInt("keysequence counter")
 }
 
 func (node *Node) SetKeySequenceCounter(counter int) {
-	node.Command(fmt.Sprintf("keysequence counter %d", counter), DefaultCommandTimeout)
+	node.Command(fmt.Sprintf("keysequence counter %d", counter))
 }
 
 func (node *Node) GetKeySequenceGuardTime() int {
-	return node.CommandExpectInt("keysequence guardtime", DefaultCommandTimeout)
+	return node.CommandExpectInt("keysequence guardtime")
 }
 
 func (node *Node) SetKeySequenceGuardTime(guardtime int) {
-	node.Command(fmt.Sprintf("keysequence guardtime %d", guardtime), DefaultCommandTimeout)
+	node.Command(fmt.Sprintf("keysequence guardtime %d", guardtime))
 }
 
 type LeaderData struct {
@@ -698,7 +705,7 @@ type LeaderData struct {
 
 func (node *Node) GetLeaderData() (leaderData LeaderData) {
 	var err error
-	output := node.Command("leaderdata", DefaultCommandTimeout)
+	output := node.Command("leaderdata")
 	for _, line := range output {
 		if strings.HasPrefix(line, "Partition ID:") {
 			leaderData.PartitionID, err = strconv.Atoi(line[14:])
@@ -728,20 +735,12 @@ func (node *Node) GetLeaderData() (leaderData LeaderData) {
 	return
 }
 
-func (node *Node) GetLeaderPartitionId() int {
-	return node.CommandExpectInt("leaderpartitionid", DefaultCommandTimeout)
-}
-
-func (node *Node) SetLeaderPartitionId(partitionid int) {
-	node.Command(fmt.Sprintf("leaderpartitionid 0x%x", partitionid), DefaultCommandTimeout)
-}
-
 func (node *Node) GetLeaderWeight() int {
-	return node.CommandExpectInt("leaderweight", DefaultCommandTimeout)
+	return node.CommandExpectInt("leaderweight")
 }
 
 func (node *Node) SetLeaderWeight(weight int) {
-	node.Command(fmt.Sprintf("leaderweight 0x%x", weight), DefaultCommandTimeout)
+	node.Command(fmt.Sprintf("leaderweight %d", weight))
 }
 
 func (node *Node) FactoryReset() {
@@ -779,83 +778,173 @@ func (node *Node) Ping(addr string, payloadSize int, count int, interval int, ho
 }
 
 func (node *Node) GetNetworkKey() string {
-	return node.CommandExpectString("networkkey", DefaultCommandTimeout)
+	return node.CommandExpectString("networkkey")
 }
 
 func (node *Node) SetNetworkKey(key string) {
-	node.Command(fmt.Sprintf("networkkey %s", key), DefaultCommandTimeout)
+	node.Command(fmt.Sprintf("networkkey %s", key))
 }
 
 func (node *Node) GetMode() string {
-	// todo: return Mode type rather than just string
-	return node.CommandExpectString("mode", DefaultCommandTimeout)
+	// TODO: return Mode type rather than just string
+	return node.CommandExpectString("mode")
 }
 
 func (node *Node) SetMode(mode string) {
-	node.Command(fmt.Sprintf("mode %s", mode), DefaultCommandTimeout)
+	node.Command(fmt.Sprintf("mode %s", mode))
 }
 
 func (node *Node) GetPanid() uint16 {
-	// todo: return Mode type rather than just string
-	return uint16(node.CommandExpectInt("panid", DefaultCommandTimeout))
+	return uint16(node.CommandExpectInt("panid"))
 }
 
 func (node *Node) SetPanid(panid uint16) {
-	node.Command(fmt.Sprintf("panid 0x%x", panid), DefaultCommandTimeout)
+	node.Command(fmt.Sprintf("panid 0x%x", panid))
 }
 
 func (node *Node) GetRloc16() uint16 {
-	return uint16(node.CommandExpectHex("rloc16", DefaultCommandTimeout))
+	return uint16(node.CommandExpectHex("rloc16"))
 }
 
 func (node *Node) GetRouterSelectionJitter() int {
-	return node.CommandExpectInt("routerselectionjitter", DefaultCommandTimeout)
+	return node.CommandExpectInt("routerselectionjitter")
 }
 
 func (node *Node) SetRouterSelectionJitter(timeout int) {
-	node.Command(fmt.Sprintf("routerselectionjitter %d", timeout), DefaultCommandTimeout)
+	node.Command(fmt.Sprintf("routerselectionjitter %d", timeout))
 }
 
 func (node *Node) GetRouterUpgradeThreshold() int {
-	return node.CommandExpectInt("routerupgradethreshold", DefaultCommandTimeout)
+	return node.CommandExpectInt("routerupgradethreshold")
 }
 
 func (node *Node) SetRouterUpgradeThreshold(timeout int) {
-	node.Command(fmt.Sprintf("routerupgradethreshold %d", timeout), DefaultCommandTimeout)
+	node.Command(fmt.Sprintf("routerupgradethreshold %d", timeout))
 }
 
 func (node *Node) GetRouterDowngradeThreshold() int {
-	return node.CommandExpectInt("routerdowngradethreshold", DefaultCommandTimeout)
+	return node.CommandExpectInt("routerdowngradethreshold")
 }
 
 func (node *Node) SetRouterDowngradeThreshold(timeout int) {
-	node.Command(fmt.Sprintf("routerdowngradethreshold %d", timeout), DefaultCommandTimeout)
+	node.Command(fmt.Sprintf("routerdowngradethreshold %d", timeout))
 }
 
 func (node *Node) GetState() string {
-	return node.CommandExpectString("state", DefaultCommandTimeout)
+	return node.CommandExpectString("state")
 }
 
-func (node *Node) ThreadStart() {
-	node.Command("thread start", DefaultCommandTimeout)
+func (node *Node) ThreadStart() error {
+	return node.CommandChecked("thread start")
 }
 
-func (node *Node) ThreadStop() {
-	node.Command("thread stop", DefaultCommandTimeout)
+func (node *Node) ThreadStop() error {
+	return node.CommandChecked("thread stop")
+}
+
+// SendInit inits the node to participate in OTNS 'send' command sending or receiving.
+func (node *Node) SendInit() error {
+	if node.isSendStarted {
+		return nil
+	}
+	if err := node.CommandChecked("udp open"); err != nil {
+		return err
+	}
+	if err := node.UdpBindAny(SendUdpPort); err != nil {
+		return err
+	}
+	if err := node.CommandChecked("coap start"); err != nil {
+		return err
+	}
+	if err := node.CommandChecked(fmt.Sprintf("coap resource %s", SendCoapResourceName)); err != nil {
+		return err
+	}
+	node.isSendStarted = true
+	return nil
+}
+
+// SendReset resets the node after, or before, using a series of OTNS 'send' commands.
+func (node *Node) SendReset() error {
+	if !node.isSendStarted {
+		return nil
+	}
+	if err := node.CommandChecked("coap stop"); err != nil {
+		return err
+	}
+	if err := node.CommandChecked("udp close"); err != nil {
+		return err
+	}
+	// clear any mcast group memberships
+	for gid := range node.sendGroupIds {
+		if err := node.SendGroupMembership(gid, false); err != nil {
+			return err
+		}
+	}
+	node.isSendStarted = false
+
+	return nil
+}
+
+// SendGroupMembership modifies multicast group membership for the groups used by the OTNS 'send' command.
+func (node *Node) SendGroupMembership(groupId int, isMember bool) error {
+	addOrDel := "del"
+	if isMember {
+		addOrDel = "add"
+	}
+	addr := fmt.Sprintf("%s:%x", SendMcastPrefix, groupId)
+	cmd := fmt.Sprintf("ipmaddr %s %s", addOrDel, addr)
+	err := node.CommandChecked(cmd)
+	if err != nil {
+		if !isMember && strings.HasPrefix(err.Error(), "Error 23") {
+			return nil // OT err address not found - no problem: already a non-member.
+		}
+		return err
+	}
+	if isMember {
+		node.sendGroupIds[groupId] = struct{}{}
+	} else {
+		delete(node.sendGroupIds, groupId)
+	}
+	return err
+}
+
+func (node *Node) UdpSend(addr string, port int, data []byte) error {
+	cmd := fmt.Sprintf("udp send %s %d -x %s", addr, port, hex.EncodeToString(data))
+	return node.CommandChecked(cmd)
+}
+
+func (node *Node) UdpSendTestData(addr string, port int, dataSize int) error {
+	cmd := fmt.Sprintf("udp send %s %d -s %d", addr, port, dataSize)
+	return node.CommandChecked(cmd)
+}
+
+func (node *Node) UdpBindAny(port int) error {
+	cmd := fmt.Sprintf("udp bind :: %d", port)
+	return node.CommandChecked(cmd)
+}
+
+func (node *Node) CoapPostTestData(addr string, uri string, confirmable bool, dataSize int) error {
+	payloadStr := randomString(dataSize)
+	conNonStr := "non"
+	if confirmable {
+		conNonStr = "con"
+	}
+	cmd := fmt.Sprintf("coap post %s %s %s %s", addr, uri, conNonStr, payloadStr)
+	return node.CommandChecked(cmd)
 }
 
 // GetThreadVersion gets the Thread version integer of the OpenThread node.
 func (node *Node) GetThreadVersion() uint16 {
-	if node.threadVersion == 0 {
-		node.threadVersion = uint16(node.CommandExpectInt("thread version", DefaultCommandTimeout))
+	if node.threadVersion == 0 { // lazy init
+		node.threadVersion = uint16(node.CommandExpectInt("thread version"))
 	}
 	return node.threadVersion
 }
 
 // GetVersion gets the version string of the OpenThread node.
 func (node *Node) GetVersion() string {
-	if node.version == "" {
-		node.version = node.CommandExpectString("version", DefaultCommandTimeout)
+	if node.version == "" { // lazy init
+		node.version = node.CommandExpectString("version")
 	}
 	return node.version
 }
@@ -869,7 +958,7 @@ func (node *Node) GetExecutableName() string {
 }
 
 func (node *Node) GetSingleton() bool {
-	s := node.CommandExpectString("singleton", DefaultCommandTimeout)
+	s := node.CommandExpectString("singleton")
 	if s == "true" {
 		return true
 	} else if s == "false" {
@@ -884,7 +973,7 @@ func (node *Node) GetSingleton() bool {
 }
 
 func (node *Node) GetCounters(counterType string, keyPrefix string) NodeCounters {
-	lines := node.Command("counters "+counterType, DefaultCommandTimeout)
+	lines := node.Command("counters " + counterType)
 	res := make(NodeCounters)
 	for _, line := range lines {
 		kv := strings.Split(line, ": ")
@@ -1131,11 +1220,15 @@ func (node *Node) setupMode() {
 }
 
 func (node *Node) DisplayPendingLines() {
+	prefix := ""
 loop:
 	for {
 		select {
 		case line := <-node.pendingLines:
-			logger.Println("  " + line)
+			if len(prefix) == 0 && node.S.cmdRunner.GetNodeContext() != node.Id {
+				prefix = node.String() // lazy init of node-specific prefix
+			}
+			logger.Println(prefix + line)
 		default:
 			break loop
 		}
