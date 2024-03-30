@@ -18,6 +18,9 @@ tmp/
 *.rep
 ot-cli-ftd
 ot-cli-mtd
+ot-cli-ftd_*
+ot-cli-mtd_*
+ot-rcp
 *.pyc
 __pycache__
 node_modules/
@@ -37,7 +40,11 @@ coverage.txt
 /web/site/js/proto/*_pb.js
 /web/site/static/js/*.js
 
+# ot-rfsim build items
+/ot-rfsim/build/
+/ot-rfsim/cmake-build-debug
+
 # pylibs installation files
-pylibs/build/
-pylibs/dist/
-pylibs/pyOTNS.egg-info/
+/pylibs/build/
+/pylibs/dist/
+/pylibs/pyOTNS.egg-info/

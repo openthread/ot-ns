@@ -760,7 +760,7 @@ class BasicTests(OTNSTestCase):
     def testLoadYamlTopology(self):
         ns: OTNS = self.ns
         self.assertEqual(0,len(ns.nodes()))
-        ns.load('config/test_mesh_topology.yaml')
+        ns.load('etc/mesh-topologies/test_mesh_topology.yaml')
         self.assertEqual(57,len(ns.nodes()))
         ns.go(1)
 

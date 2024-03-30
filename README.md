@@ -13,8 +13,7 @@ Note: this is a fork of the [OpenThread OTNS project](https://github.com/openthr
 [IoTconsultancy.nl](https://www.iotconsultancy.nl/). It offers additional features including:
 
 * Support for more accurate RF simulation of OpenThread nodes. This uses the OpenThread platform 
-  `ot-rfsim`, which specifically supports RF simulation, for OT nodes. This project is included as 
-  a Git submodule.
+  `ot-rfsim`, which specifically supports RF simulation, for OT nodes. This C code is included.
 * Selectable radio (RF propagation) models with tunable RF parameters.
 * Tunable radio parameters on each individual OT node. For example, CSL parameters or Rx sensitivity.
 * Control of logging display from OT-node, using `log` and `watch` CLI commands. Logging to file per 

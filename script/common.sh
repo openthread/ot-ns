@@ -52,7 +52,7 @@ mkdir -p "$GOPATH"/bin
 export readonly GOLINT_ARGS=(-E goimports -E whitespace -E goconst -E exportloopref -E unconvert)
 export readonly OTNS_BUILD_JOBS
 OTNS_BUILD_JOBS=$(getconf _NPROCESSORS_ONLN)
-export readonly OTNS_EXCLUDE_DIRS=(web/site/node_modules/ ot-rfsim/)
+export readonly OTNS_EXCLUDE_DIRS=(web/site/node_modules/ openthread/)
 
 go_install()
 {
@@ -62,14 +62,14 @@ go_install()
 
 get_openthread()
 {
-    if [[ ! -f ./ot-rfsim/script/build ]]; then
+    if [[ ! -f ./openthread/script/bootstrap ]]; then
         git submodule update --init --recursive --depth 1
     fi
 }
 
 get_openthread_versions()
 {
-    if [[ ! -f ./ot-rfsim/script/build ]]; then
+    if [[ ! -f ./openthread/script/bootstrap ]]; then
         git submodule update --init --recursive
     fi
 }

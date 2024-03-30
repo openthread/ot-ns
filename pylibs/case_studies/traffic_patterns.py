@@ -33,7 +33,7 @@ from otns.cli.errors import OTNSExitedError
 def build_topology(ns):
     # 34 pixels =~ 2 map grid units =~ 5 feet =~ 1.524 m
     ns.set_radioparam('MeterPerUnit', 1.524/34 )
-    ns.load("config/office_50.yaml")
+    ns.load("etc/mesh-topologies/office_50.yaml")
 
 def main():
     ns = OTNS()

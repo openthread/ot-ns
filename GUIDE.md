@@ -9,10 +9,9 @@ OTNS requires [Go 1.18 or higher](https://golang.org/dl/) to build:
  - Add `$(go env GOPATH)/bin` (normally `$HOME/go/bin`) to `$PATH`.
 
 ## Get OTNS code
-Recursive cloning of submodules is needed to obtain the right platform code to build simulated OpenThread nodes.
 
 ```bash
-git clone --recurse-submodules https://github.com/EskoDijk/ot-ns.git ./otns
+git clone https://github.com/EskoDijk/ot-ns.git ./otns
 cd otns
 ```
 
@@ -40,23 +39,24 @@ The OT nodes required for running a simulation are not yet installed, however.
 
 This checks for availability of prebuilt OT nodes, and builds any OT nodes not yet present. This includes a standard 
 set of nodes like FTD, MTD, Border Router (BR) and different Thread versions (1.1, 1.2, 1.3.0, 1.3.1). This build 
-can take a long time. During the build specific commits of the `openthread` Git repo will be checked out in order to 
-access older OpenThread codebases.
+can take a long time. During the build specific commits of the `openthread` Git repo submodule will be checked out in 
+order to access older OpenThread codebases.
 
 These nodes of specific versions can be added to a simulation using specific flags in the `add` command that adds
 a node. Type `help add` in OTNS to see this.
 
 ## Manually Build OpenThread for OTNS (Optional)
 
-This fork of OTNS uses POSIX simulation to simulate Thread nodes, with a specific platform `ot-rfsim`.
+This fork of OTNS uses POSIX simulation to simulate Thread nodes, with a specific platform `ot-rfsim` located in the 
+`ot-rfsim` directory.
 The simulator uses node executables such as `ot-cli-ftd`. By default, the `install-nodes` script will build 
 a common set of OpenThread nodes of different version (v1.1, v1.2, v1.3.0, v1.3.1, and "latest") that 
 are used in the various examples and unit-tests of OTNS.
 
 To build or rebuild yourself an executable with platform `ot-rfsim` for OTNS, see the example build below. 
 It shows a build with default settings that builds an OpenThread node of version "latest".  This version is the 
-latest one that is bundled with the current checkout out commit of OTNS. It gets bumped occassionally to the 
-latest OpenThread main branch.
+latest one that is bundled with the current checked out commit of OTNS. It gets bumped occassionally to the 
+latest OpenThread main branch after verifying that it works.
 
 NOTE: the `bootstrap` step only has to be executed only once, to install the required dev tools.
 
