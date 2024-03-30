@@ -472,7 +472,7 @@ to be higher than all current node IDs, and the new nodes will be added on top o
 All nodes in the YAML file can also be position-shifted prior to loading by changing the `pos-shift` parameter 
 in the YAML file to a non-zero value. See [`save`](#save) for saving a network topology into a YAML file.
 
-There is an example of the YAML format in the file `./config/test_mesh_topology.yaml`.
+There are examples of the YAML format in the directory `./etc/mesh-topologies`.
 
 
 ### log
