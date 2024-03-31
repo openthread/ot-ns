@@ -435,13 +435,13 @@ func (s *Simulation) DeleteNode(nodeid NodeId) error {
 		err := fmt.Errorf("node %d not found", nodeid)
 		return err
 	}
-	s.d.NotifyCommand(nodeid) // sets node alive, as we expect a NodeExit event as final one in queue.
-	err := node.exit()
+	s.d.NotifyCommand(nodeid) // sets node alive: we expect a NodeExit event to come as final one in queue.
+	_ = node.exit()
 	s.d.RecvEvents()
 	s.d.DeleteNode(nodeid)
 	s.kpiMgr.stopNode(nodeid)
 	delete(s.nodes, nodeid)
-	return err
+	return nil
 }
 
 func (s *Simulation) SetNodeFailed(id NodeId, failed bool) {

@@ -196,7 +196,6 @@ func (node *Node) exit() error {
 	}
 
 	var err error = nil
-	isKilled := false
 	if node.cmd.Process != nil {
 		processDone := make(chan bool)
 		node.Logger.Tracef("Waiting for process PID %d to exit ...", node.cmd.Process.Pid)
@@ -207,14 +206,13 @@ func (node *Node) exit() error {
 				break
 			case <-timeout:
 				node.Logger.Warn("Node did not exit in time, sending SIGKILL.")
-				isKilled = true
 				_ = node.cmd.Process.Kill()
 				processDone <- true
 			}
 		}()
 		err = node.cmd.Wait() // wait for process end
 		node.Logger.Tracef("Node process exited. Wait().err=%v", err)
-		<-processDone // signal above goroutine to end
+		<-processDone // signal above kill-goroutine to end
 	}
 	node.Logger.Debugf("Node exited.")
 
@@ -223,9 +221,9 @@ func (node *Node) exit() error {
 	node.DisplayPendingLines()
 	node.Logger.Close()
 
-	if isKilled { // when killed, a "signal: killed" error is always given by Wait(). Suppress this.
-		return nil
-	}
+	// typical errors can be nil, or "signal: killed" if SIGKILL was necessary, or "signal: broken pipe", or
+	// any of the "exit: ..." errors listed in code of node.cmd.Wait(). Most errors aren't critical: they
+	// will still stop the node.
 	return err
 }
 
