@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2020-2023, The OTNS Authors.
+# Copyright (c) 2020-2024, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -29,9 +29,9 @@ import setuptools
 
 setuptools.setup(
     name="pyOTNS",
-    version="1.0.0",
+    version="2.0.0",
     author="The OTNS Authors",
-    description="Run OpenThread mesh network simulations using OTNS2 from Python",
+    description="Run OTNS2 OpenThread mesh network simulations from Python code",
     url="https://github.com/EskoDijk/ot-ns",
     packages=setuptools.find_packages(),
     classifiers=[
