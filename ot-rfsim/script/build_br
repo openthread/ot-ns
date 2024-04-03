@@ -59,10 +59,10 @@ main()
     local options=()
     options+=("${OTBR_OPTIONS[@]}" "$@")
 
+    git submodule update
     rm -rf build
     ./script/build "${options[@]}"
     cp ./build/bin/ot-cli-ftd ./ot-versions/ot-cli-ftd_br
-    rm -rf build
 }
 
 main "$@"

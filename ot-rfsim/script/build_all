@@ -37,7 +37,7 @@ main()
     local options=()
     options+=("$@")
 
-    for VER in v11 v12 v13 v131 br latest; do
+    for VER in v11 v12 v13 br latest; do
         SCRIPTNAME="./script/build_$VER"
         FTDNAME="./ot-versions/ot-cli-ftd_$VER"
         if [ "$VER" == "latest" ]; then
