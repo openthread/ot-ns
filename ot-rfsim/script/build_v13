@@ -43,4 +43,3 @@ rm -rf build
 git submodule update
 cp ./build/bin/ot-cli-ftd ./ot-versions/ot-cli-ftd_v13
 cp ./build/bin/ot-cli-mtd ./ot-versions/ot-cli-mtd_v13
-rm -rf build

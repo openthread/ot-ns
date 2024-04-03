@@ -40,7 +40,11 @@ main()
     local options=()
     options+=("${OT_OPTIONS[@]}" "$@")
 
+    git submodule update
+    rm -rf build
+
     ./script/build "${options[@]}"
+
     cp ./build/bin/ot-cli-?td ./ot-versions/
     cp ./build/bin/ot-rcp ./ot-versions/
 }

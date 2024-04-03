@@ -292,6 +292,8 @@ Set all OpenThread (OT) executables, or shell scripts, for all node types to par
 use the OTNS default executables: this is typically a recent OT development build. Values starting with `v` will use 
 the pre-built binary of the specific indicated Thread version, e.g. `v12` denotes Thread v1.2.x.
 
+NOTE: in the current commit of OTNS, `v131` equals the most recent OT development build. This may change in the future.
+
 NOTE: the 'br' node type is currently not adapted to other versions.
 
 ```bash

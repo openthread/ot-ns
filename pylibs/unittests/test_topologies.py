@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2023, The OTNS Authors.
+# Copyright (c) 2023-2024, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -41,7 +41,7 @@ class TopologiesTests(OTNSTestCase):
         ns.loglevel = 'info'
         ns.add("router")
         ns.go(10)
-        self.assertEqual(ns.get_state(1), "leader")
+        self.assertEqual("leader", ns.get_state(1))
 
         for i in range(n-1):
             ns.add("router")
@@ -49,7 +49,7 @@ class TopologiesTests(OTNSTestCase):
 
         ns.go(1)
         self.assertEqual(n,len(ns.nodes()))
-        self.assertEqual(ns.get_state(1), "leader")
+        self.assertEqual("leader", ns.get_state(1))
 
     def testDenseNetwork(self):
         nn = 144 # number of nodes
@@ -104,8 +104,8 @@ class TopologiesTests(OTNSTestCase):
 
         ns.go(10)
         self.assertTrue(len(ns.partitions()) > n_netw_groups)
-        ns.go(100)
-        self.assertTrue(len(ns.partitions()) == n_netw_groups)
+        ns.go(120)
+        self.assertFormPartitions(n_netw_groups)
 
     # executes a startup script on each node, params depending on each group (ngrp)
     def setup_node_for_group(self, nid, ngrp):
@@ -117,6 +117,7 @@ class TopologiesTests(OTNSTestCase):
         self.ns.set_channel(nid,chan)
         self.ns.ifconfig_up(nid)
         self.ns.thread_start(nid)
+
 
 if __name__ == '__main__':
     unittest.main()
