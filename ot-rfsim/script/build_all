@@ -27,17 +27,16 @@
 #  POSSIBILITY OF SUCH DAMAGE.
 #
 
-echo "./script/build_all  --  Will build only OT node versions that are not yet present."
-echo ""
+printf "\n./script/build_all  --  Will build only OT node versions that are not yet present.\n\n"
 
-set -euxo pipefail
+set -euo pipefail
 
 main()
 {
     local options=()
     options+=("$@")
 
-    for VER in v11 v12 v13 br latest; do
+    for VER in latest br v13 v12 v11; do
         SCRIPTNAME="./script/build_$VER"
         FTDNAME="./ot-versions/ot-cli-ftd_$VER"
         if [ "$VER" == "latest" ]; then
@@ -45,10 +44,11 @@ main()
         fi
 
         if [ -f $FTDNAME ]; then
-            echo "$VER: file $FTDNAME is present, skipping version."
+            printf '\n%s: file %s is present, skipping this version build.\n\n' "${VER}" "${FTDNAME}"
         else
-            echo "$VER: building $FTDNAME"
-            $SCRIPTNAME "${options[@]}"
+            printf '%s: building %s' "${VER}" "${FTDNAME}"
+            ${SCRIPTNAME} "${options[@]}" || printf \
+                '\n********************\n  Failed build script: %s - skipping.\n********************\n\n' "${SCRIPTNAME}"
         fi
     done
 }

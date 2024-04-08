@@ -61,7 +61,7 @@ build()
     mkdir -p "${builddir}"
     cd "${builddir}"
 
-    cmake -GNinja -DOT_COMPILE_WARNING_AS_ERROR=ON "$@" "${OTRFSIM_SRCDIR}"
+    cmake -GNinja -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DOT_COMPILE_WARNING_AS_ERROR=ON "$@" "${OTRFSIM_SRCDIR}"
     ninja -j7 ot-cli-ftd ot-cli-mtd ot-ncp-ftd ot-ncp-mtd ot-rcp
 
     cd "${OTRFSIM_SRCDIR}"
