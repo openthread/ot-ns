@@ -36,7 +36,8 @@ OT_OPTIONS=(
 readonly OT_OPTIONS
 
 cd ../openthread
-git checkout thread-reference-20230119
+# commit id equal to tag 'thread-reference-20230119'
+git checkout c6179c24ed75a11c14dc4b1fffcde58be0bda785
 cd ../ot-rfsim
 rm -rf build
 ./script/build "${OT_OPTIONS[@]}"
