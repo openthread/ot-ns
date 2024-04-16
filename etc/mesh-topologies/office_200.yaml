@@ -1,0 +1,606 @@
+#
+# OTNS YAML topology file for a 200-node office network
+#
+network:
+    pos-shift: [0, 0, 0]
+nodes:
+    - id: 1
+      type: br
+      pos: [412, 85, 0]
+    - id: 2
+      type: router
+      pos: [446, 85, 0]
+    - id: 3
+      type: router
+      pos: [533, 83, 0]
+    - id: 4
+      type: router
+      pos: [573, 65, 0]
+    - id: 5
+      type: router
+      pos: [609, 82, 0]
+    - id: 6
+      type: router
+      pos: [651, 65, 0]
+    - id: 7
+      type: router
+      pos: [691, 83, 0]
+    - id: 8
+      type: router
+      pos: [689, 120, 0]
+    - id: 9
+      type: router
+      pos: [411, 119, 0]
+    - id: 10
+      type: router
+      pos: [411, 165, 0]
+    - id: 11
+      type: router
+      pos: [451, 122, 0]
+    - id: 12
+      type: router
+      pos: [447, 163, 0]
+    - id: 13
+      type: router
+      pos: [529, 123, 0]
+    - id: 14
+      type: router
+      pos: [533, 163, 0]
+    - id: 15
+      type: router
+      pos: [574, 140, 0]
+    - id: 16
+      type: router
+      pos: [608, 120, 0]
+    - id: 17
+      type: router
+      pos: [610, 161, 0]
+    - id: 18
+      type: router
+      pos: [653, 141, 0]
+    - id: 19
+      type: router
+      pos: [686, 160, 0]
+    - id: 20
+      type: router
+      pos: [687, 198, 0]
+    - id: 21
+      type: router
+      pos: [416, 236, 0]
+    - id: 22
+      type: router
+      pos: [407, 198, 0]
+    - id: 23
+      type: router
+      pos: [450, 235, 0]
+    - id: 24
+      type: router
+      pos: [443, 196, 0]
+    - id: 25
+      type: router
+      pos: [536, 200, 0]
+    - id: 26
+      type: router
+      pos: [535, 237, 0]
+    - id: 27
+      type: router
+      pos: [572, 216, 0]
+    - id: 28
+      type: router
+      pos: [614, 238, 0]
+    - id: 29
+      type: router
+      pos: [618, 201, 0]
+    - id: 30
+      type: router
+      pos: [650, 216, 0]
+    - id: 31
+      type: router
+      pos: [275, 296, 0]
+    - id: 32
+      type: router
+      pos: [336, 293, 0]
+    - id: 33
+      type: router
+      pos: [356, 314, 0]
+    - id: 34
+      type: router
+      pos: [385, 317, 0]
+    - id: 35
+      type: router
+      pos: [410, 297, 0]
+    - id: 36
+      type: router
+      pos: [468, 315, 0]
+    - id: 37
+      type: router
+      pos: [511, 315, 0]
+    - id: 38
+      type: router
+      pos: [541, 306, 0]
+    - id: 39
+      type: router
+      pos: [291, 352, 0]
+    - id: 40
+      type: router
+      pos: [295, 397, 0]
+    - id: 41
+      type: router
+      pos: [355, 356, 0]
+    - id: 42
+      type: router
+      pos: [386, 352, 0]
+    - id: 43
+      type: router
+      pos: [451, 353, 0]
+    - id: 44
+      type: router
+      pos: [452, 390, 0]
+    - id: 45
+      type: router
+      pos: [536, 353, 0]
+    - id: 46
+      type: router
+      pos: [533, 391, 0]
+    - id: 47
+      type: router
+      pos: [296, 432, 0]
+    - id: 48
+      type: router
+      pos: [294, 472, 0]
+    - id: 49
+      type: router
+      pos: [447, 437, 0]
+    - id: 50
+      type: router
+      pos: [449, 468, 0]
+    - id: 51
+      type: router
+      pos: [538, 429, 0]
+    - id: 52
+      type: router
+      pos: [534, 464, 0]
+    - id: 53
+      type: router
+      pos: [298, 506, 0]
+    - id: 54
+      type: router
+      pos: [285, 537, 0]
+    - id: 55
+      type: router
+      pos: [373, 491, 0]
+    - id: 56
+      type: router
+      pos: [334, 527, 0]
+    - id: 57
+      type: router
+      pos: [446, 510, 0]
+    - id: 58
+      type: router
+      pos: [415, 525, 0]
+    - id: 59
+      type: router
+      pos: [534, 505, 0]
+    - id: 60
+      type: router
+      pos: [574, 525, 0]
+    - id: 61
+      type: router
+      pos: [614, 507, 0]
+    - id: 62
+      type: router
+      pos: [652, 527, 0]
+    - id: 63
+      type: router
+      pos: [688, 512, 0]
+    - id: 64
+      type: router
+      pos: [649, 488, 0]
+    - id: 65
+      type: router
+      pos: [284, 574, 0]
+    - id: 66
+      type: router
+      pos: [293, 607, 0]
+    - id: 67
+      type: router
+      pos: [337, 588, 0]
+    - id: 68
+      type: router
+      pos: [367, 603, 0]
+    - id: 69
+      type: router
+      pos: [413, 587, 0]
+    - id: 70
+      type: router
+      pos: [448, 602, 0]
+    - id: 71
+      type: router
+      pos: [536, 603, 0]
+    - id: 72
+      type: router
+      pos: [574, 588, 0]
+    - id: 73
+      type: router
+      pos: [613, 605, 0]
+    - id: 74
+      type: router
+      pos: [655, 584, 0]
+    - id: 75
+      type: router
+      pos: [54, 645, 0]
+    - id: 76
+      type: router
+      pos: [58, 680, 0]
+    - id: 77
+      type: router
+      pos: [99, 645, 0]
+    - id: 78
+      type: router
+      pos: [153, 641, 0]
+    - id: 79
+      type: router
+      pos: [193, 643, 0]
+    - id: 80
+      type: router
+      pos: [211, 679, 0]
+    - id: 81
+      type: router
+      pos: [291, 642, 0]
+    - id: 82
+      type: router
+      pos: [296, 681, 0]
+    - id: 83
+      type: router
+      pos: [333, 642, 0]
+    - id: 84
+      type: router
+      pos: [391, 645, 0]
+    - id: 85
+      type: router
+      pos: [449, 643, 0]
+    - id: 86
+      type: router
+      pos: [449, 683, 0]
+    - id: 87
+      type: router
+      pos: [535, 644, 0]
+    - id: 88
+      type: router
+      pos: [536, 680, 0]
+    - id: 89
+      type: router
+      pos: [596, 645, 0]
+    - id: 90
+      type: router
+      pos: [631, 643, 0]
+    - id: 91
+      type: router
+      pos: [689, 643, 0]
+    - id: 92
+      type: router
+      pos: [688, 682, 0]
+    - id: 93
+      type: router
+      pos: [58, 719, 0]
+    - id: 94
+      type: router
+      pos: [59, 758, 0]
+    - id: 95
+      type: router
+      pos: [214, 720, 0]
+    - id: 96
+      type: router
+      pos: [212, 758, 0]
+    - id: 97
+      type: router
+      pos: [294, 720, 0]
+    - id: 98
+      type: router
+      pos: [293, 759, 0]
+    - id: 99
+      type: router
+      pos: [448, 722, 0]
+    - id: 100
+      type: router
+      pos: [452, 758, 0]
+    - id: 101
+      type: router
+      pos: [536, 721, 0]
+    - id: 102
+      type: router
+      pos: [536, 758, 0]
+    - id: 103
+      type: router
+      pos: [687, 722, 0]
+    - id: 104
+      type: router
+      pos: [688, 758, 0]
+    - id: 105
+      type: router
+      pos: [59, 799, 0]
+    - id: 106
+      type: router
+      pos: [98, 820, 0]
+    - id: 107
+      type: router
+      pos: [139, 759, 0]
+    - id: 108
+      type: router
+      pos: [136, 801, 0]
+    - id: 109
+      type: router
+      pos: [176, 816, 0]
+    - id: 110
+      type: router
+      pos: [213, 799, 0]
+    - id: 111
+      type: router
+      pos: [296, 799, 0]
+    - id: 112
+      type: router
+      pos: [331, 817, 0]
+    - id: 113
+      type: router
+      pos: [372, 762, 0]
+    - id: 114
+      type: router
+      pos: [374, 800, 0]
+    - id: 115
+      type: router
+      pos: [413, 817, 0]
+    - id: 116
+      type: router
+      pos: [449, 796, 0]
+    - id: 117
+      type: router
+      pos: [537, 797, 0]
+    - id: 118
+      type: router
+      pos: [576, 817, 0]
+    - id: 119
+      type: router
+      pos: [613, 760, 0]
+    - id: 120
+      type: router
+      pos: [614, 797, 0]
+    - id: 121
+      type: router
+      pos: [651, 816, 0]
+    - id: 122
+      type: router
+      pos: [689, 799, 0]
+    - id: 123
+      type: router
+      pos: [58, 898, 0]
+    - id: 124
+      type: router
+      pos: [101, 872, 0]
+    - id: 125
+      type: router
+      pos: [134, 932, 0]
+    - id: 126
+      type: router
+      pos: [138, 896, 0]
+    - id: 127
+      type: router
+      pos: [177, 876, 0]
+    - id: 128
+      type: router
+      pos: [211, 892, 0]
+    - id: 129
+      type: router
+      pos: [296, 894, 0]
+    - id: 130
+      type: router
+      pos: [332, 877, 0]
+    - id: 131
+      type: router
+      pos: [373, 936, 0]
+    - id: 132
+      type: router
+      pos: [377, 894, 0]
+    - id: 133
+      type: router
+      pos: [412, 876, 0]
+    - id: 134
+      type: router
+      pos: [449, 891, 0]
+    - id: 135
+      type: router
+      pos: [535, 894, 0]
+    - id: 136
+      type: router
+      pos: [576, 874, 0]
+    - id: 137
+      type: router
+      pos: [616, 934, 0]
+    - id: 138
+      type: router
+      pos: [615, 892, 0]
+    - id: 139
+      type: router
+      pos: [657, 876, 0]
+    - id: 140
+      type: router
+      pos: [691, 896, 0]
+    - id: 141
+      type: router
+      pos: [56, 937, 0]
+    - id: 142
+      type: router
+      pos: [60, 975, 0]
+    - id: 143
+      type: router
+      pos: [210, 934, 0]
+    - id: 144
+      type: router
+      pos: [213, 972, 0]
+    - id: 145
+      type: router
+      pos: [296, 933, 0]
+    - id: 146
+      type: router
+      pos: [298, 972, 0]
+    - id: 147
+      type: router
+      pos: [449, 933, 0]
+    - id: 148
+      type: router
+      pos: [451, 973, 0]
+    - id: 149
+      type: router
+      pos: [540, 935, 0]
+    - id: 150
+      type: router
+      pos: [536, 969, 0]
+    - id: 151
+      type: router
+      pos: [692, 933, 0]
+    - id: 152
+      type: router
+      pos: [693, 972, 0]
+    - id: 153
+      type: router
+      pos: [57, 1014, 0]
+    - id: 154
+      type: router
+      pos: [61, 1048, 0]
+    - id: 155
+      type: router
+      pos: [120, 1049, 0]
+    - id: 156
+      type: router
+      pos: [157, 1048, 0]
+    - id: 157
+      type: router
+      pos: [216, 1011, 0]
+    - id: 158
+      type: router
+      pos: [214, 1049, 0]
+    - id: 159
+      type: router
+      pos: [299, 1009, 0]
+    - id: 160
+      type: router
+      pos: [298, 1047, 0]
+    - id: 161
+      type: router
+      pos: [357, 1050, 0]
+    - id: 162
+      type: router
+      pos: [390, 1050, 0]
+    - id: 163
+      type: router
+      pos: [449, 1011, 0]
+    - id: 164
+      type: router
+      pos: [451, 1050, 0]
+    - id: 165
+      type: router
+      pos: [538, 1010, 0]
+    - id: 166
+      type: router
+      pos: [541, 1052, 0]
+    - id: 167
+      type: router
+      pos: [576, 1049, 0]
+    - id: 168
+      type: router
+      pos: [614, 1046, 0]
+    - id: 169
+      type: router
+      pos: [689, 1013, 0]
+    - id: 170
+      type: router
+      pos: [689, 1047, 0]
+    - id: 171
+      type: router
+      pos: [55, 1089, 0]
+    - id: 172
+      type: router
+      pos: [80, 1106, 0]
+    - id: 173
+      type: router
+      pos: [119, 1086, 0]
+    - id: 174
+      type: router
+      pos: [160, 1108, 0]
+    - id: 175
+      type: router
+      pos: [195, 1086, 0]
+    - id: 176
+      type: router
+      pos: [213, 1105, 0]
+    - id: 177
+      type: router
+      pos: [283, 1109, 0]
+    - id: 178
+      type: router
+      pos: [303, 1087, 0]
+    - id: 179
+      type: router
+      pos: [376, 1088, 0]
+    - id: 180
+      type: router
+      pos: [334, 1107, 0]
+    - id: 181
+      type: router
+      pos: [452, 1085, 0]
+    - id: 182
+      type: router
+      pos: [417, 1107, 0]
+    - id: 183
+      type: router
+      pos: [540, 1086, 0]
+    - id: 184
+      type: router
+      pos: [578, 1107, 0]
+    - id: 185
+      type: router
+      pos: [613, 1087, 0]
+    - id: 186
+      type: router
+      pos: [652, 1105, 0]
+    - id: 187
+      type: router
+      pos: [652, 1068, 0]
+    - id: 188
+      type: router
+      pos: [691, 1088, 0]
+    - id: 189
+      type: router
+      pos: [285, 1166, 0]
+    - id: 190
+      type: router
+      pos: [317, 1182, 0]
+    - id: 191
+      type: router
+      pos: [336, 1164, 0]
+    - id: 192
+      type: router
+      pos: [370, 1181, 0]
+    - id: 193
+      type: router
+      pos: [410, 1161, 0]
+    - id: 194
+      type: router
+      pos: [448, 1180, 0]
+    - id: 195
+      type: router
+      pos: [533, 1181, 0]
+    - id: 196
+      type: router
+      pos: [571, 1163, 0]
+    - id: 197
+      type: router
+      pos: [595, 1183, 0]
+    - id: 198
+      type: router
+      pos: [631, 1185, 0]
+    - id: 199
+      type: router
+      pos: [655, 1161, 0]
+    - id: 200
+      type: router
+      pos: [690, 1181, 0]

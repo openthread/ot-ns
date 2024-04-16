@@ -479,6 +479,12 @@ class OTNS(object):
         cmd = f'del {" ".join(map(str, nodeids))}'
         self._do_command(cmd)
 
+    def delete_all(self) -> None:
+        """
+        Delete all nodes from simulation.
+        """
+        self._do_command('del all')
+
     def watch(self, *nodeids: int) -> None:
         """
         Enable watch on nodes from simulation by IDs.
