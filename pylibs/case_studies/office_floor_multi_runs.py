@@ -29,13 +29,14 @@
 # network in office floor topology.
 
 import logging
+import os
 import resource
 import shutil
 
 from otns.cli import OTNS
 from otns.cli.errors import OTNSExitedError
 
-NUM_RUNS = 50
+NUM_RUNS = 1
 MAX_SIM_TIME = 20*60
 
 
@@ -64,12 +65,17 @@ def run_formation(run_id, sim_time):
     ns.kpi_stop()
     ns.web_display()
 
-    ns.kpi_save(f'kpi_{run_id}.json')
-    shutil.copy('tmp/0_stats.csv', f'stats_{run_id}.csv')
+    ns.kpi_save(f'office_runs/kpi_{run_id}.json')
+    shutil.copy('tmp/0_stats.csv', f'office_runs/stats_{run_id}.csv')
+    shutil.copy('current.pcap', f'office_runs/pcap_{run_id}.pcap')
     ns.delete_all()
 
 def main():
     test_ulimit()
+    try:
+        os.mkdir('./office_runs')
+    except:
+        pass
 
     for n in range(1,NUM_RUNS+1):
         run_formation(run_id = n, sim_time = MAX_SIM_TIME)
