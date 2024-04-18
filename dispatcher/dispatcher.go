@@ -96,7 +96,6 @@ type Dispatcher struct {
 	taskChan              chan func()
 	speed                 float64
 	speedStartRealTime    time.Time
-	lastVizTime           time.Time
 	lastEnergyVizTime     uint64
 	speedStartTime        uint64
 	extaddrMap            map[uint64]*Node
@@ -151,7 +150,6 @@ func NewDispatcher(ctx *progctx.ProgCtx, cfg *Config, cbHandler CallbackHandler)
 		pcapFrameChan:      make(chan pcap.Frame, 100000),
 		speed:              cfg.Speed,
 		speedStartRealTime: time.Now(),
-		lastVizTime:        time.Unix(0, 0),
 		vis:                vis,
 		taskChan:           make(chan func(), 10000),
 		watchingNodes:      map[NodeId]struct{}{},
@@ -495,14 +493,13 @@ func (d *Dispatcher) processNextEvent(simSpeed float64) bool {
 			}
 			time.Sleep(sleepTime)
 
-			if time.Since(d.lastVizTime) >= d.cfg.VizUpdateTime {
-				curTime := d.speedStartTime + uint64(float64(time.Since(d.speedStartRealTime)/time.Microsecond)*simSpeed)
-				if curTime > d.pauseTime {
-					curTime = d.pauseTime
-				}
-				if curTime < nextEventTime {
-					d.advanceTime(curTime)
-				}
+			// move simulation time ahead at speed, even during periods without sim events.
+			curTime := d.speedStartTime + uint64(float64(time.Since(d.speedStartRealTime)/time.Microsecond)*simSpeed)
+			if curTime > d.pauseTime {
+				curTime = d.pauseTime
+			}
+			if curTime < nextEventTime {
+				d.advanceTime(curTime)
 			}
 			return true
 		}
@@ -1090,19 +1087,14 @@ func (d *Dispatcher) visSend(srcid NodeId, dstid NodeId, visInfo *visualize.MsgV
 
 func (d *Dispatcher) advanceTime(ts uint64) {
 	logger.AssertTrue(d.CurTime <= ts, "%v > %v", d.CurTime, ts)
-	if d.CurTime < ts {
-		d.CurTime = ts
-	}
+	d.CurTime = ts
 
-	if time.Since(d.lastVizTime) >= d.cfg.VizUpdateTime {
-		elapsedTime := int64(d.CurTime - d.speedStartTime)
-		elapsedRealTime := time.Since(d.speedStartRealTime) / time.Microsecond
-		if elapsedRealTime > 0 {
-			d.vis.AdvanceTime(ts, float64(elapsedTime)/float64(elapsedRealTime))
-		} else {
-			d.vis.AdvanceTime(ts, MaxSimulateSpeed)
-		}
-		d.lastVizTime = time.Now()
+	elapsedTime := int64(d.CurTime - d.speedStartTime)
+	elapsedRealTime := time.Since(d.speedStartRealTime) / time.Microsecond
+	if elapsedRealTime > 0 {
+		d.vis.AdvanceTime(ts, float64(elapsedTime)/float64(elapsedRealTime))
+	} else {
+		d.vis.AdvanceTime(ts, MaxSimulateSpeed)
 	}
 
 	if d.energyAnalyser != nil && (ts >= d.lastEnergyVizTime+energy.ComputePeriod || (d.lastEnergyVizTime == 0 && ts > 0)) {

@@ -950,7 +950,8 @@ class OTNS(object):
         Wait for web browser display/rendering of current topology/situation to be done.
         TODO: currently uses a heuristic method and it's not verified that the web browser has actually rendered.
         """
-        self._do_command('go 1us speed 0.000001')
+        self._do_command('go 0us speed 1') # a 'go' triggers a PostAsyncWait and sends an advance-time event to viz.
+        time.sleep(0.020)
 
     def ifconfig_up(self, nodeid: int) -> None:
         """
