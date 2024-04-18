@@ -36,7 +36,7 @@ import shutil
 from otns.cli import OTNS
 from otns.cli.errors import OTNSExitedError
 
-NUM_RUNS = 1
+NUM_RUNS = 50
 MAX_SIM_TIME = 20*60
 
 
@@ -53,7 +53,8 @@ def test_ulimit():
         exit(1)
 
 def run_formation(run_id, sim_time):
-    print(f'run_formation: run_id = {run_id}')
+    run_id_str = f'{run_id:02d}'
+    print(f'run_formation: run_id = {run_id_str}')
 
     ns = OTNS(otns_args=['-seed',str(2342+run_id)])
     #ns.web('main')
@@ -65,10 +66,11 @@ def run_formation(run_id, sim_time):
     ns.kpi_stop()
     ns.web_display()
 
-    ns.kpi_save(f'office_runs/kpi_{run_id}.json')
-    shutil.copy('tmp/0_stats.csv', f'office_runs/stats_{run_id}.csv')
-    shutil.copy('current.pcap', f'office_runs/pcap_{run_id}.pcap')
-    ns.delete_all()
+    ns.kpi_save(f'office_runs/{run_id_str}.json')
+    ns.close()
+
+    shutil.copy('tmp/0_stats.csv', f'office_runs/{run_id_str}.csv')
+    shutil.copy('current.pcap', f'office_runs/{run_id_str}.pcap')
 
 def main():
     test_ulimit()

@@ -27,8 +27,6 @@
 package dispatcher
 
 import (
-	"time"
-
 	"github.com/openthread/ot-ns/logger"
 	"github.com/openthread/ot-ns/pcap"
 )
@@ -41,7 +39,6 @@ type Config struct {
 	PcapFrameType     pcap.FrameType
 	DefaultWatchOn    bool
 	DefaultWatchLevel string
-	VizUpdateTime     time.Duration
 	SimulationId      int
 	OutputDir         string
 }
@@ -55,7 +52,6 @@ func DefaultConfig() *Config {
 		PcapFrameType:     pcap.FrameTypeWpan,
 		DefaultWatchOn:    false,
 		DefaultWatchLevel: logger.OffLevelString,
-		VizUpdateTime:     125 * time.Millisecond,
 		SimulationId:      0,
 		OutputDir:         "tmp",
 	}

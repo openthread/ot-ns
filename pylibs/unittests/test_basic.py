@@ -674,7 +674,9 @@ class BasicTests(OTNSTestCase):
             for i in nodes:
                 ns.add("router")
                 mleid_addr.append(str(ns.get_ipaddrs(i, 'mleid')[0]))
+            ns.kpi_start()
             ns.go(150)
+            ns.kpi_stop()
             self.assertFormPartitions(1)
 
             node_states = ['']
