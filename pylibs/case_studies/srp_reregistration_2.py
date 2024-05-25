@@ -32,7 +32,7 @@ from otns.cli import OTNS
 from otns.cli.errors import OTNSExitedError
 
 NUM_BR = 1
-NUM_NODES = 20
+NUM_NODES = 50
 BR_ID_OFFSET = 100
 DX = 150  # pixels spacing
 
@@ -71,7 +71,7 @@ def print_services(srv):
             print(line)
 
 def main():
-    ns = OTNS(otns_args=['-seed','34541','-logfile', 'info'])
+    ns = OTNS(otns_args=['-seed','34541'])
     ns.speed = 200
     ns.radiomodel = 'MutualInterference'
     ns.web()
@@ -87,11 +87,12 @@ def main():
     cy = DX
     for i in range(1, NUM_NODES+1):
         nid = ns.add("router", id=i, x = cx, y = cy)
-        host = f'host{i}'
-        port = 18000 + i
+        host = f'EAAFA10F49B12F3{i}'
         ns.node_cmd(nid, f'srp client host name {host}')
         ns.node_cmd(nid, 'srp client host address auto')
-        ns.node_cmd(nid, f'srp client service add instance{i} _test._udp {port}')
+        ns.node_cmd(nid, f'srp client service add 15077FD8184910A6-00320000B330{i} _matter._tcp.default.service.arpa,_I1F097FD112451046 18001 0 0 085349493d31303030085341493d31303030085341543d3430303003543d30')
+        ns.node_cmd(nid, f'srp client service add 25077FD8184910A6-00320000B330{i} _matter._tcp.default.service.arpa,_I2F097FD112451046 18002 0 0 085449493d31303030085341493d31303030085341543d3430303003543d30')
+
         ns.go(10)
 
         cx += DX
@@ -99,7 +100,7 @@ def main():
             cx = 100
             cy += DX
 
-    ns.go(100)
+    ns.go(290)
 
     # test anycast dataset seqnum change event
     ns.kpi_start()
@@ -108,8 +109,14 @@ def main():
     seq = int(seq[0]) + 1
     ns.node_cmd(nid_br, f'srp server seqnum {seq}')
     ns.node_cmd(nid_br, "srp server enable")
-    ns.go(700)  # let re-registrations occur
+    ns.go(100)  # let re-registrations occur
     ns.kpi_stop()
+
+    # check service state from client's viewpoint
+    for i in range(1, NUM_NODES+1):
+        lines = ns.node_cmd(i, "srp client service")
+        for line in lines:
+            print(f'{i}: {line}')
 
     ns.interactive_cli()
 
