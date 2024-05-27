@@ -30,6 +30,7 @@ const {
     OtDeviceRole,
 } = require('../proto/visualize_grpc_pb.js');
 import * as fmt from "../vis/format_text"
+import {FRAME_CONTROL_MASK_FRAME_TYPE, FRAME_TYPE_ACK} from "../vis/consts";
 
 export class NodeStats {
 
@@ -85,6 +86,11 @@ export class StatsVisualizer {
             this.lastPlotTimestampUs = tsUs;
             this.oldStats = this.stats;
         }
+    }
+
+    visSend(srcId, dstId, mvInfo) {
+        let frameSizeBytes = mvInfo.getFrameSizeBytes();
+        this.logNode(srcId, `Sends a frame of ${frameSizeBytes} bytes.`);
     }
 
     visHeartbeat() {

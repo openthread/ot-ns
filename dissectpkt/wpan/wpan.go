@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2023, The OTNS Authors.
+// Copyright (c) 2020-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -29,6 +29,8 @@ package wpan
 import (
 	"encoding/binary"
 	"fmt"
+
+	"github.com/openthread/ot-ns/types"
 )
 
 type FrameType = uint16
@@ -149,6 +151,8 @@ type MacFrame struct {
 	SrcAddrShort    uint16
 	DstAddrExtended uint64
 	SrcAddrExtended uint64
+	LengthBytes     uint16
+	PhyHdrLength    uint16
 }
 
 func (f *MacFrame) String() string {
@@ -172,6 +176,8 @@ func (f *MacFrame) String() string {
 func Dissect(data []byte) *MacFrame {
 	frame := &MacFrame{}
 	frame.Channel = data[0] // not part of 802.15.4, but part of our custom frame format.
+	frame.LengthBytes = uint16(len(data) - 1)
+	frame.PhyHdrLength = types.PhyHeaderLenBytes
 	frame.FrameControl.Dissect(data[1:3])
 	if frame.FrameControl.FrameType() > FrameTypeCommand {
 		return frame // for unsupported frame types.

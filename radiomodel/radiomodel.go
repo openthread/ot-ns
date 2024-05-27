@@ -38,14 +38,6 @@ type DbValue = float64
 
 const UndefinedDbValue DbValue = math.MaxFloat64
 
-// IEEE 802.15.4-2015 related parameters for 2.4 GHz O-QPSK PHY
-const (
-	MinChannelNumber     ChannelId = 0  // below 11 are sub-Ghz channels for 802.15.4-2015
-	MaxChannelNumber     ChannelId = 39 // above 26 are currently used as pseudo-BLE-adv-channels
-	DefaultChannelNumber ChannelId = 11
-	TimeUsPerBit                   = 4
-)
-
 // EventQueue is the abstraction of the queue where the radio model sends its outgoing (new) events to.
 type EventQueue interface {
 	Add(*Event)

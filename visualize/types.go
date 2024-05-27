@@ -76,6 +76,7 @@ type MsgVisualizeInfo struct {
 	DstAddrExtended uint64
 	SendDurationUs  uint32
 	PowerDbm        int8
+	FrameSizeBytes  uint16
 }
 
 type TitleInfo struct {

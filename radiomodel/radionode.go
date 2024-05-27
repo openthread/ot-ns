@@ -74,7 +74,7 @@ func NewRadioNode(nodeid NodeId, cfg *RadioNodeConfig) *RadioNode {
 		Y:             float64(cfg.Y),
 		Z:             float64(cfg.Z),
 		RadioRange:    float64(cfg.RadioRange),
-		RadioChannel:  DefaultChannelNumber,
+		RadioChannel:  InvalidChannel,
 		rssiSampleMax: RssiMinusInfinity,
 	}
 	return rn

@@ -53,6 +53,27 @@ function loadOk() {
     stream.on('data', function (resp) {
         let e = null;
         switch (resp.getTypeCase()) {
+            case VisualizeEvent.TypeCase.SEND:
+                e = resp.getSend();
+                vis.visSend(e.getSrcId(), e.getDstId(), e.getMvInfo());
+                break;
+            case VisualizeEvent.TypeCase.ADVANCE_TIME:
+                e = resp.getAdvanceTime();
+                lastTimestampUs = e.getTs();
+                vis.visAdvanceTime(lastTimestampUs);
+                const [aTs,aStat] = vis.getNewDataPoints();
+                for( let i in aTs) {
+                    nodeNumbersChart.addData(aTs[i], aStat[i]);
+                }
+                if (aTs.length > 0) {
+                    nodeNumbersChart.update(lastTimestampUs);
+                }
+                break;
+            case VisualizeEvent.TypeCase.HEARTBEAT:
+                e = resp.getHeartbeat();
+                vis.visHeartbeat();
+                nodeNumbersChart.update(lastTimestampUs);
+                break;
             case VisualizeEvent.TypeCase.ADD_NODE:
                 e = resp.getAddNode();
                 vis.visAddNode(e.getNodeId());
@@ -72,23 +93,6 @@ function loadOk() {
             case VisualizeEvent.TypeCase.SET_NODE_PARTITION_ID:
                 e = resp.getSetNodePartitionId();
                 vis.visSetNodePartitionId(e.getNodeId(), e.getPartitionId());
-                break;
-            case VisualizeEvent.TypeCase.ADVANCE_TIME:
-                e = resp.getAdvanceTime();
-                lastTimestampUs = e.getTs();
-                vis.visAdvanceTime(lastTimestampUs);
-                const [aTs,aStat] = vis.getNewDataPoints();
-                for( let i in aTs) {
-                    nodeNumbersChart.addData(aTs[i], aStat[i]);
-                }
-                if (aTs.length > 0) {
-                    nodeNumbersChart.update(lastTimestampUs);
-                }
-                break;
-            case VisualizeEvent.TypeCase.HEARTBEAT:
-                e = resp.getHeartbeat();
-                vis.visHeartbeat();
-                nodeNumbersChart.update(lastTimestampUs);
                 break;
             case VisualizeEvent.TypeCase.SET_NODE_ROLE:
                 e = resp.getSetNodeRole();

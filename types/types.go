@@ -44,6 +44,8 @@ const (
 	// InvalidExtAddr defines the invalid extended address for nodes.
 	InvalidExtAddr       uint64 = math.MaxUint64
 	InvalidThreadVersion uint16 = 0
+
+	InvalidChannel ChannelId = 0xff
 )
 
 // Node types and roles

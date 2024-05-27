@@ -1050,6 +1050,7 @@ func (d *Dispatcher) visSendFrame(srcid NodeId, dstid NodeId, pktframe *wpan.Mac
 		DstAddrExtended: pktframe.DstAddrExtended,
 		SendDurationUs:  uint32(commData.Duration),
 		PowerDbm:        commData.PowerDbm,
+		FrameSizeBytes:  pktframe.LengthBytes + pktframe.PhyHdrLength, // Note: count total frame len (PHY+MAC)
 	})
 }
 
@@ -1062,6 +1063,7 @@ func (d *Dispatcher) visSendInterference(srcid NodeId, dstid NodeId, commData Ra
 		DstAddrExtended: 0,
 		SendDurationUs:  uint32(commData.Duration),
 		PowerDbm:        commData.PowerDbm,
+		FrameSizeBytes:  0,
 	})
 }
 
