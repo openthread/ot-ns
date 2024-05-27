@@ -32,7 +32,6 @@ import (
 	"github.com/openthread/ot-ns/energy"
 	. "github.com/openthread/ot-ns/types"
 	"github.com/openthread/ot-ns/visualize"
-	"github.com/openthread/ot-ns/visualize/grpc/pb"
 )
 
 type multiVisualizer struct {
@@ -201,7 +200,7 @@ func (mv *multiVisualizer) SetTitle(titleInfo visualize.TitleInfo) {
 	}
 }
 
-func (mv *multiVisualizer) UpdateNodesEnergy(node []*pb.NodeEnergy, timestamp uint64, updateView bool) {
+func (mv *multiVisualizer) UpdateNodesEnergy(node []*energy.NodeEnergy, timestamp uint64, updateView bool) {
 	for _, v := range mv.vs {
 		v.UpdateNodesEnergy(node, timestamp, updateView)
 	}
@@ -210,5 +209,11 @@ func (mv *multiVisualizer) UpdateNodesEnergy(node []*pb.NodeEnergy, timestamp ui
 func (mv *multiVisualizer) SetEnergyAnalyser(ea *energy.EnergyAnalyser) {
 	for _, v := range mv.vs {
 		v.SetEnergyAnalyser(ea)
+	}
+}
+
+func (mv *multiVisualizer) UpdateNodeStats(nodeStatsInfo visualize.NodeStatsInfo) {
+	for _, v := range mv.vs {
+		v.UpdateNodeStats(nodeStatsInfo)
 	}
 }

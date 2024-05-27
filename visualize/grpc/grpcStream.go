@@ -1,4 +1,4 @@
-// Copyright (c) 2022, The OTNS Authors.
+// Copyright (c) 2022-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -26,14 +26,18 @@
 
 package visualize_grpc
 
-import pb "github.com/openthread/ot-ns/visualize/grpc/pb"
+import "github.com/openthread/ot-ns/visualize/grpc/pb"
 
 type grpcStream struct {
 	pb.VisualizeGrpcService_VisualizeServer
 }
 
 type grpcEnergyStream struct {
-	pb.VisualizeGrpcService_EnergyReportServer
+	pb.VisualizeGrpcService_EnergyServer
+}
+
+type grpcNodeStatsStream struct {
+	pb.VisualizeGrpcService_NodeStatsServer
 }
 
 func (gst *grpcStream) close() {
@@ -49,9 +53,9 @@ func newGrpcStream(stream pb.VisualizeGrpcService_VisualizeServer) *grpcStream {
 	return gst
 }
 
-func newGrpcEnergyStream(stream pb.VisualizeGrpcService_EnergyReportServer) *grpcEnergyStream {
+func newGrpcEnergyStream(stream pb.VisualizeGrpcService_EnergyServer) *grpcEnergyStream {
 	gst := &grpcEnergyStream{
-		VisualizeGrpcService_EnergyReportServer: stream,
+		VisualizeGrpcService_EnergyServer: stream,
 	}
 	return gst
 }

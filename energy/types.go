@@ -1,4 +1,4 @@
-// Copyright (c) 2022-2023, The OTNS Authors.
+// Copyright (c) 2022-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -33,6 +33,8 @@ import (
 /*
  * Default consumption values by state of STM32WB55rg at 3.3V.
  * Consumption in kilowatts, time in microseconds, resulting energy in mJ.
+ *
+ * TODO make CLI configurable.
  */
 const (
 	RadioDisabledConsumption float64 = 0.00000011 //kilowatts, to be confirmed

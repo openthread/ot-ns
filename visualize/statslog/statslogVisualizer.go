@@ -35,7 +35,6 @@ import (
 	"github.com/openthread/ot-ns/logger"
 	. "github.com/openthread/ot-ns/types"
 	. "github.com/openthread/ot-ns/visualize"
-	"github.com/openthread/ot-ns/visualize/grpc/pb"
 )
 
 type statslogVisualizer struct {
@@ -45,25 +44,13 @@ type statslogVisualizer struct {
 	changed        bool   // flag to track if some node stats changed
 	timestampUs    uint64 // simulation current timestamp
 	logTimestampUs uint64 // last log entry timestamp
-	stats          nodeStats
-	oldStats       nodeStats
+	stats          NodeStats
+	oldStats       NodeStats
 
 	nodeRoles      map[NodeId]OtDeviceRole
 	nodeModes      map[NodeId]NodeMode
 	nodePartitions map[NodeId]uint32
 	nodesFailed    map[NodeId]struct{}
-}
-
-type nodeStats struct {
-	numNodes      int
-	numLeaders    int
-	numPartitions int
-	numRouters    int
-	numEndDevices int
-	numDetached   int
-	numDisabled   int
-	numSleepy     int
-	numFailed     int
 }
 
 // NewStatslogVisualizer creates a new Visualizer that writes a log of network stats to file.
@@ -173,6 +160,7 @@ func (sv *statslogVisualizer) SetNodePartitionId(nodeid NodeId, parid uint32) {
 func (sv *statslogVisualizer) AdvanceTime(ts uint64, speed float64) {
 	if sv.changed && sv.checkLogEntryChange() {
 		sv.writeLogEntry(sv.timestampUs, sv.stats)
+		sv.sendNodeStatsVizEvent(sv.timestampUs, sv.stats)
 		sv.logTimestampUs = sv.timestampUs
 		sv.oldStats = sv.stats
 	}
@@ -193,10 +181,14 @@ func (sv *statslogVisualizer) OnNodeRecover(nodeid NodeId) {
 func (sv *statslogVisualizer) SetTitle(TitleInfo) {
 }
 
-func (sv *statslogVisualizer) UpdateNodesEnergy([]*pb.NodeEnergy, uint64, bool) {
+func (sv *statslogVisualizer) UpdateNodesEnergy([]*energy.NodeEnergy, uint64, bool) {
 }
 
 func (sv *statslogVisualizer) SetEnergyAnalyser(*energy.EnergyAnalyser) {
+}
+
+func (sv *statslogVisualizer) UpdateNodeStats(nodeStatsInfo NodeStatsInfo) {
+	// sent this event myself - ignore.
 }
 
 func (sv *statslogVisualizer) createLogFile() {
@@ -221,17 +213,17 @@ func (sv *statslogVisualizer) writeLogFileHeader() {
 	_ = sv.writeToLogFile(header)
 }
 
-func (sv *statslogVisualizer) calcStats() nodeStats {
-	s := nodeStats{
-		numNodes:      len(sv.nodeRoles),
-		numLeaders:    countRole(&sv.nodeRoles, OtDeviceRoleLeader),
-		numPartitions: countUniquePts(&sv.nodePartitions),
-		numRouters:    countRole(&sv.nodeRoles, OtDeviceRoleRouter),
-		numEndDevices: countRole(&sv.nodeRoles, OtDeviceRoleChild),
-		numDetached:   countRole(&sv.nodeRoles, OtDeviceRoleDetached),
-		numDisabled:   countRole(&sv.nodeRoles, OtDeviceRoleDisabled),
-		numSleepy:     countSleepy(&sv.nodeModes),
-		numFailed:     len(sv.nodesFailed),
+func (sv *statslogVisualizer) calcStats() NodeStats {
+	s := NodeStats{
+		NumNodes:      len(sv.nodeRoles),
+		NumLeaders:    countRole(&sv.nodeRoles, OtDeviceRoleLeader),
+		NumPartitions: countUniquePts(&sv.nodePartitions),
+		NumRouters:    countRole(&sv.nodeRoles, OtDeviceRoleRouter),
+		NumEndDevices: countRole(&sv.nodeRoles, OtDeviceRoleChild),
+		NumDetached:   countRole(&sv.nodeRoles, OtDeviceRoleDetached),
+		NumDisabled:   countRole(&sv.nodeRoles, OtDeviceRoleDisabled),
+		NumSleepy:     countSleepy(&sv.nodeModes),
+		NumFailed:     len(sv.nodesFailed),
 	}
 	return s
 }
@@ -241,11 +233,11 @@ func (sv *statslogVisualizer) checkLogEntryChange() bool {
 	return sv.stats != sv.oldStats
 }
 
-func (sv *statslogVisualizer) writeLogEntry(ts uint64, stats nodeStats) {
+func (sv *statslogVisualizer) writeLogEntry(ts uint64, stats NodeStats) {
 	timeSec := float64(ts) / 1e6
-	entry := fmt.Sprintf("%12.6f, %3d,%3d,%3d,%3d,%3d,%3d,%3d,%3d,%3d", timeSec, stats.numNodes, stats.numPartitions,
-		stats.numLeaders, stats.numRouters, stats.numEndDevices, stats.numDetached, stats.numDisabled,
-		stats.numSleepy, stats.numFailed)
+	entry := fmt.Sprintf("%12.6f, %3d,%3d,%3d,%3d,%3d,%3d,%3d,%3d,%3d", timeSec, stats.NumNodes, stats.NumPartitions,
+		stats.NumLeaders, stats.NumRouters, stats.NumEndDevices, stats.NumDetached, stats.NumDisabled,
+		stats.NumSleepy, stats.NumFailed)
 	_ = sv.writeToLogFile(entry)
 	logger.Debugf("statslog entry added: %s", entry)
 }
@@ -261,6 +253,11 @@ func (sv *statslogVisualizer) writeToLogFile(line string) error {
 		logger.Errorf("couldn't write to node log file (%s), closing it", sv.logFileName)
 	}
 	return err
+}
+
+// sendNodeStatsVizEvent sends an event on node stats change to other visualizers.
+func (sv *statslogVisualizer) sendNodeStatsVizEvent(ts uint64, stats NodeStats) {
+	// FIXME send to others via callback
 }
 
 func (sv *statslogVisualizer) close() {

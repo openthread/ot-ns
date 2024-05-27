@@ -37,16 +37,32 @@ import (
 	"github.com/openthread/ot-ns/visualize/grpc/pb"
 )
 
+type visualizeStreamType int
+
+const (
+	meshTopologyVizType visualizeStreamType = 1
+	nodeStatsVizType    visualizeStreamType = 2
+)
+
 type grpcServer struct {
-	vis                      *grpcVisualizer
-	server                   *grpc.Server
-	address                  string
-	visualizingStreams       map[*grpcStream]struct{}
-	visualizingEnergyStreams map[*grpcEnergyStream]struct{}
-	grpcClientAdded          chan string
+	vis                *grpcVisualizer
+	server             *grpc.Server
+	address            string
+	visualizingStreams map[*grpcStream]visualizeStreamType
+	energyStreams      map[*grpcEnergyStream]struct{}
+	grpcClientAdded    chan string
 }
 
 func (gs *grpcServer) Visualize(req *pb.VisualizeRequest, stream pb.VisualizeGrpcService_VisualizeServer) error {
+	return gs.runVisualizeStream(meshTopologyVizType, stream, req.String())
+}
+
+func (gs *grpcServer) NodeStats(req *pb.NodeStatsRequest, stream pb.VisualizeGrpcService_NodeStatsServer) error {
+	return gs.runVisualizeStream(nodeStatsVizType, stream, req.String())
+}
+
+func (gs *grpcServer) runVisualizeStream(vizType visualizeStreamType, stream pb.VisualizeGrpcService_VisualizeServer,
+	reqId string) error {
 	var err error
 	contextDone := stream.Context().Done()
 	heartbeatEvent := &pb.VisualizeEvent{
@@ -55,7 +71,7 @@ func (gs *grpcServer) Visualize(req *pb.VisualizeRequest, stream pb.VisualizeGrp
 	var heartbeatTicker *time.Ticker
 
 	gstream := newGrpcStream(stream)
-	logger.Debugf("New gRPC visualize request received.")
+	logger.Debugf("New gRPC visualize request (type %d) received.", vizType)
 
 	gs.vis.Lock()
 	err = gs.prepareStream(gstream)
@@ -63,10 +79,10 @@ func (gs *grpcServer) Visualize(req *pb.VisualizeRequest, stream pb.VisualizeGrp
 		gs.vis.Unlock()
 		goto exit
 	}
-	gs.visualizingStreams[gstream] = struct{}{}
+	gs.visualizingStreams[gstream] = vizType
 	// if web.OpenWeb goroutine is waiting for a new client, then notify it.
 	select {
-	case gs.grpcClientAdded <- req.String():
+	case gs.grpcClientAdded <- reqId:
 		break
 	default:
 		break
@@ -96,7 +112,7 @@ exit:
 	return err
 }
 
-func (gs *grpcServer) EnergyReport(req *pb.VisualizeRequest, stream pb.VisualizeGrpcService_EnergyReportServer) error {
+func (gs *grpcServer) Energy(req *pb.EnergyRequest, stream pb.VisualizeGrpcService_EnergyServer) error {
 	var err error
 	contextDone := stream.Context().Done()
 
@@ -105,13 +121,13 @@ func (gs *grpcServer) EnergyReport(req *pb.VisualizeRequest, stream pb.Visualize
 	gstream := newGrpcEnergyStream(stream)
 	logger.Debugf("New energy report request got.")
 
-	gs.visualizingEnergyStreams[gstream] = struct{}{}
+	gs.energyStreams[gstream] = struct{}{}
 	defer gs.disposeEnergyStream(gstream)
 
 	energyHist := gs.vis.energyAnalyser.GetNetworkEnergyHistory()
 	energyHistByNodes := gs.vis.energyAnalyser.GetEnergyHistoryByNodes()
 	for i := 0; i < len(energyHistByNodes); i++ {
-		gs.vis.UpdateNodesEnergy(energyHistByNodes[i], energyHist[i].Timestamp, ((i + 1) == len(energyHistByNodes)))
+		gs.vis.UpdateNodesEnergy(energyHistByNodes[i], energyHist[i].Timestamp, (i+1) == len(energyHistByNodes))
 	}
 
 	//Wait for the first event
@@ -138,14 +154,14 @@ func (gs *grpcServer) Run() error {
 	return gs.server.Serve(lis)
 }
 
-func (gs *grpcServer) SendEvent(event *pb.VisualizeEvent, trivial bool) {
+func (gs *grpcServer) SendEvent(event *pb.VisualizeEvent) {
 	for stream := range gs.visualizingStreams {
 		_ = stream.Send(event)
 	}
 }
 
-func (gs *grpcServer) SendEnergyEvent(event *pb.NetworkEnergyEvent) {
-	for stream := range gs.visualizingEnergyStreams {
+func (gs *grpcServer) SendEnergyEvent(event *pb.EnergyEvent) {
+	for stream := range gs.energyStreams {
 		_ = stream.Send(event)
 	}
 }
@@ -166,7 +182,7 @@ func (gs *grpcServer) disposeStream(stream *grpcStream) {
 
 func (gs *grpcServer) disposeEnergyStream(stream *grpcEnergyStream) {
 	gs.vis.Lock()
-	delete(gs.visualizingEnergyStreams, stream)
+	delete(gs.energyStreams, stream)
 	gs.vis.Unlock()
 	stream.close()
 }
@@ -178,12 +194,12 @@ func (gs *grpcServer) prepareStream(stream *grpcStream) error {
 func newGrpcServer(vis *grpcVisualizer, address string, chanNewClientNotifier chan string) *grpcServer {
 	server := grpc.NewServer(grpc.ReadBufferSize(1024*8), grpc.WriteBufferSize(1024*1024*1))
 	gs := &grpcServer{
-		vis:                      vis,
-		server:                   server,
-		address:                  address,
-		visualizingStreams:       map[*grpcStream]struct{}{},
-		visualizingEnergyStreams: map[*grpcEnergyStream]struct{}{},
-		grpcClientAdded:          chanNewClientNotifier,
+		vis:                vis,
+		server:             server,
+		address:            address,
+		visualizingStreams: map[*grpcStream]visualizeStreamType{},
+		energyStreams:      map[*grpcEnergyStream]struct{}{},
+		grpcClientAdded:    chanNewClientNotifier,
 	}
 	pb.RegisterVisualizeGrpcServiceServer(server, gs)
 	return gs

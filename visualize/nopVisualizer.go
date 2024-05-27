@@ -31,7 +31,6 @@ import (
 
 	"github.com/openthread/ot-ns/energy"
 	. "github.com/openthread/ot-ns/types"
-	"github.com/openthread/ot-ns/visualize/grpc/pb"
 )
 
 type nopVisualizer struct{}
@@ -134,10 +133,13 @@ func (nv nopVisualizer) SetTitle(titleInfo TitleInfo) {
 
 }
 
-func (nv nopVisualizer) UpdateNodesEnergy(node []*pb.NodeEnergy, timestamp uint64, updateView bool) {
+func (nv nopVisualizer) UpdateNodesEnergy(node []*energy.NodeEnergy, timestamp uint64, updateView bool) {
 
 }
 
 func (nv nopVisualizer) SetEnergyAnalyser(ea *energy.EnergyAnalyser) {
 
+}
+
+func (nv nopVisualizer) UpdateNodeStats(nodeStatsInfo NodeStatsInfo) {
 }

@@ -75,10 +75,14 @@ waitloop:
 	return nil
 }
 
-func (gs *grpcService) EnergyReport(req *pb.VisualizeRequest, stream pb.VisualizeGrpcService_EnergyReportServer) error {
+func (gs *grpcService) NodeStats(req *pb.NodeStatsRequest, stream pb.VisualizeGrpcService_NodeStatsServer) error {
+	// TODO
+	return nil
+}
+
+func (gs *grpcService) Energy(req *pb.EnergyRequest, stream pb.VisualizeGrpcService_EnergyServer) error {
 	//TODO: implement energy report for replay, if it fits.
-	var err error
-	return err
+	return nil
 }
 
 func (gs *grpcService) Command(context.Context, *pb.CommandRequest) (*pb.CommandResponse, error) {

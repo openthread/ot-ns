@@ -24,24 +24,13 @@ type Replay struct {
 	beginTime      time.Time
 }
 
-func (rep *Replay) Append(event *visualize_grpc_pb.VisualizeEvent, trivial bool) {
+func (rep *Replay) Append(event *visualize_grpc_pb.VisualizeEvent) {
 	timestamp := time.Since(rep.beginTime) / time.Microsecond
 	entry := &visualize_grpc_pb.ReplayEntry{
 		Event:     event,
 		Timestamp: uint64(timestamp),
 	}
-
-	if !trivial {
-		rep.pendingChan <- entry
-	} else {
-		select {
-		case rep.pendingChan <- entry:
-			break
-		default:
-			logger.Warnf("replay generation routine is busy, dropping trivial events ...")
-			break
-		}
-	}
+	rep.pendingChan <- entry
 }
 
 func (rep *Replay) Close() {

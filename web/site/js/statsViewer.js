@@ -28,7 +28,7 @@ import {StatsVisualizer} from "./stats/StatsVisualizer";
 import NodeNumbersChart from "./stats/nodeNumbersChart";
 
 const {
-    VisualizeRequest, VisualizeEvent
+    NodeStatsRequest, VisualizeEvent
 } = require('./proto/visualize_grpc_pb.js');
 const {VisualizeGrpcServiceClient} = require('./proto/visualize_grpc_grpc_web_pb.js');
 
@@ -46,16 +46,16 @@ function loadOk() {
 
     vis = new StatsVisualizer();
     
-    let visualizeRequest = new VisualizeRequest();
+    let visualizeRequest = new NodeStatsRequest();
     let metadata = {'custom-header-1': 'value1'};
-    let stream = grpcServiceClient.visualize(visualizeRequest, metadata);
+    let stream = grpcServiceClient.nodeStats(visualizeRequest, metadata);
     
     stream.on('data', function (resp) {
         let e = null;
         switch (resp.getTypeCase()) {
-            case VisualizeEvent.TypeCase.SEND:
-                e = resp.getSend();
-                vis.visSend(e.getSrcId(), e.getDstId(), e.getMvInfo());
+            case VisualizeEvent.TypeCase.NODE_STATS_INFO:
+                e = resp.getNodeStatsInfo()
+                lastTimestampUs = e.getTimestamp();
                 break;
             case VisualizeEvent.TypeCase.ADVANCE_TIME:
                 e = resp.getAdvanceTime();

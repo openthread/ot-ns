@@ -24,13 +24,10 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-import {NodeMode} from "../proto/visualize_grpc_pb";
-
 const {
     OtDeviceRole,
 } = require('../proto/visualize_grpc_pb.js');
 import * as fmt from "../vis/format_text"
-import {FRAME_CONTROL_MASK_FRAME_TYPE, FRAME_TYPE_ACK} from "../vis/consts";
 
 export class NodeStats {
 
@@ -61,6 +58,30 @@ export class NodeStats {
     }
 }
 
+export class TimePeriodStats {
+
+    constructor() {
+        this.numBytesSent = {};
+        this.numBytesSentTotal = 0;
+        this.startTime = 0;
+        this.ts = 0;
+    }
+
+    setStartTime(timeUs) {
+        this.startTime = timeUs;
+    }
+
+    onSend(src, dst, numBytes) {
+        this.numBytesSent[src] += numBytes;
+        this.numBytesSentTotal += numBytes;
+    }
+
+    onAdvanceTime(timeUs) {
+        let oldTime = this.ts;
+        this.ts = timeUs;
+    }
+}
+
 export class StatsVisualizer {
     constructor() {
         this.nodeRoles = {};
@@ -72,6 +93,7 @@ export class StatsVisualizer {
         this.lastPlotTimestampUs = 0;
         this.arrayTimestamps = [];
         this.arrayStats = [];
+        this.timePeriodStats = new TimePeriodStats();
     }
 
     visAdvanceTime(tsUs) {
@@ -86,11 +108,8 @@ export class StatsVisualizer {
             this.lastPlotTimestampUs = tsUs;
             this.oldStats = this.stats;
         }
-    }
 
-    visSend(srcId, dstId, mvInfo) {
-        let frameSizeBytes = mvInfo.getFrameSizeBytes();
-        this.logNode(srcId, `Sends a frame of ${frameSizeBytes} bytes.`);
+        this.timePeriodStats.onAdvanceTime(tsUs);
     }
 
     visHeartbeat() {
