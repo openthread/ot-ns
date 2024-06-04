@@ -22,7 +22,7 @@ Note: this is a fork of the [OpenThread OTNS project](https://github.com/openthr
   at 1 us resolution.
 * Animations with duration scaled to the actual time duration of a packet in flight (at low simulation 
   speed only).
-* Support for easily adding various node types (1.1, 1.2, 1.3, 1.3.1, Border Router)
+* Support for easily adding various node types (1.1, 1.2, 1.3, 1.4, 1.4 Border Router)
 * New graphical displays for overall node type statistics, and energy usage (beta - 
   contribution by [Vinggui](https://github.com/Vinggui)).
 * Extensive set of Python scripts for unit testing, examples, and case studies.
