@@ -33,12 +33,13 @@ import (
 )
 
 type grpcField struct {
-	nodes       map[NodeId]*grpcNode
-	curTime     uint64
-	curSpeed    float64
-	speed       float64
-	titleInfo   visualize.TitleInfo
-	networkInfo visualize.NetworkInfo
+	nodes         map[NodeId]*grpcNode
+	curTime       uint64
+	curSpeed      float64
+	speed         float64
+	titleInfo     visualize.TitleInfo
+	networkInfo   visualize.NetworkInfo
+	nodeStatsInfo visualize.NodeStatsInfo
 }
 
 func (f *grpcField) addNode(id NodeId, cfg *NodeConfig) *grpcNode {
@@ -134,12 +135,17 @@ func (f *grpcField) setTitleInfo(info visualize.TitleInfo) {
 	f.titleInfo = info
 }
 
+func (f *grpcField) setNodeStatsInfo(info visualize.NodeStatsInfo) {
+	f.nodeStatsInfo = info
+}
+
 func newGrpcField() *grpcField {
 	gf := &grpcField{
-		nodes:       map[NodeId]*grpcNode{},
-		curSpeed:    1,
-		speed:       1,
-		networkInfo: visualize.DefaultNetworkInfo(),
+		nodes:         map[NodeId]*grpcNode{},
+		curSpeed:      1,
+		speed:         1,
+		networkInfo:   visualize.DefaultNetworkInfo(),
+		nodeStatsInfo: visualize.DefaultNodeStatsInfo(),
 	}
 	return gf
 }

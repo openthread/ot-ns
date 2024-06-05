@@ -45,7 +45,7 @@ To learn more about OpenThread, visit [openthread.io](https://openthread.io).
 ## Get started
 See [GUIDE](GUIDE.md) to get started. 
 
-See [OTNS CLI Reference](cli/README.md) for the CLI commands.
+See [OTNS CLI Reference](cli/README.md) for the OTNS CLI commands.
 
 ## Contributing
 

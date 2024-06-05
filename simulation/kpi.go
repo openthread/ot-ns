@@ -35,7 +35,6 @@ import (
 
 	"github.com/openthread/ot-ns/dispatcher"
 	"github.com/openthread/ot-ns/logger"
-	"github.com/openthread/ot-ns/radiomodel"
 	. "github.com/openthread/ot-ns/types"
 )
 
@@ -75,7 +74,7 @@ func (km *KpiManager) Start() {
 	km.startCounters = km.retrieveNodeCounters()
 	km.data.TimeUs.StartTimeUs = d.CurTime
 	rm := d.GetRadioModel()
-	for ch := radiomodel.MinChannelNumber; ch <= radiomodel.MaxChannelNumber; ch++ {
+	for ch := MinChannelNumber; ch <= MaxChannelNumber; ch++ {
 		rm.ResetChannelStats(ch)
 	}
 	d.EnableCoaps()
@@ -113,13 +112,13 @@ func (km *KpiManager) SaveFile(fn string) {
 	}
 
 	km.data.FileTime = time.Now().Format(time.RFC3339)
-	json, err := json.MarshalIndent(km.data, "", "    ")
+	jsn, err := json.MarshalIndent(km.data, "", "    ")
 	if err != nil {
 		logger.Fatalf("Could not marshal KPI JSON data: %v", err)
 		return
 	}
 
-	err = os.WriteFile(fn, json, 0644)
+	err = os.WriteFile(fn, jsn, 0644)
 	if err != nil {
 		logger.Errorf("Could not write  KPI JSON file %s: %v", fn, err)
 		return
@@ -138,11 +137,14 @@ func (km *KpiManager) retrieveNodeCounters() NodeCountersStore {
 	}
 	nodes := km.sim.GetNodes()
 	nodesMap := make(NodeCountersStore, len(nodes))
+	phyStats := km.sim.Dispatcher().GetRadioModel().GetPhyStats()
 	for _, nid := range nodes {
 		counters1 := km.sim.nodes[nid].GetCounters("mac", "mac.")
 		counters2 := km.sim.nodes[nid].GetCounters("mle", "mle.")
 		counters3 := km.sim.nodes[nid].GetCounters("ip", "ip.")
-		nodesMap[nid] = mergeNodeCounters(counters1, counters2, counters3)
+		counters4 := NodeCounters{}
+		counters4["phy.tx.bytes"] = phyStats.TxBytes[nid]
+		nodesMap[nid] = mergeNodeCounters(counters1, counters2, counters3, counters4)
 		km.sim.nodes[nid].DisplayPendingLogEntries()
 		km.sim.nodes[nid].DisplayPendingLines()
 	}
@@ -155,8 +157,8 @@ func (km *KpiManager) retrieveRadioModelStats() RadioStatsStore {
 	passedTime := curTime - km.data.TimeUs.StartTimeUs
 
 	if passedTime > 0 {
-		for ch := radiomodel.MinChannelNumber; ch <= radiomodel.MaxChannelNumber; ch++ {
-			stats := km.sim.Dispatcher().GetRadioModel().GetChannelStats(ch, curTime)
+		for ch := MinChannelNumber; ch <= MaxChannelNumber; ch++ {
+			stats := km.sim.Dispatcher().GetRadioModel().GetChannelStats(ch)
 			if stats != nil {
 				chanKpi := KpiChannel{
 					TxTimeUs:     stats.TxTimeUs,

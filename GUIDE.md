@@ -15,23 +15,46 @@ git clone https://github.com/EskoDijk/ot-ns.git ./otns
 cd otns
 ```
 
-## Install Dependencies
+## Automated installation
+
+An automated way to install dependencies, OTNS and all OT nodes is the following command:
+
+```bash
+./script/test build_openthread_versions
+```
+
+Alternatively the extensive unit tests can be run also with the following command:
+
+```bash
+./script/test py-unittests
+```
+
+However, this can take a long time (5-10 minutes).
+
+## Manual step-by-step installation
+
+As alternative to above automated installation, scripts can also be run for the individual phases of the installation. 
+This is shown in the below subsections. Here, also some more explanation is given of the result of each phase.
+
+### Install Dependencies
 
 ```bash
 ./script/install-deps
 ```
 
-## Install OTNS
+Running this script will also set up a Python 3 virtual environment (venv) in `.venv-otns` in the project directory.
+
+### Install OTNS
 
 ```bash
 ./script/install
 ```
 
 This installs `otns` in the Go binary directory of the user (typically `~/go/bin`) and makes the command available in 
-the path. Also, it installs the pyOTNS library in the user's Python `site-packages` (typically in `~/.local/lib`).
-The OT nodes required for running a simulation are not yet installed, however.
+the path. Also, it installs the pyOTNS library in the local Python virtual environment `.venv-otns`.
+The OT nodes required for running a simulation are not yet installed at this point.
 
-## Install OT nodes
+### Install OT nodes
 
 ```bash
 ./script/install-nodes
@@ -40,7 +63,9 @@ The OT nodes required for running a simulation are not yet installed, however.
 This checks for availability of prebuilt OT nodes, and builds any OT nodes not yet present. This includes a standard 
 set of nodes like FTD, MTD, Border Router (BR) and different Thread versions (1.1, 1.2, 1.3.0, 1.3.1). This build 
 can take a long time. During the build specific commits of the `openthread` Git repo submodule will be checked out in 
-order to access older OpenThread codebases.
+order to access older OpenThread codebases. In case the build stops unexpectedly and the script is aborted, it may be 
+the case that an older OT commit is checked out in the `./openthread` subdirectory. This can be manually restored 
+again by running `git submodule update`.
 
 These nodes of specific versions can be added to a simulation using specific flags in the `add` command that adds
 a node. Type `help add` in OTNS to see this.
@@ -75,13 +100,14 @@ $ cd ot-rfsim
 $ ./script/build_v11
 $ ./script/build_v12
 $ ./script/build_v13
-$ ./script/build_v131
+$ ./script/build_br
 $ ./script/build_latest
 $ cd ..
 ```
 
-NOTE: all of the above version-specific build scripts may manipulate the submodule 'openthread' to get a specific 
-desired historical commit.
+NOTE: all of the above version-specific build scripts will check if the submodule 'openthread' is at the right specific 
+commit that is expected. The `./script/build_all` script provides the automated Git commit checkout and building for 
+all versions.
 
 The generic build script can be invoked as shown below. This will build whatever code is currently 
 residing in the 'openthread' submodule without switching to a specific OT version and without clearing any previous 
@@ -103,7 +129,7 @@ $ cd ..
 
 In this example a node is built with debug logs off (for speed in simulation), CoAP-observe enabled, and TCP enabled.
 
-## Run OTNS
+## Run OTNS Interactively
 
 Preferably run OTNS from the working directory (i.e. the root of this repo):
 
@@ -144,7 +170,8 @@ See [OTNS CLI Reference](cli/README.md).
 
 ## OTNS Python Scripting
 
-[pyOTNS](pylibs/otns) library provides utilities to create and manage simulations through OTNS CLI. 
+[pyOTNS](pylibs/otns) library provides utilities to create and manage simulations through OTNS CLI. It is installed in a 
+Python 3 virtual environment `.venv-otns`. 
 
 ### Python Scripting Documentation
 
@@ -169,3 +196,18 @@ happens at the end of a simulation, after a mesh network topology has been set u
 
 The example [`interactive_cli_threaded.py`](pylibs/examples/interactive_cli_threaded.py) explains how to set up CLI 
 interaction that runs in parallel with the Python script being executed.
+
+### Running a simulation from a Python script
+
+To ensure that the `pyOTNS` library can be found, and the virtual environment is not yet active, enable it first:
+
+```bash
+$ source .venv-otns/bin/activate
+```
+
+Then run a Python script:
+
+```bash
+(.venv-otns) $ ./pylibs/examples/farm.py
+...
+```

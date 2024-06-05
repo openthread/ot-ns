@@ -50,7 +50,6 @@ import (
 	"github.com/openthread/ot-ns/otns_main"
 	"github.com/openthread/ot-ns/progctx"
 	. "github.com/openthread/ot-ns/types"
-	"github.com/openthread/ot-ns/visualize"
 	visualize_grpc_pb "github.com/openthread/ot-ns/visualize/grpc/pb"
 )
 
@@ -423,9 +422,7 @@ func NewOtnsTest(t *testing.T) *OtnsTest {
 			close(ot.otnsDone)
 		}()
 
-		otns_main.Main(ot.ctx, func(ctx *progctx.ProgCtx, args *otns_main.MainArgs) visualize.Visualizer {
-			return nil
-		}, &cli.CliOptions{
+		otns_main.Main(ot.ctx, &cli.CliOptions{
 			EchoInput: false,
 			Stdin:     ot.stdin,
 			Stdout:    ot.stdout,

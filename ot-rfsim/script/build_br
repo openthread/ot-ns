@@ -32,18 +32,19 @@ set -euxo pipefail
 # OpenThread Border Router (OTBR) specific options. These are superimposed on the standard
 # options in './build'.
 OTBR_OPTIONS=(
-    "-DOT_THREAD_VERSION=1.3.1"
-    "-DOT_VENDOR_MODEL=RFSIM-BR-v1.3.1"
+    "-DOT_THREAD_VERSION=1.4"
+    "-DOT_VENDOR_MODEL=RFSIM-BR-v1.4.0"
     "-DOT_BACKBONE_ROUTER=ON"
     "-DOT_BACKBONE_ROUTER_MULTICAST_ROUTING=ON"
     "-DOT_BORDER_ROUTER=ON"
     "-DOT_BORDER_ROUTING=ON"
     "-DOT_BORDER_ROUTING_DHCP6_PD=ON"
     "-DOT_BORDER_ROUTING_COUNTERS=ON"
+    "-DOT_NAT64_BORDER_ROUTING=ON"
     "-DOT_BORDER_AGENT=ON"
+    "-DOT_MLR=ON"
     "-DOT_COAP_BLOCK=ON"
     "-DOT_DNSSD_SERVER=ON"
-    "-DOT_NAT64_BORDER_ROUTING=ON"
     "-DOT_NETDATA_PUBLISHER=ON"
     "-DOT_SRP_SERVER=ON"
     "-DOT_TREL=OFF"
@@ -59,8 +60,6 @@ main()
     local options=()
     options+=("${OTBR_OPTIONS[@]}" "$@")
 
-    git submodule update
-    rm -rf build
     ./script/build "${options[@]}"
     cp ./build/bin/ot-cli-ftd ./ot-versions/ot-cli-ftd_br
 }

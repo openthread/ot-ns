@@ -24,13 +24,6 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-import {NodeMode} from "../proto/visualize_grpc_pb";
-
-const {
-    OtDeviceRole,
-} = require('../proto/visualize_grpc_pb.js');
-import * as fmt from "../vis/format_text"
-
 export class NodeStats {
 
     constructor() {
@@ -49,149 +42,60 @@ export class NodeStats {
         return ['numNodes', 'numLeaders', 'numPartitions', 'numRouters', 'numEndDevices', 'numDetached', 'numDisabled', 'numSleepy', 'numFailed'];
     }
 
-    equals(other) {
-        return this.numNodes === other.numNodes && this.numLeaders === other.numLeaders && this.numPartitions === other.numPartitions &&
-            this.numRouters === other.numRouters && this.numEndDevices === other.numEndDevices && this.numDetached === other.numDetached &&
-            this.numDisabled === other.numDisabled && this.numSleepy === other.numSleepy && this.numFailed === other.numFailed
+    initFrom(grpcStats) {
+        this.numNodes = grpcStats.getNumnodes()
+        this.numLeaders = grpcStats.getNumleaders()
+        this.numPartitions = grpcStats.getNumpartitions()
+        this.numRouters = grpcStats.getNumrouters()
+        this.numEndDevices = grpcStats.getNumenddevices()
+        this.numDetached = grpcStats.getNumdetached()
+        this.numDisabled = grpcStats.getNumdisabled()
+        this.numFailed = grpcStats.getNumfailed()
     }
 
-    printStats() {
+    toLogString() {
         return `${this.numNodes}\t${this.numLeaders}\t${this.numPartitions}\t${this.numRouters}\t${this.numEndDevices}\t${this.numDetached}\t${this.numDisabled}\t${this.numSleepy}\t${this.numFailed}`
     }
 }
 
+export class TimeWindowStats {
+
+    constructor() {
+        this.ts = 0;
+        this.windowDuration = 0;
+        this.numBytesSent = {}; // per-node counter
+        this.numBytesSentTotal = 0;
+    }
+
+}
+
 export class StatsVisualizer {
     constructor() {
-        this.nodeRoles = {};
-        this.nodeModes = {};
-        this.nodePartitions = {};
-        this.nodesFailed = {};
         this.stats = new NodeStats();
-        this.oldStats = new NodeStats();
-        this.lastPlotTimestampUs = 0;
+        this.ts = 0;
         this.arrayTimestamps = [];
         this.arrayStats = [];
+        this.timeWindowStats = new TimeWindowStats();
+    }
+
+    visNodeStatsInfo(tsUs, grpcStats) {
+        this.arrayStats = [];
+        this.arrayTimestamps = [];
+        if (tsUs > this.ts+1e3) {
+            this.addDataPoint(tsUs-1e3, this.stats); // extra data point to plot staircase type graphs
+        }
+
+        this.stats = new NodeStats()
+        this.stats.initFrom(grpcStats)
+        this.addDataPoint(tsUs, this.stats);
+        this.writeLogEntry(tsUs, this.stats);
+        this.ts = tsUs;
     }
 
     visAdvanceTime(tsUs) {
-        this.arrayStats = [];
-        this.arrayTimestamps = [];
-        if (this.checkDataPointsChange()) {
-            if (tsUs > this.lastPlotTimestampUs+1e3) {
-                this.addDataPoint(tsUs-1e3, this.oldStats); // extra data point to plot staircase type graphs
-            }
-            this.addDataPoint(tsUs, this.stats);
-            this.writeLogEntry(tsUs, this.stats);
-            this.lastPlotTimestampUs = tsUs;
-            this.oldStats = this.stats;
-        }
     }
 
     visHeartbeat() {
-    }
-
-    visAddNode(nodeId) {
-        this.nodeRoles[nodeId] = OtDeviceRole.OT_DEVICE_ROLE_DISABLED;
-        let msg = "Added";
-        this.logNode(nodeId, msg);
-    }
-
-    visSetNodeRole(nodeId, role) {
-        let oldRole = this.nodeRoles[nodeId];
-        this.nodeRoles[nodeId] = role;
-        if (oldRole !== role) {
-            this.logNode(nodeId, `Role changed from ${fmt.roleToString(oldRole)} to ${fmt.roleToString(role)}`)
-        }
-    }
-
-    visSetNodeMode(nodeId, mode) {
-        let oldMode = this.nodeModes[nodeId];
-        this.nodeModes[nodeId] = mode;
-        let oldModeStr = fmt.modeToString(oldMode);
-        let modeStr = fmt.modeToString(mode);
-        if (oldModeStr !== modeStr) {
-            this.logNode(nodeId, `Mode changed from "${oldModeStr}" to "${modeStr}"`);
-        }
-    }
-
-    visSetNodePartitionId(nodeId, partitionId) {
-        let oldPartitionId = 0;
-        if (nodeId in this.nodePartitions) {
-            oldPartitionId = this.nodePartitions[nodeId];
-        }
-        this.nodePartitions[nodeId] = partitionId;
-        if (oldPartitionId !== partitionId) {
-            this.logNode(nodeId, `Partition changed from ${fmt.formatPartitionId(oldPartitionId)} to ${fmt.formatPartitionId(partitionId)}`)
-        }
-    }
-
-    visDeleteNode(nodeId) {
-        delete this.nodeModes[nodeId];
-        delete this.nodeRoles[nodeId];
-        delete this.nodesFailed[nodeId];
-        this.logNode(nodeId, "Deleted")
-    }
-
-    visOnNodeFail(nodeId) {
-        this.nodesFailed[nodeId] = true;
-        this.logNode(nodeId, "Radio is OFF")
-    }
-
-    visOnNodeRecover(nodeId) {
-        delete this.nodesFailed[nodeId]
-        this.logNode(nodeId, "Radio is ON")
-    }
-
-    getNodeCountByRole(role) {
-        let count = 0;
-        for (let nodeid in this.nodeRoles) {
-            let nr = this.nodeRoles[nodeid];
-            if (nr === role) {
-                count += 1
-            }
-        }
-        return count
-    }
-
-    getPartitionCount() {
-        let aPts = {};
-        for (let nodeid in this.nodePartitions) {
-            let pts = this.nodePartitions[nodeid];
-            aPts[pts] = 1;
-        }
-        return Object.keys(aPts).length;
-    }
-
-    // counts the number of MTD SEDs in the network
-    getSleepyCount() {
-        let cnt = 0;
-        for (let nodeid in this.nodeModes){
-            let mode = this.nodeModes[nodeid];
-            if (!mode.getRxOnWhenIdle() && !mode.getFullThreadDevice()){
-                cnt++;
-            }
-        }
-        return cnt;
-    }
-
-    calcStats() {
-        let s = new NodeStats();
-        s.numNodes = Object.keys(this.nodeRoles).length;
-        s.numLeaders = this.getNodeCountByRole(OtDeviceRole.OT_DEVICE_ROLE_LEADER);
-        s.numPartitions = this.getPartitionCount();
-        s.numRouters = this.getNodeCountByRole(OtDeviceRole.OT_DEVICE_ROLE_ROUTER);
-        s.numEndDevices = this.getNodeCountByRole(OtDeviceRole.OT_DEVICE_ROLE_CHILD);
-        s.numDetached = this.getNodeCountByRole(OtDeviceRole.OT_DEVICE_ROLE_DETACHED);
-        s.numDisabled = this.getNodeCountByRole(OtDeviceRole.OT_DEVICE_ROLE_DISABLED);
-        s.numSleepy = this.getSleepyCount();
-        s.numFailed = Object.keys(this.nodesFailed).length;
-
-        return s;
-    }
-
-    checkDataPointsChange() {
-        this.stats = this.calcStats();
-        return !this.stats.equals(this.oldStats);
     }
 
     addDataPoint(tsUs, stats) {
@@ -200,21 +104,17 @@ export class StatsVisualizer {
     }
 
     getNewDataPoints() {
-        // these arrays get cleared upon next call to visAdvanceTime()
+        // these arrays get cleared upon next call to visNodeStatsInfo()
         return [this.arrayTimestamps, this.arrayStats]
     }
 
     writeLogEntry(ts, stats) {
-        let entry = stats.printStats();
+        let entry = stats.toLogString();
         console.log(`${ts}: ${entry}`);
     }
 
     onResize(width, height) {
         console.log("window resized to " + width + "," + height);
-    }
-
-    logNode(nodeId, msg) {
-        console.log(`Node ${nodeId}: ${msg}`)
     }
 
 }

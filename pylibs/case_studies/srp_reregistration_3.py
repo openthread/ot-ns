@@ -26,14 +26,15 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 # Case study on SRP reregistrations that happen when the Anycast Dataset
-# sequence number changes, with a large number of SRP clients.
+# sequence number changes, with a large number of SRP clients. In this
+# topology, all clients are close to the BR
 
 from otns.cli import OTNS
 from otns.cli.errors import OTNSExitedError
 
 NUM_BR = 1
 NUM_NODES = 50
-DX = 150  # pixels spacing
+DX = 50  # pixels spacing
 
 SCRIPT_BR="""
 # OT BR CLI script specific to this test scenario
@@ -77,7 +78,7 @@ def main():
 
     # setup of Border Routers
     for i in range(1, NUM_BR+1):
-        nid = ns.add("br", x = i*100, y = 50, script = SCRIPT_BR)
+        nid = ns.add("br", x = 225 + i*100, y = 140, script = SCRIPT_BR)
     nid_br = 1
     ns.go(10)
 
@@ -95,7 +96,7 @@ def main():
         ns.go(10)
 
         cx += DX
-        if cx > 1500:
+        if cx >= 600:
             cx = 100
             cy += DX
 

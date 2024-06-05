@@ -55,6 +55,7 @@ func (rm *RadioModelMutualInterference) AddNode(radioNode *RadioNode) {
 }
 
 func (rm *RadioModelMutualInterference) DeleteNode(nodeid NodeId) {
+	rm.statsDeleteNode(rm.nodes[nodeid])
 	delete(rm.nodes, nodeid)
 	for c := MinChannelNumber; c <= MaxChannelNumber; c++ {
 		delete(rm.activeTransmitters[c], nodeid)
@@ -132,6 +133,7 @@ func (rm *RadioModelMutualInterference) OnEventDispatch(src *RadioNode, dst *Rad
 }
 
 func (rm *RadioModelMutualInterference) OnNextEventTime(ts uint64) {
+	rm.ts = ts
 	rm.fading.onAdvanceTime(ts)
 }
 

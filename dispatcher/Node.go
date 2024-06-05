@@ -73,6 +73,7 @@ type Node struct {
 	Rloc16      uint16
 	CreateTime  uint64
 	CurTime     uint64
+	Mode        NodeMode
 	Role        OtDeviceRole
 	Type        string
 	RadioNode   *radiomodel.RadioNode
@@ -110,6 +111,7 @@ func newNode(d *Dispatcher, nodeid NodeId, cfg *NodeConfig) *Node {
 		Z:           cfg.Z,
 		ExtAddr:     InvalidExtAddr,
 		Rloc16:      InvalidRloc16,
+		Mode:        DefaultNodeMode(),
 		Role:        OtDeviceRoleDisabled,
 		Type:        cfg.Type,
 		conn:        nil, // connection will be set when first event is received from node.

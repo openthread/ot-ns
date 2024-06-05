@@ -29,6 +29,8 @@ package dispatcher
 import (
 	"math"
 	"time"
+
+	. "github.com/openthread/ot-ns/types"
 )
 
 const (
@@ -38,6 +40,24 @@ const (
 	MaxSimulateSpeed               = 1000000
 	DefaultReadTimeout             = time.Second * 5
 )
+
+type TimeWindowStats struct {
+	WinStartUs      uint64
+	WinWidthUs      uint64
+	PhyTxBytesStart map[NodeId]int
+	PhyTxBytesEnd   map[NodeId]int
+	PhyTxRateKbps   map[NodeId]float64
+}
+
+func defaultTimeWindowStats() TimeWindowStats {
+	return TimeWindowStats{
+		WinStartUs:      0,
+		WinWidthUs:      1e6,
+		PhyTxBytesStart: make(map[NodeId]int),
+		PhyTxBytesEnd:   make(map[NodeId]int),
+		PhyTxRateKbps:   make(map[NodeId]float64),
+	}
+}
 
 func min(t1 uint64, t2 uint64) uint64 {
 	if t1 <= t2 {

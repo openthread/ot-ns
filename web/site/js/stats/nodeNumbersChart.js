@@ -1,4 +1,4 @@
-// Copyright (c) 2023, The OTNS Authors.
+// Copyright (c) 2023-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -63,7 +63,7 @@ export default class NodeNumbersChart {
                             display: true,
                             text: 'Time (seconds)'
                         },
-                        beginAtZero: true
+                        beginAtZero: false
                     },
                     y: {
                         title: {
@@ -87,7 +87,7 @@ export default class NodeNumbersChart {
                                 "#dc0ab4", "#00bfa0", "#ffa300"];
         for (let n in this.fields) {
             let colDark = aColors[n];
-            let colLight = colDark + '99'; // add alpha channel to make it look lighter.
+            let colLight = colDark + '99'; // append alpha channel to make it look lighter.
             let cfgItem = {
                 label: this.fields[n],
                 data: [],
@@ -107,8 +107,8 @@ export default class NodeNumbersChart {
             this._datasetsPop(this.chart.data);
             this._datasetsPush(timestampUs, this.lastStats, this.chart.data);
             this.chart.update();
+            this.lastTimestampUs = timestampUs;
         }
-        this.lastTimestampUs = timestampUs;
     }
 
     addData(timestampUs, stats) {
@@ -138,7 +138,7 @@ export default class NodeNumbersChart {
             if (dlen >= 2) {
                 let y_old = data.datasets[i].data[dlen-1].y; // get last element
                 let y_old2 = data.datasets[i].data[dlen-2].y; // get 2nd last element
-                if (y == y_old && y == y_old2) { // to avoid too many points at same y value, remove superfluous y points
+                if (y === y_old && y === y_old2) { // to avoid too many points at same y value, remove superfluous y points
                     data.datasets[i].data.pop();
                 }
             }

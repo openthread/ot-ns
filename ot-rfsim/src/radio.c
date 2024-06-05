@@ -1001,10 +1001,9 @@ otError otPlatRadioGetRegion(otInstance *aInstance, uint16_t *aRegionCode)
 
 void radioTransmit(struct RadioMessage *aMessage, const struct otRadioFrame *aFrame)
 {
-    // ( 4B preamble + 1B SFD + 1B PHY header + MAC frame ) @250kbps
-    uint64_t frameDurationUs = (6 + aFrame->mLength) * OT_RADIO_SYMBOLS_PER_OCTET * OT_RADIO_SYMBOL_TIME;
+    uint64_t frameDurationUs = OT_RADIO_SHR_PHR_DURATION_US + aFrame->mLength * OT_RADIO_SYMBOLS_PER_OCTET * OT_RADIO_SYMBOL_TIME;
+    int8_t maxPower          = sChannelMaxTransmitPower[aFrame->mChannel - kMinChannel];
 
-    int8_t maxPower            = sChannelMaxTransmitPower[aFrame->mChannel - kMinChannel];
     sLastTxEventData.mChannel  = aFrame->mChannel;
     sLastTxEventData.mPower    = sTxPower < maxPower ? sTxPower : maxPower;
     sLastTxEventData.mError    = OT_ERROR_NONE;
