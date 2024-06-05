@@ -85,13 +85,13 @@ export function threadVersionToString(ver) {
         case 3:
             return "1.2.x";
         case 4:
-            return "1.3.0";
+            return "1.3.x";
         case 5:
-            return "1.3.1";
+            return "1.4.x";
         case 6:
-            return "1.4.x?";
-        case 7:
             return "1.5.x?";
+        case 7:
+            return "1.6.x?";
         default:
             return "UNKNOWN";
     }
