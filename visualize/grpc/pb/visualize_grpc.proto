@@ -31,7 +31,12 @@ package visualize_grpc_pb;
 option go_package = "github.com/openthread/ot-ns/visualize/grpc/pb";
 
 message VisualizeRequest {
+}
 
+message EnergyRequest {
+}
+
+message NodeStatsRequest {
 }
 
 message VisualizeEvent {
@@ -59,6 +64,7 @@ message VisualizeEvent {
         SetTitleEvent set_title = 21;
         SetNodeModeEvent set_node_mode = 22;
         SetNetworkInfoEvent set_network_info = 23;
+        NodeStatsInfoEvent node_stats_info = 24;
     }
 }
 
@@ -77,6 +83,7 @@ message MsgVisualizeInfo {
     uint32 send_duration_us = 6;
     bool vis_true_duration = 7;
     int32 power_dbm = 8;
+    uint32 frame_size_bytes = 9;
 }
 
 message AddRouterTableEvent {
@@ -105,7 +112,7 @@ message HeartbeatEvent {
 }
 
 message AdvanceTimeEvent {
-    uint64 ts = 1;
+    uint64 timestamp = 1;
     double speed = 2;
 }
 
@@ -216,9 +223,26 @@ message NodeEnergy {
     double rx = 5;
 }
 
-message NetworkEnergyEvent {
+message EnergyEvent {
     uint64 timestamp = 1;
     repeated NodeEnergy NodesEnergy = 2;
+}
+
+message NodeStats {
+    uint32 NumNodes = 1;
+    uint32 NumLeaders = 2;
+    uint32 NumPartitions = 3;
+    uint32 NumRouters = 4;
+    uint32 NumEndDevices = 5;
+    uint32 NumDetached = 6;
+    uint32 NumDisabled = 7;
+    uint32 NumSleepy = 8;
+    uint32 NumFailed = 9;
+}
+
+message NodeStatsInfoEvent {
+    uint64 timestamp = 1;
+    NodeStats node_stats = 2;
 }
 
 message CommandRequest {
@@ -237,9 +261,9 @@ message ReplayEntry {
 service VisualizeGrpcService {
     rpc Visualize (VisualizeRequest) returns (stream VisualizeEvent);
     rpc Command (CommandRequest) returns (CommandResponse);
-    rpc EnergyReport (VisualizeRequest) returns (stream NetworkEnergyEvent);
+    rpc Energy (EnergyRequest) returns (stream EnergyEvent);
+    rpc NodeStats (NodeStatsRequest) returns (stream VisualizeEvent);
 }
 
 message Empty {
-
 }

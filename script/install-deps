@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright (c) 2020, The OTNS Authors.
+# Copyright (c) 2020-2024, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -54,7 +54,8 @@ install_grpcwebproxy()
 
 install_python_libs()
 {
-    python3 -m pip install --user setuptools
+    activate_python_venv
+    python3 -m pip install setuptools
 }
 
 main()

@@ -30,8 +30,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/openthread/ot-ns/logger"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/openthread/ot-ns/logger"
 )
 
 func TestStartStopServer(t *testing.T) {

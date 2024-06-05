@@ -45,7 +45,6 @@ import (
 	"github.com/openthread/ot-ns/progctx"
 	"github.com/openthread/ot-ns/simulation"
 	. "github.com/openthread/ot-ns/types"
-	"github.com/openthread/ot-ns/visualize"
 	visualizeGrpc "github.com/openthread/ot-ns/visualize/grpc"
 	visualizeMulti "github.com/openthread/ot-ns/visualize/multi"
 	visualizeStatslog "github.com/openthread/ot-ns/visualize/statslog"
@@ -72,6 +71,7 @@ type MainArgs struct {
 	PcapType       string
 	NoReplay       bool
 	RandomSeed     int64
+	PhyTxStats     bool
 }
 
 var (
@@ -106,6 +106,7 @@ func parseArgs() {
 	flag.StringVar(&args.PcapType, "pcap", pcap.FrameTypeWpanStr, "PCAP file type: 'off', 'wpan', or 'wpan-tap' (name is \"current.pcap\")")
 	flag.BoolVar(&args.NoReplay, "no-replay", false, "do not generate Replay file (named \"otns_?.replay\")")
 	flag.Int64Var(&args.RandomSeed, "seed", 0, "set specific random-seed value (for reproducability)")
+	flag.BoolVar(&args.PhyTxStats, "phy-tx-stats", false, "generated PHY Tx statisics CSV file")
 	flag.Parse()
 }
 
@@ -134,7 +135,7 @@ func parseListenAddr() (int, error) {
 	return simId, err
 }
 
-func Main(ctx *progctx.ProgCtx, visualizerCreator func(ctx *progctx.ProgCtx, args *MainArgs) visualize.Visualizer, cliOptions *cli.CliOptions) {
+func Main(ctx *progctx.ProgCtx, cliOptions *cli.CliOptions) {
 	handleSignals(ctx)
 	parseArgs()
 	simId, err := parseListenAddr()
@@ -144,11 +145,6 @@ func Main(ctx *progctx.ProgCtx, visualizerCreator func(ctx *progctx.ProgCtx, arg
 	sim, err := createSimulation(simId, ctx)
 	logger.FatalIfError(err)
 
-	var vis visualize.Visualizer
-	if visualizerCreator != nil {
-		vis = visualizerCreator(ctx, &args)
-	}
-
 	visGrpcServerAddr := fmt.Sprintf("%s:%d", args.DispatcherHost, args.DispatcherPort-1)
 
 	replayFn := ""
@@ -157,17 +153,13 @@ func Main(ctx *progctx.ProgCtx, visualizerCreator func(ctx *progctx.ProgCtx, arg
 	}
 
 	chanGrpcClientNotifier := make(chan string, 1)
-	if vis != nil {
-		vis = visualizeMulti.NewMultiVisualizer(
-			vis,
-			visualizeGrpc.NewGrpcVisualizer(visGrpcServerAddr, replayFn, chanGrpcClientNotifier),
-			visualizeStatslog.NewStatslogVisualizer(sim.GetConfig().OutputDir, simId),
-		)
-	} else {
-		vis = visualizeMulti.NewMultiVisualizer(
-			visualizeGrpc.NewGrpcVisualizer(visGrpcServerAddr, replayFn, chanGrpcClientNotifier),
-			visualizeStatslog.NewStatslogVisualizer(sim.GetConfig().OutputDir, simId),
-		)
+
+	vis := visualizeMulti.NewMultiVisualizer(
+		visualizeGrpc.NewGrpcVisualizer(visGrpcServerAddr, replayFn, chanGrpcClientNotifier),
+		visualizeStatslog.NewStatslogVisualizer(sim.GetConfig().OutputDir, simId, visualizeStatslog.NodeStatsType),
+	)
+	if args.PhyTxStats {
+		vis.AddVisualizer(visualizeStatslog.NewStatslogVisualizer(sim.GetConfig().OutputDir, simId, visualizeStatslog.TxRateStatsType))
 	}
 
 	ctx.WaitAdd("webserver", 1)

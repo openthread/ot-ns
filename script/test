@@ -84,7 +84,8 @@ install_otns()
 py_unittests()
 {
     install_deps
-    python3 -m pip install --user -r "$OTNSDIR"/pylibs/unittests/requirements.txt
+    activate_python_venv
+    python3 -m pip install -r "$OTNSDIR"/pylibs/unittests/requirements.txt
     install_otns
     build_openthread_br
     build_openthread
@@ -105,7 +106,8 @@ py_unittests()
 py_versions_unittests()
 {
     install_deps
-    python3 -m pip install --user -r "$OTNSDIR"/pylibs/unittests/requirements.txt
+    activate_python_venv
+    python3 -m pip install -r "$OTNSDIR"/pylibs/unittests/requirements.txt
     install_otns
     build_openthread_versions
 
@@ -126,6 +128,7 @@ check_py_example()
 py_examples()
 {
     install_deps
+    activate_python_venv
     install_otns
     build_openthread_br
     build_openthread
@@ -145,6 +148,7 @@ py_examples()
 stress_tests()
 {
     install_deps
+    activate_python_venv
     install_otns
     build_openthread_br
     build_openthread

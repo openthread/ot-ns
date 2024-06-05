@@ -28,13 +28,13 @@ import {StatsVisualizer} from "./stats/StatsVisualizer";
 import NodeNumbersChart from "./stats/nodeNumbersChart";
 
 const {
-    VisualizeRequest, VisualizeEvent
+    NodeStatsRequest, VisualizeEvent
 } = require('./proto/visualize_grpc_pb.js');
 const {VisualizeGrpcServiceClient} = require('./proto/visualize_grpc_grpc_web_pb.js');
 
 let vis = null;
 let grpcServiceClient = null;
-let lastTimestampUs = 0;
+let ts = 0;
 
 const nodeNumbersChart = new NodeNumbersChart(
     document.getElementById('statsViewer').getContext('2d'),
@@ -46,57 +46,32 @@ function loadOk() {
 
     vis = new StatsVisualizer();
     
-    let visualizeRequest = new VisualizeRequest();
-    let metadata = {'custom-header-1': 'value1'};
-    let stream = grpcServiceClient.visualize(visualizeRequest, metadata);
+    let nodeStatsRequest = new NodeStatsRequest();
+    let metadata = {} // {'custom-header-1': 'value1'};
+    let stream = grpcServiceClient.nodeStats(nodeStatsRequest, metadata);
     
     stream.on('data', function (resp) {
         let e = null;
         switch (resp.getTypeCase()) {
-            case VisualizeEvent.TypeCase.ADD_NODE:
-                e = resp.getAddNode();
-                vis.visAddNode(e.getNodeId());
-                break;
-            case VisualizeEvent.TypeCase.DELETE_NODE:
-                e = resp.getDeleteNode();
-                vis.visDeleteNode(e.getNodeId());
-                break;
-            case VisualizeEvent.TypeCase.ON_NODE_FAIL:
-                e = resp.getOnNodeFail();
-                vis.visOnNodeFail(e.getNodeId());
-                break;
-            case VisualizeEvent.TypeCase.ON_NODE_RECOVER:
-                e = resp.getOnNodeRecover();
-                vis.visOnNodeRecover(e.getNodeId());
-                break;
-            case VisualizeEvent.TypeCase.SET_NODE_PARTITION_ID:
-                e = resp.getSetNodePartitionId();
-                vis.visSetNodePartitionId(e.getNodeId(), e.getPartitionId());
-                break;
-            case VisualizeEvent.TypeCase.ADVANCE_TIME:
-                e = resp.getAdvanceTime();
-                lastTimestampUs = e.getTs();
-                vis.visAdvanceTime(lastTimestampUs);
+            case VisualizeEvent.TypeCase.NODE_STATS_INFO:
+                e = resp.getNodeStatsInfo()
+                ts = e.getTimestamp();
+                vis.visAdvanceTime(ts);
+                vis.visNodeStatsInfo(ts, e.getNodeStats());
                 const [aTs,aStat] = vis.getNewDataPoints();
                 for( let i in aTs) {
                     nodeNumbersChart.addData(aTs[i], aStat[i]);
                 }
-                if (aTs.length > 0) {
-                    nodeNumbersChart.update(lastTimestampUs);
-                }
+                nodeNumbersChart.update(ts);
+                break;
+            case VisualizeEvent.TypeCase.ADVANCE_TIME:
+                e = resp.getAdvanceTime();
+                ts = e.getTimestamp();
+                vis.visAdvanceTime(ts);
                 break;
             case VisualizeEvent.TypeCase.HEARTBEAT:
-                e = resp.getHeartbeat();
                 vis.visHeartbeat();
-                nodeNumbersChart.update(lastTimestampUs);
-                break;
-            case VisualizeEvent.TypeCase.SET_NODE_ROLE:
-                e = resp.getSetNodeRole();
-                vis.visSetNodeRole(e.getNodeId(), e.getRole());
-                break;
-            case VisualizeEvent.TypeCase.SET_NODE_MODE:
-                e = resp.getSetNodeMode();
-                vis.visSetNodeMode(e.getNodeId(), e.getNodeMode());
+                nodeNumbersChart.update(ts);
                 break;
             default:
                 break;

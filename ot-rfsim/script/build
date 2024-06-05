@@ -50,7 +50,7 @@ OT_OPTIONS=(
     "-DOT_NETDIAG_CLIENT=ON"
     "-DOT_MESH_DIAG=ON"
     "-DOT_SERVICE=ON"
-    "-DOT_BLE_TCAT=ON"
+    "-DOT_MLE_MAX_CHILDREN=10"
 )
 readonly OT_OPTIONS
 
@@ -62,7 +62,7 @@ build()
     cd "${builddir}"
 
     cmake -GNinja -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DOT_COMPILE_WARNING_AS_ERROR=ON "$@" "${OTRFSIM_SRCDIR}"
-    ninja -j7 ot-cli-ftd ot-cli-mtd ot-ncp-ftd ot-ncp-mtd ot-rcp
+    ninja ot-cli-ftd ot-cli-mtd
 
     cd "${OTRFSIM_SRCDIR}"
 }

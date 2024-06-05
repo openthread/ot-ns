@@ -32,7 +32,6 @@ import (
 	"github.com/openthread/ot-ns/dissectpkt/wpan"
 	"github.com/openthread/ot-ns/energy"
 	. "github.com/openthread/ot-ns/types"
-	"github.com/openthread/ot-ns/visualize/grpc/pb"
 )
 
 type Visualizer interface {
@@ -48,7 +47,6 @@ type Visualizer interface {
 	SetNodePartitionId(nodeid NodeId, parid uint32)
 	SetSpeed(speed float64)
 	AdvanceTime(ts uint64, speed float64)
-
 	OnNodeFail(nodeId NodeId)
 	OnNodeRecover(nodeId NodeId)
 	SetController(ctrl SimulationController)
@@ -64,8 +62,10 @@ type Visualizer interface {
 	OnExtAddrChange(id NodeId, extaddr uint64)
 	SetTitle(titleInfo TitleInfo)
 	SetNetworkInfo(networkInfo NetworkInfo)
-	UpdateNodesEnergy(node []*pb.NodeEnergy, timestamp uint64, updateView bool)
+	UpdateNodesEnergy(node []*energy.NodeEnergy, timestamp uint64, updateView bool)
 	SetEnergyAnalyser(ea *energy.EnergyAnalyser)
+	UpdateNodeStats(statsInfo *NodeStatsInfo)
+	UpdateTimeWindowStats(statsInfo *TimeWindowStatsInfo)
 }
 
 type MsgVisualizeInfo struct {
@@ -76,6 +76,7 @@ type MsgVisualizeInfo struct {
 	DstAddrExtended uint64
 	SendDurationUs  uint32
 	PowerDbm        int8
+	FrameSizeBytes  uint16
 }
 
 type TitleInfo struct {
@@ -110,4 +111,22 @@ func DefaultNetworkInfo() NetworkInfo {
 		NodeId:        InvalidNodeId,
 		ThreadVersion: InvalidThreadVersion,
 	}
+}
+
+type NodeStatsInfo struct {
+	TimeUs uint64
+	Stats  NodeStats
+}
+
+func DefaultNodeStatsInfo() NodeStatsInfo {
+	return NodeStatsInfo{
+		TimeUs: 0,
+		Stats:  NodeStats{},
+	}
+}
+
+type TimeWindowStatsInfo struct {
+	WinStartUs    uint64
+	WinWidthUs    uint64
+	PhyTxRateKbps map[NodeId]float64
 }

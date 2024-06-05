@@ -32,183 +32,198 @@ import (
 	"github.com/openthread/ot-ns/energy"
 	. "github.com/openthread/ot-ns/types"
 	"github.com/openthread/ot-ns/visualize"
-	"github.com/openthread/ot-ns/visualize/grpc/pb"
 )
 
-type multiVisualizer struct {
+type MultiVisualizer struct {
 	vs []visualize.Visualizer
 }
 
 // NewMultiVisualizer creates a new Visualizer that multiplexes to multiple Visualizers.
-func NewMultiVisualizer(vs ...visualize.Visualizer) visualize.Visualizer {
-	return &multiVisualizer{vs: vs}
+func NewMultiVisualizer(vs ...visualize.Visualizer) *MultiVisualizer {
+	return &MultiVisualizer{vs: vs}
 }
 
-func (mv *multiVisualizer) SetNetworkInfo(networkInfo visualize.NetworkInfo) {
+func (mv *MultiVisualizer) AddVisualizer(vs ...visualize.Visualizer) {
+	mv.vs = append(mv.vs, vs...)
+}
+
+func (mv *MultiVisualizer) SetNetworkInfo(networkInfo visualize.NetworkInfo) {
 	for _, v := range mv.vs {
 		v.SetNetworkInfo(networkInfo)
 	}
 }
 
-func (mv *multiVisualizer) OnExtAddrChange(id NodeId, extaddr uint64) {
+func (mv *MultiVisualizer) OnExtAddrChange(id NodeId, extaddr uint64) {
 	for _, v := range mv.vs {
 		v.OnExtAddrChange(id, extaddr)
 	}
 }
 
-func (mv *multiVisualizer) SetSpeed(speed float64) {
+func (mv *MultiVisualizer) SetSpeed(speed float64) {
 	for _, v := range mv.vs {
 		v.SetSpeed(speed)
 	}
 }
 
-func (mv *multiVisualizer) Init() {
+func (mv *MultiVisualizer) Init() {
 	for _, v := range mv.vs {
 		v.Init()
 	}
 }
 
-func (mv *multiVisualizer) Run() {
+func (mv *MultiVisualizer) Run() {
 	for i := 1; i < len(mv.vs); i++ {
 		go mv.vs[i].Run()
 	}
 	mv.vs[0].Run()
 }
 
-func (mv *multiVisualizer) Stop() {
+func (mv *MultiVisualizer) Stop() {
 	for _, v := range mv.vs {
 		v.Stop()
 	}
 }
 
-func (mv *multiVisualizer) AddNode(nodeid NodeId, cfg *NodeConfig) {
+func (mv *MultiVisualizer) AddNode(nodeid NodeId, cfg *NodeConfig) {
 	for _, v := range mv.vs {
 		v.AddNode(nodeid, cfg)
 	}
 }
 
-func (mv *multiVisualizer) SetNodeRloc16(nodeid NodeId, rloc16 uint16) {
+func (mv *MultiVisualizer) SetNodeRloc16(nodeid NodeId, rloc16 uint16) {
 	for _, v := range mv.vs {
 		v.SetNodeRloc16(nodeid, rloc16)
 	}
 }
 
-func (mv *multiVisualizer) SetNodeRole(nodeid NodeId, role OtDeviceRole) {
+func (mv *MultiVisualizer) SetNodeRole(nodeid NodeId, role OtDeviceRole) {
 	for _, v := range mv.vs {
 		v.SetNodeRole(nodeid, role)
 	}
 }
 
-func (mv *multiVisualizer) SetNodeMode(nodeid NodeId, mode NodeMode) {
+func (mv *MultiVisualizer) SetNodeMode(nodeid NodeId, mode NodeMode) {
 	for _, v := range mv.vs {
 		v.SetNodeMode(nodeid, mode)
 	}
 }
 
-func (mv *multiVisualizer) Send(srcid NodeId, dstid NodeId, mvinfo *visualize.MsgVisualizeInfo) {
+func (mv *MultiVisualizer) Send(srcid NodeId, dstid NodeId, mvinfo *visualize.MsgVisualizeInfo) {
 	for _, v := range mv.vs {
 		v.Send(srcid, dstid, mvinfo)
 	}
 }
 
-func (mv *multiVisualizer) SetNodePartitionId(nodeid NodeId, parid uint32) {
+func (mv *MultiVisualizer) SetNodePartitionId(nodeid NodeId, parid uint32) {
 	for _, v := range mv.vs {
 		v.SetNodePartitionId(nodeid, parid)
 	}
 }
 
-func (mv *multiVisualizer) AdvanceTime(ts uint64, speed float64) {
+func (mv *MultiVisualizer) AdvanceTime(ts uint64, speed float64) {
 	for _, v := range mv.vs {
 		v.AdvanceTime(ts, speed)
 	}
 }
 
-func (mv *multiVisualizer) OnNodeFail(nodeid NodeId) {
+func (mv *MultiVisualizer) OnNodeFail(nodeid NodeId) {
 	for _, v := range mv.vs {
 		v.OnNodeFail(nodeid)
 	}
 }
 
-func (mv *multiVisualizer) OnNodeRecover(nodeid NodeId) {
+func (mv *MultiVisualizer) OnNodeRecover(nodeid NodeId) {
 	for _, v := range mv.vs {
 		v.OnNodeRecover(nodeid)
 	}
 }
 
-func (mv *multiVisualizer) SetController(ctrl visualize.SimulationController) {
+func (mv *MultiVisualizer) SetController(ctrl visualize.SimulationController) {
 	for _, v := range mv.vs {
 		v.SetController(ctrl)
 	}
 }
 
-func (mv *multiVisualizer) SetNodePos(nodeid NodeId, x, y, z int) {
+func (mv *MultiVisualizer) SetNodePos(nodeid NodeId, x, y, z int) {
 	for _, v := range mv.vs {
 		v.SetNodePos(nodeid, x, y, z)
 	}
 }
 
-func (mv *multiVisualizer) DeleteNode(id NodeId) {
+func (mv *MultiVisualizer) DeleteNode(id NodeId) {
 	for _, v := range mv.vs {
 		v.DeleteNode(id)
 	}
 }
 
-func (mv *multiVisualizer) AddRouterTable(id NodeId, extaddr uint64) {
+func (mv *MultiVisualizer) AddRouterTable(id NodeId, extaddr uint64) {
 	for _, v := range mv.vs {
 		v.AddRouterTable(id, extaddr)
 	}
 }
 
-func (mv *multiVisualizer) RemoveRouterTable(id NodeId, extaddr uint64) {
+func (mv *MultiVisualizer) RemoveRouterTable(id NodeId, extaddr uint64) {
 	for _, v := range mv.vs {
 		v.RemoveRouterTable(id, extaddr)
 	}
 }
 
-func (mv *multiVisualizer) AddChildTable(id NodeId, extaddr uint64) {
+func (mv *MultiVisualizer) AddChildTable(id NodeId, extaddr uint64) {
 	for _, v := range mv.vs {
 		v.AddChildTable(id, extaddr)
 	}
 }
 
-func (mv *multiVisualizer) RemoveChildTable(id NodeId, extaddr uint64) {
+func (mv *MultiVisualizer) RemoveChildTable(id NodeId, extaddr uint64) {
 	for _, v := range mv.vs {
 		v.RemoveChildTable(id, extaddr)
 	}
 }
 
-func (mv *multiVisualizer) ShowDemoLegend(x int, y int, title string) {
+func (mv *MultiVisualizer) ShowDemoLegend(x int, y int, title string) {
 	for _, v := range mv.vs {
 		v.ShowDemoLegend(x, y, title)
 	}
 }
 
-func (mv *multiVisualizer) CountDown(duration time.Duration, text string) {
+func (mv *MultiVisualizer) CountDown(duration time.Duration, text string) {
 	for _, v := range mv.vs {
 		v.CountDown(duration, text)
 	}
 }
 
-func (mv *multiVisualizer) SetParent(id NodeId, extaddr uint64) {
+func (mv *MultiVisualizer) SetParent(id NodeId, extaddr uint64) {
 	for _, v := range mv.vs {
 		v.SetParent(id, extaddr)
 	}
 }
 
-func (mv *multiVisualizer) SetTitle(titleInfo visualize.TitleInfo) {
+func (mv *MultiVisualizer) SetTitle(titleInfo visualize.TitleInfo) {
 	for _, v := range mv.vs {
 		v.SetTitle(titleInfo)
 	}
 }
 
-func (mv *multiVisualizer) UpdateNodesEnergy(node []*pb.NodeEnergy, timestamp uint64, updateView bool) {
+func (mv *MultiVisualizer) UpdateNodesEnergy(node []*energy.NodeEnergy, timestamp uint64, updateView bool) {
 	for _, v := range mv.vs {
 		v.UpdateNodesEnergy(node, timestamp, updateView)
 	}
 }
 
-func (mv *multiVisualizer) SetEnergyAnalyser(ea *energy.EnergyAnalyser) {
+func (mv *MultiVisualizer) SetEnergyAnalyser(ea *energy.EnergyAnalyser) {
 	for _, v := range mv.vs {
 		v.SetEnergyAnalyser(ea)
+	}
+}
+
+func (mv *MultiVisualizer) UpdateNodeStats(nodeStatsInfo *visualize.NodeStatsInfo) {
+	for _, v := range mv.vs {
+		v.UpdateNodeStats(nodeStatsInfo)
+	}
+}
+
+func (mv *MultiVisualizer) UpdateTimeWindowStats(txRateStatsInfo *visualize.TimeWindowStatsInfo) {
+	for _, v := range mv.vs {
+		v.UpdateTimeWindowStats(txRateStatsInfo)
 	}
 }

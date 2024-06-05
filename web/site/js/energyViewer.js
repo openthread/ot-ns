@@ -93,7 +93,7 @@ function loadOk() {
     
     let visualizeRequest = new VisualizeRequest();
     let metadata = {'custom-header-1': 'value1'};
-    let stream = grpcServiceClient.energyReport(visualizeRequest, metadata);
+    let stream = grpcServiceClient.energy(visualizeRequest, metadata);
     
     
     //insert nodes into the select of the html
@@ -108,7 +108,7 @@ function loadOk() {
         const nodes = resp.getNodesenergyList();
         
         //If timestamp is maxed and nodes are null, it mean end of transmission, so plot.
-        if (nodes.length == 0) {
+        if (nodes.length === 0) {
             updateView();
         }
         else {
@@ -138,7 +138,7 @@ loadOk();
 
 function hasElement(selector, nodeId) {
     for (let i = 0; i < selector.options.length; i++) {
-        if (parseInt(selector.options[i].value) == nodeId) {
+        if (parseInt(selector.options[i].value) === nodeId) {
             return true;
         }
     }
@@ -148,7 +148,7 @@ function hasElement(selector, nodeId) {
 function sortInsert(sel, opt) {
       let i = 0;
       for (; i < sel.options.length; i++) {
-          if (sel.options[i].value == "all") {
+          if (sel.options[i].value === "all") {
               continue;
           }
           if (sel.options[i].value > opt.value) {
@@ -176,7 +176,7 @@ function updateView() {
         }
     }
     for (let i = selectEnergy.options.length - 1; i >= 0; i--) {
-        if (!nodes.has(parseInt(selectEnergy.options[i].value)) && selectEnergy.options[i].value != "all") {
+        if (!nodes.has(parseInt(selectEnergy.options[i].value)) && selectEnergy.options[i].value !== "all") {
             selectEnergy.remove(i);
         }
     }

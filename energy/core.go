@@ -1,4 +1,4 @@
-// Copyright (c) 2022, The OTNS Authors.
+// Copyright (c) 2022-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -32,13 +32,12 @@ import (
 	"sort"
 
 	"github.com/openthread/ot-ns/logger"
-	pb "github.com/openthread/ot-ns/visualize/grpc/pb"
 )
 
 type EnergyAnalyser struct {
 	nodes                map[int]*NodeEnergy
 	networkHistory       []NetworkConsumption
-	energyHistoryByNodes [][]*pb.NodeEnergy
+	energyHistoryByNodes [][]*NodeEnergy
 	title                string
 }
 
@@ -65,16 +64,16 @@ func (e *EnergyAnalyser) GetNetworkEnergyHistory() []NetworkConsumption {
 	return e.networkHistory
 }
 
-func (e *EnergyAnalyser) GetEnergyHistoryByNodes() [][]*pb.NodeEnergy {
+func (e *EnergyAnalyser) GetEnergyHistoryByNodes() [][]*NodeEnergy {
 	return e.energyHistoryByNodes
 }
 
-func (e *EnergyAnalyser) GetLatestEnergyOfNodes() []*pb.NodeEnergy {
+func (e *EnergyAnalyser) GetLatestEnergyOfNodes() []*NodeEnergy {
 	return e.energyHistoryByNodes[len(e.energyHistoryByNodes)-1]
 }
 
 func (e *EnergyAnalyser) StoreNetworkEnergy(timestamp uint64) {
-	nodesEnergySnapshot := make([]*pb.NodeEnergy, 0, len(e.nodes))
+	nodesEnergySnapshot := make([]*NodeEnergy, 0, len(e.nodes))
 	networkSnapshot := NetworkConsumption{
 		Timestamp: timestamp,
 	}
@@ -83,8 +82,8 @@ func (e *EnergyAnalyser) StoreNetworkEnergy(timestamp uint64) {
 	for _, node := range e.nodes {
 		node.ComputeRadioState(timestamp)
 
-		e := &pb.NodeEnergy{
-			NodeId:   int32(node.nodeId),
+		e := &NodeEnergy{
+			NodeId:   node.NodeId,
 			Disabled: float64(node.radio.SpentDisabled) * RadioDisabledConsumption,
 			Sleep:    float64(node.radio.SpentSleep) * RadioSleepConsumption,
 			Tx:       float64(node.radio.SpentTx) * RadioTxConsumption,
@@ -184,7 +183,7 @@ func (e *EnergyAnalyser) writeNetworkEnergy(fileNetwork *os.File, timestamp uint
 func (e *EnergyAnalyser) ClearEnergyData() {
 	logger.Debugf("Node's energy data cleared")
 	e.networkHistory = make([]NetworkConsumption, 0, 3600)
-	e.energyHistoryByNodes = make([][]*pb.NodeEnergy, 0, 3600)
+	e.energyHistoryByNodes = make([][]*NodeEnergy, 0, 3600)
 }
 
 func (e *EnergyAnalyser) SetTitle(title string) {
@@ -195,7 +194,7 @@ func NewEnergyAnalyser() *EnergyAnalyser {
 	ea := &EnergyAnalyser{
 		nodes:                make(map[int]*NodeEnergy),
 		networkHistory:       make([]NetworkConsumption, 0, 3600), //Start with space for 1 sample every 30s for 1 hour = 1*60*60/30 = 3600 samples
-		energyHistoryByNodes: make([][]*pb.NodeEnergy, 0, 3600),
+		energyHistoryByNodes: make([][]*NodeEnergy, 0, 3600),
 	}
 	return ea
 }

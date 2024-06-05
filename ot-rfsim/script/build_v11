@@ -36,10 +36,13 @@ OT_OPTIONS=(
 readonly OT_OPTIONS
 
 cd ../openthread
-git checkout 0a5152b4fa9f9cbff57da89d9aa33d409e915241
+OT_COMMIT=$(git rev-parse HEAD)
+if [ "$OT_COMMIT" != "0a5152b4fa9f9cbff57da89d9aa33d409e915241" ]; then
+    printf 'OpenThread commit hash does not match selected Thread 1.1 commit, quitting.\n'
+    exit 1
+fi
 cd ../ot-rfsim
-rm -rf build
+
 ./script/build "${OT_OPTIONS[@]}"
-git submodule update
 cp ./build/bin/ot-cli-ftd ./ot-versions/ot-cli-ftd_v11
 cp ./build/bin/ot-cli-mtd ./ot-versions/ot-cli-mtd_v11

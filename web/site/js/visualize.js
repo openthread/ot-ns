@@ -148,7 +148,7 @@ function loadOk() {
                 break;
             case VisualizeEvent.TypeCase.ADVANCE_TIME:
                 e = resp.getAdvanceTime();
-                vis.visAdvanceTime(e.getTs(), e.getSpeed());
+                vis.visAdvanceTime(e.getTimestamp(), e.getSpeed());
                 break;
             case VisualizeEvent.TypeCase.HEARTBEAT:
                 e = resp.getHeartbeat();
@@ -191,7 +191,6 @@ function loadOk() {
                 vis.visSetNetworkInfo(e.getVersion(), e.getCommit(), e.getReal(), e.getNodeId(), e.getThreadVersion());
                 break;
             default:
-                console.error('unknown event!!! ' + resp.getTypeCase());
                 break
         }
 
@@ -199,7 +198,7 @@ function loadOk() {
 
     stream.on('status', function (status) {
         if (status != null) {
-            if (status.code != StatusCode.OK) {
+            if (status.code !== StatusCode.OK) {
                 console.error('visualize gRPC stream status: code = ' + status.code + ' details = ' + status.details);
                 vis.stopIdleCheckTimer(); // stop expecting the HeartBeat events
             }else{

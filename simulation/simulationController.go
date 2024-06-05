@@ -53,11 +53,12 @@ func (sc *simulationController) Command(cmd string) ([]string, error) {
 }
 
 type readonlySimulationController struct {
+	sim *Simulation
 }
 
 var readonlySimulationError = errors.Errorf("simulation is readonly")
 
-func (r readonlySimulationController) Command(cmd string) (output []string, err error) {
+func (rc *readonlySimulationController) Command(cmd string) (output []string, err error) {
 	return nil, readonlySimulationError
 }
 
@@ -65,6 +66,6 @@ func NewSimulationController(sim *Simulation) visualize.SimulationController {
 	if !sim.cfg.ReadOnly {
 		return &simulationController{sim}
 	} else {
-		return readonlySimulationController{}
+		return &readonlySimulationController{sim}
 	}
 }

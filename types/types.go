@@ -44,6 +44,8 @@ const (
 	// InvalidExtAddr defines the invalid extended address for nodes.
 	InvalidExtAddr       uint64 = math.MaxUint64
 	InvalidThreadVersion uint16 = 0
+
+	InvalidChannel ChannelId = 0xff
 )
 
 // Node types and roles
@@ -108,3 +110,15 @@ const (
 	AddrTypeLinkLocal AddrType = "linklocal"
 	AddrTypeSlaac     AddrType = "slaac"
 )
+
+type NodeStats struct {
+	NumNodes      int
+	NumLeaders    int
+	NumPartitions int
+	NumRouters    int
+	NumEndDevices int
+	NumDetached   int
+	NumDisabled   int
+	NumSleepy     int
+	NumFailed     int
+}

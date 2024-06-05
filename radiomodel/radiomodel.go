@@ -38,14 +38,6 @@ type DbValue = float64
 
 const UndefinedDbValue DbValue = math.MaxFloat64
 
-// IEEE 802.15.4-2015 related parameters for 2.4 GHz O-QPSK PHY
-const (
-	MinChannelNumber     ChannelId = 0  // below 11 are sub-Ghz channels for 802.15.4-2015
-	MaxChannelNumber     ChannelId = 39 // above 26 are currently used as pseudo-BLE-adv-channels
-	DefaultChannelNumber ChannelId = 11
-	TimeUsPerBit                   = 4
-)
-
 // EventQueue is the abstraction of the queue where the radio model sends its outgoing (new) events to.
 type EventQueue interface {
 	Add(*Event)
@@ -57,8 +49,13 @@ type ChannelStats struct {
 	TxTimeUs  uint64 // total time (us) that >= 1 nodes have been transmitting on this channel
 	NumFrames uint64 // total number of frame transmissions on channel
 
-	numTransmitters int    // internal bookkeeping: number of tx nodes
-	txStartTime     uint64 // internal bookkeeping: start of an initial tx on a clear channel
+	numTransmitters map[NodeId]struct{} // internal bookkeeping: on-channel tx nodes
+	txStartTime     uint64              // internal bookkeeping: start of an initial tx on a clear channel
+}
+
+// PhyStats contains PHY statistics and usage data for all RadioNodes.
+type PhyStats struct {
+	TxBytes map[NodeId]int
 }
 
 // RadioModel provides access to any type of radio model.
@@ -104,11 +101,17 @@ type RadioModel interface {
 	// OnParametersModified is called when one or more parameters (RadioModelParams) were modified.
 	OnParametersModified()
 
-	// GetChannelStats gets statistics of use for a radio channel.
-	GetChannelStats(channel ChannelId, curTimeUs uint64) *ChannelStats
+	// GetChannelStats gets statistics of use for a single radio channel.
+	GetChannelStats(channel ChannelId) *ChannelStats
 
 	// ResetChannelStats resets the statistics of use for a radio channel to zero.
 	ResetChannelStats(channel ChannelId)
+
+	// GetNodePhyStats gets PHY statistics of a node, as tracked by this RadioModel.
+	GetNodePhyStats(id NodeId) *RadioNodeStats
+
+	// GetPhyStats gets PHY statistics and usage data for all nodes.
+	GetPhyStats() *PhyStats
 
 	// init initializes the RadioModel.
 	init()

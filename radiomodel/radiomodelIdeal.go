@@ -42,6 +42,7 @@ type RadioModelIdeal struct {
 	nodes        map[NodeId]*RadioNode
 	eventQ       EventQueue
 	channelStats map[ChannelId]*ChannelStats
+	ts           uint64
 }
 
 func (rm *RadioModelIdeal) AddNode(radioNode *RadioNode) {
@@ -49,6 +50,7 @@ func (rm *RadioModelIdeal) AddNode(radioNode *RadioNode) {
 }
 
 func (rm *RadioModelIdeal) DeleteNode(nodeid NodeId) {
+	rm.statsDeleteNode(rm.nodes[nodeid])
 	delete(rm.nodes, nodeid)
 }
 
@@ -92,7 +94,7 @@ func (rm *RadioModelIdeal) OnEventDispatch(src *RadioNode, dst *RadioNode, evt *
 }
 
 func (rm *RadioModelIdeal) OnNextEventTime(ts uint64) {
-	//
+	rm.ts = ts
 }
 
 func (rm *RadioModelIdeal) OnParametersModified() {
@@ -128,12 +130,12 @@ func (rm *RadioModelIdeal) GetParameters() *RadioModelParams {
 	return rm.params
 }
 
-func (rm *RadioModelIdeal) GetChannelStats(channel ChannelId, curTimeUs uint64) *ChannelStats {
+func (rm *RadioModelIdeal) GetChannelStats(channel ChannelId) *ChannelStats {
 	if chanStats, ok := rm.channelStats[channel]; ok {
 		// check if an operation is ongoing - if so, include portion of to-be-added Tx duration in stats.
-		if chanStats.numTransmitters > 0 && curTimeUs > chanStats.txStartTime {
-			chanStats.TxTimeUs += curTimeUs - chanStats.txStartTime
-			chanStats.txStartTime = curTimeUs
+		if len(chanStats.numTransmitters) > 0 && rm.ts > chanStats.txStartTime {
+			chanStats.TxTimeUs += rm.ts - chanStats.txStartTime
+			chanStats.txStartTime = rm.ts
 		}
 		return chanStats
 	}
@@ -142,6 +144,24 @@ func (rm *RadioModelIdeal) GetChannelStats(channel ChannelId, curTimeUs uint64) 
 
 func (rm *RadioModelIdeal) ResetChannelStats(channel ChannelId) {
 	delete(rm.channelStats, channel)
+}
+
+func (rm *RadioModelIdeal) GetNodePhyStats(id NodeId) *RadioNodeStats {
+	stats := &RadioNodeStats{
+		NumBytesTx: rm.nodes[id].stats.NumBytesTx,
+	}
+	return stats
+}
+
+func (rm *RadioModelIdeal) GetPhyStats() *PhyStats {
+	txBytes := make(map[NodeId]int)
+	for id, node := range rm.nodes {
+		txBytes[id] = node.stats.NumBytesTx
+	}
+	stats := &PhyStats{
+		TxBytes: txBytes,
+	}
+	return stats
 }
 
 func (rm *RadioModelIdeal) init() {
@@ -187,6 +207,7 @@ func (rm *RadioModelIdeal) txStop(node *RadioNode, evt *Event) {
 }
 
 func (rm *RadioModelIdeal) statsTxStart(node *RadioNode, evt *Event) {
+	// channel stats
 	ch := evt.RadioCommData.Channel
 	chStats, ok := rm.channelStats[ch]
 	if !ok {
@@ -194,27 +215,44 @@ func (rm *RadioModelIdeal) statsTxStart(node *RadioNode, evt *Event) {
 			Channel:         ch,
 			TxTimeUs:        0,
 			NumFrames:       0,
-			numTransmitters: 0,
+			numTransmitters: map[NodeId]struct{}{},
 		}
 		rm.channelStats[ch] = chStats
 	}
-	if chStats.numTransmitters == 0 {
+	if len(chStats.numTransmitters) == 0 {
 		chStats.txStartTime = evt.Timestamp
 	}
-	chStats.numTransmitters++
+	chStats.numTransmitters[node.Id] = struct{}{}
 	chStats.NumFrames++
+
+	// node stats
+	node.stats.NumBytesTx += len(evt.Data) - 1 + PhyHeaderLenBytes
 }
 
 func (rm *RadioModelIdeal) statsTxStop(node *RadioNode, evt *Event) {
 	ch := evt.RadioCommData.Channel
 	chStats, ok := rm.channelStats[ch]
 	logger.AssertTrue(ok)
-	logger.AssertTrue(chStats.numTransmitters > 0)
+	logger.AssertTrue(len(chStats.numTransmitters) > 0)
 
-	chStats.numTransmitters--
-	if chStats.numTransmitters == 0 {
+	delete(chStats.numTransmitters, node.Id)
+	if len(chStats.numTransmitters) == 0 {
 		txDur := evt.Timestamp - chStats.txStartTime
 		chStats.TxTimeUs += txDur
+	}
+}
+
+func (rm *RadioModelIdeal) statsDeleteNode(node *RadioNode) {
+	ch := node.RadioChannel
+	if chStats, ok := rm.channelStats[ch]; ok {
+		if len(chStats.numTransmitters) == 0 {
+			return
+		}
+		delete(chStats.numTransmitters, node.Id)
+		if len(chStats.numTransmitters) == 0 {
+			txDur := rm.ts - chStats.txStartTime
+			chStats.TxTimeUs += txDur
+		}
 	}
 }
 

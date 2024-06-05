@@ -48,3 +48,4 @@ coverage.txt
 /pylibs/build/
 /pylibs/dist/
 /pylibs/pyOTNS.egg-info/
+/.venv

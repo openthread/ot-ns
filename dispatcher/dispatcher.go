@@ -73,6 +73,24 @@ type goDuration struct {
 }
 
 type Dispatcher struct {
+	CurTime  uint64
+	Counters struct {
+		// Received event counters
+		AlarmEvents      uint64
+		RadioEvents      uint64
+		StatusPushEvents uint64
+		UartWriteEvents  uint64
+		OtherEvents      uint64
+		// Packet-related event dispatching counters
+		DispatchByExtAddrSucc   uint64
+		DispatchByExtAddrFail   uint64
+		DispatchByShortAddrSucc uint64
+		DispatchByShortAddrFail uint64
+		DispatchAllInRange      uint64
+		// Other counters
+		TopologyChanges uint64
+	}
+
 	ctx                   *progctx.ProgCtx
 	cfg                   Config
 	cbHandler             CallbackHandler
@@ -81,7 +99,6 @@ type Dispatcher struct {
 	eventChan             chan *Event
 	waitGroup             sync.WaitGroup
 	waitGroupNodes        sync.WaitGroup
-	CurTime               uint64
 	currentGoDuration     goDuration
 	pauseTime             uint64
 	alarmMgr              *alarmMgr
@@ -104,26 +121,12 @@ type Dispatcher struct {
 	globalPacketLossRatio float64
 	visOptions            VisualizationOptions
 	coaps                 *coapsHandler
-
-	Counters struct {
-		// Received event counters
-		AlarmEvents      uint64
-		RadioEvents      uint64
-		StatusPushEvents uint64
-		UartWriteEvents  uint64
-		CollisionEvents  uint64
-		OtherEvents      uint64
-		// Packet dispatching counters
-		DispatchByExtAddrSucc   uint64
-		DispatchByExtAddrFail   uint64
-		DispatchByShortAddrSucc uint64
-		DispatchByShortAddrFail uint64
-		DispatchAllInRange      uint64
-	}
-	watchingNodes  map[NodeId]struct{}
-	energyAnalyser *energy.EnergyAnalyser
-	stopped        bool
-	radioModel     radiomodel.RadioModel
+	watchingNodes         map[NodeId]struct{}
+	energyAnalyser        *energy.EnergyAnalyser
+	stopped               bool
+	radioModel            radiomodel.RadioModel
+	oldStats              NodeStats
+	timeWinStats          TimeWindowStats
 }
 
 func NewDispatcher(ctx *progctx.ProgCtx, cfg *Config, cbHandler CallbackHandler) *Dispatcher {
@@ -156,6 +159,8 @@ func NewDispatcher(ctx *progctx.ProgCtx, cfg *Config, cbHandler CallbackHandler)
 		goDurationChan:     make(chan goDuration, 1),
 		visOptions:         defaultVisualizationOptions(),
 		stopped:            false,
+		oldStats:           NodeStats{},
+		timeWinStats:       defaultTimeWindowStats(),
 	}
 	d.speed = d.normalizeSpeed(d.speed)
 	if d.cfg.PcapEnabled {
@@ -808,10 +813,10 @@ func (d *Dispatcher) sendOneRadioFrame(evt *Event, srcnode *Node, dstnode *Node)
 		return
 	}
 
-	//   2) dispatcher's random packet loss Event (separate from radio model)
+	//   2) dispatcher's random packet loss Event (applied separate from radio model)
 	if d.globalPacketLossRatio > 0 {
-		datalen := len(evt.Data)
-		succRate := math.Pow(1.0-d.globalPacketLossRatio, float64(datalen)/128.0)
+		datalenMac := len(evt.Data) - 1
+		succRate := math.Pow(1.0-d.globalPacketLossRatio, float64(datalenMac)/MacFrameLenBytes)
 		if prng.NewUnitRandom() >= succRate {
 			return
 		}
@@ -903,10 +908,12 @@ func (d *Dispatcher) GetVisualizer() visualize.Visualizer {
 	return d.vis
 }
 
-func (d *Dispatcher) handleStatusPush(srcnode *Node, data string) {
-	srcnode.logger.Tracef("status push: %#v", data)
+func (d *Dispatcher) handleStatusPush(node *Node, data string) {
+	node.logger.Tracef("status push: %#v", data)
 	statuses := strings.Split(data, ";")
-	srcid := srcnode.Id
+	srcid := node.Id
+	oldTopologyCounter := d.Counters.TopologyChanges
+
 	for _, status := range statuses {
 		sp := strings.Split(status, "=")
 		if len(sp) != 2 {
@@ -918,7 +925,8 @@ func (d *Dispatcher) handleStatusPush(srcnode *Node, data string) {
 		} else if sp[0] == "role" {
 			role, err := strconv.Atoi(sp[1])
 			logger.PanicIfError(err)
-			d.setNodeRole(srcnode, OtDeviceRole(role))
+			d.setNodeRole(node, OtDeviceRole(role))
+			d.Counters.TopologyChanges++
 		} else if sp[0] == "rloc16" {
 			rloc16, err := strconv.Atoi(sp[1])
 			logger.PanicIfError(err)
@@ -931,7 +939,7 @@ func (d *Dispatcher) handleStatusPush(srcnode *Node, data string) {
 			logger.PanicIfError(err)
 			timestamp, err := strconv.ParseUint(args[2], 10, 64)
 			logger.PanicIfError(err)
-			srcnode.onPingRequest(d.convertNodeMilliTime(srcnode, uint32(timestamp)), dstaddr, datasize)
+			node.onPingRequest(d.convertNodeMilliTime(node, uint32(timestamp)), dstaddr, datasize)
 		} else if sp[0] == "ping_reply" {
 			//e.x.ping_reply=fdde:ad00:beef:0:556:90c8:ffaf:b7a3$0$0$64
 			args := strings.Split(sp[1], ",")
@@ -942,57 +950,70 @@ func (d *Dispatcher) handleStatusPush(srcnode *Node, data string) {
 			logger.PanicIfError(err)
 			hoplimit, err := strconv.Atoi(args[3])
 			logger.PanicIfError(err)
-			srcnode.onPingReply(d.convertNodeMilliTime(srcnode, uint32(timestamp)), dstaddr, datasize, hoplimit)
+			node.onPingReply(d.convertNodeMilliTime(node, uint32(timestamp)), dstaddr, datasize, hoplimit)
 		} else if sp[0] == "coap" {
-			d.handleCoapEvent(srcnode, sp[1])
+			d.handleCoapEvent(node, sp[1])
 		} else if sp[0] == "parid" {
 			// set partition id
 			parid, err := strconv.ParseUint(sp[1], 16, 32)
 			logger.PanicIfError(err)
-			srcnode.PartitionId = uint32(parid)
+			node.PartitionId = uint32(parid)
 			d.vis.SetNodePartitionId(srcid, uint32(parid))
+			d.Counters.TopologyChanges++
 		} else if sp[0] == "router_added" {
 			extaddr, err := strconv.ParseUint(sp[1], 16, 64)
 			logger.PanicIfError(err)
 			if d.visOptions.RouterTable {
 				d.vis.AddRouterTable(srcid, extaddr)
 			}
+			d.Counters.TopologyChanges++
 		} else if sp[0] == "router_removed" {
 			extaddr, err := strconv.ParseUint(sp[1], 16, 64)
 			logger.PanicIfError(err)
 			if d.visOptions.RouterTable {
 				d.vis.RemoveRouterTable(srcid, extaddr)
 			}
+			d.Counters.TopologyChanges++
 		} else if sp[0] == "child_added" {
 			extaddr, err := strconv.ParseUint(sp[1], 16, 64)
 			logger.PanicIfError(err)
 			if d.visOptions.ChildTable {
 				d.vis.AddChildTable(srcid, extaddr)
 			}
+			d.Counters.TopologyChanges++
 		} else if sp[0] == "child_removed" {
 			extaddr, err := strconv.ParseUint(sp[1], 16, 64)
 			logger.PanicIfError(err)
 			if d.visOptions.ChildTable {
 				d.vis.RemoveChildTable(srcid, extaddr)
 			}
+			d.Counters.TopologyChanges++
 		} else if sp[0] == "parent" {
 			extaddr, err := strconv.ParseUint(sp[1], 16, 64)
 			logger.PanicIfError(err)
 			d.vis.SetParent(srcid, extaddr)
+			d.Counters.TopologyChanges++
 		} else if sp[0] == "joiner_state" {
 			joinerState, err := strconv.Atoi(sp[1])
 			logger.PanicIfError(err)
-			srcnode.onJoinerState(OtJoinerState(joinerState))
+			node.onJoinerState(OtJoinerState(joinerState))
 		} else if sp[0] == "extaddr" {
 			extaddr, err := strconv.ParseUint(sp[1], 16, 64)
 			logger.PanicIfError(err)
-			srcnode.onStatusPushExtAddr(extaddr)
+			node.onStatusPushExtAddr(extaddr)
 		} else if sp[0] == "mode" {
 			mode := ParseNodeMode(sp[1])
+			node.Mode = mode
 			d.vis.SetNodeMode(srcid, mode)
+			d.Counters.TopologyChanges++
 		} else {
 			logger.Errorf("received unknown status push: %s=%s", sp[0], sp[1])
 		}
+	}
+
+	// check if a re-evaluation of node topology statistics is needed.
+	if d.Counters.TopologyChanges > oldTopologyCounter {
+		d.updateNodeStats()
 	}
 }
 
@@ -1004,11 +1025,13 @@ func (d *Dispatcher) AddNode(nodeid NodeId, cfg *NodeConfig) *Node {
 	node := newNode(d, nodeid, cfg)
 	d.nodes[nodeid] = node
 	d.reconstructNodesArray()
+	d.Counters.TopologyChanges++
 	d.alarmMgr.AddNode(nodeid)
 	d.energyAnalyser.AddNode(nodeid, d.CurTime)
 	d.vis.AddNode(nodeid, cfg)
 	d.radioModel.AddNode(node.RadioNode)
 	d.setAlive(nodeid)
+	d.updateNodeStats()
 
 	if d.cfg.DefaultWatchOn {
 		lev, err := logger.ParseLevelString(d.cfg.DefaultWatchLevel)
@@ -1050,6 +1073,7 @@ func (d *Dispatcher) visSendFrame(srcid NodeId, dstid NodeId, pktframe *wpan.Mac
 		DstAddrExtended: pktframe.DstAddrExtended,
 		SendDurationUs:  uint32(commData.Duration),
 		PowerDbm:        commData.PowerDbm,
+		FrameSizeBytes:  pktframe.LengthBytes + pktframe.PhyHdrLength, // Note: count total frame len (PHY+MAC)
 	})
 }
 
@@ -1062,6 +1086,7 @@ func (d *Dispatcher) visSendInterference(srcid NodeId, dstid NodeId, commData Ra
 		DstAddrExtended: 0,
 		SendDurationUs:  uint32(commData.Duration),
 		PowerDbm:        commData.PowerDbm,
+		FrameSizeBytes:  0,
 	})
 }
 
@@ -1102,6 +1127,8 @@ func (d *Dispatcher) advanceTime(ts uint64) {
 		d.vis.UpdateNodesEnergy(d.energyAnalyser.GetLatestEnergyOfNodes(), ts, true)
 		d.lastEnergyVizTime = ts
 	}
+
+	d.updateTimeWindowStats()
 }
 
 func (d *Dispatcher) PostAsync(task func()) {
@@ -1184,6 +1211,7 @@ func (d *Dispatcher) DeleteNode(id NodeId) {
 
 	delete(d.nodes, id)
 	d.reconstructNodesArray()
+	d.Counters.TopologyChanges++
 	delete(d.aliveNodes, id)
 	delete(d.watchingNodes, id)
 	if node.Rloc16 != InvalidRloc16 {
@@ -1199,6 +1227,7 @@ func (d *Dispatcher) DeleteNode(id NodeId) {
 	d.vis.DeleteNode(id)
 	d.radioModel.DeleteNode(id)
 	d.eventQueue.DisableEventsForNode(id)
+	d.updateNodeStats()
 }
 
 // SetNodeFailed sets the radio of the node to failed (true) or operational (false) state.

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright (c) 2020-2023, The OTNS Authors.
+# Copyright (c) 2020-2024, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -39,8 +39,10 @@ install_otns()
 
 install_pyotns()
 {
+    activate_python_venv
     cd pylibs
-    python3 setup.py install --user --prefix= 2>/dev/null
+    python3 -m pip install .
+    # python3 setup.py install --user --prefix= 2>/dev/null  #  alternative - fails on macos-14
     cd -
 }
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2022, The OTNS Authors.
+// Copyright (c) 2022-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -32,8 +32,13 @@ import (
 )
 
 type NodeEnergy struct {
-	nodeId int
+	NodeId int
 	radio  RadioStatus
+
+	Disabled float64
+	Sleep    float64
+	Tx       float64
+	Rx       float64
 }
 
 func (node *NodeEnergy) ComputeRadioState(timestamp uint64) {
@@ -63,7 +68,7 @@ func (node *NodeEnergy) SetRadioState(state RadioStates, timestamp uint64) {
 
 func newNode(nodeID int, timestamp uint64) *NodeEnergy {
 	node := &NodeEnergy{
-		nodeId: nodeID,
+		NodeId: nodeID,
 		radio: RadioStatus{
 			State:         RadioDisabled,
 			SpentDisabled: 0.0,

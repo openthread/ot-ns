@@ -26,6 +26,8 @@
 
 package visualize
 
+// SimulationController interfaces back to the entity controlling the simulation.
 type SimulationController interface {
+	// Command is called when the Visualizer wants to execute a CLI command.
 	Command(cmd string) ([]string, error)
 }

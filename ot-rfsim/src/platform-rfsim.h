@@ -127,10 +127,20 @@ uint64_t platformAlarmGetNow(void);
  */
 void platformAlarmAdvanceNow(uint64_t aDelta);
 
-// fixme
+/**
+ * set the clock drift for the node's simulated clock.
+ *
+ * @param drift  actual clock drift in PPM - can be positive (=too fast), negative (=too slow),
+ *               or zero (=perfect clock).
+ */
 void platformAlarmSetClockDrift(int16_t drift);
 
-// fixme
+/**
+ * get the clock drift for the node's simulated clock.
+ *
+ * @return  actual clock drift in PPM - can be positive (=too fast), negative (=too slow),
+ *          or zero (=perfect clock).
+ */
 int16_t platformAlarmGetClockDrift();
 
 /**
