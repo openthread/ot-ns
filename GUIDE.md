@@ -61,7 +61,7 @@ The OT nodes required for running a simulation are not yet installed at this poi
 ```
 
 This checks for availability of prebuilt OT nodes, and builds any OT nodes not yet present. This includes a standard 
-set of nodes like FTD, MTD, Border Router (BR) and different Thread versions (1.1, 1.2, 1.3.0, 1.3.1). This build 
+set of nodes like FTD, MTD, Border Router (BR) and different Thread versions (1.1, 1.2, 1.3.0, 1.4). This build 
 can take a long time. During the build specific commits of the `openthread` Git repo submodule will be checked out in 
 order to access older OpenThread codebases. In case the build stops unexpectedly and the script is aborted, it may be 
 the case that an older OT commit is checked out in the `./openthread` subdirectory. This can be manually restored 
@@ -75,7 +75,7 @@ a node. Type `help add` in OTNS to see this.
 This fork of OTNS uses POSIX simulation to simulate Thread nodes, with a specific platform `ot-rfsim` located in the 
 `ot-rfsim` directory.
 The simulator uses node executables such as `ot-cli-ftd`. By default, the `install-nodes` script will build 
-a common set of OpenThread nodes of different version (v1.1, v1.2, v1.3.0, v1.3.1, and "latest") that 
+a common set of OpenThread nodes of different version (v1.1, v1.2, v1.3.0, and "latest" v1.4) that 
 are used in the various examples and unit-tests of OTNS.
 
 To build or rebuild yourself an executable with platform `ot-rfsim` for OTNS, see the example build below. 

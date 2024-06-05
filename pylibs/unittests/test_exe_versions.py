@@ -83,7 +83,7 @@ class ExeVersionTests(OTNSTestCase):
         self.assertEqual( 4, ns.get_thread_version(nid))
         ns.go(10)
 
-        ns.cmd("exe v131")
+        ns.cmd("exe v14")
         nid = ns.add('router')
         self.assertEqual( 5, ns.get_thread_version(nid))
         ns.go(10)
@@ -96,7 +96,7 @@ class ExeVersionTests(OTNSTestCase):
         ns: OTNS = self.ns
         ns.add('router', x=250, y=250)
         ns.go(10)
-        nid = ns.add('router', version='v131')
+        nid = ns.add('router', version='v14')
         self.assertEqual( 5, ns.get_thread_version(nid))
         ns.go(10)
         nid = ns.add('router', version='v13')
@@ -118,7 +118,7 @@ class ExeVersionTests(OTNSTestCase):
         ns.go(10)
         nodeid = ns.add("ssed", version="v12")
         nodeid = ns.add("ssed", version="v13")
-        nodeid = ns.add("ssed", version="v131")
+        nodeid = ns.add("ssed", version="v14")
         nodeid = ns.add("ssed")
         ns.go(10)
         self.assertFormPartitions(1)

@@ -44,6 +44,7 @@ const (
 	defaultRadioRange                 = 220
 	wifiCcaThreshold                  = 20.0 // in dBm above the noise floor
 	defaultWiFiTxInterfererPercentage = 10
+	versionLatestTag                  = "v14"
 )
 
 // defaultNodeInitScript is an array of commands, sent to a new node by default (unless changed).
@@ -200,7 +201,7 @@ func (cfg *ExecutableConfig) SearchPathsString() string {
 // The given defaultConfig is used as a base to derive the versioned executables from.
 func (cfg *ExecutableConfig) SetVersion(version string, defaultConfig *ExecutableConfig) {
 	logger.AssertTrue(strings.HasPrefix(version, "v1") && len(version) >= 3 && len(version) <= 4)
-	if version == "v131" { // latest node version - has no _v<version> suffix
+	if version == versionLatestTag { // latest node version - has no _v<version> suffix
 		cfg.Ftd = defaultConfig.Ftd
 		cfg.Mtd = defaultConfig.Mtd
 	} else {
@@ -248,7 +249,7 @@ func (cfg *ExecutableConfig) FindExecutableBasedOnConfig(nodeCfg *NodeConfig) st
 	}
 	if nodeCfg.IsBorderRouter {
 		exeName = cfg.Br
-	} else if len(nodeCfg.Version) > 0 && nodeCfg.Version != "v131" {
+	} else if len(nodeCfg.Version) > 0 && nodeCfg.Version != versionLatestTag {
 		exeName += "_" + nodeCfg.Version
 	}
 

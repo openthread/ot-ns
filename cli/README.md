@@ -55,7 +55,7 @@ triple backtick marked code segments.
 Add a node to the simulation and get the node ID.
 
 ```shell
-add <type> [x <x>] [y <y>] [rr <radio-range>] [id <node-id>] [restore] [exe <path>] [v11|v12|v13|v131]
+add <type> [x <x>] [y <y>] [rr <radio-range>] [id <node-id>] [restore] [exe <path>] [v11|v12|v13|v14]
 ```
 
 The `<type>` can be `router`, `fed`, `med`, `sed`, `ssed`, `br` (Border Router), or `wifi` (for a Wi-Fi interferer node).
@@ -65,7 +65,7 @@ one. If the `restore` option is specified, the node restores its network configu
 The (advanced) `exe` option can be used to specify a node executable for the new node; either a name only which is 
 then located in the default search paths, or a full abs or rel pathname pointing to the executable to use.
 
-The options `v11`, `v12`, `v13` and `v131` are a quick way to add a Thread v1.x node. This uses the binaries 
+The options `v11`, `v12`, `v13` and `v14` are a quick way to add a Thread v1.x node. This uses the binaries 
 prebuilt for these nodes the `ot-rfsim` submodule, `ot-versions` directory. 
 See [GUIDE.md](../GUIDE.md) for details on this.
 
@@ -285,14 +285,14 @@ Done
 #### exe: Set OT executable for all node types
 
 ```shell
-exe (default | v11 | v12 | v13 | v131)
+exe (default | v11 | v12 | v13 | v14)
 ```
 
 Set all OpenThread (OT) executables, or shell scripts, for all node types to particular defaults. Value `default` will 
 use the OTNS default executables: this is typically a recent OT development build. Values starting with `v` will use 
 the pre-built binary of the specific indicated Thread version, e.g. `v12` denotes Thread v1.2.x.
 
-NOTE: in the current commit of OTNS, `v131` equals the most recent OT development build. This may change in the future.
+NOTE: in the current commit of OTNS, `v14` equals the most recent OT development build. This may change in the future.
 
 NOTE: the 'br' node type is currently not adapted to other versions.
 

@@ -432,7 +432,7 @@ class OTNS(object):
         :param executable: specify the executable for the new node, or use default executable if None
         :param restore: whether the node restores network configuration from persistent storage
         :param txpower: Tx power in dBm of node, or None for OT node default
-        :param version: optional OT node version string like 'v11', 'v12', 'v13', or 'v131', etc.
+        :param version: optional OT node version string like 'v11', 'v12', 'v13', or 'v14', etc.
         :param script: optional OT node init script as a single string.
         :return: added node ID
         """
