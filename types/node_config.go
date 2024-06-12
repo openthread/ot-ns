@@ -43,7 +43,7 @@ type NodeConfig struct {
 	RadioRange     int
 	ExecutablePath string // executable full path or "" for auto-determined
 	Restore        bool
-	InitScript     []string
+	InitScript     []string // a sequence of CLI commands executed at first startup of node
 	RandomSeed     int32
 }
 

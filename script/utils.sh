@@ -111,10 +111,10 @@ install_package()
 function install_pretty_tools()
 {
     if ! installed golangci-lint; then
-        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b "$(go env GOPATH)"/bin v1.50.1
+        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b "$(go env GOPATH)"/bin v1.59.0
     fi
 
-    install_package shfmt --brew shfmt --snap shfmt
+    go install mvdan.cc/sh/v3/cmd/shfmt@latest
     install_package shellcheck --apt shellcheck --brew shellcheck
 }
 

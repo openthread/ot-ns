@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2022, The OTNS Authors.
+// Copyright (c) 2020-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -27,7 +27,7 @@
 package otoutfilter
 
 import (
-	"io/ioutil"
+	"io"
 	"strings"
 	"testing"
 )
@@ -70,7 +70,7 @@ func TestOTOutFilter(t *testing.T) {
 		""
 
 	r := NewOTOutFilter(strings.NewReader(input), "Node<1> - ", nil)
-	output, err := ioutil.ReadAll(r)
+	output, err := io.ReadAll(r)
 	if err != nil {
 		t.Fatal(err)
 	}

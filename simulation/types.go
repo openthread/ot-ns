@@ -30,6 +30,7 @@ import (
 	"fmt"
 	"io"
 	"regexp"
+	"strings"
 
 	. "github.com/openthread/ot-ns/types"
 )
@@ -64,8 +65,17 @@ type NodeCounters map[string]int
 
 // YamlConfigFile is the complete YAML structure for a config file for load/save.
 type YamlConfigFile struct {
+	ScriptConfig  YamlScriptConfig  `yaml:"script"`
 	NetworkConfig YamlNetworkConfig `yaml:"network"`
 	NodesList     []YamlNodeConfig  `yaml:"nodes"`
+}
+
+// YamlScriptConfig defines startup scripts for nodes, depending on node type.
+type YamlScriptConfig struct {
+	Mtd string `yaml:"mtd"`
+	Ftd string `yaml:"ftd"`
+	Br  string `yaml:"br"`
+	All string `yaml:"all"`
 }
 
 // YamlNetworkConfig is a global network config that can be loaded/saved in YAML.
@@ -92,4 +102,19 @@ func (yc *YamlConfigFile) MinNodeId() NodeId {
 		}
 	}
 	return m
+}
+
+func (ys *YamlScriptConfig) BuildMtdScript() []string {
+	script := ys.Mtd + "\n" + ys.All
+	return strings.Split(script, "\n")
+}
+
+func (ys *YamlScriptConfig) BuildFtdScript() []string {
+	script := ys.Ftd + "\n" + ys.All
+	return strings.Split(script, "\n")
+}
+
+func (ys *YamlScriptConfig) BuildBrScript() []string {
+	script := ys.Ftd + "\n" + ys.Br + "\n" + ys.All
+	return strings.Split(script, "\n")
 }

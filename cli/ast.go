@@ -275,9 +275,9 @@ type ScanCmd struct {
 
 // noinspection GoVetStructTag
 type SpeedCmd struct {
-	Cmd   struct{}      `"speed"`               //nolint
-	Max   *MaxSpeedFlag `( @@`                  //nolint
-	Speed *float64      `| [ (@Int|@Float) ] )` //nolint
+	Cmd   struct{}      `"speed"`             //nolint
+	Max   *MaxSpeedFlag `[ ( @@`              //nolint
+	Speed *float64      `| (@Int|@Float) ) ]` //nolint
 }
 
 // noinspection GoVetStructTag

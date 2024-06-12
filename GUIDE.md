@@ -5,7 +5,7 @@ This guide covers the installation of Go, installation of OTNS, use of the OTNS 
 
 OTNS requires [Go 1.18 or higher](https://golang.org/dl/) to build:
 
- - Install Go from https://golang.org/dl/
+ - Install Go from https://golang.org/dl/ or via a package manager (in this case check the Go version is high enough).
  - Add `$(go env GOPATH)/bin` (normally `$HOME/go/bin`) to `$PATH`.
 
 ## Get OTNS code
@@ -17,19 +17,21 @@ cd otns
 
 ## Automated installation
 
-An automated way to install dependencies, OTNS and all OT nodes is the following command:
+An automated way to install dependencies, OTNS and all OT nodes, and test the result, is the following command:
 
 ```bash
-./script/test build_openthread_versions
+./script/test go-tests
 ```
 
-Alternatively the extensive unit tests can be run also with the following command:
+Alternatively the more extensive Python unit tests can be run also with the following command:
 
 ```bash
 ./script/test py-unittests
 ```
 
-However, this can take a long time (5-10 minutes).
+However, this can take a long time (5-10 minutes). Running any Python (`py-*`) tests will set up a Python 3 virtual 
+environment locally in the `.venv-otns` directory. This virtual environment must also be active when manually running 
+any OTNS Python scripts.
 
 ## Manual step-by-step installation
 
@@ -171,7 +173,8 @@ See [OTNS CLI Reference](cli/README.md).
 ## OTNS Python Scripting
 
 [pyOTNS](pylibs/otns) library provides utilities to create and manage simulations through OTNS CLI. It is installed in a 
-Python 3 virtual environment `.venv-otns`. 
+Python 3 virtual environment `.venv-otns` by the `./script/install` script. The `./script/test` script also calls this 
+install script when needed as part of setup.
 
 ### Python Scripting Documentation
 

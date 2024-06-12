@@ -47,18 +47,38 @@ const (
 	versionLatestTag                  = "v14"
 )
 
-// defaultNodeInitScript is an array of commands, sent to a new node by default (unless changed).
-var defaultNodeInitScript = []string{
-	"networkname " + DefaultNetworkName,
-	"networkkey " + DefaultNetworkKey,
+// defaultFtdInitScript is an array of commands, sent to a new FTD node by default (unless changed).
+var defaultFtdInitScript = []string{
+	"dataset init new",
+	fmt.Sprintf("dataset networkname %s", DefaultNetworkName),
+	fmt.Sprintf("dataset networkkey %s", DefaultNetworkKey),
+	fmt.Sprintf("dataset panid 0x%x", DefaultPanid),
+	fmt.Sprintf("dataset channel %d", DefaultChannel),
+	fmt.Sprintf("dataset extpanid %s", DefaultExtPanid),
+	fmt.Sprintf("dataset meshlocalprefix %s", DefaultMeshLocalPrefix),
+	fmt.Sprintf("dataset pskc %s", DefaultPskc),
+	//"routerselectionjitter 1", // jitter can be set to '1' to speed up network formation for realtime tests.
+	"dataset commit active",
+}
+
+// defaultMtdInitScript is an array of commands, sent to a new MTD node by default (unless changed).
+// because the MTD doesn't support 'dataset init new', an alternative way is needed to configure the
+// active dataset. Another alternative (not used here) is 'dataset init tlvs 0e0800000000000100...' with
+// the full dataset in hex format.
+var defaultMtdInitScript = []string{
+	fmt.Sprintf("networkkey %s", DefaultNetworkKey),
 	fmt.Sprintf("panid 0x%x", DefaultPanid),
 	fmt.Sprintf("channel %d", DefaultChannel),
-	//"routerselectionjitter 1", // jitter can be set to '1' to speed up network formation for realtime tests.
+	fmt.Sprintf("extpanid %s", DefaultExtPanid),
+}
+
+// defaultAllInitScript is an array of commands, sent to any type of new node (as last script commands).
+var defaultAllInitScript = []string{
 	"ifconfig up",
 	"thread start",
 }
 
-// defaultBrScript is an array of commands, sent to a new BR by default (unless changed).
+// defaultBrScript is an array of additional commands, sent to a new BR by default (unless changed).
 var defaultBrScript = []string{
 	"routerselectionjitter 1",                              // BR wants to become Router early on.
 	"routerdowngradethreshold 33",                          // BR never wants to downgrade.
@@ -141,8 +161,17 @@ func DefaultNodeConfig() NodeConfig {
 		RadioRange:     defaultRadioRange,
 		ExecutablePath: "",
 		Restore:        false,
-		InitScript:     defaultNodeInitScript,
+		InitScript:     []string{},
 		RandomSeed:     0, // 0 means not specified, i.e. truly unpredictable.
+	}
+}
+
+func DefaultNodeScripts() *YamlScriptConfig {
+	return &YamlScriptConfig{
+		Mtd: strings.Join(defaultMtdInitScript, "\n"),
+		Ftd: strings.Join(defaultFtdInitScript, "\n"),
+		Br:  strings.Join(defaultBrScript, "\n"),
+		All: strings.Join(defaultAllInitScript, "\n"),
 	}
 }
 
@@ -166,18 +195,24 @@ func (s *Simulation) NodeConfigFinalize(nodeCfg *NodeConfig) {
 		nodeCfg.RandomSeed = prng.NewNodeRandomSeed()
 	}
 
-	// for a BR, do extra init steps to set prefix/routes/etc.
-	if nodeCfg.IsBorderRouter {
-		nodeCfg.InitScript = append(nodeCfg.InitScript, defaultBrScript...)
-	}
-
-	// for SSED, do extra CSL init command.
-	if nodeCfg.Type == SSED {
-		cslScript := defaultCslScript
-		if len(nodeCfg.Version) > 0 && nodeCfg.Version <= "v13" {
-			cslScript = defaultLegacyCslScript // older nodes use different parameter unit
+	// build node init-script
+	if !nodeCfg.IsRaw {
+		if nodeCfg.IsBorderRouter { // for a BR, do extra init steps to set prefix/routes/etc.
+			nodeCfg.InitScript = append(nodeCfg.InitScript, s.cfg.NewNodeScripts.BuildBrScript()...)
+		} else if nodeCfg.IsMtd {
+			nodeCfg.InitScript = append(nodeCfg.InitScript, s.cfg.NewNodeScripts.BuildMtdScript()...)
+		} else {
+			nodeCfg.InitScript = append(nodeCfg.InitScript, s.cfg.NewNodeScripts.BuildFtdScript()...)
 		}
-		nodeCfg.InitScript = append(nodeCfg.InitScript, cslScript...)
+
+		// for SSED, do extra CSL init command.
+		if nodeCfg.Type == SSED {
+			cslScript := defaultCslScript
+			if len(nodeCfg.Version) > 0 && nodeCfg.Version <= "v13" {
+				cslScript = defaultLegacyCslScript // older nodes use different parameter unit
+			}
+			nodeCfg.InitScript = append(nodeCfg.InitScript, cslScript...)
+		}
 	}
 
 	// for Wifi interferer, run specific script.

@@ -283,9 +283,9 @@ func createSimulation(simId int, ctx *progctx.ProgCtx) (*simulation.Simulation, 
 	simcfg.Id = simId
 	if len(args.InitScriptName) > 0 {
 		if args.InitScriptName == "none" {
-			simcfg.NewNodeConfig.InitScript = []string{} // zero lines of init-script
+			simcfg.NewNodeScripts = &simulation.YamlScriptConfig{}
 		} else {
-			simcfg.NewNodeConfig.InitScript, err = simulation.ReadNodeScript(args.InitScriptName)
+			simcfg.NewNodeScripts, err = simulation.ReadNodeScript(args.InitScriptName)
 			if err != nil {
 				return nil, err
 			}

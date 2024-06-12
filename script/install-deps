@@ -35,6 +35,7 @@ apt_update_once=0
 install_packages()
 {
     install_package wget --apt wget --brew wget || true
+    install_package python3-venv --apt wget --brew wget || true
 }
 
 install_grpcwebproxy()
@@ -55,7 +56,7 @@ install_grpcwebproxy()
 install_python_libs()
 {
     activate_python_venv
-    python3 -m pip install setuptools
+    python3 -m pip install setuptools wheel
 }
 
 main()

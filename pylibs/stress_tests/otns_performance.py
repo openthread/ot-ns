@@ -57,7 +57,8 @@ class OtnsPerformanceStressTest(BaseStressTest):
     def __init__(self):
         super(OtnsPerformanceStressTest, self).__init__("OTNS Performance Test",
                                                         ['Simulation Time', 'Execution Time', 'Speed Up',
-                                                         'Alarm Events', 'Radio Events'])
+                                                         'Alarm Events', 'Radio Events'],
+                                                        rand_seed=48392)
 
     def run(self):
         ns = self.ns

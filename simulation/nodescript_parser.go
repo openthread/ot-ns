@@ -1,4 +1,4 @@
-// Copyright (c) 2022-2023, The OTNS Authors.
+// Copyright (c) 2022-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -28,24 +28,22 @@ package simulation
 
 import (
 	"fmt"
-	"io/ioutil"
-	"strings"
+	"os"
+
+	"gopkg.in/yaml.v3"
 )
 
-func ReadNodeScript(fn string) ([]string, error) {
-	script, err := ioutil.ReadFile(fn)
+func ReadNodeScript(fn string) (*YamlScriptConfig, error) {
+	b, err := os.ReadFile(fn)
 	if err != nil {
-		err = fmt.Errorf("could not read OT node script file: %s (%w)", fn, err)
-		return []string{}, err
+		err = fmt.Errorf("could not load script config file '%s': %v", fn, err)
+		return nil, err
 	}
-	linesToFilter := strings.Split(string(script), "\n")
-	linesFiltered := make([]string, 0)
-	for _, line := range linesToFilter {
-		line = strings.TrimSpace(line)
-		if strings.HasPrefix(line, "#") || strings.HasPrefix(line, "//") || line == "" {
-			continue
-		}
-		linesFiltered = append(linesFiltered, line)
+	cfgFile := YamlConfigFile{}
+	err = yaml.Unmarshal(b, &cfgFile)
+	if err != nil {
+		err = fmt.Errorf("error in YAML file: %v", err)
+		return nil, err
 	}
-	return linesFiltered, nil
+	return &cfgFile.ScriptConfig, nil
 }

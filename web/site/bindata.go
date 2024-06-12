@@ -1496,65 +1496,63 @@ var _bindata = map[string]func() ([]byte, error){
 	"static/image/white-shapes/square-dashed-rounded-32.png": static_image_white_shapes_square_dashed_rounded_32_png,
 	"static/image/white-shapes/square-dashed-rounded-48.png": static_image_white_shapes_square_dashed_rounded_48_png,
 	"static/image/white-shapes/square-dashed-rounded-512.png": static_image_white_shapes_square_dashed_rounded_512_png,
-	"static/image/white-shapes/square-dashed-rounded-64.png":  static_image_white_shapes_square_dashed_rounded_64_png,
-	"static/image/white-shapes/square-ios-app-128.png":        static_image_white_shapes_square_ios_app_128_png,
-	"static/image/white-shapes/square-ios-app-16.png":         static_image_white_shapes_square_ios_app_16_png,
-	"static/image/white-shapes/square-ios-app-24.png":         static_image_white_shapes_square_ios_app_24_png,
-	"static/image/white-shapes/square-ios-app-256.png":        static_image_white_shapes_square_ios_app_256_png,
-	"static/image/white-shapes/square-ios-app-32.png":         static_image_white_shapes_square_ios_app_32_png,
-	"static/image/white-shapes/square-ios-app-48.png":         static_image_white_shapes_square_ios_app_48_png,
-	"static/image/white-shapes/square-ios-app-512.png":        static_image_white_shapes_square_ios_app_512_png,
-	"static/image/white-shapes/square-ios-app-64.png":         static_image_white_shapes_square_ios_app_64_png,
-	"static/image/white-shapes/square-outline-128.png":        static_image_white_shapes_square_outline_128_png,
-	"static/image/white-shapes/square-outline-16.png":         static_image_white_shapes_square_outline_16_png,
-	"static/image/white-shapes/square-outline-24.png":         static_image_white_shapes_square_outline_24_png,
-	"static/image/white-shapes/square-outline-256.png":        static_image_white_shapes_square_outline_256_png,
-	"static/image/white-shapes/square-outline-32.png":         static_image_white_shapes_square_outline_32_png,
-	"static/image/white-shapes/square-outline-48.png":         static_image_white_shapes_square_outline_48_png,
-	"static/image/white-shapes/square-outline-512.png":        static_image_white_shapes_square_outline_512_png,
-	"static/image/white-shapes/square-outline-64.png":         static_image_white_shapes_square_outline_64_png,
-	"static/image/white-shapes/square-rounded-128.png":        static_image_white_shapes_square_rounded_128_png,
-	"static/image/white-shapes/square-rounded-16.png":         static_image_white_shapes_square_rounded_16_png,
-	"static/image/white-shapes/square-rounded-24.png":         static_image_white_shapes_square_rounded_24_png,
-	"static/image/white-shapes/square-rounded-256.png":        static_image_white_shapes_square_rounded_256_png,
-	"static/image/white-shapes/square-rounded-32.png":         static_image_white_shapes_square_rounded_32_png,
-	"static/image/white-shapes/square-rounded-48.png":         static_image_white_shapes_square_rounded_48_png,
-	"static/image/white-shapes/square-rounded-512.png":        static_image_white_shapes_square_rounded_512_png,
-	"static/image/white-shapes/square-rounded-64.png":         static_image_white_shapes_square_rounded_64_png,
-	"static/image/white-shapes/triangle-128.png":              static_image_white_shapes_triangle_128_png,
-	"static/image/white-shapes/triangle-16.png":               static_image_white_shapes_triangle_16_png,
-	"static/image/white-shapes/triangle-24.png":               static_image_white_shapes_triangle_24_png,
-	"static/image/white-shapes/triangle-256.png":              static_image_white_shapes_triangle_256_png,
-	"static/image/white-shapes/triangle-32.png":               static_image_white_shapes_triangle_32_png,
-	"static/image/white-shapes/triangle-48.png":               static_image_white_shapes_triangle_48_png,
-	"static/image/white-shapes/triangle-512.png":              static_image_white_shapes_triangle_512_png,
-	"static/image/white-shapes/triangle-64.png":               static_image_white_shapes_triangle_64_png,
-	"static/image/white-shapes/triangle-outline-128.png":      static_image_white_shapes_triangle_outline_128_png,
-	"static/image/white-shapes/triangle-outline-16.png":       static_image_white_shapes_triangle_outline_16_png,
-	"static/image/white-shapes/triangle-outline-24.png":       static_image_white_shapes_triangle_outline_24_png,
-	"static/image/white-shapes/triangle-outline-256.png":      static_image_white_shapes_triangle_outline_256_png,
-	"static/image/white-shapes/triangle-outline-32.png":       static_image_white_shapes_triangle_outline_32_png,
-	"static/image/white-shapes/triangle-outline-48.png":       static_image_white_shapes_triangle_outline_48_png,
-	"static/image/white-shapes/triangle-outline-512.png":      static_image_white_shapes_triangle_outline_512_png,
-	"static/image/white-shapes/triangle-outline-64.png":       static_image_white_shapes_triangle_outline_64_png,
-	"static/js/energyViewer.js":                               static_js_energyviewer_js,
-	"static/js/statsViewer.js":                                static_js_statsviewer_js,
-	"static/js/visualize.js":                                  static_js_visualize_js,
-	"templates/energyViewer.html":                             templates_energyviewer_html,
-	"templates/statsViewer.html":                              templates_statsviewer_html,
-	"templates/visualize.html":                                templates_visualize_html,
+	"static/image/white-shapes/square-dashed-rounded-64.png": static_image_white_shapes_square_dashed_rounded_64_png,
+	"static/image/white-shapes/square-ios-app-128.png": static_image_white_shapes_square_ios_app_128_png,
+	"static/image/white-shapes/square-ios-app-16.png": static_image_white_shapes_square_ios_app_16_png,
+	"static/image/white-shapes/square-ios-app-24.png": static_image_white_shapes_square_ios_app_24_png,
+	"static/image/white-shapes/square-ios-app-256.png": static_image_white_shapes_square_ios_app_256_png,
+	"static/image/white-shapes/square-ios-app-32.png": static_image_white_shapes_square_ios_app_32_png,
+	"static/image/white-shapes/square-ios-app-48.png": static_image_white_shapes_square_ios_app_48_png,
+	"static/image/white-shapes/square-ios-app-512.png": static_image_white_shapes_square_ios_app_512_png,
+	"static/image/white-shapes/square-ios-app-64.png": static_image_white_shapes_square_ios_app_64_png,
+	"static/image/white-shapes/square-outline-128.png": static_image_white_shapes_square_outline_128_png,
+	"static/image/white-shapes/square-outline-16.png": static_image_white_shapes_square_outline_16_png,
+	"static/image/white-shapes/square-outline-24.png": static_image_white_shapes_square_outline_24_png,
+	"static/image/white-shapes/square-outline-256.png": static_image_white_shapes_square_outline_256_png,
+	"static/image/white-shapes/square-outline-32.png": static_image_white_shapes_square_outline_32_png,
+	"static/image/white-shapes/square-outline-48.png": static_image_white_shapes_square_outline_48_png,
+	"static/image/white-shapes/square-outline-512.png": static_image_white_shapes_square_outline_512_png,
+	"static/image/white-shapes/square-outline-64.png": static_image_white_shapes_square_outline_64_png,
+	"static/image/white-shapes/square-rounded-128.png": static_image_white_shapes_square_rounded_128_png,
+	"static/image/white-shapes/square-rounded-16.png": static_image_white_shapes_square_rounded_16_png,
+	"static/image/white-shapes/square-rounded-24.png": static_image_white_shapes_square_rounded_24_png,
+	"static/image/white-shapes/square-rounded-256.png": static_image_white_shapes_square_rounded_256_png,
+	"static/image/white-shapes/square-rounded-32.png": static_image_white_shapes_square_rounded_32_png,
+	"static/image/white-shapes/square-rounded-48.png": static_image_white_shapes_square_rounded_48_png,
+	"static/image/white-shapes/square-rounded-512.png": static_image_white_shapes_square_rounded_512_png,
+	"static/image/white-shapes/square-rounded-64.png": static_image_white_shapes_square_rounded_64_png,
+	"static/image/white-shapes/triangle-128.png": static_image_white_shapes_triangle_128_png,
+	"static/image/white-shapes/triangle-16.png": static_image_white_shapes_triangle_16_png,
+	"static/image/white-shapes/triangle-24.png": static_image_white_shapes_triangle_24_png,
+	"static/image/white-shapes/triangle-256.png": static_image_white_shapes_triangle_256_png,
+	"static/image/white-shapes/triangle-32.png": static_image_white_shapes_triangle_32_png,
+	"static/image/white-shapes/triangle-48.png": static_image_white_shapes_triangle_48_png,
+	"static/image/white-shapes/triangle-512.png": static_image_white_shapes_triangle_512_png,
+	"static/image/white-shapes/triangle-64.png": static_image_white_shapes_triangle_64_png,
+	"static/image/white-shapes/triangle-outline-128.png": static_image_white_shapes_triangle_outline_128_png,
+	"static/image/white-shapes/triangle-outline-16.png": static_image_white_shapes_triangle_outline_16_png,
+	"static/image/white-shapes/triangle-outline-24.png": static_image_white_shapes_triangle_outline_24_png,
+	"static/image/white-shapes/triangle-outline-256.png": static_image_white_shapes_triangle_outline_256_png,
+	"static/image/white-shapes/triangle-outline-32.png": static_image_white_shapes_triangle_outline_32_png,
+	"static/image/white-shapes/triangle-outline-48.png": static_image_white_shapes_triangle_outline_48_png,
+	"static/image/white-shapes/triangle-outline-512.png": static_image_white_shapes_triangle_outline_512_png,
+	"static/image/white-shapes/triangle-outline-64.png": static_image_white_shapes_triangle_outline_64_png,
+	"static/js/energyViewer.js": static_js_energyviewer_js,
+	"static/js/statsViewer.js": static_js_statsviewer_js,
+	"static/js/visualize.js": static_js_visualize_js,
+	"templates/energyViewer.html": templates_energyviewer_html,
+	"templates/statsViewer.html": templates_statsviewer_html,
+	"templates/visualize.html": templates_visualize_html,
 }
 // AssetDir returns the file names below a certain
 // directory embedded in the file by go-bindata.
 // For example if you run go-bindata on data/... and data contains the
 // following hierarchy:
-//
-//	data/
-//	  foo.txt
-//	  img/
-//	    a.png
-//	    b.png
-//
+//     data/
+//       foo.txt
+//       img/
+//         a.png
+//         b.png
 // then AssetDir("data") would return []string{"foo.txt", "img"}
 // AssetDir("data/img") would return []string{"a.png", "b.png"}
 // AssetDir("foo.txt") and AssetDir("notexist") would return an error
@@ -1874,14 +1872,20 @@ var _bintree = &_bintree_t{nil, map[string]*_bintree_t{
 			}},
 		}},
 		"js": &_bintree_t{nil, map[string]*_bintree_t{
-			"energyViewer.js": &_bintree_t{static_js_energyviewer_js, map[string]*_bintree_t{}},
-			"statsViewer.js":  &_bintree_t{static_js_statsviewer_js, map[string]*_bintree_t{}},
-			"visualize.js":    &_bintree_t{static_js_visualize_js, map[string]*_bintree_t{}},
+			"energyViewer.js": &_bintree_t{static_js_energyviewer_js, map[string]*_bintree_t{
+			}},
+			"statsViewer.js": &_bintree_t{static_js_statsviewer_js, map[string]*_bintree_t{
+			}},
+			"visualize.js": &_bintree_t{static_js_visualize_js, map[string]*_bintree_t{
+			}},
 		}},
 	}},
 	"templates": &_bintree_t{nil, map[string]*_bintree_t{
-		"energyViewer.html": &_bintree_t{templates_energyviewer_html, map[string]*_bintree_t{}},
-		"statsViewer.html":  &_bintree_t{templates_statsviewer_html, map[string]*_bintree_t{}},
-		"visualize.html":    &_bintree_t{templates_visualize_html, map[string]*_bintree_t{}},
+		"energyViewer.html": &_bintree_t{templates_energyviewer_html, map[string]*_bintree_t{
+		}},
+		"statsViewer.html": &_bintree_t{templates_statsviewer_html, map[string]*_bintree_t{
+		}},
+		"visualize.html": &_bintree_t{templates_visualize_html, map[string]*_bintree_t{
+		}},
 	}},
 }}

@@ -42,11 +42,21 @@ CHILDREN_N_BR = 32
 class StressTest(BaseStressTest):
     SUITE = 'network-limits'
 
+    # Time limits for attaching in minutes, per parent-type and child-type. For BR as Parent,
+    # more time is allowed (as it has more capacity).
     TIME_LIMIT = {
-        'fed': 1,
-        'med': 1,
-        'sed': 1,
-        'ssed': 1,
+        'router': {
+            'fed': 1,
+            'med': 1,
+            'sed': 1,
+            'ssed': 1,
+        },
+        'br': {
+            'fed': 2,
+            'med': 2,
+            'sed': 2,
+            'ssed': 2,
+        },
     }
 
     def __init__(self):
@@ -55,27 +65,28 @@ class StressTest(BaseStressTest):
 
     def run(self):
         self.ns.speed = 30 # speed is lowered to see the visualization, when run locally.
-        self.test('fed')
-        self.test('med')
-        self.test('sed')
-        self.test('ssed')
+        self.test('fed', 'router')
+        self.test('med', 'router')
+        self.test('sed', 'router')
+        self.test('ssed', 'router')
 
         # a BR can support more children (compile-time configured)
         self.test('fed', 'br', CHILDREN_N_BR)
         self.test('med', 'br', CHILDREN_N_BR)
         self.test('sed', 'br', CHILDREN_N_BR)
-        self.test('ssed', 'br', CHILDREN_N_BR)
+        self.test('ssed','br', CHILDREN_N_BR)
 
 
-    def test(self, child_type: str, parent_type: str = 'router', n_children_max: int = CHILDREN_N):
+    def test(self, child_type: str, parent_type: str, n_children_max: int = CHILDREN_N):
         self.reset()
         self.ns.log = 'debug'
-        self.ns.watch_default('trace')
+        #self.ns.watch_default('trace') # can enable trace level to see radio state details
         self.ns.add(parent_type, PARENT_X, PARENT_Y)
         self.ns.go(7)
 
-        time_limit = StressTest.TIME_LIMIT[child_type]
+        time_limit = StressTest.TIME_LIMIT[parent_type][child_type]
         all_children = []
+        logging.info(f"Testing '{parent_type}' parent with child type '{child_type}' (N={n_children_max})")
 
         for i in range(n_children_max):
             angle = math.pi * 2 * i / n_children_max
@@ -93,11 +104,10 @@ class StressTest(BaseStressTest):
                 if self.ns.get_state(child) == 'child':
                     n_children += 1
             if n_children == n_children_max:
-                logging.info("All %s children has attached successfully within %d minutes.", child_type, i + 1)
+                logging.info("All %s children attached successfully within %d minutes, with time limit set to %d minutes.", child_type, i + 1, time_limit)
                 break
 
-        self.ns.speed = 0.01
-        self.ns.go(0.01) # trick to ensure final topology is briefly shown in web UI
+        self.ns.web_display()
 
         if n_children < n_children_max:
             raise Exception("Not all %s children attached within time limit of %d minutes." % (child_type, time_limit))
