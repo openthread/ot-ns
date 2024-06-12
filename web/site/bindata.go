@@ -1396,166 +1396,163 @@ func AssetNames() []string {
 
 // _bindata is a table, holding each asset generator, mapped to its name.
 var _bindata = map[string]func() ([]byte, error){
-	"static/image/checked-checkbox-32.png":                    static_image_checked_checkbox_32_png,
-	"static/image/gua.png":                                    static_image_gua_png,
-	"static/image/pause-32.png":                               static_image_pause_32_png,
-	"static/image/play-32.png":                                static_image_play_32_png,
-	"static/image/unchecked-checkbox-32.png":                  static_image_unchecked_checkbox_32_png,
-	"static/image/white-shapes/circle-128.png":                static_image_white_shapes_circle_128_png,
-	"static/image/white-shapes/circle-16.png":                 static_image_white_shapes_circle_16_png,
-	"static/image/white-shapes/circle-24.png":                 static_image_white_shapes_circle_24_png,
-	"static/image/white-shapes/circle-256.png":                static_image_white_shapes_circle_256_png,
-	"static/image/white-shapes/circle-32.png":                 static_image_white_shapes_circle_32_png,
-	"static/image/white-shapes/circle-48.png":                 static_image_white_shapes_circle_48_png,
-	"static/image/white-shapes/circle-512.png":                static_image_white_shapes_circle_512_png,
-	"static/image/white-shapes/circle-64.png":                 static_image_white_shapes_circle_64_png,
-	"static/image/white-shapes/circle-dashed-4-128.png":       static_image_white_shapes_circle_dashed_4_128_png,
-	"static/image/white-shapes/circle-dashed-4-16.png":        static_image_white_shapes_circle_dashed_4_16_png,
-	"static/image/white-shapes/circle-dashed-4-24.png":        static_image_white_shapes_circle_dashed_4_24_png,
-	"static/image/white-shapes/circle-dashed-4-256.png":       static_image_white_shapes_circle_dashed_4_256_png,
-	"static/image/white-shapes/circle-dashed-4-32.png":        static_image_white_shapes_circle_dashed_4_32_png,
-	"static/image/white-shapes/circle-dashed-4-48.png":        static_image_white_shapes_circle_dashed_4_48_png,
-	"static/image/white-shapes/circle-dashed-4-512.png":       static_image_white_shapes_circle_dashed_4_512_png,
-	"static/image/white-shapes/circle-dashed-4-64.png":        static_image_white_shapes_circle_dashed_4_64_png,
-	"static/image/white-shapes/circle-dashed-6-128.png":       static_image_white_shapes_circle_dashed_6_128_png,
-	"static/image/white-shapes/circle-dashed-6-16.png":        static_image_white_shapes_circle_dashed_6_16_png,
-	"static/image/white-shapes/circle-dashed-6-24.png":        static_image_white_shapes_circle_dashed_6_24_png,
-	"static/image/white-shapes/circle-dashed-6-256.png":       static_image_white_shapes_circle_dashed_6_256_png,
-	"static/image/white-shapes/circle-dashed-6-32.png":        static_image_white_shapes_circle_dashed_6_32_png,
-	"static/image/white-shapes/circle-dashed-6-48.png":        static_image_white_shapes_circle_dashed_6_48_png,
-	"static/image/white-shapes/circle-dashed-6-512.png":       static_image_white_shapes_circle_dashed_6_512_png,
-	"static/image/white-shapes/circle-dashed-6-64.png":        static_image_white_shapes_circle_dashed_6_64_png,
-	"static/image/white-shapes/circle-dashed-8-128.png":       static_image_white_shapes_circle_dashed_8_128_png,
-	"static/image/white-shapes/circle-dashed-8-16.png":        static_image_white_shapes_circle_dashed_8_16_png,
-	"static/image/white-shapes/circle-dashed-8-24.png":        static_image_white_shapes_circle_dashed_8_24_png,
-	"static/image/white-shapes/circle-dashed-8-256.png":       static_image_white_shapes_circle_dashed_8_256_png,
-	"static/image/white-shapes/circle-dashed-8-32.png":        static_image_white_shapes_circle_dashed_8_32_png,
-	"static/image/white-shapes/circle-dashed-8-48.png":        static_image_white_shapes_circle_dashed_8_48_png,
-	"static/image/white-shapes/circle-dashed-8-512.png":       static_image_white_shapes_circle_dashed_8_512_png,
-	"static/image/white-shapes/circle-dashed-8-64.png":        static_image_white_shapes_circle_dashed_8_64_png,
-	"static/image/white-shapes/circle-outline-128.png":        static_image_white_shapes_circle_outline_128_png,
-	"static/image/white-shapes/circle-outline-16.png":         static_image_white_shapes_circle_outline_16_png,
-	"static/image/white-shapes/circle-outline-24.png":         static_image_white_shapes_circle_outline_24_png,
-	"static/image/white-shapes/circle-outline-256.png":        static_image_white_shapes_circle_outline_256_png,
-	"static/image/white-shapes/circle-outline-32.png":         static_image_white_shapes_circle_outline_32_png,
-	"static/image/white-shapes/circle-outline-48.png":         static_image_white_shapes_circle_outline_48_png,
-	"static/image/white-shapes/circle-outline-512.png":        static_image_white_shapes_circle_outline_512_png,
-	"static/image/white-shapes/circle-outline-64.png":         static_image_white_shapes_circle_outline_64_png,
-	"static/image/white-shapes/hexagon-128.png":               static_image_white_shapes_hexagon_128_png,
-	"static/image/white-shapes/hexagon-16.png":                static_image_white_shapes_hexagon_16_png,
-	"static/image/white-shapes/hexagon-24.png":                static_image_white_shapes_hexagon_24_png,
-	"static/image/white-shapes/hexagon-256.png":               static_image_white_shapes_hexagon_256_png,
-	"static/image/white-shapes/hexagon-32.png":                static_image_white_shapes_hexagon_32_png,
-	"static/image/white-shapes/hexagon-48.png":                static_image_white_shapes_hexagon_48_png,
-	"static/image/white-shapes/hexagon-512.png":               static_image_white_shapes_hexagon_512_png,
-	"static/image/white-shapes/hexagon-64.png":                static_image_white_shapes_hexagon_64_png,
-	"static/image/white-shapes/hexagon-outline-128.png":       static_image_white_shapes_hexagon_outline_128_png,
-	"static/image/white-shapes/hexagon-outline-16.png":        static_image_white_shapes_hexagon_outline_16_png,
-	"static/image/white-shapes/hexagon-outline-24.png":        static_image_white_shapes_hexagon_outline_24_png,
-	"static/image/white-shapes/hexagon-outline-256.png":       static_image_white_shapes_hexagon_outline_256_png,
-	"static/image/white-shapes/hexagon-outline-32.png":        static_image_white_shapes_hexagon_outline_32_png,
-	"static/image/white-shapes/hexagon-outline-48.png":        static_image_white_shapes_hexagon_outline_48_png,
-	"static/image/white-shapes/hexagon-outline-512.png":       static_image_white_shapes_hexagon_outline_512_png,
-	"static/image/white-shapes/hexagon-outline-64.png":        static_image_white_shapes_hexagon_outline_64_png,
-	"static/image/white-shapes/octagon-128.png":               static_image_white_shapes_octagon_128_png,
-	"static/image/white-shapes/octagon-16.png":                static_image_white_shapes_octagon_16_png,
-	"static/image/white-shapes/octagon-24.png":                static_image_white_shapes_octagon_24_png,
-	"static/image/white-shapes/octagon-256.png":               static_image_white_shapes_octagon_256_png,
-	"static/image/white-shapes/octagon-32.png":                static_image_white_shapes_octagon_32_png,
-	"static/image/white-shapes/octagon-48.png":                static_image_white_shapes_octagon_48_png,
-	"static/image/white-shapes/octagon-512.png":               static_image_white_shapes_octagon_512_png,
-	"static/image/white-shapes/octagon-64.png":                static_image_white_shapes_octagon_64_png,
-	"static/image/white-shapes/octagon-outline-128.png":       static_image_white_shapes_octagon_outline_128_png,
-	"static/image/white-shapes/octagon-outline-16.png":        static_image_white_shapes_octagon_outline_16_png,
-	"static/image/white-shapes/octagon-outline-24.png":        static_image_white_shapes_octagon_outline_24_png,
-	"static/image/white-shapes/octagon-outline-256.png":       static_image_white_shapes_octagon_outline_256_png,
-	"static/image/white-shapes/octagon-outline-32.png":        static_image_white_shapes_octagon_outline_32_png,
-	"static/image/white-shapes/octagon-outline-48.png":        static_image_white_shapes_octagon_outline_48_png,
-	"static/image/white-shapes/octagon-outline-512.png":       static_image_white_shapes_octagon_outline_512_png,
-	"static/image/white-shapes/octagon-outline-64.png":        static_image_white_shapes_octagon_outline_64_png,
-	"static/image/white-shapes/square-128.png":                static_image_white_shapes_square_128_png,
-	"static/image/white-shapes/square-16.png":                 static_image_white_shapes_square_16_png,
-	"static/image/white-shapes/square-24.png":                 static_image_white_shapes_square_24_png,
-	"static/image/white-shapes/square-256.png":                static_image_white_shapes_square_256_png,
-	"static/image/white-shapes/square-32.png":                 static_image_white_shapes_square_32_png,
-	"static/image/white-shapes/square-48.png":                 static_image_white_shapes_square_48_png,
-	"static/image/white-shapes/square-512.png":                static_image_white_shapes_square_512_png,
-	"static/image/white-shapes/square-64.png":                 static_image_white_shapes_square_64_png,
-	"static/image/white-shapes/square-dashed-128.png":         static_image_white_shapes_square_dashed_128_png,
-	"static/image/white-shapes/square-dashed-16.png":          static_image_white_shapes_square_dashed_16_png,
-	"static/image/white-shapes/square-dashed-24.png":          static_image_white_shapes_square_dashed_24_png,
-	"static/image/white-shapes/square-dashed-256.png":         static_image_white_shapes_square_dashed_256_png,
-	"static/image/white-shapes/square-dashed-32.png":          static_image_white_shapes_square_dashed_32_png,
-	"static/image/white-shapes/square-dashed-48.png":          static_image_white_shapes_square_dashed_48_png,
-	"static/image/white-shapes/square-dashed-512.png":         static_image_white_shapes_square_dashed_512_png,
-	"static/image/white-shapes/square-dashed-64.png":          static_image_white_shapes_square_dashed_64_png,
+	"static/image/checked-checkbox-32.png": static_image_checked_checkbox_32_png,
+	"static/image/gua.png": static_image_gua_png,
+	"static/image/pause-32.png": static_image_pause_32_png,
+	"static/image/play-32.png": static_image_play_32_png,
+	"static/image/unchecked-checkbox-32.png": static_image_unchecked_checkbox_32_png,
+	"static/image/white-shapes/circle-128.png": static_image_white_shapes_circle_128_png,
+	"static/image/white-shapes/circle-16.png": static_image_white_shapes_circle_16_png,
+	"static/image/white-shapes/circle-24.png": static_image_white_shapes_circle_24_png,
+	"static/image/white-shapes/circle-256.png": static_image_white_shapes_circle_256_png,
+	"static/image/white-shapes/circle-32.png": static_image_white_shapes_circle_32_png,
+	"static/image/white-shapes/circle-48.png": static_image_white_shapes_circle_48_png,
+	"static/image/white-shapes/circle-512.png": static_image_white_shapes_circle_512_png,
+	"static/image/white-shapes/circle-64.png": static_image_white_shapes_circle_64_png,
+	"static/image/white-shapes/circle-dashed-4-128.png": static_image_white_shapes_circle_dashed_4_128_png,
+	"static/image/white-shapes/circle-dashed-4-16.png": static_image_white_shapes_circle_dashed_4_16_png,
+	"static/image/white-shapes/circle-dashed-4-24.png": static_image_white_shapes_circle_dashed_4_24_png,
+	"static/image/white-shapes/circle-dashed-4-256.png": static_image_white_shapes_circle_dashed_4_256_png,
+	"static/image/white-shapes/circle-dashed-4-32.png": static_image_white_shapes_circle_dashed_4_32_png,
+	"static/image/white-shapes/circle-dashed-4-48.png": static_image_white_shapes_circle_dashed_4_48_png,
+	"static/image/white-shapes/circle-dashed-4-512.png": static_image_white_shapes_circle_dashed_4_512_png,
+	"static/image/white-shapes/circle-dashed-4-64.png": static_image_white_shapes_circle_dashed_4_64_png,
+	"static/image/white-shapes/circle-dashed-6-128.png": static_image_white_shapes_circle_dashed_6_128_png,
+	"static/image/white-shapes/circle-dashed-6-16.png": static_image_white_shapes_circle_dashed_6_16_png,
+	"static/image/white-shapes/circle-dashed-6-24.png": static_image_white_shapes_circle_dashed_6_24_png,
+	"static/image/white-shapes/circle-dashed-6-256.png": static_image_white_shapes_circle_dashed_6_256_png,
+	"static/image/white-shapes/circle-dashed-6-32.png": static_image_white_shapes_circle_dashed_6_32_png,
+	"static/image/white-shapes/circle-dashed-6-48.png": static_image_white_shapes_circle_dashed_6_48_png,
+	"static/image/white-shapes/circle-dashed-6-512.png": static_image_white_shapes_circle_dashed_6_512_png,
+	"static/image/white-shapes/circle-dashed-6-64.png": static_image_white_shapes_circle_dashed_6_64_png,
+	"static/image/white-shapes/circle-dashed-8-128.png": static_image_white_shapes_circle_dashed_8_128_png,
+	"static/image/white-shapes/circle-dashed-8-16.png": static_image_white_shapes_circle_dashed_8_16_png,
+	"static/image/white-shapes/circle-dashed-8-24.png": static_image_white_shapes_circle_dashed_8_24_png,
+	"static/image/white-shapes/circle-dashed-8-256.png": static_image_white_shapes_circle_dashed_8_256_png,
+	"static/image/white-shapes/circle-dashed-8-32.png": static_image_white_shapes_circle_dashed_8_32_png,
+	"static/image/white-shapes/circle-dashed-8-48.png": static_image_white_shapes_circle_dashed_8_48_png,
+	"static/image/white-shapes/circle-dashed-8-512.png": static_image_white_shapes_circle_dashed_8_512_png,
+	"static/image/white-shapes/circle-dashed-8-64.png": static_image_white_shapes_circle_dashed_8_64_png,
+	"static/image/white-shapes/circle-outline-128.png": static_image_white_shapes_circle_outline_128_png,
+	"static/image/white-shapes/circle-outline-16.png": static_image_white_shapes_circle_outline_16_png,
+	"static/image/white-shapes/circle-outline-24.png": static_image_white_shapes_circle_outline_24_png,
+	"static/image/white-shapes/circle-outline-256.png": static_image_white_shapes_circle_outline_256_png,
+	"static/image/white-shapes/circle-outline-32.png": static_image_white_shapes_circle_outline_32_png,
+	"static/image/white-shapes/circle-outline-48.png": static_image_white_shapes_circle_outline_48_png,
+	"static/image/white-shapes/circle-outline-512.png": static_image_white_shapes_circle_outline_512_png,
+	"static/image/white-shapes/circle-outline-64.png": static_image_white_shapes_circle_outline_64_png,
+	"static/image/white-shapes/hexagon-128.png": static_image_white_shapes_hexagon_128_png,
+	"static/image/white-shapes/hexagon-16.png": static_image_white_shapes_hexagon_16_png,
+	"static/image/white-shapes/hexagon-24.png": static_image_white_shapes_hexagon_24_png,
+	"static/image/white-shapes/hexagon-256.png": static_image_white_shapes_hexagon_256_png,
+	"static/image/white-shapes/hexagon-32.png": static_image_white_shapes_hexagon_32_png,
+	"static/image/white-shapes/hexagon-48.png": static_image_white_shapes_hexagon_48_png,
+	"static/image/white-shapes/hexagon-512.png": static_image_white_shapes_hexagon_512_png,
+	"static/image/white-shapes/hexagon-64.png": static_image_white_shapes_hexagon_64_png,
+	"static/image/white-shapes/hexagon-outline-128.png": static_image_white_shapes_hexagon_outline_128_png,
+	"static/image/white-shapes/hexagon-outline-16.png": static_image_white_shapes_hexagon_outline_16_png,
+	"static/image/white-shapes/hexagon-outline-24.png": static_image_white_shapes_hexagon_outline_24_png,
+	"static/image/white-shapes/hexagon-outline-256.png": static_image_white_shapes_hexagon_outline_256_png,
+	"static/image/white-shapes/hexagon-outline-32.png": static_image_white_shapes_hexagon_outline_32_png,
+	"static/image/white-shapes/hexagon-outline-48.png": static_image_white_shapes_hexagon_outline_48_png,
+	"static/image/white-shapes/hexagon-outline-512.png": static_image_white_shapes_hexagon_outline_512_png,
+	"static/image/white-shapes/hexagon-outline-64.png": static_image_white_shapes_hexagon_outline_64_png,
+	"static/image/white-shapes/octagon-128.png": static_image_white_shapes_octagon_128_png,
+	"static/image/white-shapes/octagon-16.png": static_image_white_shapes_octagon_16_png,
+	"static/image/white-shapes/octagon-24.png": static_image_white_shapes_octagon_24_png,
+	"static/image/white-shapes/octagon-256.png": static_image_white_shapes_octagon_256_png,
+	"static/image/white-shapes/octagon-32.png": static_image_white_shapes_octagon_32_png,
+	"static/image/white-shapes/octagon-48.png": static_image_white_shapes_octagon_48_png,
+	"static/image/white-shapes/octagon-512.png": static_image_white_shapes_octagon_512_png,
+	"static/image/white-shapes/octagon-64.png": static_image_white_shapes_octagon_64_png,
+	"static/image/white-shapes/octagon-outline-128.png": static_image_white_shapes_octagon_outline_128_png,
+	"static/image/white-shapes/octagon-outline-16.png": static_image_white_shapes_octagon_outline_16_png,
+	"static/image/white-shapes/octagon-outline-24.png": static_image_white_shapes_octagon_outline_24_png,
+	"static/image/white-shapes/octagon-outline-256.png": static_image_white_shapes_octagon_outline_256_png,
+	"static/image/white-shapes/octagon-outline-32.png": static_image_white_shapes_octagon_outline_32_png,
+	"static/image/white-shapes/octagon-outline-48.png": static_image_white_shapes_octagon_outline_48_png,
+	"static/image/white-shapes/octagon-outline-512.png": static_image_white_shapes_octagon_outline_512_png,
+	"static/image/white-shapes/octagon-outline-64.png": static_image_white_shapes_octagon_outline_64_png,
+	"static/image/white-shapes/square-128.png": static_image_white_shapes_square_128_png,
+	"static/image/white-shapes/square-16.png": static_image_white_shapes_square_16_png,
+	"static/image/white-shapes/square-24.png": static_image_white_shapes_square_24_png,
+	"static/image/white-shapes/square-256.png": static_image_white_shapes_square_256_png,
+	"static/image/white-shapes/square-32.png": static_image_white_shapes_square_32_png,
+	"static/image/white-shapes/square-48.png": static_image_white_shapes_square_48_png,
+	"static/image/white-shapes/square-512.png": static_image_white_shapes_square_512_png,
+	"static/image/white-shapes/square-64.png": static_image_white_shapes_square_64_png,
+	"static/image/white-shapes/square-dashed-128.png": static_image_white_shapes_square_dashed_128_png,
+	"static/image/white-shapes/square-dashed-16.png": static_image_white_shapes_square_dashed_16_png,
+	"static/image/white-shapes/square-dashed-24.png": static_image_white_shapes_square_dashed_24_png,
+	"static/image/white-shapes/square-dashed-256.png": static_image_white_shapes_square_dashed_256_png,
+	"static/image/white-shapes/square-dashed-32.png": static_image_white_shapes_square_dashed_32_png,
+	"static/image/white-shapes/square-dashed-48.png": static_image_white_shapes_square_dashed_48_png,
+	"static/image/white-shapes/square-dashed-512.png": static_image_white_shapes_square_dashed_512_png,
+	"static/image/white-shapes/square-dashed-64.png": static_image_white_shapes_square_dashed_64_png,
 	"static/image/white-shapes/square-dashed-rounded-128.png": static_image_white_shapes_square_dashed_rounded_128_png,
-	"static/image/white-shapes/square-dashed-rounded-16.png":  static_image_white_shapes_square_dashed_rounded_16_png,
-	"static/image/white-shapes/square-dashed-rounded-24.png":  static_image_white_shapes_square_dashed_rounded_24_png,
+	"static/image/white-shapes/square-dashed-rounded-16.png": static_image_white_shapes_square_dashed_rounded_16_png,
+	"static/image/white-shapes/square-dashed-rounded-24.png": static_image_white_shapes_square_dashed_rounded_24_png,
 	"static/image/white-shapes/square-dashed-rounded-256.png": static_image_white_shapes_square_dashed_rounded_256_png,
-	"static/image/white-shapes/square-dashed-rounded-32.png":  static_image_white_shapes_square_dashed_rounded_32_png,
-	"static/image/white-shapes/square-dashed-rounded-48.png":  static_image_white_shapes_square_dashed_rounded_48_png,
+	"static/image/white-shapes/square-dashed-rounded-32.png": static_image_white_shapes_square_dashed_rounded_32_png,
+	"static/image/white-shapes/square-dashed-rounded-48.png": static_image_white_shapes_square_dashed_rounded_48_png,
 	"static/image/white-shapes/square-dashed-rounded-512.png": static_image_white_shapes_square_dashed_rounded_512_png,
-	"static/image/white-shapes/square-dashed-rounded-64.png":  static_image_white_shapes_square_dashed_rounded_64_png,
-	"static/image/white-shapes/square-ios-app-128.png":        static_image_white_shapes_square_ios_app_128_png,
-	"static/image/white-shapes/square-ios-app-16.png":         static_image_white_shapes_square_ios_app_16_png,
-	"static/image/white-shapes/square-ios-app-24.png":         static_image_white_shapes_square_ios_app_24_png,
-	"static/image/white-shapes/square-ios-app-256.png":        static_image_white_shapes_square_ios_app_256_png,
-	"static/image/white-shapes/square-ios-app-32.png":         static_image_white_shapes_square_ios_app_32_png,
-	"static/image/white-shapes/square-ios-app-48.png":         static_image_white_shapes_square_ios_app_48_png,
-	"static/image/white-shapes/square-ios-app-512.png":        static_image_white_shapes_square_ios_app_512_png,
-	"static/image/white-shapes/square-ios-app-64.png":         static_image_white_shapes_square_ios_app_64_png,
-	"static/image/white-shapes/square-outline-128.png":        static_image_white_shapes_square_outline_128_png,
-	"static/image/white-shapes/square-outline-16.png":         static_image_white_shapes_square_outline_16_png,
-	"static/image/white-shapes/square-outline-24.png":         static_image_white_shapes_square_outline_24_png,
-	"static/image/white-shapes/square-outline-256.png":        static_image_white_shapes_square_outline_256_png,
-	"static/image/white-shapes/square-outline-32.png":         static_image_white_shapes_square_outline_32_png,
-	"static/image/white-shapes/square-outline-48.png":         static_image_white_shapes_square_outline_48_png,
-	"static/image/white-shapes/square-outline-512.png":        static_image_white_shapes_square_outline_512_png,
-	"static/image/white-shapes/square-outline-64.png":         static_image_white_shapes_square_outline_64_png,
-	"static/image/white-shapes/square-rounded-128.png":        static_image_white_shapes_square_rounded_128_png,
-	"static/image/white-shapes/square-rounded-16.png":         static_image_white_shapes_square_rounded_16_png,
-	"static/image/white-shapes/square-rounded-24.png":         static_image_white_shapes_square_rounded_24_png,
-	"static/image/white-shapes/square-rounded-256.png":        static_image_white_shapes_square_rounded_256_png,
-	"static/image/white-shapes/square-rounded-32.png":         static_image_white_shapes_square_rounded_32_png,
-	"static/image/white-shapes/square-rounded-48.png":         static_image_white_shapes_square_rounded_48_png,
-	"static/image/white-shapes/square-rounded-512.png":        static_image_white_shapes_square_rounded_512_png,
-	"static/image/white-shapes/square-rounded-64.png":         static_image_white_shapes_square_rounded_64_png,
-	"static/image/white-shapes/triangle-128.png":              static_image_white_shapes_triangle_128_png,
-	"static/image/white-shapes/triangle-16.png":               static_image_white_shapes_triangle_16_png,
-	"static/image/white-shapes/triangle-24.png":               static_image_white_shapes_triangle_24_png,
-	"static/image/white-shapes/triangle-256.png":              static_image_white_shapes_triangle_256_png,
-	"static/image/white-shapes/triangle-32.png":               static_image_white_shapes_triangle_32_png,
-	"static/image/white-shapes/triangle-48.png":               static_image_white_shapes_triangle_48_png,
-	"static/image/white-shapes/triangle-512.png":              static_image_white_shapes_triangle_512_png,
-	"static/image/white-shapes/triangle-64.png":               static_image_white_shapes_triangle_64_png,
-	"static/image/white-shapes/triangle-outline-128.png":      static_image_white_shapes_triangle_outline_128_png,
-	"static/image/white-shapes/triangle-outline-16.png":       static_image_white_shapes_triangle_outline_16_png,
-	"static/image/white-shapes/triangle-outline-24.png":       static_image_white_shapes_triangle_outline_24_png,
-	"static/image/white-shapes/triangle-outline-256.png":      static_image_white_shapes_triangle_outline_256_png,
-	"static/image/white-shapes/triangle-outline-32.png":       static_image_white_shapes_triangle_outline_32_png,
-	"static/image/white-shapes/triangle-outline-48.png":       static_image_white_shapes_triangle_outline_48_png,
-	"static/image/white-shapes/triangle-outline-512.png":      static_image_white_shapes_triangle_outline_512_png,
-	"static/image/white-shapes/triangle-outline-64.png":       static_image_white_shapes_triangle_outline_64_png,
-	"static/js/energyViewer.js":                               static_js_energyviewer_js,
-	"static/js/statsViewer.js":                                static_js_statsviewer_js,
-	"static/js/visualize.js":                                  static_js_visualize_js,
-	"templates/energyViewer.html":                             templates_energyviewer_html,
-	"templates/statsViewer.html":                              templates_statsviewer_html,
-	"templates/visualize.html":                                templates_visualize_html,
+	"static/image/white-shapes/square-dashed-rounded-64.png": static_image_white_shapes_square_dashed_rounded_64_png,
+	"static/image/white-shapes/square-ios-app-128.png": static_image_white_shapes_square_ios_app_128_png,
+	"static/image/white-shapes/square-ios-app-16.png": static_image_white_shapes_square_ios_app_16_png,
+	"static/image/white-shapes/square-ios-app-24.png": static_image_white_shapes_square_ios_app_24_png,
+	"static/image/white-shapes/square-ios-app-256.png": static_image_white_shapes_square_ios_app_256_png,
+	"static/image/white-shapes/square-ios-app-32.png": static_image_white_shapes_square_ios_app_32_png,
+	"static/image/white-shapes/square-ios-app-48.png": static_image_white_shapes_square_ios_app_48_png,
+	"static/image/white-shapes/square-ios-app-512.png": static_image_white_shapes_square_ios_app_512_png,
+	"static/image/white-shapes/square-ios-app-64.png": static_image_white_shapes_square_ios_app_64_png,
+	"static/image/white-shapes/square-outline-128.png": static_image_white_shapes_square_outline_128_png,
+	"static/image/white-shapes/square-outline-16.png": static_image_white_shapes_square_outline_16_png,
+	"static/image/white-shapes/square-outline-24.png": static_image_white_shapes_square_outline_24_png,
+	"static/image/white-shapes/square-outline-256.png": static_image_white_shapes_square_outline_256_png,
+	"static/image/white-shapes/square-outline-32.png": static_image_white_shapes_square_outline_32_png,
+	"static/image/white-shapes/square-outline-48.png": static_image_white_shapes_square_outline_48_png,
+	"static/image/white-shapes/square-outline-512.png": static_image_white_shapes_square_outline_512_png,
+	"static/image/white-shapes/square-outline-64.png": static_image_white_shapes_square_outline_64_png,
+	"static/image/white-shapes/square-rounded-128.png": static_image_white_shapes_square_rounded_128_png,
+	"static/image/white-shapes/square-rounded-16.png": static_image_white_shapes_square_rounded_16_png,
+	"static/image/white-shapes/square-rounded-24.png": static_image_white_shapes_square_rounded_24_png,
+	"static/image/white-shapes/square-rounded-256.png": static_image_white_shapes_square_rounded_256_png,
+	"static/image/white-shapes/square-rounded-32.png": static_image_white_shapes_square_rounded_32_png,
+	"static/image/white-shapes/square-rounded-48.png": static_image_white_shapes_square_rounded_48_png,
+	"static/image/white-shapes/square-rounded-512.png": static_image_white_shapes_square_rounded_512_png,
+	"static/image/white-shapes/square-rounded-64.png": static_image_white_shapes_square_rounded_64_png,
+	"static/image/white-shapes/triangle-128.png": static_image_white_shapes_triangle_128_png,
+	"static/image/white-shapes/triangle-16.png": static_image_white_shapes_triangle_16_png,
+	"static/image/white-shapes/triangle-24.png": static_image_white_shapes_triangle_24_png,
+	"static/image/white-shapes/triangle-256.png": static_image_white_shapes_triangle_256_png,
+	"static/image/white-shapes/triangle-32.png": static_image_white_shapes_triangle_32_png,
+	"static/image/white-shapes/triangle-48.png": static_image_white_shapes_triangle_48_png,
+	"static/image/white-shapes/triangle-512.png": static_image_white_shapes_triangle_512_png,
+	"static/image/white-shapes/triangle-64.png": static_image_white_shapes_triangle_64_png,
+	"static/image/white-shapes/triangle-outline-128.png": static_image_white_shapes_triangle_outline_128_png,
+	"static/image/white-shapes/triangle-outline-16.png": static_image_white_shapes_triangle_outline_16_png,
+	"static/image/white-shapes/triangle-outline-24.png": static_image_white_shapes_triangle_outline_24_png,
+	"static/image/white-shapes/triangle-outline-256.png": static_image_white_shapes_triangle_outline_256_png,
+	"static/image/white-shapes/triangle-outline-32.png": static_image_white_shapes_triangle_outline_32_png,
+	"static/image/white-shapes/triangle-outline-48.png": static_image_white_shapes_triangle_outline_48_png,
+	"static/image/white-shapes/triangle-outline-512.png": static_image_white_shapes_triangle_outline_512_png,
+	"static/image/white-shapes/triangle-outline-64.png": static_image_white_shapes_triangle_outline_64_png,
+	"static/js/energyViewer.js": static_js_energyviewer_js,
+	"static/js/statsViewer.js": static_js_statsviewer_js,
+	"static/js/visualize.js": static_js_visualize_js,
+	"templates/energyViewer.html": templates_energyviewer_html,
+	"templates/statsViewer.html": templates_statsviewer_html,
+	"templates/visualize.html": templates_visualize_html,
 }
-
 // AssetDir returns the file names below a certain
 // directory embedded in the file by go-bindata.
 // For example if you run go-bindata on data/... and data contains the
 // following hierarchy:
-//
-//	data/
-//	  foo.txt
-//	  img/
-//	    a.png
-//	    b.png
-//
+//     data/
+//       foo.txt
+//       img/
+//         a.png
+//         b.png
 // then AssetDir("data") would return []string{"foo.txt", "img"}
 // AssetDir("data/img") would return []string{"a.png", "b.png"}
 // AssetDir("foo.txt") and AssetDir("notexist") would return an error
@@ -1583,166 +1580,312 @@ func AssetDir(name string) ([]string, error) {
 }
 
 type _bintree_t struct {
-	Func     func() ([]byte, error)
+	Func func() ([]byte, error)
 	Children map[string]*_bintree_t
 }
-
 var _bintree = &_bintree_t{nil, map[string]*_bintree_t{
 	"static": &_bintree_t{nil, map[string]*_bintree_t{
 		"image": &_bintree_t{nil, map[string]*_bintree_t{
-			"checked-checkbox-32.png":   &_bintree_t{static_image_checked_checkbox_32_png, map[string]*_bintree_t{}},
-			"gua.png":                   &_bintree_t{static_image_gua_png, map[string]*_bintree_t{}},
-			"pause-32.png":              &_bintree_t{static_image_pause_32_png, map[string]*_bintree_t{}},
-			"play-32.png":               &_bintree_t{static_image_play_32_png, map[string]*_bintree_t{}},
-			"unchecked-checkbox-32.png": &_bintree_t{static_image_unchecked_checkbox_32_png, map[string]*_bintree_t{}},
+			"checked-checkbox-32.png": &_bintree_t{static_image_checked_checkbox_32_png, map[string]*_bintree_t{
+			}},
+			"gua.png": &_bintree_t{static_image_gua_png, map[string]*_bintree_t{
+			}},
+			"pause-32.png": &_bintree_t{static_image_pause_32_png, map[string]*_bintree_t{
+			}},
+			"play-32.png": &_bintree_t{static_image_play_32_png, map[string]*_bintree_t{
+			}},
+			"unchecked-checkbox-32.png": &_bintree_t{static_image_unchecked_checkbox_32_png, map[string]*_bintree_t{
+			}},
 			"white-shapes": &_bintree_t{nil, map[string]*_bintree_t{
-				"circle-128.png":                &_bintree_t{static_image_white_shapes_circle_128_png, map[string]*_bintree_t{}},
-				"circle-16.png":                 &_bintree_t{static_image_white_shapes_circle_16_png, map[string]*_bintree_t{}},
-				"circle-24.png":                 &_bintree_t{static_image_white_shapes_circle_24_png, map[string]*_bintree_t{}},
-				"circle-256.png":                &_bintree_t{static_image_white_shapes_circle_256_png, map[string]*_bintree_t{}},
-				"circle-32.png":                 &_bintree_t{static_image_white_shapes_circle_32_png, map[string]*_bintree_t{}},
-				"circle-48.png":                 &_bintree_t{static_image_white_shapes_circle_48_png, map[string]*_bintree_t{}},
-				"circle-512.png":                &_bintree_t{static_image_white_shapes_circle_512_png, map[string]*_bintree_t{}},
-				"circle-64.png":                 &_bintree_t{static_image_white_shapes_circle_64_png, map[string]*_bintree_t{}},
-				"circle-dashed-4-128.png":       &_bintree_t{static_image_white_shapes_circle_dashed_4_128_png, map[string]*_bintree_t{}},
-				"circle-dashed-4-16.png":        &_bintree_t{static_image_white_shapes_circle_dashed_4_16_png, map[string]*_bintree_t{}},
-				"circle-dashed-4-24.png":        &_bintree_t{static_image_white_shapes_circle_dashed_4_24_png, map[string]*_bintree_t{}},
-				"circle-dashed-4-256.png":       &_bintree_t{static_image_white_shapes_circle_dashed_4_256_png, map[string]*_bintree_t{}},
-				"circle-dashed-4-32.png":        &_bintree_t{static_image_white_shapes_circle_dashed_4_32_png, map[string]*_bintree_t{}},
-				"circle-dashed-4-48.png":        &_bintree_t{static_image_white_shapes_circle_dashed_4_48_png, map[string]*_bintree_t{}},
-				"circle-dashed-4-512.png":       &_bintree_t{static_image_white_shapes_circle_dashed_4_512_png, map[string]*_bintree_t{}},
-				"circle-dashed-4-64.png":        &_bintree_t{static_image_white_shapes_circle_dashed_4_64_png, map[string]*_bintree_t{}},
-				"circle-dashed-6-128.png":       &_bintree_t{static_image_white_shapes_circle_dashed_6_128_png, map[string]*_bintree_t{}},
-				"circle-dashed-6-16.png":        &_bintree_t{static_image_white_shapes_circle_dashed_6_16_png, map[string]*_bintree_t{}},
-				"circle-dashed-6-24.png":        &_bintree_t{static_image_white_shapes_circle_dashed_6_24_png, map[string]*_bintree_t{}},
-				"circle-dashed-6-256.png":       &_bintree_t{static_image_white_shapes_circle_dashed_6_256_png, map[string]*_bintree_t{}},
-				"circle-dashed-6-32.png":        &_bintree_t{static_image_white_shapes_circle_dashed_6_32_png, map[string]*_bintree_t{}},
-				"circle-dashed-6-48.png":        &_bintree_t{static_image_white_shapes_circle_dashed_6_48_png, map[string]*_bintree_t{}},
-				"circle-dashed-6-512.png":       &_bintree_t{static_image_white_shapes_circle_dashed_6_512_png, map[string]*_bintree_t{}},
-				"circle-dashed-6-64.png":        &_bintree_t{static_image_white_shapes_circle_dashed_6_64_png, map[string]*_bintree_t{}},
-				"circle-dashed-8-128.png":       &_bintree_t{static_image_white_shapes_circle_dashed_8_128_png, map[string]*_bintree_t{}},
-				"circle-dashed-8-16.png":        &_bintree_t{static_image_white_shapes_circle_dashed_8_16_png, map[string]*_bintree_t{}},
-				"circle-dashed-8-24.png":        &_bintree_t{static_image_white_shapes_circle_dashed_8_24_png, map[string]*_bintree_t{}},
-				"circle-dashed-8-256.png":       &_bintree_t{static_image_white_shapes_circle_dashed_8_256_png, map[string]*_bintree_t{}},
-				"circle-dashed-8-32.png":        &_bintree_t{static_image_white_shapes_circle_dashed_8_32_png, map[string]*_bintree_t{}},
-				"circle-dashed-8-48.png":        &_bintree_t{static_image_white_shapes_circle_dashed_8_48_png, map[string]*_bintree_t{}},
-				"circle-dashed-8-512.png":       &_bintree_t{static_image_white_shapes_circle_dashed_8_512_png, map[string]*_bintree_t{}},
-				"circle-dashed-8-64.png":        &_bintree_t{static_image_white_shapes_circle_dashed_8_64_png, map[string]*_bintree_t{}},
-				"circle-outline-128.png":        &_bintree_t{static_image_white_shapes_circle_outline_128_png, map[string]*_bintree_t{}},
-				"circle-outline-16.png":         &_bintree_t{static_image_white_shapes_circle_outline_16_png, map[string]*_bintree_t{}},
-				"circle-outline-24.png":         &_bintree_t{static_image_white_shapes_circle_outline_24_png, map[string]*_bintree_t{}},
-				"circle-outline-256.png":        &_bintree_t{static_image_white_shapes_circle_outline_256_png, map[string]*_bintree_t{}},
-				"circle-outline-32.png":         &_bintree_t{static_image_white_shapes_circle_outline_32_png, map[string]*_bintree_t{}},
-				"circle-outline-48.png":         &_bintree_t{static_image_white_shapes_circle_outline_48_png, map[string]*_bintree_t{}},
-				"circle-outline-512.png":        &_bintree_t{static_image_white_shapes_circle_outline_512_png, map[string]*_bintree_t{}},
-				"circle-outline-64.png":         &_bintree_t{static_image_white_shapes_circle_outline_64_png, map[string]*_bintree_t{}},
-				"hexagon-128.png":               &_bintree_t{static_image_white_shapes_hexagon_128_png, map[string]*_bintree_t{}},
-				"hexagon-16.png":                &_bintree_t{static_image_white_shapes_hexagon_16_png, map[string]*_bintree_t{}},
-				"hexagon-24.png":                &_bintree_t{static_image_white_shapes_hexagon_24_png, map[string]*_bintree_t{}},
-				"hexagon-256.png":               &_bintree_t{static_image_white_shapes_hexagon_256_png, map[string]*_bintree_t{}},
-				"hexagon-32.png":                &_bintree_t{static_image_white_shapes_hexagon_32_png, map[string]*_bintree_t{}},
-				"hexagon-48.png":                &_bintree_t{static_image_white_shapes_hexagon_48_png, map[string]*_bintree_t{}},
-				"hexagon-512.png":               &_bintree_t{static_image_white_shapes_hexagon_512_png, map[string]*_bintree_t{}},
-				"hexagon-64.png":                &_bintree_t{static_image_white_shapes_hexagon_64_png, map[string]*_bintree_t{}},
-				"hexagon-outline-128.png":       &_bintree_t{static_image_white_shapes_hexagon_outline_128_png, map[string]*_bintree_t{}},
-				"hexagon-outline-16.png":        &_bintree_t{static_image_white_shapes_hexagon_outline_16_png, map[string]*_bintree_t{}},
-				"hexagon-outline-24.png":        &_bintree_t{static_image_white_shapes_hexagon_outline_24_png, map[string]*_bintree_t{}},
-				"hexagon-outline-256.png":       &_bintree_t{static_image_white_shapes_hexagon_outline_256_png, map[string]*_bintree_t{}},
-				"hexagon-outline-32.png":        &_bintree_t{static_image_white_shapes_hexagon_outline_32_png, map[string]*_bintree_t{}},
-				"hexagon-outline-48.png":        &_bintree_t{static_image_white_shapes_hexagon_outline_48_png, map[string]*_bintree_t{}},
-				"hexagon-outline-512.png":       &_bintree_t{static_image_white_shapes_hexagon_outline_512_png, map[string]*_bintree_t{}},
-				"hexagon-outline-64.png":        &_bintree_t{static_image_white_shapes_hexagon_outline_64_png, map[string]*_bintree_t{}},
-				"octagon-128.png":               &_bintree_t{static_image_white_shapes_octagon_128_png, map[string]*_bintree_t{}},
-				"octagon-16.png":                &_bintree_t{static_image_white_shapes_octagon_16_png, map[string]*_bintree_t{}},
-				"octagon-24.png":                &_bintree_t{static_image_white_shapes_octagon_24_png, map[string]*_bintree_t{}},
-				"octagon-256.png":               &_bintree_t{static_image_white_shapes_octagon_256_png, map[string]*_bintree_t{}},
-				"octagon-32.png":                &_bintree_t{static_image_white_shapes_octagon_32_png, map[string]*_bintree_t{}},
-				"octagon-48.png":                &_bintree_t{static_image_white_shapes_octagon_48_png, map[string]*_bintree_t{}},
-				"octagon-512.png":               &_bintree_t{static_image_white_shapes_octagon_512_png, map[string]*_bintree_t{}},
-				"octagon-64.png":                &_bintree_t{static_image_white_shapes_octagon_64_png, map[string]*_bintree_t{}},
-				"octagon-outline-128.png":       &_bintree_t{static_image_white_shapes_octagon_outline_128_png, map[string]*_bintree_t{}},
-				"octagon-outline-16.png":        &_bintree_t{static_image_white_shapes_octagon_outline_16_png, map[string]*_bintree_t{}},
-				"octagon-outline-24.png":        &_bintree_t{static_image_white_shapes_octagon_outline_24_png, map[string]*_bintree_t{}},
-				"octagon-outline-256.png":       &_bintree_t{static_image_white_shapes_octagon_outline_256_png, map[string]*_bintree_t{}},
-				"octagon-outline-32.png":        &_bintree_t{static_image_white_shapes_octagon_outline_32_png, map[string]*_bintree_t{}},
-				"octagon-outline-48.png":        &_bintree_t{static_image_white_shapes_octagon_outline_48_png, map[string]*_bintree_t{}},
-				"octagon-outline-512.png":       &_bintree_t{static_image_white_shapes_octagon_outline_512_png, map[string]*_bintree_t{}},
-				"octagon-outline-64.png":        &_bintree_t{static_image_white_shapes_octagon_outline_64_png, map[string]*_bintree_t{}},
-				"square-128.png":                &_bintree_t{static_image_white_shapes_square_128_png, map[string]*_bintree_t{}},
-				"square-16.png":                 &_bintree_t{static_image_white_shapes_square_16_png, map[string]*_bintree_t{}},
-				"square-24.png":                 &_bintree_t{static_image_white_shapes_square_24_png, map[string]*_bintree_t{}},
-				"square-256.png":                &_bintree_t{static_image_white_shapes_square_256_png, map[string]*_bintree_t{}},
-				"square-32.png":                 &_bintree_t{static_image_white_shapes_square_32_png, map[string]*_bintree_t{}},
-				"square-48.png":                 &_bintree_t{static_image_white_shapes_square_48_png, map[string]*_bintree_t{}},
-				"square-512.png":                &_bintree_t{static_image_white_shapes_square_512_png, map[string]*_bintree_t{}},
-				"square-64.png":                 &_bintree_t{static_image_white_shapes_square_64_png, map[string]*_bintree_t{}},
-				"square-dashed-128.png":         &_bintree_t{static_image_white_shapes_square_dashed_128_png, map[string]*_bintree_t{}},
-				"square-dashed-16.png":          &_bintree_t{static_image_white_shapes_square_dashed_16_png, map[string]*_bintree_t{}},
-				"square-dashed-24.png":          &_bintree_t{static_image_white_shapes_square_dashed_24_png, map[string]*_bintree_t{}},
-				"square-dashed-256.png":         &_bintree_t{static_image_white_shapes_square_dashed_256_png, map[string]*_bintree_t{}},
-				"square-dashed-32.png":          &_bintree_t{static_image_white_shapes_square_dashed_32_png, map[string]*_bintree_t{}},
-				"square-dashed-48.png":          &_bintree_t{static_image_white_shapes_square_dashed_48_png, map[string]*_bintree_t{}},
-				"square-dashed-512.png":         &_bintree_t{static_image_white_shapes_square_dashed_512_png, map[string]*_bintree_t{}},
-				"square-dashed-64.png":          &_bintree_t{static_image_white_shapes_square_dashed_64_png, map[string]*_bintree_t{}},
-				"square-dashed-rounded-128.png": &_bintree_t{static_image_white_shapes_square_dashed_rounded_128_png, map[string]*_bintree_t{}},
-				"square-dashed-rounded-16.png":  &_bintree_t{static_image_white_shapes_square_dashed_rounded_16_png, map[string]*_bintree_t{}},
-				"square-dashed-rounded-24.png":  &_bintree_t{static_image_white_shapes_square_dashed_rounded_24_png, map[string]*_bintree_t{}},
-				"square-dashed-rounded-256.png": &_bintree_t{static_image_white_shapes_square_dashed_rounded_256_png, map[string]*_bintree_t{}},
-				"square-dashed-rounded-32.png":  &_bintree_t{static_image_white_shapes_square_dashed_rounded_32_png, map[string]*_bintree_t{}},
-				"square-dashed-rounded-48.png":  &_bintree_t{static_image_white_shapes_square_dashed_rounded_48_png, map[string]*_bintree_t{}},
-				"square-dashed-rounded-512.png": &_bintree_t{static_image_white_shapes_square_dashed_rounded_512_png, map[string]*_bintree_t{}},
-				"square-dashed-rounded-64.png":  &_bintree_t{static_image_white_shapes_square_dashed_rounded_64_png, map[string]*_bintree_t{}},
-				"square-ios-app-128.png":        &_bintree_t{static_image_white_shapes_square_ios_app_128_png, map[string]*_bintree_t{}},
-				"square-ios-app-16.png":         &_bintree_t{static_image_white_shapes_square_ios_app_16_png, map[string]*_bintree_t{}},
-				"square-ios-app-24.png":         &_bintree_t{static_image_white_shapes_square_ios_app_24_png, map[string]*_bintree_t{}},
-				"square-ios-app-256.png":        &_bintree_t{static_image_white_shapes_square_ios_app_256_png, map[string]*_bintree_t{}},
-				"square-ios-app-32.png":         &_bintree_t{static_image_white_shapes_square_ios_app_32_png, map[string]*_bintree_t{}},
-				"square-ios-app-48.png":         &_bintree_t{static_image_white_shapes_square_ios_app_48_png, map[string]*_bintree_t{}},
-				"square-ios-app-512.png":        &_bintree_t{static_image_white_shapes_square_ios_app_512_png, map[string]*_bintree_t{}},
-				"square-ios-app-64.png":         &_bintree_t{static_image_white_shapes_square_ios_app_64_png, map[string]*_bintree_t{}},
-				"square-outline-128.png":        &_bintree_t{static_image_white_shapes_square_outline_128_png, map[string]*_bintree_t{}},
-				"square-outline-16.png":         &_bintree_t{static_image_white_shapes_square_outline_16_png, map[string]*_bintree_t{}},
-				"square-outline-24.png":         &_bintree_t{static_image_white_shapes_square_outline_24_png, map[string]*_bintree_t{}},
-				"square-outline-256.png":        &_bintree_t{static_image_white_shapes_square_outline_256_png, map[string]*_bintree_t{}},
-				"square-outline-32.png":         &_bintree_t{static_image_white_shapes_square_outline_32_png, map[string]*_bintree_t{}},
-				"square-outline-48.png":         &_bintree_t{static_image_white_shapes_square_outline_48_png, map[string]*_bintree_t{}},
-				"square-outline-512.png":        &_bintree_t{static_image_white_shapes_square_outline_512_png, map[string]*_bintree_t{}},
-				"square-outline-64.png":         &_bintree_t{static_image_white_shapes_square_outline_64_png, map[string]*_bintree_t{}},
-				"square-rounded-128.png":        &_bintree_t{static_image_white_shapes_square_rounded_128_png, map[string]*_bintree_t{}},
-				"square-rounded-16.png":         &_bintree_t{static_image_white_shapes_square_rounded_16_png, map[string]*_bintree_t{}},
-				"square-rounded-24.png":         &_bintree_t{static_image_white_shapes_square_rounded_24_png, map[string]*_bintree_t{}},
-				"square-rounded-256.png":        &_bintree_t{static_image_white_shapes_square_rounded_256_png, map[string]*_bintree_t{}},
-				"square-rounded-32.png":         &_bintree_t{static_image_white_shapes_square_rounded_32_png, map[string]*_bintree_t{}},
-				"square-rounded-48.png":         &_bintree_t{static_image_white_shapes_square_rounded_48_png, map[string]*_bintree_t{}},
-				"square-rounded-512.png":        &_bintree_t{static_image_white_shapes_square_rounded_512_png, map[string]*_bintree_t{}},
-				"square-rounded-64.png":         &_bintree_t{static_image_white_shapes_square_rounded_64_png, map[string]*_bintree_t{}},
-				"triangle-128.png":              &_bintree_t{static_image_white_shapes_triangle_128_png, map[string]*_bintree_t{}},
-				"triangle-16.png":               &_bintree_t{static_image_white_shapes_triangle_16_png, map[string]*_bintree_t{}},
-				"triangle-24.png":               &_bintree_t{static_image_white_shapes_triangle_24_png, map[string]*_bintree_t{}},
-				"triangle-256.png":              &_bintree_t{static_image_white_shapes_triangle_256_png, map[string]*_bintree_t{}},
-				"triangle-32.png":               &_bintree_t{static_image_white_shapes_triangle_32_png, map[string]*_bintree_t{}},
-				"triangle-48.png":               &_bintree_t{static_image_white_shapes_triangle_48_png, map[string]*_bintree_t{}},
-				"triangle-512.png":              &_bintree_t{static_image_white_shapes_triangle_512_png, map[string]*_bintree_t{}},
-				"triangle-64.png":               &_bintree_t{static_image_white_shapes_triangle_64_png, map[string]*_bintree_t{}},
-				"triangle-outline-128.png":      &_bintree_t{static_image_white_shapes_triangle_outline_128_png, map[string]*_bintree_t{}},
-				"triangle-outline-16.png":       &_bintree_t{static_image_white_shapes_triangle_outline_16_png, map[string]*_bintree_t{}},
-				"triangle-outline-24.png":       &_bintree_t{static_image_white_shapes_triangle_outline_24_png, map[string]*_bintree_t{}},
-				"triangle-outline-256.png":      &_bintree_t{static_image_white_shapes_triangle_outline_256_png, map[string]*_bintree_t{}},
-				"triangle-outline-32.png":       &_bintree_t{static_image_white_shapes_triangle_outline_32_png, map[string]*_bintree_t{}},
-				"triangle-outline-48.png":       &_bintree_t{static_image_white_shapes_triangle_outline_48_png, map[string]*_bintree_t{}},
-				"triangle-outline-512.png":      &_bintree_t{static_image_white_shapes_triangle_outline_512_png, map[string]*_bintree_t{}},
-				"triangle-outline-64.png":       &_bintree_t{static_image_white_shapes_triangle_outline_64_png, map[string]*_bintree_t{}},
+				"circle-128.png": &_bintree_t{static_image_white_shapes_circle_128_png, map[string]*_bintree_t{
+				}},
+				"circle-16.png": &_bintree_t{static_image_white_shapes_circle_16_png, map[string]*_bintree_t{
+				}},
+				"circle-24.png": &_bintree_t{static_image_white_shapes_circle_24_png, map[string]*_bintree_t{
+				}},
+				"circle-256.png": &_bintree_t{static_image_white_shapes_circle_256_png, map[string]*_bintree_t{
+				}},
+				"circle-32.png": &_bintree_t{static_image_white_shapes_circle_32_png, map[string]*_bintree_t{
+				}},
+				"circle-48.png": &_bintree_t{static_image_white_shapes_circle_48_png, map[string]*_bintree_t{
+				}},
+				"circle-512.png": &_bintree_t{static_image_white_shapes_circle_512_png, map[string]*_bintree_t{
+				}},
+				"circle-64.png": &_bintree_t{static_image_white_shapes_circle_64_png, map[string]*_bintree_t{
+				}},
+				"circle-dashed-4-128.png": &_bintree_t{static_image_white_shapes_circle_dashed_4_128_png, map[string]*_bintree_t{
+				}},
+				"circle-dashed-4-16.png": &_bintree_t{static_image_white_shapes_circle_dashed_4_16_png, map[string]*_bintree_t{
+				}},
+				"circle-dashed-4-24.png": &_bintree_t{static_image_white_shapes_circle_dashed_4_24_png, map[string]*_bintree_t{
+				}},
+				"circle-dashed-4-256.png": &_bintree_t{static_image_white_shapes_circle_dashed_4_256_png, map[string]*_bintree_t{
+				}},
+				"circle-dashed-4-32.png": &_bintree_t{static_image_white_shapes_circle_dashed_4_32_png, map[string]*_bintree_t{
+				}},
+				"circle-dashed-4-48.png": &_bintree_t{static_image_white_shapes_circle_dashed_4_48_png, map[string]*_bintree_t{
+				}},
+				"circle-dashed-4-512.png": &_bintree_t{static_image_white_shapes_circle_dashed_4_512_png, map[string]*_bintree_t{
+				}},
+				"circle-dashed-4-64.png": &_bintree_t{static_image_white_shapes_circle_dashed_4_64_png, map[string]*_bintree_t{
+				}},
+				"circle-dashed-6-128.png": &_bintree_t{static_image_white_shapes_circle_dashed_6_128_png, map[string]*_bintree_t{
+				}},
+				"circle-dashed-6-16.png": &_bintree_t{static_image_white_shapes_circle_dashed_6_16_png, map[string]*_bintree_t{
+				}},
+				"circle-dashed-6-24.png": &_bintree_t{static_image_white_shapes_circle_dashed_6_24_png, map[string]*_bintree_t{
+				}},
+				"circle-dashed-6-256.png": &_bintree_t{static_image_white_shapes_circle_dashed_6_256_png, map[string]*_bintree_t{
+				}},
+				"circle-dashed-6-32.png": &_bintree_t{static_image_white_shapes_circle_dashed_6_32_png, map[string]*_bintree_t{
+				}},
+				"circle-dashed-6-48.png": &_bintree_t{static_image_white_shapes_circle_dashed_6_48_png, map[string]*_bintree_t{
+				}},
+				"circle-dashed-6-512.png": &_bintree_t{static_image_white_shapes_circle_dashed_6_512_png, map[string]*_bintree_t{
+				}},
+				"circle-dashed-6-64.png": &_bintree_t{static_image_white_shapes_circle_dashed_6_64_png, map[string]*_bintree_t{
+				}},
+				"circle-dashed-8-128.png": &_bintree_t{static_image_white_shapes_circle_dashed_8_128_png, map[string]*_bintree_t{
+				}},
+				"circle-dashed-8-16.png": &_bintree_t{static_image_white_shapes_circle_dashed_8_16_png, map[string]*_bintree_t{
+				}},
+				"circle-dashed-8-24.png": &_bintree_t{static_image_white_shapes_circle_dashed_8_24_png, map[string]*_bintree_t{
+				}},
+				"circle-dashed-8-256.png": &_bintree_t{static_image_white_shapes_circle_dashed_8_256_png, map[string]*_bintree_t{
+				}},
+				"circle-dashed-8-32.png": &_bintree_t{static_image_white_shapes_circle_dashed_8_32_png, map[string]*_bintree_t{
+				}},
+				"circle-dashed-8-48.png": &_bintree_t{static_image_white_shapes_circle_dashed_8_48_png, map[string]*_bintree_t{
+				}},
+				"circle-dashed-8-512.png": &_bintree_t{static_image_white_shapes_circle_dashed_8_512_png, map[string]*_bintree_t{
+				}},
+				"circle-dashed-8-64.png": &_bintree_t{static_image_white_shapes_circle_dashed_8_64_png, map[string]*_bintree_t{
+				}},
+				"circle-outline-128.png": &_bintree_t{static_image_white_shapes_circle_outline_128_png, map[string]*_bintree_t{
+				}},
+				"circle-outline-16.png": &_bintree_t{static_image_white_shapes_circle_outline_16_png, map[string]*_bintree_t{
+				}},
+				"circle-outline-24.png": &_bintree_t{static_image_white_shapes_circle_outline_24_png, map[string]*_bintree_t{
+				}},
+				"circle-outline-256.png": &_bintree_t{static_image_white_shapes_circle_outline_256_png, map[string]*_bintree_t{
+				}},
+				"circle-outline-32.png": &_bintree_t{static_image_white_shapes_circle_outline_32_png, map[string]*_bintree_t{
+				}},
+				"circle-outline-48.png": &_bintree_t{static_image_white_shapes_circle_outline_48_png, map[string]*_bintree_t{
+				}},
+				"circle-outline-512.png": &_bintree_t{static_image_white_shapes_circle_outline_512_png, map[string]*_bintree_t{
+				}},
+				"circle-outline-64.png": &_bintree_t{static_image_white_shapes_circle_outline_64_png, map[string]*_bintree_t{
+				}},
+				"hexagon-128.png": &_bintree_t{static_image_white_shapes_hexagon_128_png, map[string]*_bintree_t{
+				}},
+				"hexagon-16.png": &_bintree_t{static_image_white_shapes_hexagon_16_png, map[string]*_bintree_t{
+				}},
+				"hexagon-24.png": &_bintree_t{static_image_white_shapes_hexagon_24_png, map[string]*_bintree_t{
+				}},
+				"hexagon-256.png": &_bintree_t{static_image_white_shapes_hexagon_256_png, map[string]*_bintree_t{
+				}},
+				"hexagon-32.png": &_bintree_t{static_image_white_shapes_hexagon_32_png, map[string]*_bintree_t{
+				}},
+				"hexagon-48.png": &_bintree_t{static_image_white_shapes_hexagon_48_png, map[string]*_bintree_t{
+				}},
+				"hexagon-512.png": &_bintree_t{static_image_white_shapes_hexagon_512_png, map[string]*_bintree_t{
+				}},
+				"hexagon-64.png": &_bintree_t{static_image_white_shapes_hexagon_64_png, map[string]*_bintree_t{
+				}},
+				"hexagon-outline-128.png": &_bintree_t{static_image_white_shapes_hexagon_outline_128_png, map[string]*_bintree_t{
+				}},
+				"hexagon-outline-16.png": &_bintree_t{static_image_white_shapes_hexagon_outline_16_png, map[string]*_bintree_t{
+				}},
+				"hexagon-outline-24.png": &_bintree_t{static_image_white_shapes_hexagon_outline_24_png, map[string]*_bintree_t{
+				}},
+				"hexagon-outline-256.png": &_bintree_t{static_image_white_shapes_hexagon_outline_256_png, map[string]*_bintree_t{
+				}},
+				"hexagon-outline-32.png": &_bintree_t{static_image_white_shapes_hexagon_outline_32_png, map[string]*_bintree_t{
+				}},
+				"hexagon-outline-48.png": &_bintree_t{static_image_white_shapes_hexagon_outline_48_png, map[string]*_bintree_t{
+				}},
+				"hexagon-outline-512.png": &_bintree_t{static_image_white_shapes_hexagon_outline_512_png, map[string]*_bintree_t{
+				}},
+				"hexagon-outline-64.png": &_bintree_t{static_image_white_shapes_hexagon_outline_64_png, map[string]*_bintree_t{
+				}},
+				"octagon-128.png": &_bintree_t{static_image_white_shapes_octagon_128_png, map[string]*_bintree_t{
+				}},
+				"octagon-16.png": &_bintree_t{static_image_white_shapes_octagon_16_png, map[string]*_bintree_t{
+				}},
+				"octagon-24.png": &_bintree_t{static_image_white_shapes_octagon_24_png, map[string]*_bintree_t{
+				}},
+				"octagon-256.png": &_bintree_t{static_image_white_shapes_octagon_256_png, map[string]*_bintree_t{
+				}},
+				"octagon-32.png": &_bintree_t{static_image_white_shapes_octagon_32_png, map[string]*_bintree_t{
+				}},
+				"octagon-48.png": &_bintree_t{static_image_white_shapes_octagon_48_png, map[string]*_bintree_t{
+				}},
+				"octagon-512.png": &_bintree_t{static_image_white_shapes_octagon_512_png, map[string]*_bintree_t{
+				}},
+				"octagon-64.png": &_bintree_t{static_image_white_shapes_octagon_64_png, map[string]*_bintree_t{
+				}},
+				"octagon-outline-128.png": &_bintree_t{static_image_white_shapes_octagon_outline_128_png, map[string]*_bintree_t{
+				}},
+				"octagon-outline-16.png": &_bintree_t{static_image_white_shapes_octagon_outline_16_png, map[string]*_bintree_t{
+				}},
+				"octagon-outline-24.png": &_bintree_t{static_image_white_shapes_octagon_outline_24_png, map[string]*_bintree_t{
+				}},
+				"octagon-outline-256.png": &_bintree_t{static_image_white_shapes_octagon_outline_256_png, map[string]*_bintree_t{
+				}},
+				"octagon-outline-32.png": &_bintree_t{static_image_white_shapes_octagon_outline_32_png, map[string]*_bintree_t{
+				}},
+				"octagon-outline-48.png": &_bintree_t{static_image_white_shapes_octagon_outline_48_png, map[string]*_bintree_t{
+				}},
+				"octagon-outline-512.png": &_bintree_t{static_image_white_shapes_octagon_outline_512_png, map[string]*_bintree_t{
+				}},
+				"octagon-outline-64.png": &_bintree_t{static_image_white_shapes_octagon_outline_64_png, map[string]*_bintree_t{
+				}},
+				"square-128.png": &_bintree_t{static_image_white_shapes_square_128_png, map[string]*_bintree_t{
+				}},
+				"square-16.png": &_bintree_t{static_image_white_shapes_square_16_png, map[string]*_bintree_t{
+				}},
+				"square-24.png": &_bintree_t{static_image_white_shapes_square_24_png, map[string]*_bintree_t{
+				}},
+				"square-256.png": &_bintree_t{static_image_white_shapes_square_256_png, map[string]*_bintree_t{
+				}},
+				"square-32.png": &_bintree_t{static_image_white_shapes_square_32_png, map[string]*_bintree_t{
+				}},
+				"square-48.png": &_bintree_t{static_image_white_shapes_square_48_png, map[string]*_bintree_t{
+				}},
+				"square-512.png": &_bintree_t{static_image_white_shapes_square_512_png, map[string]*_bintree_t{
+				}},
+				"square-64.png": &_bintree_t{static_image_white_shapes_square_64_png, map[string]*_bintree_t{
+				}},
+				"square-dashed-128.png": &_bintree_t{static_image_white_shapes_square_dashed_128_png, map[string]*_bintree_t{
+				}},
+				"square-dashed-16.png": &_bintree_t{static_image_white_shapes_square_dashed_16_png, map[string]*_bintree_t{
+				}},
+				"square-dashed-24.png": &_bintree_t{static_image_white_shapes_square_dashed_24_png, map[string]*_bintree_t{
+				}},
+				"square-dashed-256.png": &_bintree_t{static_image_white_shapes_square_dashed_256_png, map[string]*_bintree_t{
+				}},
+				"square-dashed-32.png": &_bintree_t{static_image_white_shapes_square_dashed_32_png, map[string]*_bintree_t{
+				}},
+				"square-dashed-48.png": &_bintree_t{static_image_white_shapes_square_dashed_48_png, map[string]*_bintree_t{
+				}},
+				"square-dashed-512.png": &_bintree_t{static_image_white_shapes_square_dashed_512_png, map[string]*_bintree_t{
+				}},
+				"square-dashed-64.png": &_bintree_t{static_image_white_shapes_square_dashed_64_png, map[string]*_bintree_t{
+				}},
+				"square-dashed-rounded-128.png": &_bintree_t{static_image_white_shapes_square_dashed_rounded_128_png, map[string]*_bintree_t{
+				}},
+				"square-dashed-rounded-16.png": &_bintree_t{static_image_white_shapes_square_dashed_rounded_16_png, map[string]*_bintree_t{
+				}},
+				"square-dashed-rounded-24.png": &_bintree_t{static_image_white_shapes_square_dashed_rounded_24_png, map[string]*_bintree_t{
+				}},
+				"square-dashed-rounded-256.png": &_bintree_t{static_image_white_shapes_square_dashed_rounded_256_png, map[string]*_bintree_t{
+				}},
+				"square-dashed-rounded-32.png": &_bintree_t{static_image_white_shapes_square_dashed_rounded_32_png, map[string]*_bintree_t{
+				}},
+				"square-dashed-rounded-48.png": &_bintree_t{static_image_white_shapes_square_dashed_rounded_48_png, map[string]*_bintree_t{
+				}},
+				"square-dashed-rounded-512.png": &_bintree_t{static_image_white_shapes_square_dashed_rounded_512_png, map[string]*_bintree_t{
+				}},
+				"square-dashed-rounded-64.png": &_bintree_t{static_image_white_shapes_square_dashed_rounded_64_png, map[string]*_bintree_t{
+				}},
+				"square-ios-app-128.png": &_bintree_t{static_image_white_shapes_square_ios_app_128_png, map[string]*_bintree_t{
+				}},
+				"square-ios-app-16.png": &_bintree_t{static_image_white_shapes_square_ios_app_16_png, map[string]*_bintree_t{
+				}},
+				"square-ios-app-24.png": &_bintree_t{static_image_white_shapes_square_ios_app_24_png, map[string]*_bintree_t{
+				}},
+				"square-ios-app-256.png": &_bintree_t{static_image_white_shapes_square_ios_app_256_png, map[string]*_bintree_t{
+				}},
+				"square-ios-app-32.png": &_bintree_t{static_image_white_shapes_square_ios_app_32_png, map[string]*_bintree_t{
+				}},
+				"square-ios-app-48.png": &_bintree_t{static_image_white_shapes_square_ios_app_48_png, map[string]*_bintree_t{
+				}},
+				"square-ios-app-512.png": &_bintree_t{static_image_white_shapes_square_ios_app_512_png, map[string]*_bintree_t{
+				}},
+				"square-ios-app-64.png": &_bintree_t{static_image_white_shapes_square_ios_app_64_png, map[string]*_bintree_t{
+				}},
+				"square-outline-128.png": &_bintree_t{static_image_white_shapes_square_outline_128_png, map[string]*_bintree_t{
+				}},
+				"square-outline-16.png": &_bintree_t{static_image_white_shapes_square_outline_16_png, map[string]*_bintree_t{
+				}},
+				"square-outline-24.png": &_bintree_t{static_image_white_shapes_square_outline_24_png, map[string]*_bintree_t{
+				}},
+				"square-outline-256.png": &_bintree_t{static_image_white_shapes_square_outline_256_png, map[string]*_bintree_t{
+				}},
+				"square-outline-32.png": &_bintree_t{static_image_white_shapes_square_outline_32_png, map[string]*_bintree_t{
+				}},
+				"square-outline-48.png": &_bintree_t{static_image_white_shapes_square_outline_48_png, map[string]*_bintree_t{
+				}},
+				"square-outline-512.png": &_bintree_t{static_image_white_shapes_square_outline_512_png, map[string]*_bintree_t{
+				}},
+				"square-outline-64.png": &_bintree_t{static_image_white_shapes_square_outline_64_png, map[string]*_bintree_t{
+				}},
+				"square-rounded-128.png": &_bintree_t{static_image_white_shapes_square_rounded_128_png, map[string]*_bintree_t{
+				}},
+				"square-rounded-16.png": &_bintree_t{static_image_white_shapes_square_rounded_16_png, map[string]*_bintree_t{
+				}},
+				"square-rounded-24.png": &_bintree_t{static_image_white_shapes_square_rounded_24_png, map[string]*_bintree_t{
+				}},
+				"square-rounded-256.png": &_bintree_t{static_image_white_shapes_square_rounded_256_png, map[string]*_bintree_t{
+				}},
+				"square-rounded-32.png": &_bintree_t{static_image_white_shapes_square_rounded_32_png, map[string]*_bintree_t{
+				}},
+				"square-rounded-48.png": &_bintree_t{static_image_white_shapes_square_rounded_48_png, map[string]*_bintree_t{
+				}},
+				"square-rounded-512.png": &_bintree_t{static_image_white_shapes_square_rounded_512_png, map[string]*_bintree_t{
+				}},
+				"square-rounded-64.png": &_bintree_t{static_image_white_shapes_square_rounded_64_png, map[string]*_bintree_t{
+				}},
+				"triangle-128.png": &_bintree_t{static_image_white_shapes_triangle_128_png, map[string]*_bintree_t{
+				}},
+				"triangle-16.png": &_bintree_t{static_image_white_shapes_triangle_16_png, map[string]*_bintree_t{
+				}},
+				"triangle-24.png": &_bintree_t{static_image_white_shapes_triangle_24_png, map[string]*_bintree_t{
+				}},
+				"triangle-256.png": &_bintree_t{static_image_white_shapes_triangle_256_png, map[string]*_bintree_t{
+				}},
+				"triangle-32.png": &_bintree_t{static_image_white_shapes_triangle_32_png, map[string]*_bintree_t{
+				}},
+				"triangle-48.png": &_bintree_t{static_image_white_shapes_triangle_48_png, map[string]*_bintree_t{
+				}},
+				"triangle-512.png": &_bintree_t{static_image_white_shapes_triangle_512_png, map[string]*_bintree_t{
+				}},
+				"triangle-64.png": &_bintree_t{static_image_white_shapes_triangle_64_png, map[string]*_bintree_t{
+				}},
+				"triangle-outline-128.png": &_bintree_t{static_image_white_shapes_triangle_outline_128_png, map[string]*_bintree_t{
+				}},
+				"triangle-outline-16.png": &_bintree_t{static_image_white_shapes_triangle_outline_16_png, map[string]*_bintree_t{
+				}},
+				"triangle-outline-24.png": &_bintree_t{static_image_white_shapes_triangle_outline_24_png, map[string]*_bintree_t{
+				}},
+				"triangle-outline-256.png": &_bintree_t{static_image_white_shapes_triangle_outline_256_png, map[string]*_bintree_t{
+				}},
+				"triangle-outline-32.png": &_bintree_t{static_image_white_shapes_triangle_outline_32_png, map[string]*_bintree_t{
+				}},
+				"triangle-outline-48.png": &_bintree_t{static_image_white_shapes_triangle_outline_48_png, map[string]*_bintree_t{
+				}},
+				"triangle-outline-512.png": &_bintree_t{static_image_white_shapes_triangle_outline_512_png, map[string]*_bintree_t{
+				}},
+				"triangle-outline-64.png": &_bintree_t{static_image_white_shapes_triangle_outline_64_png, map[string]*_bintree_t{
+				}},
 			}},
 		}},
 		"js": &_bintree_t{nil, map[string]*_bintree_t{
-			"energyViewer.js": &_bintree_t{static_js_energyviewer_js, map[string]*_bintree_t{}},
-			"statsViewer.js":  &_bintree_t{static_js_statsviewer_js, map[string]*_bintree_t{}},
-			"visualize.js":    &_bintree_t{static_js_visualize_js, map[string]*_bintree_t{}},
+			"energyViewer.js": &_bintree_t{static_js_energyviewer_js, map[string]*_bintree_t{
+			}},
+			"statsViewer.js": &_bintree_t{static_js_statsviewer_js, map[string]*_bintree_t{
+			}},
+			"visualize.js": &_bintree_t{static_js_visualize_js, map[string]*_bintree_t{
+			}},
 		}},
 	}},
 	"templates": &_bintree_t{nil, map[string]*_bintree_t{
-		"energyViewer.html": &_bintree_t{templates_energyviewer_html, map[string]*_bintree_t{}},
-		"statsViewer.html":  &_bintree_t{templates_statsviewer_html, map[string]*_bintree_t{}},
-		"visualize.html":    &_bintree_t{templates_visualize_html, map[string]*_bintree_t{}},
+		"energyViewer.html": &_bintree_t{templates_energyviewer_html, map[string]*_bintree_t{
+		}},
+		"statsViewer.html": &_bintree_t{templates_statsviewer_html, map[string]*_bintree_t{
+		}},
+		"visualize.html": &_bintree_t{templates_visualize_html, map[string]*_bintree_t{
+		}},
 	}},
 }}

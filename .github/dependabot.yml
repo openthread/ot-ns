@@ -1,4 +1,4 @@
-# Copyright (c) 2021-2022, The OTNS Authors.
+# Copyright (c) 2021-2024, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -29,12 +29,12 @@ updates:
   - package-ecosystem: "gitsubmodule"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
     allow:
-      - dependency-name: "ot-rfsim"
+      - dependency-name: "openthread"
     commit-message:
       prefix: "submodule"
     rebase-strategy: "disabled"
     open-pull-requests-limit: 1
     assignees:
-      - "EskoDijk"
+      - "jwhui"

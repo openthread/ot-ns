@@ -56,6 +56,8 @@ def main():
     ns.ping(1,2)
     ns.go(10)
 
+    # run some time to catch MLE messages from node 2 - should reflect same Key Index.
+    ns.go(150)
     ns.web_display()
 
 if __name__ == '__main__':

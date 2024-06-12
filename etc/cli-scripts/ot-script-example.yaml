@@ -1,0 +1,48 @@
+#
+# Example OT node CLI script, which can be passed to otns using the -ot-script parameter.
+# It's in YAML format. Script comment lines start with '#'.
+# TODO: enable using script config in same file with YAML network config.
+#
+
+script:
+    ftd: |
+        # Active Dataset parameters. This only works for an FTD (e.g. type 'router' or 'fed').
+        # Therefore it's in the 'ftd' script section.
+        dataset init new
+        dataset networkname Test\ Network
+        dataset panid 0x1234
+        dataset channel 15
+        dataset networkkey 998877665544332211ffeeddccbbaa00
+        dataset meshlocalprefix fd00:abba::
+        dataset commit active
+
+        # Some extra settings - differ from usual setup.
+        routerselectionjitter 10
+
+    mtd: |
+        # MTD not able to use 'dataset init new'. Therefore, other way of providing active dataset.
+        networkkey 998877665544332211ffeeddccbbaa00
+        panid 0x1234
+        channel 15
+
+    br: |
+        # BR-specific configuration goes here. There's some spaces at EOL to test script-parsing.
+        ############# 
+        routerselectionjitter 1       
+        routerdowngradethreshold 33                          
+        routerupgradethreshold 33                                                           
+        netdata publish route fc00::/7 s med                 
+        bbr enable
+        srp server enable
+        br init 1 1
+        br enable
+
+    all: |
+        # Some extra settings - differ from usual setup. These are applied to all node types,
+        # except for 'raw' added nodes.
+        ccathreshold -50
+        txpower 10
+
+        # Autostart the node
+        ifconfig up
+        thread start

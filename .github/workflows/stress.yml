@@ -27,6 +27,7 @@
 name: Stress
 
 on:
+  workflow_dispatch:
   pull_request:
     branches:
       - 'main'
@@ -46,14 +47,14 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ['3.10']
-        go-version: [1.18]
+        go-version: ['1.22']
         suite: ["network-forming", "commissioning", "connectivity", "network-latency", "multicast-performance", "otns-performance", "network-limits"]
     runs-on: ubuntu-22.04
     timeout-minutes: 120
     env:
       HOMEBREW_NO_AUTO_UPDATE: 1
     steps:
-      - uses: actions/setup-go@v4
+      - uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go-version }}
       - name: Set up Python

@@ -29,7 +29,7 @@ import setuptools
 
 setuptools.setup(
     name="pyOTNS",
-    version="2.0.0",
+    version="2.1.0",
     author="The OTNS Authors",
     description="Run OTNS2 OpenThread mesh network simulations from Python code",
     url="https://github.com/EskoDijk/ot-ns",

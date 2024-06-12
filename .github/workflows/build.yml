@@ -27,6 +27,7 @@
 name: Build
 
 on:
+  workflow_dispatch:
   pull_request:
     branches:
       - 'main'
@@ -46,10 +47,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        go: [ 1.18, 1.22 ]
+        go: [ '1.18', '1.20', '1.22' ]
         os: [ ubuntu-22.04, macos-13, macos-14 ]
     steps:
-      - uses: actions/setup-go@v4
+      - uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go }}
       - uses: actions/checkout@v3

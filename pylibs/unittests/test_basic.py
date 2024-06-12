@@ -190,7 +190,6 @@ class BasicTests(OTNSTestCase):
 
             ns = self.ns
             ns.loglevel = 'debug'
-            ns.watch_default('debug') # add extra detail in all node's logs
             id = ns.add("router")
             self.assertTrue(len(ns.nodes()) == 1 and 1 in ns.nodes() and id == 1)
             self.go(i/100)
@@ -351,7 +350,7 @@ class BasicTests(OTNSTestCase):
         """
         make sure OTNS works in with-statement
         """
-        self.tearDown()
+        self.ns.close()
 
         with OTNS(otns_args=['-log', 'debug']) as ns:
             self.assertEqual(OTNS.DEFAULT_SIMULATE_SPEED, ns.speed)
@@ -663,7 +662,7 @@ class BasicTests(OTNSTestCase):
         self.assertEqual(0, len(output))
 
     def testRandomSeedSetting(self):
-        self.tearDown()
+        self.ns.close()
         nodes = range(1,6)
 
         # create a new OTNS with 'seed' parameter.
@@ -877,6 +876,24 @@ class BasicTests(OTNSTestCase):
             addrs = ns.node_cmd(j, 'ipmaddr')
             for a in addrs:
                 self.assertFalse(a.startswith("ff13")) # see Go simulation.SendMcastPrefix
+
+    def testLoadOtScript(self):
+        self.ns.close()
+
+        with OTNS(otns_args=['-ot-script', './etc/cli-scripts/ot-script-example.yaml', '-log', 'debug']) as ns:
+            self.ns = ns
+            ns.add('router')
+            ns.go(10)
+            ns.add('router')
+            ns.add('router')
+            ns.add('med')
+            ns.add('fed')
+            ns.go(30)
+            self.assertFormPartitions(1)
+            ns.add('br')
+            ns.add('sed')
+            ns.go(30)
+            self.assertFormPartitions(1)
 
 
 if __name__ == '__main__':

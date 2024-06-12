@@ -63,13 +63,7 @@ go_install()
 get_openthread()
 {
     if [[ ! -f ./openthread/script/bootstrap ]]; then
-        git submodule update --init --recursive --depth 1
-    fi
-}
-
-get_openthread_versions()
-{
-    if [[ ! -f ./openthread/script/bootstrap ]]; then
+        # --depth 1 is not used here, due to need to build historic commits for OT nodes.
         git submodule update --init --recursive
     fi
 }
@@ -109,7 +103,7 @@ build_openthread_br()
 
 build_openthread_versions()
 {
-    get_openthread_versions
+    get_openthread
     install_openthread_buildtools
     (
         cd ot-rfsim

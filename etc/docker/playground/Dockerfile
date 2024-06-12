@@ -1,4 +1,4 @@
-# Copyright (c) 2020, The OTNS Authors.
+# Copyright (c) 2020-2024, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -25,7 +25,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 # Stage 0: build OTNS and dependencies
-FROM golang:1.18
+FROM golang:1.22
 
 RUN apt-get update
 RUN apt-get install -y python3 python3-pip unzip
@@ -33,13 +33,8 @@ RUN apt-get install -y python3 python3-pip unzip
 COPY . /otns
 WORKDIR /otns
 RUN ./script/install-deps
+RUN ./script/test build-openthread-versions
 RUN ./script/install
-WORKDIR /otns/ot-rfsim
-RUN ./script/bootstrap
-RUN ./script/build_latest
-RUN ./script/build_v11
-RUN ./script/build_v12
-RUN ./script/build_v13
 
 RUN strip /go/bin/grpcwebproxy /go/bin/otns
 
