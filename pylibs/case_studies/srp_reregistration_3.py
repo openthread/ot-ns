@@ -37,12 +37,16 @@ NUM_NODES = 50
 DX = 50  # pixels spacing
 
 SCRIPT_BR="""
-# OT BR CLI script specific to this test scenario
+# OT BR CLI init script specific to this test scenario
 
-networkname OTSIM
-networkkey 00112233445566778899aabbccddeeff
-panid 0xface
-channel 11
+dataset init new
+dataset networkname OTNS
+dataset panid 0xface
+dataset channel 11
+dataset networkkey 00112233445566778899aabbccddeeff
+dataset meshlocalprefix fdde:ad00:beef:0::
+dataset commit active
+
 ifconfig up
 thread start
 
@@ -75,6 +79,7 @@ def main():
     ns.speed = 1000
     ns.radiomodel = 'MutualInterference'
     ns.web()
+    ns.web('stats')
 
     # setup of Border Routers
     for i in range(1, NUM_BR+1):
@@ -93,14 +98,14 @@ def main():
         ns.node_cmd(nid, f'srp client service add 15077FD8184910A6-00320000B330{i} _matter._tcp.default.service.arpa,_I1F097FD112451046 18001 0 0 085349493d31303030085341493d31303030085341543d3430303003543d30')
         ns.node_cmd(nid, f'srp client service add 25077FD8184910A6-00320000B330{i} _matter._tcp.default.service.arpa,_I2F097FD112451046 18002 0 0 085449493d31303030085341493d31303030085341543d3430303003543d30')
 
-        ns.go(10)
+        ns.go(5)
 
         cx += DX
         if cx >= 600:
             cx = 100
             cy += DX
 
-    ns.go(290)
+    ns.go(40)
 
     # test anycast dataset seqnum change event
     ns.kpi_start()
@@ -109,7 +114,7 @@ def main():
     seq = int(seq[0]) + 1
     ns.node_cmd(nid_br, f'srp server seqnum {seq}')
     ns.node_cmd(nid_br, "srp server enable")
-    ns.go(100)  # let re-registrations occur
+    ns.go(30)  # let re-registrations occur
     ns.kpi_stop()
 
     # check service state from client's viewpoint
