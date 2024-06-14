@@ -112,6 +112,18 @@ void otSimSendUartWriteEvent(const uint8_t *aData, uint16_t aLength) {
     otSimSendEvent(&event);
 }
 
+void otSimSendLogWriteEvent(const uint8_t *aData, uint16_t aLength) {
+    OT_ASSERT(aLength <= OT_EVENT_DATA_MAX_SIZE);
+
+    struct Event event;
+    event.mEvent      = OT_SIM_EVENT_LOG_WRITE;
+    event.mDelay      = 0;
+    event.mDataLength = aLength;
+    memcpy(event.mData, aData, aLength);
+
+    otSimSendEvent(&event);
+}
+
 void otSimSendOtnsStatusPushEvent(const char *aStatus, uint16_t aLength) {
     OT_ASSERT(aLength <= OT_EVENT_DATA_MAX_SIZE);
 

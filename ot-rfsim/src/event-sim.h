@@ -64,6 +64,7 @@ enum
     OT_SIM_EVENT_RFSIM_PARAM_GET     = 16,
     OT_SIM_EVENT_RFSIM_PARAM_SET     = 17,
     OT_SIM_EVENT_RFSIM_PARAM_RSP     = 18,
+    OT_SIM_EVENT_LOG_WRITE           = 19,
 };
 
 #define OT_EVENT_DATA_MAX_SIZE 1024
@@ -170,6 +171,14 @@ void otSimSendRadioChanSampleEvent(struct RadioCommEventData *aChanData);
  * @param[in]   aLength     Length of UART data.
  */
 void otSimSendUartWriteEvent(const uint8_t *aData, uint16_t aLength);
+
+/**
+ * Send an OT log-write event to the simulator, containing a single log item.
+ *
+ * @param[in]   aData       A pointer to the UART data.
+ * @param[in]   aLength     Length of UART data.
+ */
+void otSimSendLogWriteEvent(const uint8_t *aData, uint16_t aLength);
 
 /**
  * Send status push data event to the OT-NS simulator.

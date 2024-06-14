@@ -362,6 +362,16 @@ func (s *Simulation) OnUartWrite(nodeid NodeId, data []byte) {
 	node.uartReader <- data
 }
 
+// OnLogWrite notifies the simulation that a node has generated a new log line/item.
+// It is part of implementation of dispatcher.CallbackHandler.
+func (s *Simulation) OnLogWrite(nodeid NodeId, data []byte) {
+	node := s.nodes[nodeid]
+	if node == nil {
+		return
+	}
+	node.Logger.LogOt(string(data))
+}
+
 func (s *Simulation) OnNextEventTime(nextTs uint64) {
 	// display the pending log messages of nodes. Nodes are sorted by id.
 	s.VisitNodesInOrder(func(node *Node) {

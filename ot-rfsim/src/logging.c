@@ -74,7 +74,7 @@ OT_TOOL_WEAK void otPlatLog(otLogLevel aLogLevel, otLogRegion aLogRegion, const 
     if (!gTerminate) {
         logString[strLen] = '\n';
         logString[strLen + 1] = '\0';
-        otSimSendUartWriteEvent((const uint8_t *) &logString[0], strLen + 1);
+        otSimSendLogWriteEvent((const uint8_t *) &logString[0], strLen + 1);
     }
 }
 

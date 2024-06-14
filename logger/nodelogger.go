@@ -29,6 +29,7 @@ package logger
 import (
 	"fmt"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -154,6 +155,18 @@ func (nl *NodeLogger) SetDisplayLevel(level Level) {
 
 func (nl *NodeLogger) IsLevelVisible(level Level) bool {
 	return nl.displayLevel >= level
+}
+
+// LogOt logs a complete OT format log string, which includes timestamp, log level character, and
+// the log message. The right level to log is automatically determined.
+func (nl *NodeLogger) LogOt(levelAndMsg string) {
+	isOtLogLine, level := ParseOtLogLine(levelAndMsg)
+	levelAndMsg = strings.TrimSpace(levelAndMsg)
+	if isOtLogLine {
+		NodeLogf(nl.Id, level, levelAndMsg)
+	} else {
+		NodeLogf(nl.Id, InfoLevel, levelAndMsg)
+	}
 }
 
 func (nl *NodeLogger) Log(level Level, msg string) {
