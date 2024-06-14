@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2023, The OTNS Authors.
+// Copyright (c) 2020-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -60,6 +60,7 @@ const (
 	EventTypeRadioRfSimParamGet EventType = 16
 	EventTypeRadioRfSimParamSet EventType = 17
 	EventTypeRadioRfSimParamRsp EventType = 18
+	EventTypeLogWrite           EventType = 19
 )
 
 const (

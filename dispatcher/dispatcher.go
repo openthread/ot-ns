@@ -57,6 +57,9 @@ type CallbackHandler interface {
 	// OnUartWrite Notifies that the node's UART was written with data.
 	OnUartWrite(nodeid NodeId, data []byte)
 
+	// OnLogWrite Notifies that a log item wsa written to the node's log.
+	OnLogWrite(nodeid NodeId, data []byte)
+
 	// OnNextEventTime Notifies that the Dispatcher simulation will move shortly to the next event time.
 	OnNextEventTime(nextTimeUs uint64)
 
@@ -80,6 +83,7 @@ type Dispatcher struct {
 		RadioEvents      uint64
 		StatusPushEvents uint64
 		UartWriteEvents  uint64
+		LogWriteEvents   uint64
 		OtherEvents      uint64
 		// Packet-related event dispatching counters
 		DispatchByExtAddrSucc   uint64
@@ -407,6 +411,9 @@ func (d *Dispatcher) handleRecvEvent(evt *Event) {
 	case EventTypeUartWrite:
 		d.Counters.UartWriteEvents += 1
 		d.cbHandler.OnUartWrite(node.Id, evt.Data)
+	case EventTypeLogWrite:
+		d.Counters.LogWriteEvents += 1
+		d.cbHandler.OnLogWrite(node.Id, evt.Data)
 	case EventTypeExtAddr:
 		d.Counters.OtherEvents += 1
 		var extaddr = binary.BigEndian.Uint64(evt.Data[0:8])

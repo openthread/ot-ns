@@ -44,6 +44,9 @@ type mockDispatcherCallback struct {
 func (m mockDispatcherCallback) OnUartWrite(nodeid NodeId, data []byte) {
 }
 
+func (m mockDispatcherCallback) OnLogWrite(nodeid NodeId, data []byte) {
+}
+
 func (m mockDispatcherCallback) OnNextEventTime(nextTimeUs uint64) {
 }
 

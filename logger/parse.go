@@ -26,12 +26,19 @@
 
 package logger
 
-import "fmt"
+import (
+	"fmt"
+	"regexp"
+)
 
 const (
 	OffLevelString     = "off"
 	NoneLevelString    = "none"
 	DefaultLevelString = "default"
+)
+
+var (
+	logPattern = regexp.MustCompile(`\[(-|C|W|N|I|D|CRIT|WARN|NOTE|INFO|DEBG)]`)
 )
 
 func ParseLevelString(level string) (Level, error) {
@@ -59,7 +66,7 @@ func ParseLevelString(level string) (Level, error) {
 	}
 }
 
-func ParseOtLevelChar(level byte) Level {
+func parseOtLevelChar(level byte) Level {
 	switch level {
 	case 'T':
 		return TraceLevel
@@ -76,6 +83,16 @@ func ParseOtLevelChar(level byte) Level {
 	default:
 		return DefaultLevel
 	}
+}
+
+// ParseOtLogLine attempts to parse line as an OT generated log line with timestamp/level/message.
+// Returns true if successful and also returns the determined log level of the log line.
+func ParseOtLogLine(line string) (bool, Level) {
+	logIdx := logPattern.FindStringSubmatchIndex(line)
+	if logIdx == nil {
+		return false, 0
+	}
+	return true, parseOtLevelChar(line[logIdx[2]])
 }
 
 func GetLevelString(level Level) string {

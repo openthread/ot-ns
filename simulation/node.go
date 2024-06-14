@@ -46,7 +46,6 @@ import (
 	"github.com/openthread/ot-ns/dispatcher"
 	"github.com/openthread/ot-ns/event"
 	"github.com/openthread/ot-ns/logger"
-	"github.com/openthread/ot-ns/otoutfilter"
 	. "github.com/openthread/ot-ns/types"
 )
 
@@ -1009,11 +1008,7 @@ loop:
 			}
 			idxNewLine := strings.IndexByte(line, '\n')
 			lineTrim := strings.TrimSpace(line)
-			isLogLine, otLevelChar := otoutfilter.DetectLogLine(line)
-			if isLogLine {
-				lev := logger.ParseOtLevelChar(otLevelChar)
-				node.Logger.Log(lev, lineTrim)
-			} else if idxNewLine == -1 { // if no newline, get more items until a line can be formed.
+			if idxNewLine == -1 { // if no newline, get more items until a line can be formed.
 				deadline = time.After(dispatcher.DefaultReadTimeout)
 
 			loop2:
