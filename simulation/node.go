@@ -982,12 +982,13 @@ func (node *Node) GetCounters(counterType string, keyPrefix string) NodeCounters
 			node.Logger.Errorf("GetCounters(): unexpected data '%v'", line)
 			return nil
 		}
-		val, err := strconv.Atoi(kv[1])
+		val, err := strconv.ParseUint(kv[1], 10, 64)
 		if err != nil {
 			node.Logger.Errorf("GetCounters(): unexpected value string '%v' (not int)", kv[1])
 			return nil
 		}
-		res[keyPrefix+kv[0]] = val
+		key := strings.ReplaceAll(kv[0], " ", "")
+		res[keyPrefix+key] = val
 	}
 	return res
 }

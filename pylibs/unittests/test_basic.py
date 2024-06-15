@@ -895,6 +895,22 @@ class BasicTests(OTNSTestCase):
             ns.go(30)
             self.assertFormPartitions(1)
 
+    def testPhyStats(self):
+        self.tearDown()
+        with OTNS(otns_args=['-log', 'debug', '-phy-tx-stats']) as ns:
+            ns.kpi_start()
+            ns.add('router')
+            ns.add('router')
+            ns.go(10)
+            ns.add('router', id=13)  # must handle non-sequential node IDs also.
+            ns.go(10)
+            ns.add('router', id=5)
+            ns.go(10)
+            ns.kpi_save()
+
+        self.assertTrue(os.path.isfile('tmp/0_txbytes.csv'))
+        self.assertTrue(os.path.isfile('tmp/0_chansamples.csv'))
+
 
 if __name__ == '__main__':
     unittest.main()

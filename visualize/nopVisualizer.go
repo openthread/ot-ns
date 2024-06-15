@@ -146,6 +146,6 @@ func (nv *NopVisualizer) UpdateNodeStats(nodeStatsInfo *NodeStatsInfo) {
 
 }
 
-func (nv *NopVisualizer) UpdateTimeWindowStats(txRateStatsInfo *TimeWindowStatsInfo) {
+func (nv *NopVisualizer) UpdateTimeWindowStats(timeWinStatsInfo *TimeWindowStatsInfo) {
 
 }

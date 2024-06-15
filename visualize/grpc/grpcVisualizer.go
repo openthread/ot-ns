@@ -438,7 +438,7 @@ func (gv *grpcVisualizer) UpdateNodeStats(nsi *visualize.NodeStatsInfo) {
 	gv.addVisualizeEvent(e)
 }
 
-func (gv *grpcVisualizer) UpdateTimeWindowStats(txRateStatsInfo *visualize.TimeWindowStatsInfo) {
+func (gv *grpcVisualizer) UpdateTimeWindowStats(timeWinStatsInfo *visualize.TimeWindowStatsInfo) {
 	// not used for now
 }
 

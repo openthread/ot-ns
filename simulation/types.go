@@ -61,7 +61,18 @@ type CmdRunner interface {
 }
 
 // NodeCounters keeps track of a node's internal diagnostic counters.
-type NodeCounters map[string]int
+type NodeCounters map[string]uint64
+
+func (nc NodeCounters) Add(other NodeCounters) {
+	// add all items from other map
+	for k, vAdd := range other {
+		if vCur, ok := nc[k]; ok {
+			nc[k] = vCur + vAdd
+		} else {
+			nc[k] = vAdd
+		}
+	}
+}
 
 // YamlConfigFile is the complete YAML structure for a config file for load/save.
 type YamlConfigFile struct {

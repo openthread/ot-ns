@@ -53,11 +53,6 @@ type ChannelStats struct {
 	txStartTime     uint64              // internal bookkeeping: start of an initial tx on a clear channel
 }
 
-// PhyStats contains PHY statistics and usage data for all RadioNodes.
-type PhyStats struct {
-	TxBytes map[NodeId]int
-}
-
 // RadioModel provides access to any type of radio model.
 type RadioModel interface {
 
@@ -108,10 +103,10 @@ type RadioModel interface {
 	ResetChannelStats(channel ChannelId)
 
 	// GetNodePhyStats gets PHY statistics of a node, as tracked by this RadioModel.
-	GetNodePhyStats(id NodeId) *RadioNodeStats
+	GetNodePhyStats(id NodeId) PhyStats
 
 	// GetPhyStats gets PHY statistics and usage data for all nodes.
-	GetPhyStats() *PhyStats
+	GetPhyStats() map[NodeId]PhyStats
 
 	// init initializes the RadioModel.
 	init()

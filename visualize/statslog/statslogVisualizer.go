@@ -40,7 +40,8 @@ type StatsType int
 
 const (
 	NodeStatsType StatsType = iota
-	TxRateStatsType
+	TxBytesStatsType
+	ChanSampleCountStatsType
 )
 
 type statslogVisualizer struct {
@@ -91,8 +92,12 @@ func (sv *statslogVisualizer) UpdateNodeStats(info *visualize.NodeStatsInfo) {
 }
 
 func (sv *statslogVisualizer) UpdateTimeWindowStats(info *visualize.TimeWindowStatsInfo) {
-	if sv.statsType == TxRateStatsType {
-		sv.writeTxRateLogEntry(info.WinStartUs+info.WinWidthUs, info.PhyTxRateKbps)
+	ts := info.WinStartUs + info.WinWidthUs
+	switch sv.statsType {
+	case TxBytesStatsType:
+		sv.writePhyStatsLogEntry(ts, info.PhyTxBytes)
+	case ChanSampleCountStatsType:
+		sv.writePhyStatsLogEntry(ts, info.ChanSampleCount)
 	}
 }
 
@@ -139,23 +144,23 @@ func (sv *statslogVisualizer) writeNodeStatsLogEntry(ts uint64, stats NodeStats)
 	logger.Debugf("statslog entry added: %s", entry)
 }
 
-func (sv *statslogVisualizer) writeTxRateLogEntry(ts uint64, stats map[NodeId]float64) {
+func (sv *statslogVisualizer) writePhyStatsLogEntry(ts uint64, stats map[NodeId]uint64) {
 	var sb strings.Builder
 	timeSec := float64(ts) / 1.0e6
 	sb.WriteString(fmt.Sprintf("%12.6f, ", timeSec))
 
 	idMin := 1
-	_, idMax := calcMinMaxNodeId(&stats)
+	_, idMax := calcMinMaxNodeId(stats)
 	if sv.lastIdMax > idMax {
 		idMax = sv.lastIdMax
 	} else {
 		sv.lastIdMax = idMax
 	}
 	for id := idMin; id <= idMax; id++ {
-		if rate, ok := stats[id]; ok {
-			sb.WriteString(fmt.Sprintf("%5.1f, ", rate))
+		if value, ok := stats[id]; ok {
+			sb.WriteString(fmt.Sprintf("%5d, ", value))
 		} else {
-			sb.WriteString("    0.0, ")
+			sb.WriteString("    0, ")
 		}
 	}
 	entry := sb.String()
@@ -187,8 +192,10 @@ func getStatsName(tp StatsType) string {
 	switch tp {
 	case NodeStatsType:
 		return "stats"
-	case TxRateStatsType:
-		return "txrate"
+	case TxBytesStatsType:
+		return "txbytes"
+	case ChanSampleCountStatsType:
+		return "chansamples"
 	default:
 		return "INVALID"
 	}
@@ -198,9 +205,9 @@ func getStatsLogFileName(tp StatsType, outputDir string, simId int) string {
 	return fmt.Sprintf("%s/%d_%s.csv", outputDir, simId, getStatsName(tp))
 }
 
-func calcMinMaxNodeId(m *map[NodeId]float64) (NodeId, NodeId) {
+func calcMinMaxNodeId(m map[NodeId]uint64) (NodeId, NodeId) {
 	var idMin, idMax NodeId
-	for id := range *m {
+	for id := range m {
 		if idMin == 0 || id < idMin {
 			idMin = id
 		}

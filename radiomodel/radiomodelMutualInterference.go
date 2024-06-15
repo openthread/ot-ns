@@ -162,6 +162,7 @@ func (rm *RadioModelMutualInterference) HandleEvent(node *RadioNode, q EventQueu
 		rm.statsTxStop(node, evt)
 	case EventTypeRadioChannelSample:
 		rm.channelSampleStart(node, evt)
+		rm.statsChannelSampleStart(node, evt)
 	case EventTypeRadioState:
 		node.SetRadioState(evt.RadioStateData.EnergyState, evt.RadioStateData.SubState)
 		node.SetChannel(evt.RadioStateData.Channel)
