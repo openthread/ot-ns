@@ -143,7 +143,9 @@ func (km *KpiManager) retrieveNodeCounters() NodeCountersStore {
 		counters2 := km.sim.nodes[nid].GetCounters("mle", "mle.")
 		counters3 := km.sim.nodes[nid].GetCounters("ip", "ip.")
 		counters4 := NodeCounters{}
-		counters4["phy.tx.bytes"] = phyStats.TxBytes[nid]
+		counters4["phy.tx.bytes"] = phyStats[nid].TxBytes
+		counters4["phy.tx.timeus"] = phyStats[nid].TxTimeUs
+		counters4["phy.chansample.count"] = phyStats[nid].ChanSampleCount
 		nodesMap[nid] = mergeNodeCounters(counters1, counters2, counters3, counters4)
 		km.sim.nodes[nid].DisplayPendingLogEntries()
 		km.sim.nodes[nid].DisplayPendingLines()
@@ -177,7 +179,7 @@ func (km *KpiManager) retrieveRadioModelStats() RadioStatsStore {
 func getCountersDiff(curCtr NodeCounters, startCtr NodeCounters) NodeCounters {
 	ret := NodeCounters{}
 	for k, v := range curCtr {
-		startVal := 0 // if node wasn't known at start, it was created during - use 0 for a counter's start value.
+		startVal := uint64(0) // if node wasn't known at start, it was created during - use 0 for a counter's start value.
 		if sv, ok := startCtr[k]; ok {
 			startVal = sv
 		}
@@ -212,6 +214,7 @@ func (km *KpiManager) calculateKpis() {
 			km.data.Mac.NoAckPercentage[nid] = math.Round(noAckPercent*1.0e3) / 1.0e3
 			km.data.Counters[nid] = counters
 		}
+		km.data.CountersSum = calculateCountersSum(km.data.Counters)
 	}
 
 	// coaps
@@ -248,4 +251,12 @@ func (km *KpiManager) calculateKpis() {
 
 func (km *KpiManager) getDefaultSaveFileName() string {
 	return fmt.Sprintf("%s/%d_kpi.json", km.sim.cfg.OutputDir, km.sim.cfg.Id)
+}
+
+func calculateCountersSum(nodeCounters map[NodeId]NodeCounters) NodeCounters {
+	nc := make(NodeCounters)
+	for _, counters := range nodeCounters {
+		nc.Add(counters)
+	}
+	return nc
 }

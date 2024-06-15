@@ -113,6 +113,7 @@ func (rm *RadioModelIdeal) HandleEvent(node *RadioNode, q EventQueue, evt *Event
 		rm.statsTxStop(node, evt)
 	case EventTypeRadioChannelSample:
 		rm.channelSampleStart(node, evt)
+		rm.statsChannelSampleStart(node, evt)
 	case EventTypeRadioState:
 		node.SetRadioState(evt.RadioStateData.EnergyState, evt.RadioStateData.SubState)
 		node.SetChannel(evt.RadioStateData.Channel)
@@ -146,20 +147,14 @@ func (rm *RadioModelIdeal) ResetChannelStats(channel ChannelId) {
 	delete(rm.channelStats, channel)
 }
 
-func (rm *RadioModelIdeal) GetNodePhyStats(id NodeId) *RadioNodeStats {
-	stats := &RadioNodeStats{
-		NumBytesTx: rm.nodes[id].stats.NumBytesTx,
-	}
-	return stats
+func (rm *RadioModelIdeal) GetNodePhyStats(id NodeId) PhyStats {
+	return rm.nodes[id].stats
 }
 
-func (rm *RadioModelIdeal) GetPhyStats() *PhyStats {
-	txBytes := make(map[NodeId]int)
+func (rm *RadioModelIdeal) GetPhyStats() map[NodeId]PhyStats {
+	stats := make(map[NodeId]PhyStats)
 	for id, node := range rm.nodes {
-		txBytes[id] = node.stats.NumBytesTx
-	}
-	stats := &PhyStats{
-		TxBytes: txBytes,
+		stats[id] = node.stats
 	}
 	return stats
 }
@@ -226,7 +221,8 @@ func (rm *RadioModelIdeal) statsTxStart(node *RadioNode, evt *Event) {
 	chStats.NumFrames++
 
 	// node stats
-	node.stats.NumBytesTx += len(evt.Data) - 1 + PhyHeaderLenBytes
+	node.stats.TxBytes += uint64(len(evt.Data) - 1 + PhyHeaderLenBytes)
+	node.stats.TxTimeUs += evt.RadioCommData.Duration
 }
 
 func (rm *RadioModelIdeal) statsTxStop(node *RadioNode, evt *Event) {
@@ -266,4 +262,8 @@ func (rm *RadioModelIdeal) channelSampleStart(node *RadioNode, evt *Event) {
 	sampleDoneEvt.Timestamp += evt.RadioCommData.Duration
 	sampleDoneEvt.MustDispatch = true
 	rm.eventQ.Add(&sampleDoneEvt)
+}
+
+func (rm *RadioModelIdeal) statsChannelSampleStart(node *RadioNode, evt *Event) {
+	node.stats.ChanSampleCount++
 }

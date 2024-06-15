@@ -26,49 +26,29 @@
 
 package simulation
 
-import . "github.com/openthread/ot-ns/types"
+import (
+	"testing"
 
-type KpiTimeUs struct {
-	StartTimeUs uint64 `json:"start"`
-	EndTimeUs   uint64 `json:"end"`
-	PeriodUs    uint64 `json:"duration"`
-}
+	"github.com/stretchr/testify/assert"
+)
 
-type KpiTimeSec struct {
-	StartTimeSec float64 `json:"start"`
-	EndTimeSec   float64 `json:"end"`
-	PeriodSec    float64 `json:"duration"`
-}
+func TestNodeCounters(t *testing.T) {
+	n1 := make(NodeCounters)
+	n1["test1.key"] = 42
+	n1["test3.key"] = 987
 
-type KpiChannel struct {
-	TxTimeUs     uint64  `json:"tx_time_us"`
-	TxPercentage float64 `json:"tx_percent"`
-	NumFrames    uint64  `json:"tx_frames"`
-	AvgFps       float64 `json:"tx_avg_fps"`
-}
+	n2 := make(NodeCounters)
+	n2["test1.key"] = 42
+	n2["test2.key"] = 121
 
-type KpiMac struct {
-	NoAckPercentage map[NodeId]float64 `json:"noack_percent"`
-}
+	n2.Add(n1)
 
-type KpiCoapUri struct {
-	Count     uint64  `json:"tx"`
-	CountLost uint64  `json:"tx_lost"`
-	LatencyMs float64 `json:"avg_latency_ms"`
-}
+	assert.Equal(t, uint64(42), n1["test1.key"])
+	_, n1HasTest2Key := n1["test2.key"]
+	assert.False(t, n1HasTest2Key)
+	assert.Equal(t, uint64(987), n1["test3.key"])
 
-type KpiCoap struct {
-	Uri map[string]*KpiCoapUri `json:"uri"`
-}
-
-type Kpi struct {
-	FileTime    string                   `json:"created"`
-	Status      string                   `json:"status"`
-	TimeUs      KpiTimeUs                `json:"time_us"`
-	TimeSec     KpiTimeSec               `json:"time_sec"`
-	Channels    map[ChannelId]KpiChannel `json:"channels"`
-	Mac         KpiMac                   `json:"mac"`
-	Counters    map[NodeId]NodeCounters  `json:"counters"`
-	CountersSum NodeCounters             `json:"counters_sum"`
-	Coap        KpiCoap                  `json:"coap"`
+	assert.Equal(t, uint64(84), n2["test1.key"])
+	assert.Equal(t, uint64(121), n2["test2.key"])
+	assert.Equal(t, uint64(987), n2["test3.key"])
 }

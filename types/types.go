@@ -122,3 +122,19 @@ type NodeStats struct {
 	NumSleepy     int
 	NumFailed     int
 }
+
+// PhyStats contains PHY statistics and usage data for a node.
+type PhyStats struct {
+	TxBytes         uint64 // Tx bytes done and initiated so far (may include a not-yet-complete transmission)
+	TxTimeUs        uint64 // Tx time duration in microsec
+	ChanSampleCount uint64 // includes CCAs, Energy Detects (EDs), or other sample types.
+}
+
+// Minus returns the difference (delta) between this PhyStats and another.
+func (ps *PhyStats) Minus(other PhyStats) PhyStats {
+	return PhyStats{
+		TxBytes:         ps.TxBytes - other.TxBytes,
+		TxTimeUs:        ps.TxTimeUs - other.TxTimeUs,
+		ChanSampleCount: ps.ChanSampleCount - other.ChanSampleCount,
+	}
+}

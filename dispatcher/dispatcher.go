@@ -205,6 +205,9 @@ func (d *Dispatcher) Stop() {
 	d.ctx.Cancel("dispatcher-stop")
 	d.GoCancel()        // cancel current simulation period
 	_ = d.udpln.Close() // close socket to stop d.eventsReader accepting new clients.
+	if d.cfg.PhyTxStats {
+		d.finalizeTimeWindowStats()
+	}
 
 	d.vis.Stop()
 	close(d.pcapFrameChan)
@@ -1135,7 +1138,9 @@ func (d *Dispatcher) advanceTime(ts uint64) {
 		d.lastEnergyVizTime = ts
 	}
 
-	d.updateTimeWindowStats()
+	if d.cfg.PhyTxStats {
+		d.updateTimeWindowStats()
+	}
 }
 
 func (d *Dispatcher) PostAsync(task func()) {

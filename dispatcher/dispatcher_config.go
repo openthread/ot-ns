@@ -41,6 +41,7 @@ type Config struct {
 	DefaultWatchLevel string
 	SimulationId      int
 	OutputDir         string
+	PhyTxStats        bool
 }
 
 func DefaultConfig() *Config {
@@ -54,5 +55,6 @@ func DefaultConfig() *Config {
 		DefaultWatchLevel: logger.OffLevelString,
 		SimulationId:      0,
 		OutputDir:         "tmp",
+		PhyTxStats:        false,
 	}
 }

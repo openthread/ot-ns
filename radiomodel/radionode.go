@@ -59,16 +59,12 @@ type RadioNode struct {
 	// rssiSampleMax tracks the max RSSI detected during a channel sampling operation.
 	rssiSampleMax DbValue
 
-	stats RadioNodeStats
+	stats PhyStats
 }
 
 type RadioNodeConfig struct {
 	X, Y, Z    int
 	RadioRange int
-}
-
-type RadioNodeStats struct {
-	NumBytesTx int
 }
 
 func NewRadioNode(nodeid NodeId, cfg *RadioNodeConfig) *RadioNode {
@@ -82,7 +78,7 @@ func NewRadioNode(nodeid NodeId, cfg *RadioNodeConfig) *RadioNode {
 		RadioRange:    float64(cfg.RadioRange),
 		RadioChannel:  InvalidChannel,
 		rssiSampleMax: RssiMinusInfinity,
-		stats:         RadioNodeStats{},
+		stats:         PhyStats{},
 	}
 	return rn
 }

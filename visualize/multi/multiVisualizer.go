@@ -222,8 +222,8 @@ func (mv *MultiVisualizer) UpdateNodeStats(nodeStatsInfo *visualize.NodeStatsInf
 	}
 }
 
-func (mv *MultiVisualizer) UpdateTimeWindowStats(txRateStatsInfo *visualize.TimeWindowStatsInfo) {
+func (mv *MultiVisualizer) UpdateTimeWindowStats(timeWinStatsInfo *visualize.TimeWindowStatsInfo) {
 	for _, v := range mv.vs {
-		v.UpdateTimeWindowStats(txRateStatsInfo)
+		v.UpdateTimeWindowStats(timeWinStatsInfo)
 	}
 }
