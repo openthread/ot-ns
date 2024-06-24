@@ -937,10 +937,12 @@ class OTNS(object):
         """
         self.node_cmd(nodeid, f'networkkey {key}')
 
-    def config_dataset(self, nodeid: int, channel: int = None, panid: int = None, extpanid: str = None, networkkey: str = None, network_name: str = None,
-                       dataset='active'):
+    def config_dataset(self, nodeid: int, channel: int = None, panid: int = None, extpanid: str = None,
+                       networkkey: str = None, network_name: str = None, active_timestamp: int = None,
+                       set_remaining: bool = False, dataset: str = 'active'):
         """
-        Configure the active/pending dataset
+        Configure the active or pending dataset. Parameters not provided (or set to None) are not set in the
+        resulting dataset.
 
         :param nodeid: target node ID
         :param channel: the channel number.
@@ -948,6 +950,10 @@ class OTNS(object):
         :param extpanid: the Extended PAN ID.
         :param networkkey: the network key (REQUIRED)
         :param network_name: the network name
+        :param active_timestamp: the active timestamp.
+        :param set_remaining: if True, sets remaining dataset items not listed in params here to
+                              default values. If False, does not set these items.
+        :param dataset: use 'active' for Active Dataset or 'pending' for Pending Dataset.
         """
         assert dataset in ('active', 'pending'), dataset
 
@@ -959,12 +965,24 @@ class OTNS(object):
         if panid is not None:
             self.node_cmd(nodeid, f'dataset panid 0x{panid:04x}')
 
+        if extpanid is not None:
+            self.node_cmd(nodeid, f'dataset extpanid {extpanid}')
+
         if networkkey is not None:
             self.node_cmd(nodeid, f'dataset networkkey {networkkey}')
 
         if network_name is not None:
             network_name = self._escape_whitespace(network_name)
             self.node_cmd(nodeid, f'dataset networkname {network_name}')
+
+        if active_timestamp is not None:
+            self.node_cmd(nodeid, f'dataset activetimestamp {active_timestamp}')
+
+        if set_remaining:
+            self.node_cmd(nodeid, f'dataset channelmask 0x07fff800')
+            self.node_cmd(nodeid, f'dataset meshlocalprefix fdde:ad00:beef:0::')
+            self.node_cmd(nodeid, f'dataset pskc 3aa55f91ca47d1e4e71a08cb35e91591')
+            self.node_cmd(nodeid, f'dataset securitypolicy 672 onrc 0')
 
         self.node_cmd(nodeid, f'dataset commit {dataset}')
 
@@ -1033,17 +1051,37 @@ class OTNS(object):
         """
         self.node_cmd(nodeid, f"joiner start {pwd}")
 
+    def ccm_joiner_start(self, nodeid: int) -> None:
+        """
+        Start CCM joiner.
+
+        :param nodeid: joiner node ID
+        """
+        self.node_cmd(nodeid, f"joiner ccm")
+
     def commissioner_joiner_add(self, nodeid: int, usr: str, pwd: str, timeout=None) -> None:
         """
         Add joiner to commissioner.
 
         :param nodeid: commissioner node ID
-        :param usr: commissioning user
+        :param usr: joiner EUI-64 or discerner (id) or '*' for any joiners
         :param pwd: commissioning password
         :param timeout: commissioning session timeout
         """
         timeout_s = f" {timeout}" if timeout is not None else ""
         self.node_cmd(nodeid, f"commissioner joiner add {usr} {pwd}{timeout_s}")
+
+    def commissioner_ccm_joiner_add(self, nodeid: int, usr: str, timeout=None) -> None:
+        """
+        Add CCM joiner to commissioner.
+
+        :param nodeid: commissioner node ID
+        :param usr: joiner EUI-64 or discerner (id) or '*' for any joiners
+        :param pwd: commissioning password
+        :param timeout: commissioning session timeout
+        """
+        timeout_s = f" {timeout}" if timeout is not None else ""
+        self.node_cmd(nodeid, f"commissioner joiner add {usr} CCMCCM{timeout_s}")
 
     def config_visualization(self, broadcast_message: bool = None, unicast_message: bool = None,
                              ack_message: bool = None, router_table: bool = None, child_table: bool = None) \

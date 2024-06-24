@@ -53,6 +53,9 @@ func (m mockDispatcherCallback) OnNextEventTime(nextTimeUs uint64) {
 func (m mockDispatcherCallback) OnRfSimEvent(nodeid NodeId, evt *event.Event) {
 }
 
+func (m mockDispatcherCallback) OnMsgToHost(nodeid NodeId, evt *event.Event) {
+}
+
 func mockNode1() *Node {
 	return &Node{
 		Id:     0x1,

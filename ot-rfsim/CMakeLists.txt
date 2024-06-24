@@ -29,6 +29,10 @@
 cmake_minimum_required(VERSION 3.10.2)
 project(ot-rfsim VERSION 2.0.0)
 
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_C_STANDARD 99)
+
 set(OT_PLATFORM "external" CACHE STRING "Target platform must be 'external'")
 set(OT_PLATFORM_LIB "openthread-rfsim")
 if(DEFINED ENV{OT_DIR})

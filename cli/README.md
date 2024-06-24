@@ -409,6 +409,24 @@ Show help text for specific, or all, OTNS CLI commands.
 help [ <command> ]
 ```
 
+### host
+
+Add a simulated IP host for Thread nodes to communicate with.
+
+```shell
+host add "<hostname>" "<ipaddr>" <port> <maps-to-local-port>
+host del "<hostname>" | "<ipaddr>"
+host list  
+```
+
+Any UDP/TCP packets sent to an off-mesh destination by a Thread node will first be routed over the mesh to a Thread 
+Border Router (node type `br`). The BR will notify OTNS about such received packets. OTNS then looks up if any 
+simulated IP host matches the packet's destination address/port and if so, it delivers the packet locally (localhost) 
+to the mapped port number `<maps-to-local-port>`. This enables simulations with the behavior of Thread-external servers 
+to be done fully locally, without causing any real network traffic.
+
+Note: currently only IPv6 hosts are supported; IPv4 (via NAT64) may be added later.
+
 ### joins
 
 Displays finished joiner sessions.

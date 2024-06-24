@@ -85,6 +85,27 @@ jobs:
       - name: Test single OT-version
         run: |
           ./script/test py-unittests
+
+  py-ver-unittests:
+    name: Unittests-Version (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.10']
+        os: [ubuntu-22.04]
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: 1
+    steps:
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - uses: actions/checkout@v3
       - name: Test multiple OT-versions
         run: |
           ./script/test py-ver-unittests

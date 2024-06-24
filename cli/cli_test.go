@@ -109,6 +109,9 @@ func TestParseBytes(t *testing.T) {
 	assert.Nil(t, parseBytes([]byte("go 100 speed 2"), &cmd))
 	assert.NotNil(t, cmd.Go)
 
+	assert.True(t, parseBytes([]byte("help"), &cmd) == nil && cmd.Help != nil)
+	assert.True(t, parseBytes([]byte("host add \"myhost.example.com\" \"fc00::1234\" 35683 1717"), &cmd) == nil && cmd.Host != nil)
+
 	assert.True(t, parseBytes([]byte("joins"), &cmd) == nil && cmd.Joins != nil)
 
 	assert.True(t, parseBytes([]byte("log"), &cmd) == nil && cmd.LogLevel != nil)

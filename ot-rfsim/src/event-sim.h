@@ -1,5 +1,5 @@
 /*
-*  Copyright (c) 2020-2023, The OpenThread Authors.
+*  Copyright (c) 2020-2024, The OpenThread Authors.
 *  All rights reserved.
 *
 *  Redistribution and use in source and binary forms, with or without
@@ -29,8 +29,8 @@
 /**
 * @file
 * @brief
-*   This file includes simulation-event message definitions, and formatting and
- *   parsing functions for events.
+*   This file includes simulation-event message definitions, and sending,
+*   formatting and parsing functions for events.
 */
 
 #ifndef PLATFORM_RFSIM_EVENT_SIM_H
@@ -41,8 +41,8 @@
 
 /**
  * The event types defined for communication with a simulator and/or with other simulated nodes.
- * Shared for both 'real' and virtual-time event types. Some types are not used (e.g. historic
- * or used by the simulator only.)
+ * Shared for both 'real' and virtual-time event types. Some types are not used in this project
+ * (e.g. historic or used by the simulator only.)
  */
 enum
 {
@@ -65,9 +65,13 @@ enum
     OT_SIM_EVENT_RFSIM_PARAM_SET     = 17,
     OT_SIM_EVENT_RFSIM_PARAM_RSP     = 18,
     OT_SIM_EVENT_LOG_WRITE           = 19,
+    OT_SIM_EVENT_UDP_TO_HOST         = 20,
+    OT_SIM_EVENT_IP6_TO_HOST         = 21,
+    OT_SIM_EVENT_UDP_FROM_HOST       = 22,
+    OT_SIM_EVENT_IP6_FROM_HOST       = 23,
 };
 
-#define OT_EVENT_DATA_MAX_SIZE 1024
+#define OT_EVENT_DATA_MAX_SIZE 2048
 
 OT_TOOL_PACKED_BEGIN
 struct EventHeader
@@ -81,30 +85,30 @@ struct EventHeader
 OT_TOOL_PACKED_BEGIN
 struct Event
 {
-    uint64_t mDelay;
-    uint8_t  mEvent;
-    uint64_t mMsgId;
-    uint16_t mDataLength;
+    uint64_t mDelay;      // delay in us before execution of the event
+    uint8_t  mEvent;      // event type
+    uint64_t mMsgId;      // an ever-increasing event message id
+    uint16_t mDataLength; // the actual length of following event payload data
     uint8_t  mData[OT_EVENT_DATA_MAX_SIZE];
 } OT_TOOL_PACKED_END;
 
 OT_TOOL_PACKED_BEGIN
 struct RadioCommEventData
 {
-    uint8_t  mChannel;
-    int8_t   mPower;      // power value (dBm), RSSI or Tx-power
-    uint8_t  mError;      // status code result of radio operation
+    uint8_t  mChannel;    // radio channel number (shared for IEEE 802.15.4 / BLE / ... )
+    int8_t   mPower;      // power value (dBm), either RSSI or Tx-power
+    uint8_t  mError;      // status code result of radio operation using otError values
     uint64_t mDuration;   // us duration of the radio comm operation
 } OT_TOOL_PACKED_END;
 
 OT_TOOL_PACKED_BEGIN
 struct RadioStateEventData
 {
-    uint8_t  mChannel;
+    uint8_t  mChannel;       // radio channel (see above comments)
     int8_t   mTxPower;       // only valid when mEnergyState == OT_RADIO_STATE_TRANSMIT
-    int8_t   mRxSensitivity;
+    int8_t   mRxSensitivity; // current RX sensitivity in dBm
     uint8_t  mEnergyState;   // energy-state of radio (disabled, sleep, actively Tx, actively Rx)
-    uint8_t  mSubState;
+    uint8_t  mSubState;      // detailed substate of radio, see enum RadioSubState
     uint8_t  mState;         // OT state of radio (disabled, sleep, Tx, Rx)
     uint64_t mRadioTime;     // the radio's time otPlatRadioGetNow()
 } OT_TOOL_PACKED_END;
@@ -114,6 +118,15 @@ struct RfSimParamEventData
 {
     uint8_t mParam;
     int32_t mValue;
+} OT_TOOL_PACKED_END;
+
+OT_TOOL_PACKED_BEGIN
+struct MsgToHostEventData
+{
+    uint16_t mSrcPort;
+    uint16_t mDstPort;
+    uint8_t  mSrcIp6[OT_IP6_ADDRESS_SIZE];
+    uint8_t  mDstIp6[OT_IP6_ADDRESS_SIZE];
 } OT_TOOL_PACKED_END;
 
 /**
@@ -127,6 +140,7 @@ void otSimSendEvent(struct Event *aEvent);
 /**
  * Send a sleep event to the simulator. The amount of time to sleep
  * for this node is determined by the alarm timer, by calling platformAlarmGetNext().
+ *
  */
 void otSimSendSleepEvent(void);
 
@@ -200,10 +214,24 @@ void otSimSendExtAddrEvent(const otExtAddress *aExtAddress);
 /**
  * Send OT node information to the simulator. This helps the simulator
  * to identify a new socket connection made by the node.
+ *
+ * @param nodeId  id of the sending OT node
  */
 void otSimSendNodeInfoEvent(uint32_t nodeId);
 
 // TODO
 void otSimSendRfSimParamRespEvent(uint8_t param, int32_t value);
+
+/**
+ * Send an OT message (e.g. UDP, or IPv6 datagram, etc.) to the simulator to be handled
+ * by the "host" of the node. This host could be a local process/script, or an AIL network
+ * interface that can further forward the message to its destination.
+ *
+ * @param evType     the event type to use
+ * @param aEventData the event data containing the message's metadata
+ * @param aMsgBytes  the bytes of the message itself (e.g. UDP packet bytes or IPv6 datagram bytes)
+ * @param aMsgLen    the length of the message
+ */
+void otSimSendMsgToHostEvent(uint8_t evType, struct MsgToHostEventData *aEventData, uint8_t *aMsgBytes, size_t aMsgLen);
 
 #endif // PLATFORM_RFSIM_EVENT_SIM_H

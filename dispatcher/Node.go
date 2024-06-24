@@ -182,7 +182,6 @@ func (node *Node) sendEvent(evt *Event) {
 
 	// time keeping - move node's time to the current send-event's time.
 	node.D.alarmMgr.SetNotified(node.Id)
-	node.D.setAlive(node.Id)
 	node.CurTime += evt.Delay
 	logger.AssertTrue(node.CurTime == node.D.CurTime)
 
@@ -203,6 +202,8 @@ func (node *Node) sendEvent(evt *Event) {
 	if err != nil {
 		node.logger.Error(err)
 		node.err = err
+	} else {
+		node.D.setAlive(node.Id)
 	}
 }
 

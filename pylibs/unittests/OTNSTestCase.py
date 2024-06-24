@@ -62,6 +62,12 @@ class OTNSTestCase(unittest.TestCase):
         self.assertEqual(count, len(pars), f"Partitions count mismatch: expected {count}, but is {len(pars)}")
         self.assertTrue(0 not in pars, pars)
 
+    def assertFormPartitionsIgnoreOrphans(self, count: int):
+        pars = self.ns.partitions()
+        parsNoOrphans = []
+        parsNoOrphans[:] = (value for value in pars if value != 0)
+        self.assertEqual(count, len(parsNoOrphans), f"Partitions count mismatch: expected {count}, but is {len(parsNoOrphans)}")
+
     def assertNodeState(self, nodeid: int, state: str):
         cur_state = self.ns.get_state(nodeid)
         self.assertEqual(state, cur_state, f"Node {nodeid} state mismatch: expected {state}, but is {cur_state}")

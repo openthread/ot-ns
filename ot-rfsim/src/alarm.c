@@ -79,9 +79,9 @@ int16_t platformAlarmGetClockDrift()
     return sClockDriftPpm;
 }
 
-void platformAlarmSetClockDrift(int16_t drift)
+void platformAlarmSetClockDrift(int16_t aDrift)
 {
-    sClockDriftPpm = drift;
+    sClockDriftPpm = aDrift;
 }
 
 uint32_t otPlatAlarmMilliGetNow(void)
