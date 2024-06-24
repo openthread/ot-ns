@@ -41,6 +41,7 @@ add_library(openthread-rfsim
     logging.c
     misc.c
     platform-rfsim.c
+    platform-rfsim.cpp
     radio.c
     system.c
     trel.c

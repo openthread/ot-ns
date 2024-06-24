@@ -58,6 +58,8 @@
 #include <unistd.h>
 
 #include <openthread/instance.h>
+#include <openthread/message.h>
+#include <openthread/ip6.h>
 
 #include "event-sim.h"
 
@@ -130,10 +132,10 @@ void platformAlarmAdvanceNow(uint64_t aDelta);
 /**
  * set the clock drift for the node's simulated clock.
  *
- * @param drift  actual clock drift in PPM - can be positive (=too fast), negative (=too slow),
+ * @param aDrift  actual clock drift in PPM - can be positive (=too fast), negative (=too slow),
  *               or zero (=perfect clock).
  */
-void platformAlarmSetClockDrift(int16_t drift);
+void platformAlarmSetClockDrift(int16_t aDrift);
 
 /**
  * get the clock drift for the node's simulated clock.
@@ -197,6 +199,12 @@ void platformLoggingInit(char *processName);
 void platformUartRestore(void);
 
 /**
+ * initializes the OT-RFSIM simulator communications.
+ *
+ */
+void platformRfsimInit(void);
+
+/**
  * exits the simulated-node's process with the specific exit code.
  *
  * @param exitCode  The exit code (status) to end the program with: EXIT_FAILURE
@@ -220,6 +228,63 @@ bool platformRadioIsTransmitPending(void);
  * only sent if a change occurred w.r.t. the previous report event.
  */
 void platformRadioReportStateToSimulator(bool force);
+
+/**
+ * performs the processing of an IPv6 packet that was sent from the (higher-layer) host to the OT node.
+ *
+ * @param aInstance TODO
+ * @param aEvData
+ * @param aMsg
+ * @param aMsgLen
+ * @return
+ */
+otError platformIp6FromHostToNode(otInstance *aInstance, const struct MsgToHostEventData *aEvData, const uint8_t *aMsg, size_t aMsgLen);
+
+/**
+ * performs the processing of a UDP datagram that was sent from the (higher-layer) host to the OT node.
+ *
+ * @param aInstance
+ * @param aEvData
+ * @param aMsg
+ * @param aMsgLen
+ * @return
+ */
+otError platformUdpFromHostToNode(otInstance *aInstance, const struct MsgToHostEventData *aEvData, const uint8_t *aMsg, size_t aMsgLen);
+
+/**
+ * parses aMessage as an IPv6 packet, writing the packet-info into ip6Info.
+ *
+ * @param aMessage  the message containing the IPv6 packet to parse
+ * @param ip6Info   the IPv6 packet's metadata, written in case of successful parse.
+ *
+ * @retval  OT_ERROR_NONE   Successfully parsed the message as IPv6 packet.
+ * @retval  OT_ERROR_PARSE  Failed to parse the message as IPv6 packet.
+ */
+otError platformParseIp6(otMessage *aMessage,  otMessageInfo *aIp6Info);
+
+/**
+ * handler called when OT performs UDP-forwarding to the host. This is for UDP datagrams that
+ * are not going to be sent to the Thread interface, but rather to the host-interface.
+ *
+ * @param aMessage
+ * @param aPeerPort
+ * @param aPeerAddr
+ * @param aSockPort
+ * @param aContext
+ */
+void handleUdpForwarding(otMessage *aMessage,
+                         uint16_t aPeerPort,
+                         otIp6Address *aPeerAddr,
+                         uint16_t aSockPort,
+                         void *aContext);
+
+/**
+ * Setup any simulated non-Thread interfaces. For example, an interface to a host process or
+ * an AIL interface.
+ *
+ * @param aInstance TODO
+ */
+void platformNetifSetUp(otInstance *aInstance);
 
 /**
  * checks if the radio is busy performing some task such as transmission,

@@ -129,3 +129,10 @@ func (ys *YamlScriptConfig) BuildBrScript() []string {
 	script := ys.Ftd + "\n" + ys.Br + "\n" + ys.All
 	return strings.Split(script, "\n")
 }
+
+// UdpHeader represents the header of a UDP datagram.
+type UdpHeader struct {
+	SrcPort, DstPort uint16
+	Length           uint16
+	Checksum         uint16
+}

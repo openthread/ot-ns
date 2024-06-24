@@ -28,6 +28,11 @@
 
 package types
 
+const (
+	OtMaxIp6DatagramLength = 1280
+	OtMaxUdpPayloadLength  = 1232 // this can be adapted - currently not a precise maximum.
+)
+
 // OT_ERROR_* error codes from OpenThread that can be sent by OT-NS to the OT nodes.
 // (See OpenThread error.h for details)
 const (

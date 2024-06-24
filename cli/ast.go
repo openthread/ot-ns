@@ -51,6 +51,7 @@ type Command struct {
 	Exit                *ExitCmd                `| @@` //nolint
 	Go                  *GoCmd                  `| @@` //nolint
 	Help                *HelpCmd                `| @@` //nolint
+	Host                *HostCmd                `| @@` //nolint
 	Joins               *JoinsCmd               `| @@` //nolint
 	Kpi                 *KpiCmd                 `| @@` //nolint
 	Load                *LoadCmd                `| @@` //nolint
@@ -579,6 +580,16 @@ type SendCmd struct {
 	DstId      []NodeSelector `( @@ )*`                       //nolint
 	AddrType   *AddrTypeFlag  `[ @@ ]`                        //nolint
 	DataSize   *DataSizeFlag  `[ @@ ]`                        //nolint
+}
+
+// noinspection GoVetStructTag
+type HostCmd struct {
+	Cmd        struct{}     `"host"`                //nolint
+	SubCmd     string       `@("add"|"del"|"list")` //nolint
+	Hostname   string       `[ @String ]`           //nolint
+	IpAddr     *Ipv6Address `[ @@ ]`                //nolint
+	Port       uint16       `[ @Int ]`              //nolint
+	PortMapped uint16       `[ @Int ]`              //nolint
 }
 
 // noinspection GoVetStructTag

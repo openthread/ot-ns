@@ -53,6 +53,7 @@ import (
 	"github.com/openthread/ot-ns/visualize"
 )
 
+// CallbackHandler handles callbacks from Dispatcher to its managing entity (e.g. a Simulation).
 type CallbackHandler interface {
 	// OnUartWrite Notifies that the node's UART was written with data.
 	OnUartWrite(nodeid NodeId, data []byte)
@@ -60,11 +61,14 @@ type CallbackHandler interface {
 	// OnLogWrite Notifies that a log item wsa written to the node's log.
 	OnLogWrite(nodeid NodeId, data []byte)
 
-	// OnNextEventTime Notifies that the Dispatcher simulation will move shortly to the next event time.
+	// OnNextEventTime Notifies that the Dispatcher simulated-time will move to the next event time.
 	OnNextEventTime(nextTimeUs uint64)
 
 	// OnRfSimEvent Notifies that Dispatcher received an OT-RFSIM platform event that it didn't handle itself.
 	OnRfSimEvent(nodeid NodeId, evt *Event)
+
+	// OnMsgToHost Notifies that the Dispatcher received a message from a node, to be handled by the node's host.
+	OnMsgToHost(nodeid NodeId, event *Event)
 }
 
 // goDuration represents a particular duration of the simulation at a given speed.
@@ -84,6 +88,7 @@ type Dispatcher struct {
 		StatusPushEvents uint64
 		UartWriteEvents  uint64
 		LogWriteEvents   uint64
+		HostEvents       uint64
 		OtherEvents      uint64
 		// Packet-related event dispatching counters
 		DispatchByExtAddrSucc   uint64
@@ -168,7 +173,7 @@ func NewDispatcher(ctx *progctx.ProgCtx, cfg *Config, cbHandler CallbackHandler)
 	}
 	d.speed = d.normalizeSpeed(d.speed)
 	if d.cfg.PcapEnabled {
-		d.pcap, err = pcap.NewFile("current.pcap", cfg.PcapFrameType)
+		d.pcap, err = pcap.NewFile("current.pcap", cfg.PcapFrameType, true)
 		logger.PanicIfError(err)
 		d.waitGroup.Add(1)
 		go d.pcapFrameWriter()
@@ -376,7 +381,7 @@ func (d *Dispatcher) goSimulateForDuration(duration goDuration) {
 	}
 }
 
-// handleRecvEvent is the central handler for all events externally received from OpenThread nodes.
+// handleRecvEvent is the central handler for all events externally received from nodes/entities.
 // It may only process events immediately that are to be executed at time d.CurTime. Future events
 // will need to be queued (scheduled).
 func (d *Dispatcher) handleRecvEvent(evt *Event) {
@@ -387,7 +392,9 @@ func (d *Dispatcher) handleRecvEvent(evt *Event) {
 		return
 	}
 
-	node.conn = evt.Conn      // store socket connection for this node.
+	if node.conn == nil {
+		node.conn = evt.Conn // store socket connection for this node.
+	}
 	evt.Timestamp = d.CurTime // timestamp the incoming event
 
 	// TODO document this use (for alarm messages)
@@ -428,6 +435,16 @@ func (d *Dispatcher) handleRecvEvent(evt *Event) {
 		logger.Debugf("%s socket disconnected.", node)
 		d.setSleeping(node.Id)
 		d.alarmMgr.SetTimestamp(node.Id, Ever)
+	case EventTypeUdpToHost,
+		EventTypeIp6ToHost:
+		d.Counters.HostEvents += 1
+		d.sendMsgToHost(node, evt)
+		d.cbHandler.OnMsgToHost(node.Id, evt)
+	case EventTypeUdpFromHost,
+		EventTypeIp6FromHost:
+		d.Counters.HostEvents += 1
+		evt.MustDispatch = true // asap resend again to the target (BR) node.
+		d.eventQueue.Add(evt)
 	default:
 		d.Counters.OtherEvents += 1
 		d.cbHandler.OnRfSimEvent(node.Id, evt)
@@ -570,6 +587,9 @@ func (d *Dispatcher) processNextEvent(simSpeed float64) bool {
 						d.sendRadioCommRxStartEvents(node, evt)
 					case EventTypeRadioRxDone:
 						d.sendRadioCommRxDoneEvents(node, evt)
+					case EventTypeUdpFromHost,
+						EventTypeIp6FromHost:
+						node.sendEvent(evt) // TODO no loss on external network is simulated currently.
 					default:
 						if d.radioModel.OnEventDispatch(node.RadioNode, node.RadioNode, evt) {
 							node.sendEvent(evt)
@@ -842,6 +862,20 @@ func (d *Dispatcher) sendOneRadioFrame(evt *Event, srcnode *Node, dstnode *Node)
 	if d.radioModel.OnEventDispatch(srcnode.RadioNode, dstnode.RadioNode, &evt2) {
 		// send the event plus time keeping - moves dstnode's time to the current send-event's time.
 		dstnode.sendEvent(&evt2)
+	}
+}
+
+func (d *Dispatcher) sendMsgToHost(node *Node, evt *Event) {
+	if d.cfg.PcapEnabled {
+		/** TODO write IPv6 packet to a separate pcap file
+		d.pcapFrameChan <- pcap.Frame{
+			Timestamp: evt.Timestamp,
+			Data:      evt.Data,
+			Channel:   0,
+			Rssi:      RssiInvalid,
+		}
+		*/
+		node.logger.Debugf("sendMsgToHost: %v", evt)
 	}
 }
 
@@ -1145,6 +1179,10 @@ func (d *Dispatcher) advanceTime(ts uint64) {
 
 func (d *Dispatcher) PostAsync(task func()) {
 	d.taskChan <- task
+}
+
+func (d *Dispatcher) PostEventAsync(ev *Event) {
+	d.eventChan <- ev
 }
 
 func (d *Dispatcher) handleTasks() {

@@ -34,6 +34,8 @@ import (
 	"strings"
 	"unicode"
 
+	"net/netip"
+
 	"github.com/openthread/ot-ns/logger"
 	"github.com/openthread/ot-ns/types"
 )
@@ -61,6 +63,10 @@ const (
 	EventTypeRadioRfSimParamSet EventType = 17
 	EventTypeRadioRfSimParamRsp EventType = 18
 	EventTypeLogWrite           EventType = 19
+	EventTypeUdpToHost          EventType = 20
+	EventTypeIp6ToHost          EventType = 21
+	EventTypeUdpFromHost        EventType = 22
+	EventTypeIp6FromHost        EventType = 23
 )
 
 const (
@@ -87,6 +93,7 @@ type Event struct {
 	RadioStateData RadioStateEventData
 	NodeInfoData   NodeInfoEventData
 	RfSimParamData RfSimParamEventData
+	MsgToHostData  MsgToHostEventData
 }
 
 // All ...EventData formats below only used by OT nodes supporting advanced
@@ -119,6 +126,14 @@ const rfSimParamEventDataHeaderLen = 5 // from OT-RFSIM platform
 type RfSimParamEventData struct {
 	Param types.RfSimParam
 	Value int32
+}
+
+const msgToHostEventDataHeaderLen = 36 // from OT-RFSIM platform
+type MsgToHostEventData struct {
+	SrcPort       uint16
+	DstPort       uint16
+	SrcIp6Address netip.Addr
+	DstIp6Address netip.Addr
 }
 
 /*
@@ -154,6 +169,13 @@ func (e *Event) Serialize() []byte {
 	case EventTypeRadioRfSimParamGet:
 		extraFields = []byte{byte(e.RfSimParamData.Param), 0, 0, 0, 0}
 		binary.LittleEndian.PutUint32(extraFields[1:], uint32(e.RfSimParamData.Value))
+	case EventTypeUdpFromHost,
+		EventTypeIp6FromHost:
+		extraFields = make([]byte, msgToHostEventDataHeaderLen)
+		binary.LittleEndian.PutUint16(extraFields[0:2], e.MsgToHostData.SrcPort)
+		binary.LittleEndian.PutUint16(extraFields[2:4], e.MsgToHostData.DstPort)
+		copy(extraFields[4:20], e.MsgToHostData.SrcIp6Address.AsSlice())
+		copy(extraFields[20:36], e.MsgToHostData.DstIp6Address.AsSlice())
 	default:
 		break
 	}
@@ -207,6 +229,12 @@ func (e *Event) Deserialize(data []byte) int {
 		payloadOffset += nodeInfoEventDataHeaderLen
 	case EventTypeRadioRfSimParamRsp:
 		e.RfSimParamData = deserializeRfSimParamData(e.Data)
+		payloadOffset += rfSimParamEventDataHeaderLen
+	case EventTypeUdpToHost:
+		fallthrough
+	case EventTypeIp6ToHost:
+		e.MsgToHostData = deserializeMsgToHostData(e.Data)
+		payloadOffset += msgToHostEventDataHeaderLen
 	default:
 		break
 	}
@@ -259,6 +287,22 @@ func deserializeRfSimParamData(data []byte) RfSimParamEventData {
 	s := RfSimParamEventData{
 		Param: types.RfSimParam(data[0]),
 		Value: int32(binary.LittleEndian.Uint32(data[1:5])),
+	}
+	return s
+}
+
+func deserializeMsgToHostData(data []byte) MsgToHostEventData {
+	logger.AssertTrue(len(data) >= msgToHostEventDataHeaderLen)
+	ip6Addr := [16]byte{}
+	srcIp6 := [16]byte{}
+	copy(srcIp6[:], data[4:20])
+	copy(ip6Addr[:], data[20:36])
+
+	s := MsgToHostEventData{
+		SrcPort:       binary.LittleEndian.Uint16(data[0:2]),
+		DstPort:       binary.LittleEndian.Uint16(data[2:4]),
+		SrcIp6Address: netip.AddrFrom16(srcIp6),
+		DstIp6Address: netip.AddrFrom16(ip6Addr),
 	}
 	return s
 }

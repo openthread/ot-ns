@@ -36,6 +36,7 @@ NUM_BR = 1
 NUM_NODES = 1
 DX = 50  # pixels spacing
 
+# defines a setup script with partial dataset (no channel info)
 SCRIPT_PARTIAL_DATASET="""
 dataset clear
 dataset networkkey 00112233445566778899aabbccddeeff
@@ -52,6 +53,7 @@ def main():
     ns.radiomodel = 'MutualInterference'
     ns.web()
     ns.web('stats')
+    ns.watch_default('trace')
 
     # setup of Border Routers
     for i in range(1, NUM_BR+1):
@@ -63,7 +65,7 @@ def main():
     nid_br = 1
     ns.go(100)
 
-    # setup of Router nodes or End devices -
+    # setup of Router nodes or End devices
     cx = 100
     cy = DX
     for i in range(1, NUM_NODES+1):
@@ -77,6 +79,9 @@ def main():
     ns.kpi_start()
     ns.go(100)
     ns.kpi_stop()
+
+    # at the end, node's status can be inspected via CLI. KPI files contain activity over channels.
+    # The PCAP file contains channel info of all frames sent, to see the channel scanning happening.
     ns.interactive_cli()
 
 

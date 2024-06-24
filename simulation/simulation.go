@@ -62,6 +62,7 @@ type Simulation struct {
 	energyAnalyser *energy.EnergyAnalyser
 	nodePlacer     *NodeAutoPlacer
 	kpiMgr         *KpiManager
+	simHosts       *SimHosts
 }
 
 func NewSimulation(ctx *progctx.ProgCtx, cfg *Config, dispatcherCfg *dispatcher.Config) (*Simulation, error) {
@@ -76,6 +77,7 @@ func NewSimulation(ctx *progctx.ProgCtx, cfg *Config, dispatcherCfg *dispatcher.
 		networkInfo:  visualize.DefaultNetworkInfo(),
 		nodePlacer:   NewNodeAutoPlacer(),
 		kpiMgr:       NewKpiManager(),
+		simHosts:     NewSimHosts(),
 	}
 	s.SetLogLevel(cfg.LogLevel)
 	s.networkInfo.Real = cfg.Realtime
@@ -108,6 +110,7 @@ func NewSimulation(ctx *progctx.ProgCtx, cfg *Config, dispatcherCfg *dispatcher.
 	s.d.SetEnergyAnalyser(s.energyAnalyser)
 	s.vis.SetEnergyAnalyser(s.energyAnalyser)
 	s.kpiMgr.Init(s)
+	s.simHosts.Init(s)
 
 	return s, nil
 }
@@ -395,6 +398,22 @@ func (s *Simulation) OnRfSimEvent(nodeid NodeId, evt *event.Event) {
 	}
 }
 
+func (s *Simulation) OnMsgToHost(nodeid NodeId, evt *event.Event) {
+	node := s.nodes[nodeid]
+	if node == nil {
+		return
+	}
+
+	switch evt.Type {
+	case event.EventTypeIp6ToHost:
+		s.simHosts.handleIp6FromNode(node, &evt.MsgToHostData, evt.Data)
+	case event.EventTypeUdpToHost:
+		s.simHosts.handleUdpFromNode(node, &evt.MsgToHostData, evt.Data)
+	default:
+		logger.Panicf("Event type not implemented: %d", evt.Type)
+	}
+}
+
 // PostAsync will post an asynchronous simulation task in the queue for execution
 // @return true when post was successful, false if not (e.g. when sim exited)
 func (s *Simulation) PostAsync(f func()) bool {
@@ -411,6 +430,10 @@ func (s *Simulation) PostAsync(f func()) bool {
 
 func (s *Simulation) Dispatcher() *dispatcher.Dispatcher {
 	return s.d
+}
+
+func (s *Simulation) SimHosts() *SimHosts {
+	return s.simHosts
 }
 
 func (s *Simulation) VisitNodesInOrder(cb func(node *Node)) {

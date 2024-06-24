@@ -35,7 +35,7 @@ import (
 
 func TestPcapFile(t *testing.T) {
 	pcapFilename := "test.pcap"
-	pcap, err := NewFile(pcapFilename, FrameTypeWpan)
+	pcap, err := NewFile(pcapFilename, FrameTypeWpan, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -49,7 +49,7 @@ func TestPcapFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	assert.True(t, pcapFileHeaderSize == getFileSize(t, pcapFilename))
+	assert.Equal(t, pcapFileHeaderSize, getFileSize(t, pcapFilename))
 
 	for i := 0; i < 10; i++ {
 		frame := Frame{
@@ -73,7 +73,7 @@ func TestPcapFile(t *testing.T) {
 
 func TestPcapTapFile(t *testing.T) {
 	pcapFilename := "test_tap.pcap"
-	pcap, err := NewFile(pcapFilename, FrameTypeWpanTap)
+	pcap, err := NewFile(pcapFilename, FrameTypeWpanTap, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -87,7 +87,7 @@ func TestPcapTapFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	assert.True(t, pcapFileHeaderSize == getFileSize(t, pcapFilename))
+	assert.Equal(t, pcapFileHeaderSize, getFileSize(t, pcapFilename))
 
 	for i := 0; i < 10; i++ {
 		frame := Frame{
@@ -105,7 +105,44 @@ func TestPcapTapFile(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		assert.True(t, pcapFileHeaderSize+(pcapFrameHeaderSize+pcapTapFrameHeaderSize+5)*(i+1) == getFileSize(t, pcapFilename))
+		assert.Equal(t, pcapFileHeaderSize+(pcapFrameHeaderSize+pcapTapFrameHeaderSize+5)*(i+1), getFileSize(t, pcapFilename))
+	}
+}
+
+func TestPcapFileWithTimeRefFrame(t *testing.T) {
+	pcapFilename := "test_timerefframe.pcap"
+	pcap, err := NewFile(pcapFilename, FrameTypeWpan, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer func() {
+		_ = pcap.Close()
+	}()
+
+	err = pcap.Sync()
+	if err != nil {
+		t.Fatal(err)
+	}
+	pcapStartSize := getFileSize(t, pcapFilename)
+
+	for i := 0; i < 10; i++ {
+		frame := Frame{
+			Timestamp: 500 + uint64(i)*1000,
+			Data:      []byte{0x12, 0x10, 0xa6, 0x80, 0x65},
+			Channel:   25,
+			Rssi:      0.0,
+		}
+		err = pcap.AppendFrame(frame)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		err = pcap.Sync()
+		if err != nil {
+			t.Fatal(err)
+		}
+		assert.True(t, pcapStartSize+(pcapFrameHeaderSize+5)*(i+1) == getFileSize(t, pcapFilename))
 	}
 }
 

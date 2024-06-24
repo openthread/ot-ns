@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016-2023, The OpenThread Authors.
+ *  Copyright (c) 2016-2024, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -35,6 +35,8 @@
 #include <openthread/logging.h>
 #include "openthread-system.h"
 
+#include "common/logging.hpp"
+
 extern jmp_buf gResetJump;
 extern struct Event gLastSentEvent, gLastRecvEvent;
 
@@ -64,11 +66,14 @@ void otPlatReset(otInstance *aInstance)
 #if OPENTHREAD_CONFIG_PLATFORM_ASSERT_MANAGEMENT
 void otPlatAssertFail(const char *aFilename, int aLineNumber)
 {
-    fprintf(stderr,"assert failed at %s:%d\n", aFilename, aLineNumber);
-    fprintf(stderr, "Last sent Event: tp=%i dly=%lu datalen=%u\n",
+    otLogCritPlat("assert failed at %s:%d\n", aFilename, aLineNumber);
+    otLogCritPlat( "Last sent Event: tp=%i dly=%lu datalen=%u\n",
                    gLastSentEvent.mEvent, (unsigned long)gLastSentEvent.mDelay, gLastSentEvent.mDataLength);
-    fprintf(stderr, "Last recv Event: tp=%i dly=%lu datalen=%u\n",
+    otLogCritPlat( "Last recv Event: tp=%i dly=%lu datalen=%u\n",
                    gLastRecvEvent.mEvent, (unsigned long)gLastRecvEvent.mDelay, gLastRecvEvent.mDataLength);
+
+    fprintf(stderr,"assert failed at %s:%d\n", aFilename, aLineNumber);
+
     // For debug build, use assert to generate a core dump
     assert(false);
     exit(1);

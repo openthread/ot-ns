@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023, The OpenThread Authors.
+ *  Copyright (c) 2022-2024, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -29,7 +29,7 @@
 /**
  * @file
  * @brief
- *   This file includes simulation-event message formatting and parsing functions.
+ *   This file includes simulation-event message formatting, sending and parsing functions.
  */
 
 #include "common/debug.hpp"
@@ -45,8 +45,8 @@ struct Event gLastSentEvent;
 void otSimSendSleepEvent(void)
 {
     OT_ASSERT(platformAlarmGetNext() > 0);
-
     struct Event event;
+
     event.mDelay      = platformAlarmGetNext();
     event.mEvent      = OT_SIM_EVENT_ALARM_FIRED;
     event.mDataLength = 0;
@@ -57,8 +57,8 @@ void otSimSendSleepEvent(void)
 void otSimSendRadioCommEvent(struct RadioCommEventData *aEventData, const uint8_t *aPayload, size_t aLenPayload)
 {
     OT_ASSERT(aLenPayload <= OT_EVENT_DATA_MAX_SIZE);
-
     struct Event event;
+
     event.mEvent = OT_SIM_EVENT_RADIO_COMM_START;
     memcpy(event.mData, aEventData, sizeof(struct RadioCommEventData));
     memcpy(event.mData + sizeof(struct RadioCommEventData), aPayload, aLenPayload);
@@ -70,6 +70,7 @@ void otSimSendRadioCommEvent(struct RadioCommEventData *aEventData, const uint8_
 void otSimSendRadioCommInterferenceEvent(struct RadioCommEventData *aEventData)
 {
     struct Event event;
+
     event.mEvent = OT_SIM_EVENT_RADIO_COMM_START;
     memcpy(event.mData, aEventData, sizeof(struct RadioCommEventData));
     event.mData[sizeof(struct RadioCommEventData)] = aEventData->mChannel; // channel is stored twice TODO
@@ -81,6 +82,7 @@ void otSimSendRadioCommInterferenceEvent(struct RadioCommEventData *aEventData)
 void otSimSendRadioChanSampleEvent(struct RadioCommEventData *aChanData)
 {
     struct Event event;
+
     event.mEvent = OT_SIM_EVENT_RADIO_CHAN_SAMPLE;
     event.mDelay = 0;
     memcpy(event.mData, aChanData, sizeof(struct RadioCommEventData));
@@ -92,6 +94,7 @@ void otSimSendRadioChanSampleEvent(struct RadioCommEventData *aChanData)
 void otSimSendRadioStateEvent(struct RadioStateEventData *aStateData, uint64_t aDeltaUntilNextRadioState)
 {
     struct Event event;
+
     event.mEvent = OT_SIM_EVENT_RADIO_STATE;
     event.mDelay = aDeltaUntilNextRadioState;
     memcpy(event.mData, aStateData, sizeof(struct RadioStateEventData));
@@ -102,8 +105,8 @@ void otSimSendRadioStateEvent(struct RadioStateEventData *aStateData, uint64_t a
 
 void otSimSendUartWriteEvent(const uint8_t *aData, uint16_t aLength) {
     OT_ASSERT(aLength <= OT_EVENT_DATA_MAX_SIZE);
-
     struct Event event;
+
     event.mEvent      = OT_SIM_EVENT_UART_WRITE;
     event.mDelay      = 0;
     event.mDataLength = aLength;
@@ -126,8 +129,8 @@ void otSimSendLogWriteEvent(const uint8_t *aData, uint16_t aLength) {
 
 void otSimSendOtnsStatusPushEvent(const char *aStatus, uint16_t aLength) {
     OT_ASSERT(aLength <= OT_EVENT_DATA_MAX_SIZE);
-
     struct Event event;
+
     memcpy(event.mData, aStatus, aLength);
     event.mEvent      = OT_SIM_EVENT_OTNS_STATUS_PUSH;
     event.mDelay      = 0;
@@ -138,8 +141,8 @@ void otSimSendOtnsStatusPushEvent(const char *aStatus, uint16_t aLength) {
 
 void otSimSendExtAddrEvent(const otExtAddress *aExtAddress) {
     OT_ASSERT(aExtAddress != NULL);
-
     struct Event event;
+
     memcpy(event.mData, aExtAddress, sizeof(otExtAddress));
     event.mEvent      = OT_SIM_EVENT_EXT_ADDR;
     event.mDelay      = 0;
@@ -149,9 +152,9 @@ void otSimSendExtAddrEvent(const otExtAddress *aExtAddress) {
 }
 
 void otSimSendNodeInfoEvent(uint32_t nodeId) {
+    struct Event event;
     OT_ASSERT(nodeId > 0);
 
-    struct Event event;
     memcpy(event.mData, &nodeId, sizeof(uint32_t));
     event.mEvent      = OT_SIM_EVENT_NODE_INFO;
     event.mDelay      = 0;
@@ -162,6 +165,7 @@ void otSimSendNodeInfoEvent(uint32_t nodeId) {
 
 void otSimSendRfSimParamRespEvent(uint8_t param, int32_t value) {
     struct Event event;
+
     event.mData[0] = param;
     memcpy(event.mData + 1, &value, sizeof(int32_t));
     event.mEvent      = OT_SIM_EVENT_RFSIM_PARAM_RSP;
@@ -171,14 +175,29 @@ void otSimSendRfSimParamRespEvent(uint8_t param, int32_t value) {
     otSimSendEvent(&event);
 }
 
+void otSimSendMsgToHostEvent(uint8_t evType, struct MsgToHostEventData *aEventData, uint8_t *aMsgBytes, size_t aMsgLen) {
+    const size_t evDataSz = sizeof(struct MsgToHostEventData);
+    struct Event event;
+    OT_ASSERT(aMsgLen <= OT_EVENT_DATA_MAX_SIZE - evDataSz);
+
+    event.mEvent = evType;
+    event.mDelay = 0;
+    memcpy(event.mData, aEventData, evDataSz);
+    memcpy(event.mData + evDataSz, aMsgBytes, aMsgLen);
+    event.mDataLength = evDataSz + aMsgLen;
+
+    otSimSendEvent(&event);
+}
+
 void otSimSendEvent(struct Event *aEvent)
 {
+    ssize_t rval;
+
     aEvent->mMsgId = gLastMsgId;
     gLastSentEvent = *aEvent;
 
     if (gSockFd == 0)   // don't send events if socket invalid.
         return;
-    ssize_t            rval;
 
     // send header and data.
     rval = write(gSockFd, aEvent, offsetof(struct Event, mData) + aEvent->mDataLength);

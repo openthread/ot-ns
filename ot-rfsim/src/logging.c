@@ -43,7 +43,7 @@
 #if (OPENTHREAD_CONFIG_LOG_OUTPUT == OPENTHREAD_CONFIG_LOG_OUTPUT_PLATFORM_DEFINED)
 
 // specify up to which syslog log level message will still be handled. Normally we rely on log messages being sent
-// over the virtual-UART to the simulator; so we don't need everything to go to syslog.
+// in events to the simulator; so we don't need everything to go to syslog.
 //#define SYSLOG_LEVEL LOG_DEBUG
 #define SYSLOG_LEVEL LOG_WARNING
 
@@ -70,7 +70,7 @@ OT_TOOL_WEAK void otPlatLog(otLogLevel aLogLevel, otLogRegion aLogRegion, const 
 
     syslog(convertOtLogLevelToSyslogLevel(aLogLevel), "%s", logString);
 
-    // extend logString with newline, and then log this string to virtual UART.
+    // extend logString with newline, and then log this string in an event.
     if (!gTerminate) {
         logString[strLen] = '\n';
         logString[strLen + 1] = '\0';

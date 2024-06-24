@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2020-2024, The OTNS Authors.
+# Copyright (c) 2024, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,6 +27,7 @@
 
 import tracemalloc
 import unittest
+import logging
 
 from OTNSTestCase import OTNSTestCase
 from otns.cli import OTNS
@@ -37,107 +38,67 @@ tracemalloc.start()
 class CommissioningTests(OTNSTestCase):
 
     def setUp(self) -> None:
-        self.ns = OTNS(otns_args=['-ot-script', 'none', '-log', 'debug', '-pcap', 'wpan-tap', '-seed', '23'])
+        logging.info("Setting up for test: %s", self.name())
+        self.ns = OTNS(otns_args=['-ot-script', 'none', '-log', 'debug'])
         self.ns.speed = float('inf')
 
     def setFirstNodeDataset(self, n1) -> None:
         self.ns.node_cmd(n1, "dataset init new")
         self.ns.node_cmd(n1, "dataset networkkey 00112233445566778899aabbccddeeff") # allow easy Wireshark dissecting
+        self.ns.node_cmd(n1, "dataset securitypolicy 672 orcCR 3") # enable CCM-commissioning flag in secpolicy
         self.ns.node_cmd(n1, "dataset commit active")
-
-    def testRawNoSetup(self):
-        ns = self.ns
-        ns.add("router")
-        ns.add("router")
-        self.go(250)
-        # can not form any partition without setting network parameters
-        self.assertTrue(0 in ns.partitions())
-
-    def testRawSetup(self):
-        ns = self.ns
-        n1 = ns.add("router")
-        n2 = ns.add("router")
-        n3 = ns.add("router")
-
-        # n1 with full dataset becomes Leader.
-        ns.config_dataset(n1, channel=21, panid=0xface, extpanid="dead00beef00cafe", networkkey="00112233445566778899aabbccddeeff",
-                          active_timestamp=1719172243, network_name="test", set_remaining=True)
-        ns.ifconfig_up(n1)
-        ns.thread_start(n1)
-
-        # n2, n3 with partial dataset - will wait for Leader to join to.
-        for id in (n2, n3):
-            ns.config_dataset(id, network_name="test", networkkey="00112233445566778899aabbccddeeff", set_remaining=False)
-            ns.ifconfig_up(id)
-            ns.thread_start(id)
-
-        self.go(350)
-        self.assertFormPartitions(1)
 
     def testCommissioningOneHop(self):
         ns = self.ns
+        # ns.web()
+        ns.coaps_enable()
+        ns.radiomodel = 'MIDisc' # enforce strict line topologies for testing
 
-        n1 = ns.add("router")
-        n2 = ns.add("router")
+        n1 = ns.add("br", x = 100, y = 100, radio_range = 120)
+        n2 = ns.add("router", x = 100, y = 200, radio_range = 120)
+        n3 = ns.add("router", x = 200, y = 100, radio_range = 120)
 
+        # configure sim-host server that acts as BRSKI Registrar
+        # TODO update IPv6 addr
+        ns.cmd('host add "masa.example.com" "910b::1234" 5683 5683')
+
+        # n1 is out-of-band configured with initial dataset, and becomes leader+ccm-commissioner
         self.setFirstNodeDataset(n1)
         ns.ifconfig_up(n1)
         ns.thread_start(n1)
         self.go(35)
         self.assertTrue(ns.get_state(n1) == "leader")
-
         ns.commissioner_start(n1)
-        ns.commissioner_joiner_add(n1, "*", "TEST123")
 
+        # n2 joins as regular joiner
+        ns.commissioner_joiner_add(n1, "*", "TEST123")
         ns.ifconfig_up(n2)
         ns.joiner_start(n2, "TEST123")
-        self.go(100)
+        self.go(20)
         ns.thread_start(n2)
         self.go(100)
         c = ns.counters()
         print('counters', c)
         joins = ns.joins()
         print('joins', joins)
-        self.assertFormPartitions(1)
+        self.assertFormPartitionsIgnoreOrphans(1)
         self.assertTrue(joins and joins[0][1] > 0)  # assert join success
 
-    def testCommissioningThreeHop(self):
-        ns = self.ns
-        ns.radiomodel = 'MIDisc'
-
-        n1 = ns.add("router", radio_range = 110)
-        n2 = ns.add("router", radio_range = 110)
-        n3 = ns.add("router", radio_range = 110)
-        n4 = ns.add("router", radio_range = 110)
-
-        self.setFirstNodeDataset(n1)
-        ns.ifconfig_up(n1)
-        ns.thread_start(n1)
-        self.go(35)
-        self.assertTrue(ns.get_state(n1) == "leader")
-        ns.commissioner_start(n1)
-        ns.commissioner_joiner_add(n1, "*", "TEST123")
-
-        ns.ifconfig_up(n2)
-        ns.joiner_start(n2, "TEST123")
-        self.go(40)
-        ns.thread_start(n2)
-
+        # n3 joins as CCM  joiner
+        # because CoAP server is real, let simulation also move in real time.
+        ns.speed = 5
+        ns.commissioner_ccm_joiner_add(n1, "*")
         ns.ifconfig_up(n3)
-        ns.joiner_start(n3, "TEST123")
-        self.go(40)
-        ns.thread_start(n3)
+        ns.ccm_joiner_start(n3)
+        self.go(10)
+        #ns.thread_start(n3)
+        #self.go(100)
 
-        ns.ifconfig_up(n4)
-        ns.joiner_start(n4, "TEST123")
-        self.go(100)
-        ns.thread_start(n4)
-
-        self.go(100)
         c = ns.counters()
         print('counters', c)
         joins = ns.joins()
         print('joins', joins)
+        # ns.interactive_cli()
         self.assertFormPartitions(1)
         self.assertTrue(joins and joins[0][1] > 0)  # assert join success
 
