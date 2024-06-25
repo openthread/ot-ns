@@ -1489,8 +1489,8 @@ func (d *Dispatcher) handleRadioState(node *Node, evt *Event) {
 	energyState := evt.RadioStateData.EnergyState
 
 	const hdr = "(OTNS)       [T] RadioState----:"
-	node.logger.Tracef("%s EnergyState=%s SubState=%s RadioState=%s RadioTime=%d NextStTime=+%d",
-		hdr, energyState, subState, state, evt.RadioStateData.RadioTime, evt.Delay)
+	node.logger.Tracef("%s EnergyState=%s SubState=%s RadioState=%s Ch=%d RadioTime=%d NextStTime=+%d",
+		hdr, energyState, subState, state, evt.RadioStateData.Channel, evt.RadioStateData.RadioTime, evt.Delay)
 
 	if d.energyAnalyser != nil {
 		radioEnergy := d.energyAnalyser.GetNode(node.Id)
