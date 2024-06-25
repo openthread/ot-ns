@@ -1416,6 +1416,7 @@ void platformRadioProcess(otInstance *aInstance)
 
             case RFSIM_RADIO_SUBSTATE_TX_TX_TO_RX:
                 // no Ack was requested
+                sOngoingOperationChannel = sCurrentChannel;
                 setRadioSubState(RFSIM_RADIO_SUBSTATE_IFS_WAIT, ifsTime - sTurnaroundTimeUs);
                 break;
 
@@ -1435,11 +1436,13 @@ void platformRadioProcess(otInstance *aInstance)
             case RFSIM_RADIO_SUBSTATE_TX_ACK_RX_ONGOING:
                 // wait until Ack receive is done. In platformRadioRxDone() the next state is selected.
                 // if we get here on the timer, this ongoing Ack wasn't received properly.
+                sOngoingOperationChannel = sCurrentChannel;
                 setRadioSubState(RFSIM_RADIO_SUBSTATE_IFS_WAIT, ifsTime);
                 signalRadioTxDone(aInstance, &sTransmitFrame, NULL, OT_ERROR_NO_ACK);
                 break;
 
             case RFSIM_RADIO_SUBSTATE_IFS_WAIT:
+                sOngoingOperationChannel = sCurrentChannel;
                 setRadioSubState(RFSIM_RADIO_SUBSTATE_READY, UNDEFINED_TIME_US);
                 sTxWait = false;
                 break;
@@ -1472,6 +1475,7 @@ void platformRadioProcess(otInstance *aInstance)
             case RFSIM_RADIO_SUBSTATE_RX_ENERGY_SCAN:
                 if (IsTimeAfterOrEqual(otPlatAlarmMilliGetNow(), sEnergyScanEndTime))
                 {
+                    sOngoingOperationChannel = sCurrentChannel;
                     otPlatRadioEnergyScanDone(aInstance, sEnergyScanResult);
                     setRadioSubState(RFSIM_RADIO_SUBSTATE_READY, UNDEFINED_TIME_US);
                     sEnergyScanning = false;

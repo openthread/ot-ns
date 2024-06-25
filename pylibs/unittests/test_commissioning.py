@@ -55,6 +55,7 @@ class CommissioningTests(OTNSTestCase):
 
     def testRawSetup(self):
         ns = self.ns
+        ns.watch_default('trace') # for most detailed radio logs
         n1 = ns.add("router")
         n2 = ns.add("router")
         n3 = ns.add("router")
@@ -71,7 +72,7 @@ class CommissioningTests(OTNSTestCase):
             ns.ifconfig_up(id)
             ns.thread_start(id)
 
-        self.go(350)
+        self.go(50)
         self.assertFormPartitions(1)
 
     def testCommissioningOneHop(self):
