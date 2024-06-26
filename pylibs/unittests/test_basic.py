@@ -425,21 +425,25 @@ class BasicTests(OTNSTestCase):
 
     def testMultiRadioChannel(self):
         ns = self.ns
-        radio_range = 100
-        ns.add("router", 0, 0, radio_range=radio_range)
-        ns.add("router", 0, 50, radio_range=radio_range)
-        ns.add("router", 50, 0, radio_range=radio_range)
-        ns.add("router", 50, 50, radio_range=radio_range)
+        # create a Thread network at default channel (11)
+        ns.add("router", 100, 100)
+        ns.add("router", 100, 200)
+        ns.add("router", 200, 100)
+        ns.add("router", 200, 200)
         self.go(130)
         self.assertFormPartitions(1)
 
         for n in [1,2]:
+            # perform a special sequence to modify the Active Dataset on n1, n2 to use channel 20 instead.
             ns.node_cmd(n, "ifconfig down")
+            ns.node_cmd(n, "dataset init active")
+            ns.node_cmd(n, "dataset channel 20")
             ns.node_cmd(n, "channel 20")
+            ns.node_cmd(n, "dataset commit active") # this must be done after the 'channel' CLI command.
             ns.node_cmd(n, "ifconfig up")
             ns.node_cmd(n, "thread start")
         self.go(300)
-        self.assertFormPartitions(2)
+        self.assertFormPartitions(2) # we expect the 2 groups on different channels to not see each other.
 
     def testLoglevel(self):
         ns: OTNS = self.ns

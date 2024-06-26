@@ -77,9 +77,6 @@ class TopologiesTests(OTNSTestCase):
         self.assertEqual(nn,len(ns.nodes()))
 
     def testMultiChannel(self):
-        self.ns.close()
-        # use ot-script option to prevent standard network data init script to run.
-        self.ns = OTNS(otns_args=['-ot-script','none'])
         ns = self.ns
         ns.loglevel = 'info'
         ns.watch_default('warn') # show errors+warnings from all OT nodes
@@ -98,7 +95,7 @@ class TopologiesTests(OTNSTestCase):
             for cg in range(0,n_netw_group[1]):
                 for rn in range(0,n_node_group[0]):
                     for cn in range(0,n_node_group[1]):
-                        nid = ns.add('router', x=ofs_x+cg*gdx+cn*ndx, y=ofs_y+rg*gdy+rn*ndy)
+                        nid = ns.add('router', x=ofs_x+cg*gdx+cn*ndx, y=ofs_y+rg*gdy+rn*ndy, script=None)
                         self.setup_node_for_group(nid, ng)
                 ng += 1
 
@@ -110,13 +107,9 @@ class TopologiesTests(OTNSTestCase):
     # executes a startup script on each node, params depending on each group (ngrp)
     def setup_node_for_group(self, nid, ngrp):
         chan = ngrp-1 + 11
-        self.ns.set_network_name(nid,f"Netw{ngrp}_Chan{chan}")
-        self.ns.set_panid(nid,ngrp)
-        self.ns.set_extpanid(nid,ngrp)
-        self.ns.set_networkkey(nid,f"{ngrp:#0{34}x}"[2:])
-        self.ns.set_channel(nid,chan)
-        self.ns.ifconfig_up(nid)
-        self.ns.thread_start(nid)
+        self.ns.config_dataset(nid, network_name=f"Netw{ngrp}_Chan{chan}", panid=ngrp, extpanid=f"{ngrp:#0{16}}",
+                               networkkey=f"{ngrp:#0{34}x}"[2:], channel=chan,
+                               active_timestamp=42, set_remaining=True)
 
 
 if __name__ == '__main__':
