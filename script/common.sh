@@ -34,16 +34,16 @@ elif [[ "$(uname)" == "Linux" ]]; then
     export readonly Darwin=0
     export readonly Linux=1
 else
-    die "Unknown OS: $(uname)"
+    die "Unsupported OS: $(uname)"
 fi
 
 # shellcheck source=script/utils.sh
 . "$(dirname "$0")"/utils.sh
 
 export readonly SCRIPTDIR
-SCRIPTDIR=$(realpath "$(dirname "$0")")
+SCRIPTDIR=$(realpathf "$(dirname "$0")")
 export readonly OTNSDIR
-OTNSDIR=$(realpath "$SCRIPTDIR"/..)
+OTNSDIR=$(realpathf "$SCRIPTDIR"/..)
 export readonly GOPATH
 GOPATH=$(go env GOPATH)
 export PATH=$PATH:"$GOPATH"/bin
