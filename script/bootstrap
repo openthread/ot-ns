@@ -1,5 +1,5 @@
-#!/usr/bin/env python3
-# Copyright (c) 2020-2024, The OTNS Authors.
+#!/bin/bash
+# Copyright (c) 2024, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -24,21 +24,39 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+#
+# This script bootstraps a complete install of OTNS, nodes, dependencies.
 
-import setuptools
+set -euox pipefail
 
-setuptools.setup(
-    name="pyOTNS",
-    version="2.1.0",
-    author="The OTNS Authors",
-    description="Run OTNS2 OpenThread mesh network simulations from Python code",
-    url="https://github.com/EskoDijk/ot-ns",
-    packages=setuptools.find_packages(),
-    classifiers=[
-        "Programming Language :: Python :: 3",
-        "License :: OSI Approved :: BSD 3-Clause License",
-        "Operating System :: OS Independent",
-    ],
-    python_requires='>=3.9',
-    install_requires=['PyYAML'],
-)
+if [[ "$(uname)" == "Darwin" ]]; then
+    export readonly Darwin=1
+    export readonly Linux=0
+elif [[ "$(uname)" == "Linux" ]]; then
+    export readonly Darwin=0
+    export readonly Linux=1
+else
+    die "Unsupported OS: $(uname)"
+fi
+
+# shellcheck source=script/utils.sh
+. "$(dirname "$0")"/utils.sh
+
+# Some basic items missing on Ubuntu Docker, assumed present on MacOS.
+if [[ $Linux == 1 ]]; then
+    if ! installed sudo; then
+        apt install sudo
+    fi
+    install_package xdg-open --apt xdg-utils || true
+fi
+
+# Install Go if needed
+install_package go --apt golang --brew golang || true
+
+# Do the rest via the test script
+# TODO: once MacOS supports OT versions, remove the below if.
+if [[ $Linux == 1 ]]; then
+    ./script/test py-ver-unittests
+else
+    ./script/test py-unittests
+fi

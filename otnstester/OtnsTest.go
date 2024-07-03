@@ -429,7 +429,7 @@ func NewOtnsTest(t *testing.T) *OtnsTest {
 		})
 	}()
 
-	grpcConn, err := grpc.NewClient("localhost:8999", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	grpcConn, err := grpc.Dial("localhost:8999", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	ot.ExpectNoError(err)
 
 	grpcClient := visualize_grpc_pb.NewVisualizeGrpcServiceClient(grpcConn)
