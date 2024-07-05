@@ -1,3 +1,18 @@
 [submodule "openthread"]
 	path = openthread
 	url = https://github.com/openthread/openthread.git
+[submodule "openthread-v11"]
+	path = openthread-v11
+	url = https://github.com/EskoDijk/openthread.git
+	branch = otns-v11
+	shallow = true
+[submodule "openthread-v12"]
+	path = openthread-v12
+	url = https://github.com/EskoDijk/openthread.git
+	branch = otns-v12
+	shallow = true
+[submodule "openthread-v13"]
+	path = openthread-v13
+	url = https://github.com/EskoDijk/openthread.git
+	branch = otns-v13
+	shallow = true

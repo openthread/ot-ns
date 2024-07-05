@@ -27,11 +27,8 @@
 #  POSSIBILITY OF SUCH DAMAGE.
 #
 
-printf "\n./script/build_all  --  Will build only OT node versions that are not yet present.\n\n"
-printf "WARNING - script adapts git commits in the ot-ns/openthread directory. In case of script interruption,\n"
-printf "          correct commit needs to be manually restored with 'git submodule update'.\n\n"
+printf "\n./script/build_all  --  builds only OT node versions for which executables are not found.\n\n"
 
-sleep 1
 set -euo pipefail
 
 main()
@@ -42,7 +39,6 @@ main()
     for VER in v11 v12 v13 latest br; do
         SCRIPTNAME="./script/build_$VER"
         FTDNAME="./ot-versions/ot-cli-ftd_$VER"
-        OT_COMMIT=""
         if [ "$VER" == "latest" ]; then
             FTDNAME="./ot-versions/ot-cli-ftd"
         fi
@@ -51,26 +47,6 @@ main()
             printf '\n%s: file %s is present, skipping this version build.\n\n' "${VER}" "${FTDNAME}"
         else
             printf '%s: building %s' "${VER}" "${FTDNAME}"
-            if [ "$VER" == "v11" ]; then
-                OT_COMMIT="0a5152b4fa9f9cbff57da89d9aa33d409e915241"
-            elif [ "$VER" == "v12" ]; then
-                OT_COMMIT="f759d163dc4e719bc2dbdf0bc713ea33d51b1819"
-            elif [ "$VER" == "v13" ]; then
-                OT_COMMIT="c6179c24ed75a11c14dc4b1fffcde58be0bda785"
-            fi
-
-            if [ -z "$OT_COMMIT" ]; then
-                cd ..
-                git submodule update
-                cd ot-rfsim
-            else
-                cd ../openthread
-                git checkout $OT_COMMIT
-                cd ../ot-rfsim
-            fi
-            # clean all previous build config to avoid errors across commits.
-            rm -rf build
-
             ${SCRIPTNAME} "${options[@]}" || printf \
                 '\n********************\n  Failed build script: %s - skipping.\n********************\n\n' "${SCRIPTNAME}"
         fi

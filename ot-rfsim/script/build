@@ -40,7 +40,6 @@ OT_OPTIONS=(
     "-DOT_PLATFORM=external"
     "-DOT_FULL_LOGS=ON"
     "-DOT_VENDOR_NAME=OpenThread.io"
-    "-DOT_VENDOR_MODEL=RFSIM-Node"
     "-DOT_VENDOR_SW_VERSION=2.0.0"
     "-DOT_JOINER=ON"
     "-DOT_COAP=ON"
@@ -60,6 +59,17 @@ build()
 
     mkdir -p "${builddir}"
     cd "${builddir}"
+
+    local old_ot_dir=""
+    if [[ -f OT_DIR.txt ]]; then
+        old_ot_dir=$(cat OT_DIR.txt)
+    fi
+    if [[ ${OT_DIR} != "${old_ot_dir}" ]]; then
+        echo "Detected new version build of OpenThread: cleaning build dir."
+        rm -rf ../"${builddir}"/*
+        rm -rf ../"${builddir}"/.ninja*
+    fi
+    echo "${OT_DIR}" >OT_DIR.txt
 
     cmake -GNinja -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DOT_COMPILE_WARNING_AS_ERROR=ON "$@" "${OTRFSIM_SRCDIR}"
     ninja ot-cli-ftd ot-cli-mtd

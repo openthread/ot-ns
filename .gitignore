@@ -41,7 +41,7 @@ coverage.txt
 /web/site/static/js/*.js
 
 # ot-rfsim build items
-/ot-rfsim/build/
+/ot-rfsim/build*/
 /ot-rfsim/cmake-build-debug
 
 # pylibs installation files

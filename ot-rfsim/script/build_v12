@@ -33,17 +33,11 @@ OT_OPTIONS=(
     "-DOT_MLR=ON"
     "-DOT_THREAD_VERSION=1.2"
     "-DOT_VENDOR_MODEL=RFSIM-Node-v1.2"
+    "-DOT_COMPILE_WARNING_AS_ERROR=OFF"
 )
 readonly OT_OPTIONS
 
-cd ../openthread
-OT_COMMIT=$(git rev-parse HEAD)
-if [ "$OT_COMMIT" != "f759d163dc4e719bc2dbdf0bc713ea33d51b1819" ]; then
-    printf 'OpenThread commit hash does not match selected Thread 1.2 commit, quitting.\n'
-    exit 1
-fi
-cd ../ot-rfsim
+OT_DIR="../openthread-v12" OT_CMAKE_BUILD_DIR="build-v12" ./script/build "${OT_OPTIONS[@]}"
 
-./script/build "${OT_OPTIONS[@]}"
-cp ./build/bin/ot-cli-ftd ./ot-versions/ot-cli-ftd_v12
-cp ./build/bin/ot-cli-mtd ./ot-versions/ot-cli-mtd_v12
+cp ./build-v12/bin/ot-cli-ftd ./ot-versions/ot-cli-ftd_v12
+cp ./build-v12/bin/ot-cli-mtd ./ot-versions/ot-cli-mtd_v12

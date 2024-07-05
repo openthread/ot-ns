@@ -26,8 +26,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 # This script bootstraps a complete install of OTNS, nodes, dependencies.
+# It can be used after a fresh Git clone, or after an update (Git pull).
 
-set -euox pipefail
+set -euo pipefail
 
 if [[ "$(uname)" == "Darwin" ]]; then
     export readonly Darwin=1
@@ -36,7 +37,8 @@ elif [[ "$(uname)" == "Linux" ]]; then
     export readonly Darwin=0
     export readonly Linux=1
 else
-    die "Unsupported OS: $(uname)"
+    echo "Unsupported OS: $(uname)"
+    exit 1
 fi
 
 # shellcheck source=script/utils.sh
@@ -53,10 +55,15 @@ fi
 # Install Go if needed
 install_package go --apt golang --brew golang || true
 
-# Do the rest via the test script
-# TODO: once MacOS supports OT versions, remove the below if.
-if [[ $Linux == 1 ]]; then
-    ./script/test py-ver-unittests
+# Remove any older standard node builds - these might be incompatible with latest version.
+rm ./ot-rfsim/ot-versions/ot-cli-?td* || true
+
+# Do the rest via the test script, automatically
+./script/test py-ver-unittests || die "OTNS Installation/tests failed!"
+
+# Check if 'otns' command is available.
+if [[ -n $(which otns) ]]; then
+    echo "OTNS installed - use 'otns' to start it."
 else
-    ./script/test py-unittests
+    echo "OTNS installed - please add ~/go/bin to your PATH variable first, to use it."
 fi
