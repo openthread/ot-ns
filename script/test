@@ -87,8 +87,8 @@ py_unittests()
     activate_python_venv
     python3 -m pip install -r "$OTNSDIR"/pylibs/unittests/requirements.txt
     install_otns
-    build_openthread_br
     build_openthread
+    build_openthread_br
 
     python3 "$OTNSDIR"/pylibs/unittests/test_basic.py
     python3 "$OTNSDIR"/pylibs/unittests/test_ping.py
@@ -192,6 +192,7 @@ main()
                 ;;
             build-openthread)
                 build_openthread
+                build_openthread_br
                 shift 1
                 ;;
             build-openthread-versions)

@@ -32,17 +32,11 @@ set -euxo pipefail
 OT_OPTIONS=(
     "-DOT_THREAD_VERSION=1.1"
     "-DOT_VENDOR_MODEL=RFSIM-Node-v1.1"
+    "-DOT_COMPILE_WARNING_AS_ERROR=OFF"
 )
 readonly OT_OPTIONS
 
-cd ../openthread
-OT_COMMIT=$(git rev-parse HEAD)
-if [ "$OT_COMMIT" != "0a5152b4fa9f9cbff57da89d9aa33d409e915241" ]; then
-    printf 'OpenThread commit hash does not match selected Thread 1.1 commit, quitting.\n'
-    exit 1
-fi
-cd ../ot-rfsim
+OT_DIR="../openthread-v11" OT_CMAKE_BUILD_DIR="build-v11" ./script/build "${OT_OPTIONS[@]}"
 
-./script/build "${OT_OPTIONS[@]}"
-cp ./build/bin/ot-cli-ftd ./ot-versions/ot-cli-ftd_v11
-cp ./build/bin/ot-cli-mtd ./ot-versions/ot-cli-mtd_v11
+cp ./build-v11/bin/ot-cli-ftd ./ot-versions/ot-cli-ftd_v11
+cp ./build-v11/bin/ot-cli-mtd ./ot-versions/ot-cli-mtd_v11

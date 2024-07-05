@@ -58,6 +58,7 @@ main()
     options+=("${OT_OPTIONS[@]}" "$@")
 
     ./script/build "${options[@]}"
+
     cp ./build/bin/ot-cli-?td ./ot-versions/
 }
 
