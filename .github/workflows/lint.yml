@@ -1,4 +1,4 @@
-# Copyright (c) 2020-2023, The OTNS Authors.
+# Copyright (c) 2020-2024, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -32,17 +32,13 @@ on:
     branches:
       - 'main'
 
-jobs:
-  cancel-previous-runs:
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: rokroskar/workflow-run-cleanup-action@master
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        if: "github.ref != 'refs/heads/main'"
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
+jobs:
   go-lint:
-    name: Go Lint
+    name: Go/Shell Lint
     runs-on: ubuntu-22.04
     env:
       HOMEBREW_NO_AUTO_UPDATE: 1
