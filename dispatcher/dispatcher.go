@@ -406,7 +406,7 @@ func (d *Dispatcher) handleRecvEvent(evt *Event) {
 	switch evt.Type {
 	case EventTypeAlarmFired:
 		d.Counters.AlarmEvents += 1
-		if evt.MsgId == node.msgId { // if OT-node has seen my last sent event (so is done processing)
+		if evt.MsgId == node.msgId { // if OT-node has seen my last sent event (so it is done processing)
 			d.setSleeping(node.Id)
 		}
 		d.alarmMgr.SetTimestamp(nodeid, d.CurTime+delay) // schedule future wake-up of node
@@ -443,8 +443,9 @@ func (d *Dispatcher) handleRecvEvent(evt *Event) {
 	case EventTypeUdpFromHost,
 		EventTypeIp6FromHost:
 		d.Counters.HostEvents += 1
-		evt.MustDispatch = true // asap resend again to the target (BR) node.
-		d.eventQueue.Add(evt)
+		evt2 := evt.Copy()
+		evt2.MustDispatch = true // asap resend again to the target (BR) node.
+		d.eventQueue.Add(&evt2)
 	default:
 		d.Counters.OtherEvents += 1
 		d.cbHandler.OnRfSimEvent(node.Id, evt)
@@ -909,7 +910,7 @@ func (d *Dispatcher) syncAliveNodes() {
 		return
 	}
 
-	logger.Warnf("syncing %d alive nodes: %v", len(d.aliveNodes), d.aliveNodes)
+	logger.Warnf("syncing %d non-responding (alive) nodes: %v at simtime=%v", len(d.aliveNodes), d.aliveNodes, d.CurTime)
 	for nodeid := range d.aliveNodes {
 		d.advanceNodeTime(d.nodes[nodeid], d.CurTime, true)
 	}

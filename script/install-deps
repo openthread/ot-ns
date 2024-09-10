@@ -25,7 +25,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-# This script installs OTNS dependencies.
+# This script installs OTNS dependencies and is called by 'test'.
 
 # shellcheck source=script/common.sh
 . "$(dirname "$0")"/common.sh
@@ -62,7 +62,7 @@ install_grpcwebproxy()
 install_python_libs()
 {
     activate_python_venv
-    python3 -m pip install setuptools wheel
+    python3 -m pip install setuptools wheel yapf
 }
 
 main()

@@ -33,7 +33,7 @@ function die()
 
 function realpathf()
 {
-    # the Python3 method is a backup.
+    # the Python3 method is a backup. Used for max portability.
     realpath -s "$1" || python3 -c "import os; print(os.path.realpath('$1'))"
 }
 
@@ -109,11 +109,12 @@ install_package()
 
 function install_pretty_tools()
 {
+    # TODO Known bug: version v1.59.0 won't work with Go 1.23 or higher. Requires version <= 1.22
     if ! installed golangci-lint; then
         curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b "$(go env GOPATH)"/bin v1.59.0
     fi
 
-    go install mvdan.cc/sh/v3/cmd/shfmt@latest
+    install_package shfmt --apt shfmt --brew shfmt
     install_package shellcheck --apt shellcheck --brew shellcheck
 }
 

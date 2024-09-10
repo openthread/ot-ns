@@ -48,7 +48,15 @@ OT_OPTIONS=(
 )
 readonly OT_OPTIONS
 
-OT_DIR="../openthread-v13" OT_CMAKE_BUILD_DIR="build-v13" ./script/build "${OT_OPTIONS[@]}"
+main()
+{
+    local options=()
+    options+=("${OT_OPTIONS[@]}" "$@")
 
-cp ./build-v13/bin/ot-cli-ftd ./ot-versions/ot-cli-ftd_v13
-cp ./build-v13/bin/ot-cli-mtd ./ot-versions/ot-cli-mtd_v13
+    OT_DIR="../openthread-v13" OTNS_NODE_TYPE="v13" OT_CMAKE_NINJA_TARGET="ot-cli-ftd ot-cli-mtd" ./script/build "${options[@]}"
+
+    cp ./build/v13/bin/ot-cli-ftd ./ot-versions/ot-cli-ftd_v13
+    cp ./build/v13/bin/ot-cli-mtd ./ot-versions/ot-cli-mtd_v13
+}
+
+main "$@"

@@ -185,7 +185,7 @@ func (node *Node) sendEvent(evt *Event) {
 	node.CurTime += evt.Delay
 	logger.AssertTrue(node.CurTime == node.D.CurTime)
 
-	// re-evaluate the FailutreCtrl when node time advances.
+	// re-evaluate the FailureCtrl when node time advances.
 	if evt.Timestamp > oldTime {
 		reEvaluateTime, isUpdated := node.failureCtrl.OnTimeAdvanced(oldTime)
 		if isUpdated {

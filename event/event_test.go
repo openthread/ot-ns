@@ -28,9 +28,8 @@ package event
 
 import (
 	"encoding/hex"
-	"testing"
-
 	"net/netip"
+	"testing"
 
 	"github.com/openthread/ot-ns/types"
 	"github.com/stretchr/testify/assert"
@@ -303,4 +302,27 @@ func TestEventCopy(t *testing.T) {
 	assert.Equal(t, uint8(42), evCopy.RadioCommData.Channel)
 	assert.Equal(t, uint8(types.OT_ERROR_FCS), evCopy.RadioCommData.Error)
 	assert.Equal(t, uint64(11234), evCopy.MsgId)
+}
+
+func TestDeserializeEventFromLargerData(t *testing.T) {
+	data, _ := hex.DecodeString("0403020100000000060c0d0e0f00000000100002b01140e201000000000002102030400809070605040302010000")
+	ev := Event{}
+	n := ev.Deserialize(data)
+	assert.Equal(t, 35, n)
+	assert.Equal(t, 35-eventMsgHeaderLen-radioCommEventDataHeaderLen, len(ev.Data))
+}
+
+func TestDeserializeEventFromTooLittleData(t *testing.T) {
+	// header intact, but incomplete data (i.e. datalen too large)
+	data, _ := hex.DecodeString("0403020100000000060c0d0e0f00000000100002b01140e201000000000002102030")
+	ev := Event{}
+	n := ev.Deserialize(data)
+	assert.Equal(t, 0, n)
+	assert.Equal(t, 0, len(ev.Data))
+
+	data, _ = hex.DecodeString("0403020100000000060c0d0e0f00000000")
+	ev = Event{}
+	n = ev.Deserialize(data)
+	assert.Equal(t, 0, n)
+	assert.Equal(t, 0, len(ev.Data))
 }

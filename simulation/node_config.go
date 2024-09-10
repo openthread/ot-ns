@@ -284,7 +284,9 @@ func (cfg *ExecutableConfig) FindExecutableBasedOnConfig(nodeCfg *NodeConfig) st
 	}
 	if nodeCfg.IsBorderRouter {
 		exeName = cfg.Br
-	} else if len(nodeCfg.Version) > 0 && nodeCfg.Version != versionLatestTag {
+	}
+
+	if len(nodeCfg.Version) > 0 && nodeCfg.Version != versionLatestTag {
 		exeName += "_" + nodeCfg.Version
 	}
 

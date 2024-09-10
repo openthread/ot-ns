@@ -10,32 +10,34 @@
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
+
+# IDE files
 .idea/
+
+# Go generated files
 go.sum
-tmp/
-*.json
+go.mod.orig
+
+# ignore OTNS Go executables
+/cmd/otns/otns
+
+# OT-NS output files
+tmp*/
+?_kpi*.json
 *.log
 *.rep
-ot-cli-ftd
-ot-cli-mtd
-ot-cli-ftd_*
-ot-cli-mtd_*
-ot-rcp
+*.replay
+
+# Python/NodeJS generated
 *.pyc
 __pycache__
 node_modules/
 coverage.txt
 
-# Ignore any pcap
+# Ignore any pcap (generated)
 *.pcap
 
-# Ignore OTNS replay files
-*.replay
-
-# ignore OTNS executables
-/cmd/otns/otns
-
-# ignore generated files
+# ignore generated files (gRPC/web)
 /visualize/grpc/pb/*.pb.go
 /web/site/js/proto/*_pb.js
 /web/site/static/js/*.js
@@ -43,9 +45,16 @@ coverage.txt
 # ot-rfsim build items
 /ot-rfsim/build*/
 /ot-rfsim/cmake-build-debug
+ot-cli-ftd*
+ot-cli-mtd*
+ot-rcp
 
 # pylibs installation files
 /pylibs/build/
 /pylibs/dist/
 /pylibs/pyOTNS.egg-info/
 /.venv-otns
+
+# lock files
+package-lock.json
+
