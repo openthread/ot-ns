@@ -41,8 +41,16 @@ if(DEFINED ENV{OT_DIR})
 else()
     set(OT_DIR "${PROJECT_SOURCE_DIR}/../openthread")
 endif()
+if(DEFINED ENV{OTNS_NODE_TYPE})
+    set(OTNS_NODE_TYPE "$ENV{OTNS_NODE_TYPE}")
+    message( "-- [ot-rfsim] Caller has set OTNS_NODE_TYPE to: ${OTNS_NODE_TYPE}")
+else()
+    set(OTNS_NODE_TYPE "custom")
+endif()
 get_filename_component(OT_DIR "${OT_DIR}" REALPATH)
-message( "-- [ot-rfsim] Using openthread directory for build: ${OT_DIR}" )
+set(BUILD_DIR "build/ot-rfsim-${OTNS_NODE_TYPE}")
+message( "-- [ot-rfsim] Using openthread stack for build       : ${OT_DIR}" )
+message( "-- [ot-rfsim] Using openthread build output directory: ${BUILD_DIR}" )
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
@@ -52,7 +60,7 @@ add_definitions( -DRFSIM_SW_VERSION="${CMAKE_PROJECT_VERSION}" )
 
 # an external openthread repo may be defined - its build files are stored in there, so that coverage info
 # collection will work.
-add_subdirectory(${OT_DIR} ${OT_DIR}/build/ot-rfsim)
+add_subdirectory(${OT_DIR} ${OT_DIR}/${BUILD_DIR})
 
 target_compile_definitions(ot-config INTERFACE
     OPENTHREAD_CONFIG_FILE="openthread-core-rfsim-config.h"

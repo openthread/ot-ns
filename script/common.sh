@@ -40,19 +40,26 @@ fi
 # shellcheck source=script/utils.sh
 . "$(dirname "$0")"/utils.sh
 
-export readonly SCRIPTDIR
 SCRIPTDIR=$(realpathf "$(dirname "$0")")
-export readonly OTNSDIR
+export readonly SCRIPTDIR
+
 OTNSDIR=$(realpathf "$SCRIPTDIR"/..)
-export readonly GOPATH
+export readonly OTNSDIR
+
 GOPATH=$(go env GOPATH)
+export readonly GOPATH
 export PATH=$PATH:"$GOPATH"/bin
 mkdir -p "$GOPATH"/bin
 
-export readonly GOLINT_ARGS=(-E goimports -E whitespace -E goconst -E exportloopref -E unconvert)
-export readonly OTNS_BUILD_JOBS
+GOLINT_ARGS=(-E goimports -E whitespace -E goconst -E exportloopref -E unconvert)
+export readonly GOLINT_ARGS
+
 OTNS_BUILD_JOBS=$(getconf _NPROCESSORS_ONLN)
-export readonly OTNS_EXCLUDE_DIRS=(web/site/node_modules/ openthread/ openthread-v11/ openthread-v12/ openthread-v13/ build/ build-v11/ build-v12/ build-v13/)
+export readonly OTNS_BUILD_JOBS
+
+# excluded dirs for make-pretty or similar operations
+OTNS_EXCLUDE_DIRS=(build/ web/site/node_modules/ openthread/ openthread-v11/ openthread-v12/ openthread-v13/ openthread-ccm/)
+export readonly OTNS_EXCLUDE_DIRS
 
 go_install()
 {
@@ -104,14 +111,12 @@ build_openthread()
 
 build_openthread_br()
 {
-    if [[ ! -f ./ot-rfsim/ot-versions/ot-cli-ftd_br ]]; then
-        get_openthread
-        install_openthread_buildtools
-        (
-            cd ot-rfsim
-            ./script/build_br "$(get_build_options)"
-        )
-    fi
+    get_openthread
+    install_openthread_buildtools
+    (
+        cd ot-rfsim
+        ./script/build_br "$(get_build_options)"
+    )
 }
 
 build_openthread_versions()

@@ -1051,13 +1051,13 @@ class OTNS(object):
         """
         self.node_cmd(nodeid, f"joiner start {pwd}")
 
-    def ccm_joiner_start(self, nodeid: int) -> None:
+    def joiner_startccm(self, nodeid: int) -> None:
         """
-        Start CCM joiner.
+        Start CCM joiner, using Autonomous Enrollment (AE) with cBRSKI.
 
         :param nodeid: joiner node ID
         """
-        self.node_cmd(nodeid, f"joiner ccm")
+        self.node_cmd(nodeid, f"joiner startccm")
 
     def commissioner_joiner_add(self, nodeid: int, usr: str, pwd: str, timeout=None) -> None:
         """

@@ -20,5 +20,9 @@ that version is located as a Git submodule.
   
 - br - `openthread` - Same code as 'latest', but builds a Thread Border Router (BR).
 
+- ccm - `openthread-ccm` - (In development) A codebase supporting Thread Commercial Commissioning Mode (CCM).
+
+- br-ccm - `openthread-ccm` - (In development) A Thread CCM Border Router.
+
 Build scripts: the build scripts to build all of the versions are `../script/build_<version-tag>`. Each of these specific build
 scripts invokes the general `build` script. The `../script/build_all` builds all versions.

@@ -231,14 +231,16 @@ otError platformUdpFromHostToNode(otInstance *aInstance, const struct MsgToHostE
     otIp6Address *srcIp6;
 
     udp = otUdpNewMessage(aInstance, NULL);
-    otEXPECT((error = otMessageAppend(udp, aMsg, aMsgLen)) == OT_ERROR_NONE);
     otEXPECT_ACTION(udp != NULL, error = OT_ERROR_NO_BUFS);
+    otEXPECT((error = otMessageAppend(udp, aMsg, aMsgLen)) == OT_ERROR_NONE);
 
     srcIp6 = (otIp6Address *) aEvData->mSrcIp6;
     //dstIp6 = (otIp6Address *) aEvData->mDstIp6;
     otUdpForwardReceive(aInstance, udp, aEvData->mSrcPort, srcIp6, aEvData->mDstPort);
 
 exit:
+    if (error != OT_ERROR_NONE && udp != NULL)
+        otMessageFree(udp); // only free when otUdpForwardReceive didn't free it.
     return error;
 }
 

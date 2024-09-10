@@ -31,10 +31,12 @@ set -euxo pipefail
 
 OTRFSIM_SRCDIR="$(pwd)"
 OT_DIR=${OT_DIR:-../openthread}
+OT_CMAKE_NINJA_TARGET=${OT_CMAKE_NINJA_TARGET-}
 readonly OTRFSIM_SRCDIR
 readonly OT_DIR
 
 # OpenThread options that are always added to build first. They can be overridden on the command line.
+# Specific build scripts for OT versions can and will override these options (partially).
 OT_OPTIONS=(
     "-DCMAKE_BUILD_TYPE=Debug"
     "-DOT_PLATFORM=external"
@@ -55,7 +57,8 @@ readonly OT_OPTIONS
 
 build()
 {
-    local builddir="${OT_CMAKE_BUILD_DIR:-build}"
+    local nodetype="${OTNS_NODE_TYPE:-custom}"
+    local builddir="${OT_CMAKE_BUILD_DIR:-build/${nodetype}}"
 
     mkdir -p "${builddir}"
     cd "${builddir}"
@@ -65,14 +68,21 @@ build()
         old_ot_dir=$(cat OT_DIR.txt)
     fi
     if [[ ${OT_DIR} != "${old_ot_dir}" ]]; then
-        echo "Detected new version build of OpenThread: cleaning build dir."
+        echo "Detected different OT version build into existing build dir: cleaning build dir."
         rm -rf ../"${builddir}"/*
         rm -rf ../"${builddir}"/.ninja*
     fi
     echo "${OT_DIR}" >OT_DIR.txt
 
+    export OT_CMAKE_BUILD_DIR="${builddir}"
+    export OTNS_NODE_TYPE="${nodetype}"
     cmake -GNinja -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DOT_COMPILE_WARNING_AS_ERROR=ON "$@" "${OTRFSIM_SRCDIR}"
-    ninja ot-cli-ftd ot-cli-mtd
+    if [[ -z ${OT_CMAKE_NINJA_TARGET// /} ]]; then
+        ninja
+    else
+        IFS=' ' read -r -a OT_CMAKE_NINJA_TARGET <<<"${OT_CMAKE_NINJA_TARGET}"
+        ninja "${OT_CMAKE_NINJA_TARGET[@]}"
+    fi
 
     cd "${OTRFSIM_SRCDIR}"
 }

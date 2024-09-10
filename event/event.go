@@ -28,12 +28,10 @@ package event
 
 import (
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"math"
 	"net"
-	"strings"
-	"unicode"
-
 	"net/netip"
 
 	"github.com/openthread/ot-ns/logger"
@@ -240,7 +238,7 @@ func (e *Event) Deserialize(data []byte) int {
 	}
 
 	data2 := make([]byte, datalen-payloadOffset)
-	copy(data2, e.Data[payloadOffset:payloadOffset+datalen])
+	copy(data2, e.Data[payloadOffset:datalen])
 	e.Data = data2
 
 	// e.Timestamp is not in the event, so set to invalid initially.
@@ -316,12 +314,13 @@ func (e *Event) Copy() Event {
 func (e *Event) String() string {
 	paylStr := ""
 	if len(e.Data) > 0 {
-		paylStr = fmt.Sprintf(",payl=%s", keepPrintableChars(string(e.Data)))
+		paylStr = fmt.Sprintf(",payl=%s", hex.EncodeToString(e.Data))
 	}
 	s := fmt.Sprintf("Ev{%2d,nid=%d,mid=%d,dly=%v%s}", e.Type, e.NodeId, e.MsgId, e.Delay, paylStr)
 	return s
 }
 
+/*
 func keepPrintableChars(s string) string {
 	return strings.Map(func(r rune) rune {
 		if unicode.IsPrint(r) {
@@ -330,3 +329,4 @@ func keepPrintableChars(s string) string {
 		return -1
 	}, s)
 }
+*/

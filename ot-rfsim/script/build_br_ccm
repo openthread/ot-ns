@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-#  Copyright (c) 2023-2024, The OpenThread Authors.
+#  Copyright (c) 2024, The OpenThread Authors.
 #  All rights reserved.
 #
 #  Redistribution and use in source and binary forms, with or without
@@ -29,38 +29,42 @@
 
 set -euxo pipefail
 
-OT_OPTIONS=(
+# OpenThread CCM Border Router (OTBR) specific options. These are superimposed on the standard
+# options in './build'.
+OTBR_OPTIONS=(
     "-DOT_THREAD_VERSION=1.4"
-    "-DOT_VENDOR_MODEL=RFSIM-Node-v1.4.0"
-    "-DOT_BACKBONE_ROUTER=OFF"
-    "-DOT_BACKBONE_ROUTER_MULTICAST_ROUTING=OFF"
+    "-DOT_VENDOR_MODEL=RFSIM-CCM-BR-v1.4.0"
+    "-DOT_BACKBONE_ROUTER=ON"
+    "-DOT_BACKBONE_ROUTER_MULTICAST_ROUTING=ON"
     "-DOT_BORDER_ROUTER=ON"
-    "-DOT_BORDER_ROUTING=OFF"
-    "-DOT_BORDER_ROUTING_DHCP6_PD=OFF"
-    "-DOT_BORDER_ROUTING_COUNTERS=OFF"
-    "-DOT_NAT64_BORDER_ROUTING=OFF"
+    "-DOT_BORDER_ROUTING=ON"
+    "-DOT_BORDER_ROUTING_DHCP6_PD=ON"
+    "-DOT_BORDER_ROUTING_COUNTERS=ON"
+    "-DOT_NAT64_BORDER_ROUTING=ON"
+    "-DOT_BORDER_AGENT=ON"
     "-DOT_MLR=ON"
-    "-DOT_COAP_BLOCK=OFF"
-    "-DOT_DNSSD_SERVER=OFF"
+    "-DOT_UDP_FORWARD=ON"
+    "-DOT_COAP_BLOCK=ON"
+    "-DOT_DNSSD_SERVER=ON"
     "-DOT_NETDATA_PUBLISHER=ON"
-    "-DOT_SRP_SERVER=OFF"
+    "-DOT_SRP_SERVER=ON"
     "-DOT_TREL=OFF"
     "-DOT_POWER_SUPPLY=EXTERNAL"
     "-DOT_DEVICE_PROP_LEADER_WEIGHT=ON"
-    "-DOT_HISTORY_TRACKER=OFF"
-    "-DOT_BLE_TCAT=ON"
+    "-DOT_MLE_MAX_CHILDREN=32"
+    "-DOT_HISTORY_TRACKER=ON"
+    "-DOT_CCM=ON"
 )
-readonly OT_OPTIONS
+readonly OTBR_OPTIONS
 
 main()
 {
     local options=()
-    options+=("${OT_OPTIONS[@]}" "$@")
+    options+=("${OTBR_OPTIONS[@]}" "$@")
 
-    OT_DIR="../openthread" OTNS_NODE_TYPE="latest" OT_CMAKE_NINJA_TARGET="ot-cli-ftd ot-cli-mtd" ./script/build "${options[@]}"
+    OT_DIR="../openthread-ccm" OTNS_NODE_TYPE="br-ccm" OT_CMAKE_NINJA_TARGET="ot-cli-ftd" ./script/build "${options[@]}"
 
-    cp ./build/latest/bin/ot-cli-ftd ./ot-versions/
-    cp ./build/latest/bin/ot-cli-mtd ./ot-versions/
+    cp ./build/br-ccm/bin/ot-cli-ftd ./ot-versions/ot-cli-ftd_br_ccm
 }
 
 main "$@"

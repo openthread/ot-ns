@@ -61,9 +61,9 @@ main()
     local options=()
     options+=("${OTBR_OPTIONS[@]}" "$@")
 
-    ./script/build "${options[@]}" ot-cli-ftd
+    OT_DIR="../openthread" OTNS_NODE_TYPE="br" OT_CMAKE_NINJA_TARGET="ot-cli-ftd" ./script/build "${options[@]}"
 
-    cp ./build/bin/ot-cli-ftd ./ot-versions/ot-cli-ftd_br
+    cp ./build/br/bin/ot-cli-ftd ./ot-versions/ot-cli-ftd_br
 }
 
 main "$@"

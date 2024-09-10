@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-#  Copyright (c) 2022, The OpenThread Authors.
+#  Copyright (c) 2024, The OpenThread Authors.
 #  All rights reserved.
 #
 #  Redistribution and use in source and binary forms, with or without
@@ -29,21 +29,39 @@
 
 set -euxo pipefail
 
-OT_BUILDDIR="$(pwd)/build"
-readonly OT_BUILDDIR
-
 OT_OPTIONS=(
-    "-DOT_COMPILE_WARNING_AS_ERROR=ON"
+    "-DOT_THREAD_VERSION=1.4"
+    "-DOT_VENDOR_MODEL=RFSIM-CCM-v1.4.0"
+    "-DOT_BACKBONE_ROUTER=OFF"
+    "-DOT_BACKBONE_ROUTER_MULTICAST_ROUTING=OFF"
+    "-DOT_BORDER_ROUTER=ON"
+    "-DOT_BORDER_ROUTING=OFF"
+    "-DOT_BORDER_ROUTING_DHCP6_PD=OFF"
+    "-DOT_BORDER_ROUTING_COUNTERS=OFF"
+    "-DOT_NAT64_BORDER_ROUTING=OFF"
+    "-DOT_MLR=ON"
+    "-DOT_COAP_BLOCK=OFF"
+    "-DOT_DNSSD_SERVER=OFF"
+    "-DOT_NETDATA_PUBLISHER=ON"
+    "-DOT_SRP_SERVER=OFF"
+    "-DOT_TREL=OFF"
+    "-DOT_POWER_SUPPLY=EXTERNAL"
+    "-DOT_DEVICE_PROP_LEADER_WEIGHT=ON"
+    "-DOT_HISTORY_TRACKER=OFF"
+    "-DOT_BLE_TCAT=ON"
+    "-DOT_CCM=ON"
 )
 readonly OT_OPTIONS
 
 main()
 {
-    export CPPFLAGS="${CPPFLAGS:-} -DNDEBUG"
+    local options=()
+    options+=("${OT_OPTIONS[@]}" "$@")
 
-    rm -rf "$OT_BUILDDIR"
-    "$(dirname "$0")"/build "${OT_OPTIONS[@]}"
+    OT_DIR="../openthread-ccm" OTNS_NODE_TYPE="ccm" OT_CMAKE_NINJA_TARGET="ot-cli-ftd ot-cli-mtd" ./script/build "${options[@]}"
 
+    cp ./build/ccm/bin/ot-cli-ftd ./ot-versions/ot-cli-ftd_ccm
+    cp ./build/ccm/bin/ot-cli-mtd ./ot-versions/ot-cli-mtd_ccm
 }
 
 main "$@"

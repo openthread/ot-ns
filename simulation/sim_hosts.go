@@ -27,7 +27,6 @@
 package simulation
 
 import (
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -218,7 +217,7 @@ func (sh *SimHosts) handleUdpFromSimHost(simConn *SimConn, udpData []byte) {
 	if simConn.Nat66State.SrcIp6Address == netip.IPv6Unspecified() {
 		// send as UDP-event to node itself to handle.
 		ev := &event.Event{
-			Delay:  0,
+			Delay:  0, // FIXME
 			Type:   event.EventTypeUdpFromHost,
 			Data:   udpData,
 			NodeId: simConn.Node.Id,
@@ -230,9 +229,7 @@ func (sh *SimHosts) handleUdpFromSimHost(simConn *SimConn, udpData []byte) {
 			},
 		}
 		sh.sim.Dispatcher().PostEventAsync(ev)
-		logger.Debugf("sh.sim.Dispatcher().PostEventAsync(ev) FIXME-UDP path %v, %+v", ev, ev.MsgToHostData)
 		logger.Debugf("simConn.Nat66State UDP-path = %v", simConn.Nat66State)
-		logger.Debugf("udpData = %s", hex.EncodeToString(udpData))
 	} else {
 		// send as IPv6-event to node, to let it forward to others on mesh.
 		ip6Datagram := createIp6UdpDatagram(simConn.Nat66State.DstPort, simConn.Nat66State.SrcPort,
