@@ -38,8 +38,8 @@
 #define OT_BLE_TX_POWER_DBM 0
 #define OT_BLE_RX_SENSITIVITY_DBM -76
 
-static bool sEnabled;
-static bool sAdvertising;
+static bool     sEnabled;
+static bool     sAdvertising;
 static uint64_t sAdvPeriodUs, sAdvDelayUs, sNextBleEventTime;
 
 static void selectAdvertisementDelay(bool addAdvPeriod);
@@ -47,7 +47,7 @@ static void selectAdvertisementDelay(bool addAdvPeriod);
 otError otPlatBleEnable(otInstance *aInstance)
 {
     OT_UNUSED_VARIABLE(aInstance);
-    sEnabled = true;
+    sEnabled          = true;
     sNextBleEventTime = UNDEFINED_TIME_US;
     return OT_ERROR_NONE;
 }
@@ -55,7 +55,7 @@ otError otPlatBleEnable(otInstance *aInstance)
 otError otPlatBleDisable(otInstance *aInstance)
 {
     OT_UNUSED_VARIABLE(aInstance);
-    sEnabled = false;
+    sEnabled     = false;
     sAdvertising = false;
     return OT_ERROR_NONE;
 }
@@ -74,7 +74,8 @@ otError otPlatBleGapAdvStart(otInstance *aInstance, uint16_t aInterval)
 {
     OT_UNUSED_VARIABLE(aInstance);
 
-    if (aInterval < OT_BLE_ADV_INTERVAL_MIN || aInterval > OT_BLE_ADV_INTERVAL_MAX) {
+    if (aInterval < OT_BLE_ADV_INTERVAL_MIN || aInterval > OT_BLE_ADV_INTERVAL_MAX)
+    {
         return OT_ERROR_INVALID_ARGS;
     }
 
@@ -85,15 +86,16 @@ otError otPlatBleGapAdvStart(otInstance *aInstance, uint16_t aInterval)
 }
 
 // see https://www.bluetooth.com/blog/periodic-advertising-sync-transfer/
-void selectAdvertisementDelay(bool addAdvPeriod) {
+void selectAdvertisementDelay(bool addAdvPeriod)
+{
     struct RadioStateEventData stateReport;
 
     uint64_t now = platformAlarmGetNow();
-    sAdvDelayUs = rand() % OT_BLE_ADV_DELAY_MAX_US;
+    sAdvDelayUs  = rand() % OT_BLE_ADV_DELAY_MAX_US;
     if (addAdvPeriod)
         sAdvDelayUs += sAdvPeriodUs;
 
-    stateReport.mChannel = OT_BLE_CHANNEL;
+    stateReport.mChannel       = OT_BLE_CHANNEL;
     stateReport.mTxPower       = OT_BLE_TX_POWER_DBM;
     stateReport.mRxSensitivity = OT_BLE_RX_SENSITIVITY_DBM;
     stateReport.mEnergyState   = OT_RADIO_STATE_INVALID; // TODO: no energy reporting on BLE yet
@@ -133,12 +135,13 @@ otError otPlatBleGattServerIndicate(otInstance *aInstance, uint16_t aHandle, con
     return OT_ERROR_NOT_IMPLEMENTED;
 }
 
-void sendBleAdvertisement() {
+void sendBleAdvertisement()
+{
     // see https://novelbits.io/maximum-data-bluetooth-advertising-packet-ble/
     // L_PHY = 2 + 4 + L_PDU + 3  // TODO: verify numbers
     // L_PDU = 2  + L_ADV
     // L_ADV = 6 + 31 (max)
-    uint64_t frameDurationUs = (2+4+2+6+31+3) * OT_BLE_OCTET_DURATION_US;
+    uint64_t frameDurationUs = (2 + 4 + 2 + 6 + 31 + 3) * OT_BLE_OCTET_DURATION_US;
 
     struct RadioCommEventData txData;
     txData.mChannel  = OT_BLE_CHANNEL;
@@ -149,17 +152,20 @@ void sendBleAdvertisement() {
     struct RadioMessage aMessage;
     aMessage.mChannel = OT_BLE_CHANNEL;
 
-    size_t msgLen = 10; // FIXME test
+    size_t msgLen     = 10;   // FIXME test
     aMessage.mPsdu[0] = 0xff; // invalid frame type - so it's not logged in pcap.
     aMessage.mPsdu[1] = 0xff;
-    otSimSendRadioCommEvent(&txData, (const uint8_t *) &aMessage, msgLen + offsetof(struct RadioMessage, mPsdu));
+    otSimSendRadioCommEvent(&txData, (const uint8_t *)&aMessage, msgLen + offsetof(struct RadioMessage, mPsdu));
 }
 
-void platformBleProcess(otInstance *aInstance) {
+void platformBleProcess(otInstance *aInstance)
+{
     OT_UNUSED_VARIABLE(aInstance);
     uint64_t now = platformAlarmGetNow();
-    if (now >= sNextBleEventTime && sEnabled) {
-        if (sAdvertising) {
+    if (now >= sNextBleEventTime && sEnabled)
+    {
+        if (sAdvertising)
+        {
             sendBleAdvertisement();
 
             // set next BLE advertisement time, after advInterval + advDelay

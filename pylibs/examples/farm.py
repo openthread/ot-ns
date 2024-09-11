@@ -43,18 +43,18 @@ import random
 from otns.cli import OTNS
 from otns.cli.errors import OTNSExitedError
 
-R = 3 # screen-pixels per meter
-RECEIVER_TX_POWER = 10 # dBm, integer - router
-HORSE_TX_POWER = -20 #dBm, integer - sensor
+R = 3  # screen-pixels per meter
+RECEIVER_TX_POWER = 10  # dBm, integer - router
+HORSE_TX_POWER = -20  #dBm, integer - sensor
 HORSE_NUM = 10
-HORSE_MAX_SPEED_MPS = 3 # horse max speed in m/sec
-FARM_RECT = [20 * R, 20 * R, 440 * R, 260 * R] # number in meters
+HORSE_MAX_SPEED_MPS = 3  # horse max speed in m/sec
+FARM_RECT = [20 * R, 20 * R, 440 * R, 260 * R]  # number in meters
 
 
 def main():
-    ns = OTNS(otns_args=['-logfile','none'])
+    ns = OTNS(otns_args=['-logfile', 'none'])
 
-    if False: # Optional forcing of random-seed for OTNS and Python. This gives exact reproducable simulation.
+    if False:  # Optional forcing of random-seed for OTNS and Python. This gives exact reproducable simulation.
         # The pcap parameter is to select another PCAP type that includes channel info.
         random_seed = 2142142
         ns = OTNS(otns_args=['-seed', f'{random_seed}', '-pcap', 'wpan-tap'])
@@ -65,7 +65,7 @@ def main():
     ns.logconfig(logging.INFO)
     ns.speed = 4
     ns.radiomodel = 'Outdoor'
-    ns.set_radioparam('MeterPerUnit', 1/R )
+    ns.set_radioparam('MeterPerUnit', 1 / R)
     ns.set_radioparam('ShadowFadingSigmaDb', 0.0)
     ns.set_radioparam('TimeFadingSigmaMaxDb', 0.0)
 
@@ -98,7 +98,7 @@ def main():
             if oid == sid:
                 continue
 
-            dist2 = (x - ox) ** 2 + (y - oy) ** 2
+            dist2 = (x - ox)**2 + (y - oy)**2
             if dist2 <= 1600:
                 return True
 
@@ -133,7 +133,7 @@ def main():
                 horse_pos[sid] = (sx, sy)
                 break
 
-        if time_accum >= HORSE_NUM+1:
+        if time_accum >= HORSE_NUM + 1:
             ns.print_pings(ns.pings())
             found = False
             for sid in horse_pos:

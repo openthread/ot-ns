@@ -1,42 +1,43 @@
 /*
-*  Copyright (c) 2020-2024, The OpenThread Authors.
-*  All rights reserved.
-*
-*  Redistribution and use in source and binary forms, with or without
-*  modification, are permitted provided that the following conditions are met:
-*  1. Redistributions of source code must retain the above copyright
-*     notice, this list of conditions and the following disclaimer.
-*  2. Redistributions in binary form must reproduce the above copyright
-*     notice, this list of conditions and the following disclaimer in the
-*     documentation and/or other materials provided with the distribution.
-*  3. Neither the name of the copyright holder nor the
-*     names of its contributors may be used to endorse or promote products
-*     derived from this software without specific prior written permission.
-*
-*  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-*  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-*  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-*  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-*  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-*  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-*  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-*  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-*  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-*  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-*  POSSIBILITY OF SUCH DAMAGE.
-*/
+ *  Copyright (c) 2020-2024, The OpenThread Authors.
+ *  All rights reserved.
+ *
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions are met:
+ *  1. Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *  2. Redistributions in binary form must reproduce the above copyright
+ *     notice, this list of conditions and the following disclaimer in the
+ *     documentation and/or other materials provided with the distribution.
+ *  3. Neither the name of the copyright holder nor the
+ *     names of its contributors may be used to endorse or promote products
+ *     derived from this software without specific prior written permission.
+ *
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+ *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ *  POSSIBILITY OF SUCH DAMAGE.
+ */
 
 /**
-* @file
-* @brief
-*   This file includes simulation-event message definitions, and sending,
-*   formatting and parsing functions for events.
-*/
+ * @file
+ * @brief
+ *   This file includes simulation-event message definitions, and sending,
+ *   formatting and parsing functions for events.
+ */
 
 #ifndef PLATFORM_RFSIM_EVENT_SIM_H
 #define PLATFORM_RFSIM_EVENT_SIM_H
 
-#include "platform-rfsim.h"
+#include <openthread/ip6.h>
+
 #include "radio.h"
 
 /**
@@ -46,29 +47,29 @@
  */
 enum
 {
-    OT_SIM_EVENT_ALARM_FIRED         = 0,
-    OT_SIM_EVENT_RADIO_RECEIVED      = 1, // legacy
-    OT_SIM_EVENT_UART_WRITE          = 2,
-    OT_SIM_EVENT_RADIO_SPINEL_WRITE  = 3, // not used?
-    OT_SIM_EVENT_POSTCMD             = 4, // not used?
-    OT_SIM_EVENT_OTNS_STATUS_PUSH    = 5,
-    OT_SIM_EVENT_RADIO_COMM_START    = 6,
-    OT_SIM_EVENT_RADIO_TX_DONE       = 7,
-    OT_SIM_EVENT_RADIO_CHAN_SAMPLE   = 8,
-    OT_SIM_EVENT_RADIO_STATE         = 9,
-    OT_SIM_EVENT_RADIO_RX_DONE       = 10,
-    OT_SIM_EVENT_EXT_ADDR            = 11,
-    OT_SIM_EVENT_NODE_INFO           = 12,
-    OT_SIM_EVENT_NODE_DISCONNECTED   = 14, // not used on OT node side
-    OT_SIM_EVENT_RADIO_LOG           = 15, // not used on OT node side
-    OT_SIM_EVENT_RFSIM_PARAM_GET     = 16,
-    OT_SIM_EVENT_RFSIM_PARAM_SET     = 17,
-    OT_SIM_EVENT_RFSIM_PARAM_RSP     = 18,
-    OT_SIM_EVENT_LOG_WRITE           = 19,
-    OT_SIM_EVENT_UDP_TO_HOST         = 20,
-    OT_SIM_EVENT_IP6_TO_HOST         = 21,
-    OT_SIM_EVENT_UDP_FROM_HOST       = 22,
-    OT_SIM_EVENT_IP6_FROM_HOST       = 23,
+    OT_SIM_EVENT_ALARM_FIRED        = 0,
+    OT_SIM_EVENT_RADIO_RECEIVED     = 1, // legacy
+    OT_SIM_EVENT_UART_WRITE         = 2,
+    OT_SIM_EVENT_RADIO_SPINEL_WRITE = 3, // not used?
+    OT_SIM_EVENT_POSTCMD            = 4, // not used?
+    OT_SIM_EVENT_OTNS_STATUS_PUSH   = 5,
+    OT_SIM_EVENT_RADIO_COMM_START   = 6,
+    OT_SIM_EVENT_RADIO_TX_DONE      = 7,
+    OT_SIM_EVENT_RADIO_CHAN_SAMPLE  = 8,
+    OT_SIM_EVENT_RADIO_STATE        = 9,
+    OT_SIM_EVENT_RADIO_RX_DONE      = 10,
+    OT_SIM_EVENT_EXT_ADDR           = 11,
+    OT_SIM_EVENT_NODE_INFO          = 12,
+    OT_SIM_EVENT_NODE_DISCONNECTED  = 14, // not used on OT node side
+    OT_SIM_EVENT_RADIO_LOG          = 15, // not used on OT node side
+    OT_SIM_EVENT_RFSIM_PARAM_GET    = 16,
+    OT_SIM_EVENT_RFSIM_PARAM_SET    = 17,
+    OT_SIM_EVENT_RFSIM_PARAM_RSP    = 18,
+    OT_SIM_EVENT_LOG_WRITE          = 19,
+    OT_SIM_EVENT_UDP_TO_HOST        = 20,
+    OT_SIM_EVENT_IP6_TO_HOST        = 21,
+    OT_SIM_EVENT_UDP_FROM_HOST      = 22,
+    OT_SIM_EVENT_IP6_FROM_HOST      = 23,
 };
 
 #define OT_EVENT_DATA_MAX_SIZE 2048
@@ -95,10 +96,10 @@ struct Event
 OT_TOOL_PACKED_BEGIN
 struct RadioCommEventData
 {
-    uint8_t  mChannel;    // radio channel number (shared for IEEE 802.15.4 / BLE / ... )
-    int8_t   mPower;      // power value (dBm), either RSSI or Tx-power
-    uint8_t  mError;      // status code result of radio operation using otError values
-    uint64_t mDuration;   // us duration of the radio comm operation
+    uint8_t  mChannel;  // radio channel number (shared for IEEE 802.15.4 / BLE / ... )
+    int8_t   mPower;    // power value (dBm), either RSSI or Tx-power
+    uint8_t  mError;    // status code result of radio operation using otError values
+    uint64_t mDuration; // us duration of the radio comm operation
 } OT_TOOL_PACKED_END;
 
 OT_TOOL_PACKED_BEGIN
@@ -151,7 +152,7 @@ void otSimSendSleepEvent(void);
  * @param[in]       aPayload     A pointer to the data payload (radio frame) to send.
  * @param[in]       aLenPayload  Length of aPayload data.
  */
-void otSimSendRadioCommEvent(struct RadioCommEventData *aEventData,  const uint8_t *aPayload, size_t aLenPayload);
+void otSimSendRadioCommEvent(struct RadioCommEventData *aEventData, const uint8_t *aPayload, size_t aLenPayload);
 
 /**
  * Sends a RadioComm (Tx) simulation event to the simulator for transmitting non-802.15.4

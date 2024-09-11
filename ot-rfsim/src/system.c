@@ -51,16 +51,18 @@ extern bool gPlatformPseudoResetWasRequested;
 static void socket_init(char *socketFilePath);
 static void handleSignal(int aSignal);
 
-volatile bool gTerminate = false;
-uint32_t gNodeId = 0;
-int gSockFd = 0;
+volatile bool   gTerminate          = false;
+uint32_t        gNodeId             = 0;
+int             gSockFd             = 0;
 static uint16_t sIsInstanceInitDone = false;
 
-void otSysInit(int argc, char *argv[]) {
-    char *endptr;
+void otSysInit(int argc, char *argv[])
+{
+    char   *endptr;
     int32_t randomSeed = 0;
 
-    if (gPlatformPseudoResetWasRequested) {
+    if (gPlatformPseudoResetWasRequested)
+    {
         gPlatformPseudoResetWasRequested = false;
         return;
     }
@@ -68,30 +70,29 @@ void otSysInit(int argc, char *argv[]) {
     signal(SIGTERM, &handleSignal);
     signal(SIGHUP, &handleSignal);
 
-    if (argc < 3 || argc > 4) {
-        fprintf(stderr,
-                "Usage: %s <NodeId> <OTNS-Unix-socket-file> [<random-seed>]\n",
-                basename(argv[0]));
+    if (argc < 3 || argc > 4)
+    {
+        fprintf(stderr, "Usage: %s <NodeId> <OTNS-Unix-socket-file> [<random-seed>]\n", basename(argv[0]));
         platformExit(EXIT_FAILURE);
     }
 
     long nodeIdParam = strtol(argv[1], &endptr, 0);
-    if (*endptr != '\0' || nodeIdParam < 1 || nodeIdParam >= UINT32_MAX) {
-        fprintf(stderr, "Invalid NodeId: %s (must be >= 1 and < UINT32_MAX )\n",
-                argv[1]);
+    if (*endptr != '\0' || nodeIdParam < 1 || nodeIdParam >= UINT32_MAX)
+    {
+        fprintf(stderr, "Invalid NodeId: %s (must be >= 1 and < UINT32_MAX )\n", argv[1]);
         platformExit(EXIT_FAILURE);
     }
-    gNodeId = (uint32_t) nodeIdParam;
+    gNodeId = (uint32_t)nodeIdParam;
 
-    if (argc == 4) {
+    if (argc == 4)
+    {
         long randomSeedParam = strtol(argv[3], &endptr, 0);
-        if (*endptr != '\0' || randomSeedParam >= INT32_MAX ||
-            randomSeedParam <= INT32_MIN) {
-            fprintf(stderr, "Invalid random-seed integer: %s (must be > INT32_MIN and < INT32_MAX)\n",
-                    argv[3]);
+        if (*endptr != '\0' || randomSeedParam >= INT32_MAX || randomSeedParam <= INT32_MIN)
+        {
+            fprintf(stderr, "Invalid random-seed integer: %s (must be > INT32_MIN and < INT32_MAX)\n", argv[3]);
             platformExit(EXIT_FAILURE);
         }
-        randomSeed = (int32_t) randomSeedParam;
+        randomSeed = (int32_t)randomSeedParam;
     }
 
     platformLoggingInit(argv[0]);
@@ -104,28 +105,30 @@ void otSysInit(int argc, char *argv[]) {
     otSimSendNodeInfoEvent(gNodeId);
 }
 
-bool otSysPseudoResetWasRequested(void) {
-    return gPlatformPseudoResetWasRequested;
-}
+bool otSysPseudoResetWasRequested(void) { return gPlatformPseudoResetWasRequested; }
 
-void otSysDeinit(void) {
+void otSysDeinit(void)
+{
     close(gSockFd);
     gSockFd = 0;
 }
 
-void otSysProcessDrivers(otInstance *aInstance) {
+void otSysProcessDrivers(otInstance *aInstance)
+{
     fd_set read_fds;
     fd_set write_fds;
     fd_set error_fds;
-    int max_fd;
-    int rval;
+    int    max_fd;
+    int    rval;
 
-    if (gTerminate) {
+    if (gTerminate)
+    {
         platformExit(EXIT_SUCCESS);
     }
 
     // on the first call, perform any init that requires the aInstance.
-    if (!sIsInstanceInitDone) { // TODO move to own function
+    if (!sIsInstanceInitDone)
+    { // TODO move to own function
 #if OPENTHREAD_CONFIG_UDP_FORWARD_ENABLE && OPENTHREAD_CONFIG_BORDER_ROUTING_ENABLE
         otUdpForwardSetForwarder(aInstance, handleUdpForwarding, aInstance);
 #endif
@@ -141,7 +144,8 @@ void otSysProcessDrivers(otInstance *aInstance) {
     max_fd = gSockFd;
 
     if (!otTaskletsArePending(aInstance) && platformAlarmGetNext() > 0 &&
-        (!platformRadioIsTransmitPending() || platformRadioIsBusy())) {
+        (!platformRadioIsTransmitPending() || platformRadioIsBusy()))
+    {
         // report my final radio state at end of this time instant, then go to sleep.
         platformRadioReportStateToSimulator(false);
         otSimSendSleepEvent();
@@ -149,12 +153,14 @@ void otSysProcessDrivers(otInstance *aInstance) {
         // wake up by reception of socket event from simulator.
         rval = select(max_fd + 1, &read_fds, &write_fds, &error_fds, NULL);
 
-        if ((rval < 0) && (errno != EINTR)) {
+        if ((rval < 0) && (errno != EINTR))
+        {
             perror("select");
             platformExit(EXIT_FAILURE);
         }
 
-        if (rval > 0 && FD_ISSET(gSockFd, &read_fds)) {
+        if (rval > 0 && FD_ISSET(gSockFd, &read_fds))
+        {
             platformReceiveEvent(aInstance);
         }
     }
@@ -172,22 +178,25 @@ void otSysProcessDrivers(otInstance *aInstance) {
  * simulator. The port number is calculated based on environment vars (if set)
  * or else defaults.
  */
-static void socket_init(char *socketFilePath) {
+static void socket_init(char *socketFilePath)
+{
     struct sockaddr_un sockaddr;
     memset(&sockaddr, 0, sizeof(struct sockaddr_un));
     sockaddr.sun_family = AF_UNIX;
-    size_t strLen = strlen(socketFilePath);
+    size_t strLen       = strlen(socketFilePath);
     OT_ASSERT(strLen < sizeof(sockaddr.sun_path));
     memcpy(sockaddr.sun_path, socketFilePath, strLen);
 
     gSockFd = socket(AF_UNIX, SOCK_STREAM, 0);
 
-    if (gSockFd == -1) {
+    if (gSockFd == -1)
+    {
         perror("socket");
         platformExit(EXIT_FAILURE);
     }
 
-    if (connect(gSockFd, (struct sockaddr *) &sockaddr, sizeof(sockaddr)) == -1) {
+    if (connect(gSockFd, (struct sockaddr *)&sockaddr, sizeof(sockaddr)) == -1)
+    {
         gTerminate = true;
         fprintf(stderr, "Unable to open Unix socket to OT-NS at: %s\n", sockaddr.sun_path);
         perror("bind");
@@ -195,7 +204,8 @@ static void socket_init(char *socketFilePath) {
     }
 }
 
-static void handleSignal(int aSignal) {
+static void handleSignal(int aSignal)
+{
     OT_UNUSED_VARIABLE(aSignal);
 
     gTerminate = true;

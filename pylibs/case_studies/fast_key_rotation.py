@@ -31,12 +31,14 @@
 from otns.cli import OTNS
 from otns.cli.errors import OTNSExitedError
 
+
 def test_ping(ns):
     # test ping
-    ns.ping(1,2,datasize=48) # Parent preps ping to SED - waits in buffer
-    ns.ping(2,1,datasize=32) # SED sends ping to Parent - this also triggers getting buffered ping from parent.
+    ns.ping(1, 2, datasize=48)  # Parent preps ping to SED - waits in buffer
+    ns.ping(2, 1, datasize=32)  # SED sends ping to Parent - this also triggers getting buffered ping from parent.
     ns.go(2)
     ns.pings()
+
 
 def main():
     ns = OTNS()
@@ -53,8 +55,8 @@ def main():
 
     # set pending dataset parameters.
     ns.node_cmd(1, "dataset delay 500")
-    ns.node_cmd(1,"dataset activetimestamp 1696177379")
-    ns.node_cmd(1,"dataset pendingtimestamp 1696177379")
+    ns.node_cmd(1, "dataset activetimestamp 1696177379")
+    ns.node_cmd(1, "dataset pendingtimestamp 1696177379")
 
     # commit as the Pending Dataset. Delay timer starts counting down from then on.
     ns.node_cmd(1, "dataset commit pending")
@@ -70,10 +72,11 @@ def main():
         print(f"Simulating time period {i}")
         #ns.node_cmd(1, "keysequence guardtime 0") # use this to force Router to accept new +1 tKSC value
         test_ping(ns)
-        ns.go(7200)   # pass time period for next key rotation
+        ns.go(7200)  # pass time period for next key rotation
 
     #ns.interactive_cli() # enable this in case interactive CLI status checking is needed at the end.
     ns.web_display()
+
 
 if __name__ == '__main__':
     try:

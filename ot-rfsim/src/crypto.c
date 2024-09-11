@@ -30,19 +30,19 @@
 
 #if OPENTHREAD_CONFIG_PLATFORM_KEY_REFERENCES_ENABLE
 
-#include <openthread/platform/crypto.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <openthread/config.h>
+#include <openthread/platform/crypto.h>
 
 // crypto key storage stubs
 
-otError otPlatCryptoImportKey(otCryptoKeyRef *     aKeyRef,
+otError otPlatCryptoImportKey(otCryptoKeyRef      *aKeyRef,
                               otCryptoKeyType      aKeyType,
                               otCryptoKeyAlgorithm aKeyAlgorithm,
                               int                  aKeyUsage,
                               otCryptoKeyStorage   aKeyPersistence,
-                              const uint8_t *      aKey,
+                              const uint8_t       *aKey,
                               size_t               aKeyLen)
 {
     OT_UNUSED_VARIABLE(aKeyRef);

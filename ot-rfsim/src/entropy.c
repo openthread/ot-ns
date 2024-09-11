@@ -46,9 +46,10 @@
 #endif
 
 static uint32_t sRandomSeed = 0;
-static uint32_t sState = 1;
+static uint32_t sState      = 1;
 
-void platformRandomInit(int32_t randomSeed) {
+void platformRandomInit(int32_t randomSeed)
+{
     sRandomSeed = randomSeed;
 
 #if __SANITIZE_ADDRESS__ != 0
@@ -63,17 +64,19 @@ void platformRandomInit(int32_t randomSeed) {
         sState = randomSeed;
 }
 
-static uint32_t randomUint32Get(void) {
+static uint32_t randomUint32Get(void)
+{
     uint32_t mlcg, p, q;
     uint64_t tmpstate;
 
-    tmpstate = (uint64_t) 33614 * (uint64_t) sState;
-    q = tmpstate & 0xffffffff;
-    q = q >> 1;
-    p = tmpstate >> 32;
-    mlcg = p + q;
+    tmpstate = (uint64_t)33614 * (uint64_t)sState;
+    q        = tmpstate & 0xffffffff;
+    q        = q >> 1;
+    p        = tmpstate >> 32;
+    mlcg     = p + q;
 
-    if (mlcg & 0x80000000) {
+    if (mlcg & 0x80000000)
+    {
         mlcg &= 0x7fffffff;
         mlcg++;
     }
@@ -84,35 +87,39 @@ static uint32_t randomUint32Get(void) {
 }
 
 // override the OT WEAK definition - NOTE insecure crypto, for simulation only.
-otError otPlatCryptoRandomGet(uint8_t *aBuffer, uint16_t aSize) {
-    return otPlatEntropyGet(aBuffer, aSize);
-}
+otError otPlatCryptoRandomGet(uint8_t *aBuffer, uint16_t aSize) { return otPlatEntropyGet(aBuffer, aSize); }
 
-otError otPlatEntropyGet(uint8_t *aOutput, uint16_t aOutputLength) {
+otError otPlatEntropyGet(uint8_t *aOutput, uint16_t aOutputLength)
+{
     otError error = OT_ERROR_NONE;
 
 #if __SANITIZE_ADDRESS__ == 0
 
-    FILE *file = NULL;
+    FILE  *file = NULL;
     size_t readLength;
 
     otEXPECT_ACTION(aOutput && aOutputLength, error = OT_ERROR_INVALID_ARGS);
 
     // if an init random seed is set, we fall back to predictable pseudo-random.
-    if (sRandomSeed != 0) {
-        for (uint16_t length = 0; length < aOutputLength; length++) {
-            aOutput[length] = (uint8_t) randomUint32Get();
+    if (sRandomSeed != 0)
+    {
+        for (uint16_t length = 0; length < aOutputLength; length++)
+        {
+            aOutput[length] = (uint8_t)randomUint32Get();
         }
-    } else {
+    }
+    else
+    {
         file = fopen("/dev/urandom", "rb");
         otEXPECT_ACTION(file != NULL, error = OT_ERROR_FAILED);
 
         readLength = fread(aOutput, 1, aOutputLength, file);
         otEXPECT_ACTION(readLength == aOutputLength, error = OT_ERROR_FAILED);
     }
-    exit:
+exit:
 
-    if (file != NULL) {
+    if (file != NULL)
+    {
         fclose(file);
     }
 
@@ -128,11 +135,12 @@ otError otPlatEntropyGet(uint8_t *aOutput, uint16_t aOutputLength) {
      */
     otEXPECT_ACTION(aOutput && aOutputLength, error = OT_ERROR_INVALID_ARGS);
 
-    for (uint16_t length = 0; length < aOutputLength; length++) {
-      aOutput[length] = (uint8_t)randomUint32Get();
+    for (uint16_t length = 0; length < aOutputLength; length++)
+    {
+        aOutput[length] = (uint8_t)randomUint32Get();
     }
 
-  exit:
+exit:
 
 #endif // __SANITIZE_ADDRESS__
 

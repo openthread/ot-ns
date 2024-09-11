@@ -42,7 +42,7 @@ class CommissioningTests(OTNSTestCase):
 
     def setFirstNodeDataset(self, n1) -> None:
         self.ns.node_cmd(n1, "dataset init new")
-        self.ns.node_cmd(n1, "dataset networkkey 00112233445566778899aabbccddeeff") # allow easy Wireshark dissecting
+        self.ns.node_cmd(n1, "dataset networkkey 00112233445566778899aabbccddeeff")  # allow easy Wireshark dissecting
         self.ns.node_cmd(n1, "dataset commit active")
 
     def testRawNoSetup(self):
@@ -55,20 +55,29 @@ class CommissioningTests(OTNSTestCase):
 
     def testRawSetup(self):
         ns = self.ns
-        ns.watch_default('trace') # for most detailed radio logs
+        ns.watch_default('trace')  # for most detailed radio logs
         n1 = ns.add("router")
         n2 = ns.add("router")
         n3 = ns.add("router")
 
         # n1 with full dataset becomes Leader.
-        ns.config_dataset(n1, channel=21, panid=0xface, extpanid="dead00beef00cafe", networkkey="00112233445566778899aabbccddeeff",
-                          active_timestamp=1719172243, network_name="test", set_remaining=True)
+        ns.config_dataset(n1,
+                          channel=21,
+                          panid=0xface,
+                          extpanid="dead00beef00cafe",
+                          networkkey="00112233445566778899aabbccddeeff",
+                          active_timestamp=1719172243,
+                          network_name="test",
+                          set_remaining=True)
         ns.ifconfig_up(n1)
         ns.thread_start(n1)
 
         # n2, n3 with partial dataset - will wait for Leader to join to.
         for id in (n2, n3):
-            ns.config_dataset(id, network_name="test", networkkey="00112233445566778899aabbccddeeff", set_remaining=False)
+            ns.config_dataset(id,
+                              network_name="test",
+                              networkkey="00112233445566778899aabbccddeeff",
+                              set_remaining=False)
             ns.ifconfig_up(id)
             ns.thread_start(id)
 
@@ -106,10 +115,10 @@ class CommissioningTests(OTNSTestCase):
         ns = self.ns
         ns.radiomodel = 'MIDisc'
 
-        n1 = ns.add("router", radio_range = 110)
-        n2 = ns.add("router", radio_range = 110)
-        n3 = ns.add("router", radio_range = 110)
-        n4 = ns.add("router", radio_range = 110)
+        n1 = ns.add("router", radio_range=110)
+        n2 = ns.add("router", radio_range=110)
+        n3 = ns.add("router", radio_range=110)
+        n4 = ns.add("router", radio_range=110)
 
         self.setFirstNodeDataset(n1)
         ns.ifconfig_up(n1)

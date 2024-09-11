@@ -35,17 +35,19 @@
 import cv2
 import sys
 
+
 def click_event(event, x, y, flags, params):
 
-    if event == cv2.EVENT_LBUTTONDOWN or event==cv2.EVENT_RBUTTONDOWN:
+    if event == cv2.EVENT_LBUTTONDOWN or event == cv2.EVENT_RBUTTONDOWN:
         node_type = 'node_tp1'
-        if event==cv2.EVENT_RBUTTONDOWN:
+        if event == cv2.EVENT_RBUTTONDOWN:
             node_type = 'node_tp2'
         print(f'ns.add({node_type}, x={x}, y={y}, radio_range={node_type}_radiorange)')
-        cv2.circle(img, (x,y), 3, (255, 0, 0), -1)
+        cv2.circle(img, (x, y), 3, (255, 0, 0), -1)
         cv2.imshow('image', img)
 
-if __name__=="__main__":
+
+if __name__ == "__main__":
 
     print('node_clicker.py - click pixel coordinates in the image, to generate OTNS node placement code.\n')
     if len(sys.argv) < 2:
@@ -61,5 +63,5 @@ if __name__=="__main__":
     print('# Copy/paste below code into your OTNS Python script')
     print('node_tp1 = \'router\'\nnode_tp2 = \'sed\'\nnode_tp1_radiorange = 160\nnode_tp2_radiorange = 160')
 
-    cv2.waitKey(0) # exit on keypress
+    cv2.waitKey(0)  # exit on keypress
     cv2.destroyAllWindows()

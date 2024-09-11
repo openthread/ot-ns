@@ -36,7 +36,7 @@ NUM_BR = 1
 NUM_NODES = 50
 DX = 50  # pixels spacing
 
-SCRIPT_BR="""
+SCRIPT_BR = """
 # OT BR CLI init script specific to this test scenario
 
 dataset init new
@@ -67,36 +67,44 @@ br init 1 1
 br enable
 """
 
+
 def print_services(srv):
     for line in srv:
         if ':' in line:
-            print('\t',line)
+            print('\t', line)
         else:
             print(line)
 
+
 def main():
-    ns = OTNS(otns_args=['-seed','34541', '-phy-tx-stats'])
+    ns = OTNS(otns_args=['-seed', '34541', '-phy-tx-stats'])
     ns.speed = 1000
     ns.radiomodel = 'MutualInterference'
     ns.web()
     ns.web('stats')
 
     # setup of Border Routers
-    for i in range(1, NUM_BR+1):
-        nid = ns.add("br", x = 225 + i*100, y = 140, script = SCRIPT_BR)
+    for i in range(1, NUM_BR + 1):
+        nid = ns.add("br", x=225 + i * 100, y=140, script=SCRIPT_BR)
     nid_br = 1
     ns.go(10)
 
     # setup of Router nodes - each with service registration using SRP
     cx = 100
     cy = DX
-    for i in range(1, NUM_NODES+1):
-        nid = ns.add("router", x = cx, y = cy)
+    for i in range(1, NUM_NODES + 1):
+        nid = ns.add("router", x=cx, y=cy)
         host = f'EAAFA10F49B12F3{i}'
         ns.node_cmd(nid, f'srp client host name {host}')
         ns.node_cmd(nid, 'srp client host address auto')
-        ns.node_cmd(nid, f'srp client service add 15077FD8184910A6-00320000B330{i} _matter._tcp.default.service.arpa,_I1F097FD112451046 18001 0 0 085349493d31303030085341493d31303030085341543d3430303003543d30')
-        ns.node_cmd(nid, f'srp client service add 25077FD8184910A6-00320000B330{i} _matter._tcp.default.service.arpa,_I2F097FD112451046 18002 0 0 085449493d31303030085341493d31303030085341543d3430303003543d30')
+        ns.node_cmd(
+            nid,
+            f'srp client service add 15077FD8184910A6-00320000B330{i} _matter._tcp.default.service.arpa,_I1F097FD112451046 18001 0 0 085349493d31303030085341493d31303030085341543d3430303003543d30'
+        )
+        ns.node_cmd(
+            nid,
+            f'srp client service add 25077FD8184910A6-00320000B330{i} _matter._tcp.default.service.arpa,_I2F097FD112451046 18002 0 0 085449493d31303030085341493d31303030085341543d3430303003543d30'
+        )
 
         ns.go(5)
 

@@ -37,18 +37,19 @@
 #include "net/ip6.hpp"
 #include "net/ip6_address.hpp"
 
-extern "C" otError platformParseIp6( otMessage *aMessage, otMessageInfo *aIp6Info);
-extern "C" void validateOtMsg( otMessage *aMessage);
+extern "C" otError platformParseIp6(otMessage *aMessage, otMessageInfo *aIp6Info);
+extern "C" void    validateOtMsg(otMessage *aMessage);
 
 #include "platform-rfsim.h"
 #include "utils/uart.h"
 
 using namespace ot;
 
-otError platformParseIp6( otMessage *aMessage, otMessageInfo *aIp6Info) {
+otError platformParseIp6(otMessage *aMessage, otMessageInfo *aIp6Info)
+{
     Ip6::Headers headers;
-    otError error;
-    Message msg = AsCoreType(aMessage);
+    otError      error;
+    Message      msg = AsCoreType(aMessage);
 
     SuccessOrExit(error = headers.ParseFrom(msg));
     aIp6Info->mSockAddr = headers.GetSourceAddress();

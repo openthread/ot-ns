@@ -117,9 +117,3 @@ function install_pretty_tools()
     install_package shfmt --apt shfmt --brew shfmt
     install_package shellcheck --apt shellcheck --brew shellcheck
 }
-
-install_openthread_buildtools()
-{
-    install_package cmake --apt cmake --brew cmake
-    install_package ninja --apt ninja-build --brew ninja
-}

@@ -37,7 +37,7 @@ NUM_NODES = 1
 DX = 50  # pixels spacing
 
 # defines a setup script with partial dataset (no channel info)
-SCRIPT_PARTIAL_DATASET="""
+SCRIPT_PARTIAL_DATASET = """
 dataset clear
 dataset networkkey 00112233445566778899aabbccddeeff
 dataset commit active
@@ -46,9 +46,10 @@ ifconfig up
 thread start
 """
 
+
 def main():
     # use PCAP type wpan-tap to show the channel of each frame
-    ns = OTNS(otns_args=['-seed','74541', '-phy-tx-stats', '-pcap', 'wpan-tap'])
+    ns = OTNS(otns_args=['-seed', '74541', '-phy-tx-stats', '-pcap', 'wpan-tap'])
     ns.speed = 1000
     ns.radiomodel = 'MutualInterference'
     ns.web()
@@ -56,8 +57,8 @@ def main():
     ns.watch_default('trace')
 
     # setup of Border Routers
-    for i in range(1, NUM_BR+1):
-        nid = ns.add("br", x = 225 + i*100, y = 140)
+    for i in range(1, NUM_BR + 1):
+        nid = ns.add("br", x=225 + i * 100, y=140)
         ns.node_cmd(nid, "dataset init active")
         ns.node_cmd(nid, "dataset channel 26")
         ns.node_cmd(nid, "dataset activetimestamp 1718642107")
@@ -68,8 +69,8 @@ def main():
     # setup of Router nodes or End devices
     cx = 100
     cy = DX
-    for i in range(1, NUM_NODES+1):
-        nid = ns.add("router", x = cx, y = cy, script = SCRIPT_PARTIAL_DATASET)
+    for i in range(1, NUM_NODES + 1):
+        nid = ns.add("router", x=cx, y=cy, script=SCRIPT_PARTIAL_DATASET)
         cx += DX
         if cx >= 600:
             cx = 100

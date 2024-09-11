@@ -25,6 +25,7 @@ SED_SPACING = 75
 ROUTER_COUNT = 11
 SED_COUNT = 4
 
+
 class ThreadState(enum.Enum):
     OFFLINE = 'offline'
     DISABLED = 'disabled'
@@ -32,6 +33,7 @@ class ThreadState(enum.Enum):
     CHILD = 'child'
     ROUTER = 'router'
     LEADER = 'leader'
+
 
 state_map: Dict[ThreadState, int] = {
     ThreadState.OFFLINE: 0,
@@ -56,7 +58,7 @@ def simulate(sim_speed: int = SIM_SPEED,
              web: bool = True):
     ns = OTNS(otns_args=['-log', 'info', '-watch', 'warn'])
     ns.speed = sim_speed
-    ns.radiomodel = 'MIDisc' # Use disc model to enforce line topology of Routers
+    ns.radiomodel = 'MIDisc'  # Use disc model to enforce line topology of Routers
     ns.packet_loss_ratio = packet_loss_ratio
     ns.set_title(title)
     ns.config_visualization(broadcast_message=False)
@@ -141,10 +143,11 @@ def simulate(sim_speed: int = SIM_SPEED,
     os.rename('current.pcap', pcap_file)
     ns.close()
 
+
 def main():
     #logging.getLogger().setLevel(logging.INFO)
     prefix = f'line_topo_{ROUTER_COUNT}_hops_'
-    for error_percent in [0,5,10]:
+    for error_percent in [0, 5, 10]:
         print(f'Simulating {error_percent}% error')
         file_name = f'{prefix}node_state_{error_percent}-percent.csv'
         key_file = f'{prefix}network_info_{error_percent}-percent.txt'

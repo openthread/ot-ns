@@ -38,6 +38,7 @@ from otns.cli import errors, OTNS
 
 
 class BasicTests(OTNSTestCase):
+
     def testGetSetSpeed(self):
         ns = self.ns
         self.assertEqual(ns.speed, OTNS.DEFAULT_SIMULATE_SPEED)
@@ -101,13 +102,13 @@ class BasicTests(OTNSTestCase):
     def testAddNodeWithRawFlag(self):
         ns = self.ns
         nid = ns.add("router", script="# No CLI commands send in this node-script.")
-        self.assertEqual(1,nid)
+        self.assertEqual(1, nid)
         ns.add("router")
         ns.add("router")
         self.go(20)
         pars = self.ns.partitions()
-        self.assertEqual(2,len(pars))
-        self.assertEqual([1],pars[0]) # Node 1 is expected to be unconnected
+        self.assertEqual(2, len(pars))
+        self.assertEqual([1], pars[0])  # Node 1 is expected to be unconnected
 
     def testRestoreNode(self):
         ns = self.ns
@@ -116,9 +117,9 @@ class BasicTests(OTNSTestCase):
         self.go(10)
         self.assertEqual(ns.get_state(1), "leader")
 
-        n=0
+        n = 0
         for type in ("router", "fed", "med", "sed"):
-            nodeid = ns.add(type, x=n*10, y=10)
+            nodeid = ns.add(type, x=n * 10, y=10)
             self.go(10)
             self.assertFormPartitions(1)
             rloc16 = ns.get_rloc16(nodeid)
@@ -127,7 +128,7 @@ class BasicTests(OTNSTestCase):
             ns.delete(nodeid)
             ns.go(10)
 
-            self.assertEqual(nodeid, ns.add(type, x=n*10, y=10, restore=True))
+            self.assertEqual(nodeid, ns.add(type, x=n * 10, y=10, restore=True))
             self.assertEqual(rloc16, ns.get_rloc16(nodeid))
             self.go(0.1)
             while len(ns.partitions()) > 1 and ns.time < 100:
@@ -144,10 +145,10 @@ class BasicTests(OTNSTestCase):
         ns.move(2, 132000, 132000)
         ns.go(180)
         self.assertFormPartitions(2)
-        ns.move(2, 200, 200, 50) # move in 3D
+        ns.move(2, 200, 200, 50)  # move in 3D
         ns.go(250)
         self.assertFormPartitions(1)
-        ns.move(2, 198, 199) # move in 2D plane only. Z stays as it was.
+        ns.move(2, 198, 199)  # move in 2D plane only. Z stays as it was.
         ns.go(180)
         node_info = ns.nodes()[2]
         print(node_info)
@@ -192,7 +193,7 @@ class BasicTests(OTNSTestCase):
             ns.loglevel = 'debug'
             id = ns.add("router")
             self.assertTrue(len(ns.nodes()) == 1 and 1 in ns.nodes() and id == 1)
-            self.go(i/100)
+            self.go(i / 100)
             self.assertTrue(len(ns.nodes()) == 1 and 1 in ns.nodes())
 
             ns.delete(1)
@@ -207,7 +208,7 @@ class BasicTests(OTNSTestCase):
 
             ns.delete(1, 2, 3, 4)
             self.assertTrue(len(ns.nodes()) == 0)
-            if i>90:
+            if i > 90:
                 ns.go(0)
 
             ns.add("router")
@@ -223,7 +224,7 @@ class BasicTests(OTNSTestCase):
         ns.add("router")
         self.go(25)
         self.assertFormPartitions(1)
-        ns.delete(1,3,4,5)
+        ns.delete(1, 3, 4, 5)
         self.go(10)
         self.assertTrue(len(ns.nodes()) == 1 and 1 not in ns.nodes())
 
@@ -288,7 +289,7 @@ class BasicTests(OTNSTestCase):
 
         # fail-interval param must be greater than fail-duration.
         with self.assertRaises(errors.OTNSCliError):
-            ns.radio_set_fail_time(id, fail_time=(18,16))
+            ns.radio_set_fail_time(id, fail_time=(18, 16))
 
     def testCliCmd(self):
         ns = self.ns
@@ -332,14 +333,18 @@ class BasicTests(OTNSTestCase):
                 vopts[opt] = v
                 self.assertTrue(ns.config_visualization(**{opt: v}) == vopts)
 
-        vopts = ns.config_visualization(broadcast_message=True, unicast_message=True, ack_message=True,
+        vopts = ns.config_visualization(broadcast_message=True,
+                                        unicast_message=True,
+                                        ack_message=True,
                                         router_table=True,
                                         child_table=True)
 
         for opt in ('broadcast_message', 'unicast_message', 'ack_message', 'router_table', 'child_table'):
             self.assertTrue(vopts[opt])
 
-        vopts = ns.config_visualization(broadcast_message=False, unicast_message=False, ack_message=False,
+        vopts = ns.config_visualization(broadcast_message=False,
+                                        unicast_message=False,
+                                        ack_message=False,
                                         router_table=False,
                                         child_table=False)
 
@@ -409,7 +414,7 @@ class BasicTests(OTNSTestCase):
         ns: OTNS = self.ns
         ns.coaps_enable()
         for i in range(10):
-            id = ns.add('router', x=i*10, y=0)
+            id = ns.add('router', x=i * 10, y=0)
             ns.node_cmd(id, 'routerselectionjitter 1')
             ns.go(5)
 
@@ -433,17 +438,17 @@ class BasicTests(OTNSTestCase):
         self.go(130)
         self.assertFormPartitions(1)
 
-        for n in [1,2]:
+        for n in [1, 2]:
             # perform a special sequence to modify the Active Dataset on n1, n2 to use channel 20 instead.
             ns.node_cmd(n, "ifconfig down")
             ns.node_cmd(n, "dataset init active")
             ns.node_cmd(n, "dataset channel 20")
             ns.node_cmd(n, "channel 20")
-            ns.node_cmd(n, "dataset commit active") # this must be done after the 'channel' CLI command.
+            ns.node_cmd(n, "dataset commit active")  # this must be done after the 'channel' CLI command.
             ns.node_cmd(n, "ifconfig up")
             ns.node_cmd(n, "thread start")
         self.go(300)
-        self.assertFormPartitions(2) # we expect the 2 groups on different channels to not see each other.
+        self.assertFormPartitions(2)  # we expect the 2 groups on different channels to not see each other.
 
     def testLoglevel(self):
         ns: OTNS = self.ns
@@ -473,9 +478,9 @@ class BasicTests(OTNSTestCase):
         ns.unwatch_all()
         self.assertEqual([], ns.watched())
         ns.watch_all('debug')
-        self.assertEqual([1,2,3,4,5,6,7,8,9,10], ns.watched())
+        self.assertEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], ns.watched())
         ns.watch_all('warn')
-        self.assertEqual([1,2,3,4,5,6,7,8,9,10], ns.watched())
+        self.assertEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], ns.watched())
 
     def testWatchDefault(self):
         ns: OTNS = self.ns
@@ -484,13 +489,13 @@ class BasicTests(OTNSTestCase):
         for i in range(9):
             ns.add('router')
             ns.go(2)
-        self.assertEqual([2,3,4,5,6,7,8,9,10], ns.watched())
+        self.assertEqual([2, 3, 4, 5, 6, 7, 8, 9, 10], ns.watched())
         ns.watch_default('off')
         ns.add('router')
-        self.assertEqual([2,3,4,5,6,7,8,9,10], ns.watched())
+        self.assertEqual([2, 3, 4, 5, 6, 7, 8, 9, 10], ns.watched())
         ns.watch_default('info')
         ns.add('router')
-        self.assertEqual([2,3,4,5,6,7,8,9,10, 12], ns.watched())
+        self.assertEqual([2, 3, 4, 5, 6, 7, 8, 9, 10, 12], ns.watched())
 
     def testWatchNonExistingNodes(self):
         ns: OTNS = self.ns
@@ -498,12 +503,12 @@ class BasicTests(OTNSTestCase):
             ns.add('router')
             ns.go(2)
         with self.assertRaises(errors.OTNSCliError):
-            ns.watch(3, 4, 11) # node 11 does not exist
+            ns.watch(3, 4, 11)  # node 11 does not exist
         ns.go(5)
         self.assertEqual([3, 4], ns.watched())
-        ns.unwatch(5, 6) # nodes not being watched, but no error.
+        ns.unwatch(5, 6)  # nodes not being watched, but no error.
         self.assertEqual([3, 4], ns.watched())
-        ns.unwatch(3, 5, 66) # 3 is watched but 5 not, 66 non-existing, but no error.
+        ns.unwatch(3, 5, 66)  # 3 is watched but 5 not, 66 non-existing, but no error.
         self.assertEqual([4], ns.watched())
 
     def testHelp(self):
@@ -520,7 +525,7 @@ class BasicTests(OTNSTestCase):
         ns.add('router')
 
         ns.go(10)
-        self.assertEqual(10.0, ns.time) # ns.time returns microseconds
+        self.assertEqual(10.0, ns.time)  # ns.time returns microseconds
         ns.go(0.001)
         self.assertEqual(10.001, ns.time)
         ns.go(1e-3)
@@ -530,11 +535,11 @@ class BasicTests(OTNSTestCase):
         ns.go(3e-5)
         self.assertEqual(10.002031, ns.time)
         ns.go(1e-7)
-        self.assertEqual(10.002031, ns.time) # no time advance: rounded to nearest microsecond.
-        ns.go(0.000999) # almost 1 ms
+        self.assertEqual(10.002031, ns.time)  # no time advance: rounded to nearest microsecond.
+        ns.go(0.000999)  # almost 1 ms
         self.assertEqual(10.003030, ns.time)
         ns.go(4.0000004)
-        self.assertEqual(14.003030, ns.time) # rounded to nearest microsecond.
+        self.assertEqual(14.003030, ns.time)  # rounded to nearest microsecond.
 
     def testScan(self):
         ns: OTNS = self.ns
@@ -564,23 +569,23 @@ class BasicTests(OTNSTestCase):
     def testInvalidNodeCmd(self):
         ns: OTNS = self.ns
         with self.assertRaises(errors.OTNSCliError):
-            ns.node_cmd(1,'state')
+            ns.node_cmd(1, 'state')
         ns.add('router')
-        ns.node_cmd(1,'state')
+        ns.node_cmd(1, 'state')
         ns.go(20)
 
-        ns.node_cmd(1,'dns config 2001::1234 1234 5000 2 0 srv_txt_sep udp')
+        ns.node_cmd(1, 'dns config 2001::1234 1234 5000 2 0 srv_txt_sep udp')
         with self.assertRaises(errors.OTNSCliError):
-            ns.node_cmd(1,'sdfklsjflksj')
+            ns.node_cmd(1, 'sdfklsjflksj')
         with self.assertRaises(errors.OTNSCliError):
-            ns.node_cmd(1,'dns config nonexistoption')
-        ns.node_cmd(1,'dns config')
+            ns.node_cmd(1, 'dns config nonexistoption')
+        ns.node_cmd(1, 'dns config')
 
-        ns.node_cmd(1,'dns resolve nonexistent.example.com')
-        ns.go(30) # error response comes during the go period.
+        ns.node_cmd(1, 'dns resolve nonexistent.example.com')
+        ns.go(30)  # error response comes during the go period.
 
         with self.assertRaises(errors.OTNSCliError):
-            ns.node_cmd(1,'dns resolvea b c d e f')
+            ns.node_cmd(1, 'dns resolvea b c d e f')
 
         ns.go(1)
 
@@ -642,32 +647,32 @@ class BasicTests(OTNSTestCase):
         ns: OTNS = self.ns
         ns.add('router')
         ns.add('router')
-        self.assertEqual(['-75 dBm'], ns.node_cmd(1,'ccathreshold'))
-        self.assertEqual(['-75 dBm'], ns.node_cmd(2,'ccathreshold'))
+        self.assertEqual(['-75 dBm'], ns.node_cmd(1, 'ccathreshold'))
+        self.assertEqual(['-75 dBm'], ns.node_cmd(2, 'ccathreshold'))
         self.assertEqual(['-75'], ns.cmd('rfsim 1 ccath'))
 
         ns.node_cmd(2, 'ccathreshold -80')
-        self.assertEqual(['-75 dBm'], ns.node_cmd(1,'ccathreshold'))
-        self.assertEqual(['-80 dBm'], ns.node_cmd(2,'ccathreshold'))
+        self.assertEqual(['-75 dBm'], ns.node_cmd(1, 'ccathreshold'))
+        self.assertEqual(['-80 dBm'], ns.node_cmd(2, 'ccathreshold'))
         self.assertEqual(['-80'], ns.cmd('rfsim 2 ccath'))
 
         ns.node_cmd(1, 'ccathreshold 42')
-        self.assertEqual(['42 dBm'], ns.node_cmd(1,'ccathreshold'))
-        self.assertEqual(['-80 dBm'], ns.node_cmd(2,'ccathreshold'))
+        self.assertEqual(['42 dBm'], ns.node_cmd(1, 'ccathreshold'))
+        self.assertEqual(['-80 dBm'], ns.node_cmd(2, 'ccathreshold'))
         self.assertEqual(['42'], ns.cmd('rfsim 1 ccath'))
 
     def testCmdCommand(self):
         ns: OTNS = self.ns
-        output = ns.cmd('autogo') # arbitrary command
+        output = ns.cmd('autogo')  # arbitrary command
         self.assertEqual(1, len(output))
         self.assertEqual('0', output[0])
 
-        output = ns.cmd('') # test empty command (like pressing enter)
+        output = ns.cmd('')  # test empty command (like pressing enter)
         self.assertEqual(0, len(output))
 
     def testRandomSeedSetting(self):
         self.ns.close()
-        nodes = range(1,6)
+        nodes = range(1, 6)
 
         # create a new OTNS with 'seed' parameter.
         with OTNS(otns_args=['-log', 'debug', '-seed', '20242025']) as ns:
@@ -709,7 +714,7 @@ class BasicTests(OTNSTestCase):
         # after closing OTNS, save PCAP for second simulation
         pcap_fn_2 = self.name() + "_session_2.pcap"
         self.ns.save_pcap(pcap_path, pcap_fn_2)
-        cmp_res = filecmp.cmp(os.path.join(pcap_path, pcap_fn_1), os.path.join(pcap_path, pcap_fn_2), shallow = False)
+        cmp_res = filecmp.cmp(os.path.join(pcap_path, pcap_fn_1), os.path.join(pcap_path, pcap_fn_2), shallow=False)
         self.assertTrue(cmp_res)
 
     def testKpi(self):
@@ -728,8 +733,8 @@ class BasicTests(OTNSTestCase):
         self.assertEqual(0, kpi_data["time_sec"]["duration"])
         self.assertEqual(50, kpi_data["time_sec"]["start"])
 
-        for n in range(0,10):
-            ns.ping(1,3)
+        for n in range(0, 10):
+            ns.ping(1, 3)
             ns.go(5)
         ns.kpi_stop()
         self.assertFalse(ns.kpi())
@@ -764,14 +769,14 @@ class BasicTests(OTNSTestCase):
 
     def testLoadYamlTopology(self):
         ns: OTNS = self.ns
-        self.assertEqual(0,len(ns.nodes()))
+        self.assertEqual(0, len(ns.nodes()))
         ns.load('etc/mesh-topologies/test_mesh_topology.yaml')
-        self.assertEqual(57,len(ns.nodes()))
+        self.assertEqual(57, len(ns.nodes()))
         ns.go(1)
 
     def testSaveYamlTopology(self):
         ns: OTNS = self.ns
-        self.assertEqual(0,len(ns.nodes()))
+        self.assertEqual(0, len(ns.nodes()))
         ns.add('router')
         ns.go(10)
         ns.add('router')
@@ -779,17 +784,17 @@ class BasicTests(OTNSTestCase):
         ns.add('router')
         ns.add('ssed')
         ns.go(25)
-        self.assertEqual(5,len(ns.nodes()))
+        self.assertEqual(5, len(ns.nodes()))
         self.assertFormPartitions(1)
 
         ns.save('tmp/unittest_save_topology.yaml')
-        self.assertEqual(5,len(ns.nodes()))
+        self.assertEqual(5, len(ns.nodes()))
 
-        ns.delete(1,2,3,4,5)
-        self.assertEqual(0,len(ns.nodes()))
+        ns.delete(1, 2, 3, 4, 5)
+        self.assertEqual(0, len(ns.nodes()))
 
         ns.load('tmp/unittest_save_topology.yaml')
-        self.assertEqual(5,len(ns.nodes()))
+        self.assertEqual(5, len(ns.nodes()))
         ns.go(125)
         self.assertFormPartitions(1)
 
@@ -809,7 +814,7 @@ class BasicTests(OTNSTestCase):
         ns.add('router')
         ns.add('router')
 
-        ns.set_node_clock_drift(1,  0)
+        ns.set_node_clock_drift(1, 0)
         ns.set_node_clock_drift(2, 20)
         ns.set_node_clock_drift(3, -1)
 
@@ -817,8 +822,8 @@ class BasicTests(OTNSTestCase):
 
         # each node reports a different uptime value, due to their different clock drifts.]
         self.assertEqual(1000.000, ns.get_node_uptime(1))
-        self.assertEqual(round(1000.0 * (1 + 20e-6),3), ns.get_node_uptime(2))
-        self.assertEqual(round(1000.0 * (1 -  1e-6),3), ns.get_node_uptime(3))
+        self.assertEqual(round(1000.0 * (1 + 20e-6), 3), ns.get_node_uptime(2))
+        self.assertEqual(round(1000.0 * (1 - 1e-6), 3), ns.get_node_uptime(3))
 
         ns.set_node_clock_drift(2, 0)
         ns.go(1000)
@@ -826,9 +831,9 @@ class BasicTests(OTNSTestCase):
         self.assertEqual(n2_uptime, ns.get_node_uptime(2))
 
         # delete other nodes for faster simulation
-        ns.delete(1,3)
-        ns.go(24*3600) # simulate 1 full day - to test the 'uptime' parsing of day values.
-        self.assertEqual(n2_uptime + 24*3600.0, ns.get_node_uptime(2))
+        ns.delete(1, 3)
+        ns.go(24 * 3600)  # simulate 1 full day - to test the 'uptime' parsing of day values.
+        self.assertEqual(n2_uptime + 24 * 3600.0, ns.get_node_uptime(2))
 
     def testSendUdpCoap(self):
         ns: OTNS = self.ns
@@ -870,7 +875,7 @@ class BasicTests(OTNSTestCase):
             addrs = ns.node_cmd(j, 'ipmaddr')
             is_member = False
             for a in addrs:
-                if a.startswith("ff13"): # see Go simulation.SendMcastPrefix
+                if a.startswith("ff13"):  # see Go simulation.SendMcastPrefix
                     is_member = True
             self.assertTrue(is_member)
 
@@ -879,7 +884,7 @@ class BasicTests(OTNSTestCase):
         for j in ns.nodes():
             addrs = ns.node_cmd(j, 'ipmaddr')
             for a in addrs:
-                self.assertFalse(a.startswith("ff13")) # see Go simulation.SendMcastPrefix
+                self.assertFalse(a.startswith("ff13"))  # see Go simulation.SendMcastPrefix
 
     def testLoadOtScript(self):
         self.ns.close()

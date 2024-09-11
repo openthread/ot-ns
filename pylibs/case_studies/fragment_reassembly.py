@@ -33,16 +33,18 @@ from otns.cli.errors import OTNSExitedError
 
 NUM_NODES = 4
 
+
 def ping_test(ns, datasz, count):
     id_src = 1
     id_dst = max(ns.nodes())
-    for i in range(0,count):
+    for i in range(0, count):
         ns.ping(id_src, id_dst, datasize=datasz)
         ns.go(6)
     ns.print_pings(ns.pings())
 
+
 def main():
-    ns = OTNS(otns_args=['-seed','550','-logfile', 'trace'])
+    ns = OTNS(otns_args=['-seed', '550', '-logfile', 'trace'])
     ns.speed = 1e6
     ns.radiomodel = 'MutualInterference'
     #ns.radiomodel = 'MIDisc'
@@ -54,14 +56,14 @@ def main():
     for i in range(0, NUM_NODES):
         nid = ns.add("router", x=100 + 175 * i, y=100)
         if i == 0:
-            ns.go(10) # Leader starts first
-        print(f'Node {nid}: {ns.get_ipaddrs(nid,"mleid")[0]}' )
+            ns.go(10)  # Leader starts first
+        print(f'Node {nid}: {ns.get_ipaddrs(nid,"mleid")[0]}')
     ns.go(300)
-    ping_test(ns, datasz=4, count=2) # do the address queries for ML-EID destinations
+    ping_test(ns, datasz=4, count=2)  # do the address queries for ML-EID destinations
 
     # do tests and collect KPIs
     ns.kpi_start()
-    ping_test(ns, datasz=1150, count = 100)
+    ping_test(ns, datasz=1150, count=100)
     ns.kpi_stop()
 
     ns.web_display()

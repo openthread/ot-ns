@@ -39,7 +39,7 @@ def main():
     ns.set_title("Network Key Rekeying Example - Setting up network")
     ns.web()
 
-    ns.add("router", x=200, y=300) #Leader
+    ns.add("router", x=200, y=300)  #Leader
     ns.go(10)
     ns.add("router")
     ns.add("router")
@@ -66,7 +66,7 @@ def main():
 
     # print Active Dataset
     ns.set_title("Network Key Rekeying Example - Waiting on delay timer to set new Network Key and Channel")
-    print(*ns.node_cmd(1,"dataset active"), sep='\n')
+    print(*ns.node_cmd(1, "dataset active"), sep='\n')
 
     # make a copy of Active Dataset into the dataset buffer. Change network key & timestamp & channel.
     ns.node_cmd(1, "dataset init active")
@@ -76,7 +76,7 @@ def main():
 
     # set pending dataset parameters.
     ns.node_cmd(1, "dataset delay 200000")
-    ns.node_cmd(1,"dataset pendingtimestamp 1696177379")
+    ns.node_cmd(1, "dataset pendingtimestamp 1696177379")
 
     # commit as the Pending Dataset. Delay timer starts counting down from then on.
     ns.node_cmd(1, "dataset commit pending")
@@ -89,7 +89,7 @@ def main():
     ns.go(500)
 
     # allow some time for graphics to be displayed in web GUI.
-    ns.speed=0.001
+    ns.speed = 0.001
     ns.go(0.001)
 
 

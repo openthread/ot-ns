@@ -46,18 +46,18 @@ def main():
 
     # try to send a DNS query - doesn't work, as it cannot find a route to the default DNS server address.
     cmd = 'dns resolve messagenotsent.example.com'
-    ns.node_cmd(idCl,cmd)
+    ns.node_cmd(idCl, cmd)
     ns.go(20)
 
     # change DNS client config on client node idCl: use BR as server - 'forced' setting.
     # see https://github.com/openthread/openthread/blob/main/src/cli/README.md#dns-config
-    server_ip = ns.get_ipaddrs(idBr,'mleid')[0]
+    server_ip = ns.get_ipaddrs(idBr, 'mleid')[0]
     cmd = 'dns config %s' % server_ip
-    ns.node_cmd(idCl,cmd)
+    ns.node_cmd(idCl, cmd)
 
     # send AAAA query for Internet name
     cmd = 'dns resolve namenotfound.example.com'
-    ns.node_cmd(idCl,cmd)
+    ns.node_cmd(idCl, cmd)
     ns.go(20)
 
     # different DNS client config
@@ -65,36 +65,37 @@ def main():
     service_mode = 'srv'
     timeout_ms = 6000
     cmd = 'dns config %s 53 %d %d 0 %s' % (server_ip, timeout_ms, max_tx_attempts, service_mode)
-    ns.node_cmd(idCl,cmd)
+    ns.node_cmd(idCl, cmd)
 
     # send SRV query
     cmd = 'dns service MyExampleService _thread-test._udp.default.service.arpa'
-    ns.node_cmd(idCl,cmd)
+    ns.node_cmd(idCl, cmd)
     ns.go(20)
 
     # send PTR query
     cmd = 'dns browse _thread-test._udp.default.service.arpa'
-    ns.node_cmd(idCl,cmd)
+    ns.node_cmd(idCl, cmd)
     ns.go(20)
 
     # send TXT query
     service_mode = 'txt'
     cmd = 'dns config %s 53 %d %d 0 %s' % (server_ip, timeout_ms, max_tx_attempts, service_mode)
-    ns.node_cmd(idCl,cmd)
+    ns.node_cmd(idCl, cmd)
     cmd = 'dns service MyExampleService _thread-test._udp.default.service.arpa'
-    ns.node_cmd(idCl,cmd)
+    ns.node_cmd(idCl, cmd)
     ns.go(20)
 
     # send AAAA query for local SRP host name
     # The name has a space, and is escaped in Python once and in Go another time. This results in a single slash
     # being sent to the OT node eventually.
     cmd = "dns resolve Example\\\\ host.default.service.arpa"
-    ns.node_cmd(idCl,cmd)
+    ns.node_cmd(idCl, cmd)
     ns.go(20)
 
     # allow some time for graphics to be displayed in web GUI.
-    ns.speed=0.001
+    ns.speed = 0.001
     ns.go(0.001)
+
 
 if __name__ == '__main__':
     try:

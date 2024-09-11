@@ -24,7 +24,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
- 
+
 from otns.cli import OTNS
 from otns.cli.errors import OTNSExitedError
 
@@ -44,11 +44,13 @@ def print_stats(ns, nodeid: int):
            "\n".join(ns.node_cmd(nodeid, 'neighbor table')) + "\n" + \
            "\n".join(ns.node_cmd(nodeid, 'counters mac'))
 
+
 def print_pings(pings):
     s = ""
     for p in pings:
         s += "   " + str(p) + "\n"
     return s
+
 
 def main():
     # Use -watch trace to enable detailed logging of individual nodes, including radio/CCA details.
@@ -90,15 +92,15 @@ def main():
     # causing potential interference. This is done to avoid ping reply's from src or dst
     # that would disrupt the ongoing ping process between src and dst.
     ns.node_cmd(intf, f'ping async ff02::dead 64 {NUM_PINGS} {PING_INTERVAL}')
-    ns.ping(src,dst, datasize=PING_DATA_SIZE, count=NUM_PINGS, interval=PING_INTERVAL)
+    ns.ping(src, dst, datasize=PING_DATA_SIZE, count=NUM_PINGS, interval=PING_INTERVAL)
     ns.go(NUM_PINGS * PING_INTERVAL + 60)
 
     ns.loglevel = 'warn'  # suppress debug output interfering with below prints.
 
     print('\n*** Ping results:\n', print_pings(ns.pings()))
-    print('\n*** Source:\n', print_stats(ns,src))
-    print('\n*** Destination:\n', print_stats(ns,dst))
-    print('\n*** Interferer:\n', print_stats(ns,intf))
+    print('\n*** Source:\n', print_stats(ns, src))
+    print('\n*** Destination:\n', print_stats(ns, dst))
+    print('\n*** Interferer:\n', print_stats(ns, intf))
 
 
 if __name__ == '__main__':

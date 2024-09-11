@@ -40,7 +40,7 @@ class CslTests(OTNSTestCase):
 
         # add SSED
         nodeid = ns.add("ssed", 220, 100)
-        ns.node_cmd(nodeid,"csl period 288000")
+        ns.node_cmd(nodeid, "csl period 288000")
         ns.go(10)
 
         # Parent comes in, SSED connects
@@ -49,9 +49,9 @@ class CslTests(OTNSTestCase):
         self.assertFormPartitions(1)
 
         # SSED can ping parent
-        ns.ping(1,2)
+        ns.ping(1, 2)
         ns.go(1)
-        ns.ping(1,2)
+        ns.ping(1, 2)
         ns.go(1)
         self.assertPings(ns.pings(), 2, max_delay=2000, max_fails=1)
 
@@ -63,31 +63,31 @@ class CslTests(OTNSTestCase):
         ns.add("router", 150, 100)
         # below CSL periods to test (given in units of 160 us)
         aCslPeriods = [3100, 500, 7225, 1024, 3125, 3124, 250, 5999, 777, 1024]
-        for n in range(0,N):
-            nodeid = ns.add("ssed", 80 + n*20, 150)
-            ns.node_cmd(nodeid,"csl period " + str(aCslPeriods[n] * 160))
+        for n in range(0, N):
+            nodeid = ns.add("ssed", 80 + n * 20, 150)
+            ns.node_cmd(nodeid, "csl period " + str(aCslPeriods[n] * 160))
             ns.go(1)
         ns.go(45)
         self.assertFormPartitions(1)
 
-        for k in range(0,5):
+        for k in range(0, 5):
             # do some pings
-            for n in range(0,N):
-                ns.ping(1,2+n)
+            for n in range(0, N):
+                ns.ping(1, 2 + n)
                 ns.go(2)
-                ns.ping(2+n,1)
+                ns.ping(2 + n, 1)
                 ns.go(2)
 
             # long wait and some pings
             ns.go(300)
-            for n in range(0,N):
-                ns.ping(1,2+n)
+            for n in range(0, N):
+                ns.ping(1, 2 + n)
                 ns.go(20)
-                ns.ping(2+n,1)
+                ns.ping(2 + n, 1)
                 ns.go(20)
 
             # test ping results
-            self.assertPings(ns.pings(), N*4, max_delay=3000, max_fails=1)
+            self.assertPings(ns.pings(), N * 4, max_delay=3000, max_fails=1)
 
     def testCslReenable(self):
         ns = self.ns
@@ -96,46 +96,46 @@ class CslTests(OTNSTestCase):
         ns.add("router", 100, 100)
         ns.go(10)
         nodeid = ns.add("ssed", 200, 100)
-        ns.node_cmd(nodeid,"csl period 288000")
+        ns.node_cmd(nodeid, "csl period 288000")
         ns.go(10)
         self.assertFormPartitions(1)
 
         # SSED pings parent
-        for n in range(0,15):
-            ns.ping(2,1,datasize=n+10)
+        for n in range(0, 15):
+            ns.ping(2, 1, datasize=n + 10)
             ns.go(5)
         self.assertPings(ns.pings(), 15, max_delay=3000, max_fails=1)
 
         # parent pings SSED
-        for n in range(0,15):
-            ns.ping(1,2,datasize=n+10)
+        for n in range(0, 15):
+            ns.ping(1, 2, datasize=n + 10)
             ns.go(5)
         self.assertPings(ns.pings(), 15, max_delay=3000, max_fails=1)
 
-        for k in range(0,4):
+        for k in range(0, 4):
             # disable CSL
-            ns.node_cmd(nodeid,"csl period 0")
+            ns.node_cmd(nodeid, "csl period 0")
             ns.go(1)
 
             # SSED pings parent
-            for n in range(0,15):
-                ns.ping(2,1,datasize=n+10)
+            for n in range(0, 15):
+                ns.ping(2, 1, datasize=n + 10)
                 ns.go(5)
             self.assertPings(ns.pings(), 15, max_delay=3000, max_fails=1)
 
             # re-enable CSL
-            ns.node_cmd(nodeid,"csl period 144000")
+            ns.node_cmd(nodeid, "csl period 144000")
             ns.go(1)
 
             # SSED pings parent
-            for n in range(0,15):
-                ns.ping(2,1,datasize=n+10)
+            for n in range(0, 15):
+                ns.ping(2, 1, datasize=n + 10)
                 ns.go(5)
             self.assertPings(ns.pings(), 15, max_delay=3000, max_fails=1)
 
             # parent pings SSED
-            for n in range(0,15):
-                ns.ping(1,2,datasize=n+10)
+            for n in range(0, 15):
+                ns.ping(1, 2, datasize=n + 10)
                 ns.go(5)
             self.assertPings(ns.pings(), 15, max_delay=3000, max_fails=1)
 

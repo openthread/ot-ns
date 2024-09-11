@@ -33,8 +33,8 @@ set -euo pipefail
 
 build_error()
 {
-  printf '\n****************\n  Failed build script: %s - stopping.\n****************\n\n' "$@"
-  exit 1
+    printf '\n****************\n  Failed build script: %s - stopping.\n****************\n\n' "$@"
+    exit 1
 }
 
 main()
@@ -46,10 +46,10 @@ main()
         SCRIPTNAME="./script/build_$VER"
 
         printf 'Node %s: building with script %s\n' "${VER}" "${SCRIPTNAME}"
-        if ${SCRIPTNAME} "${options[@]}" ; then
-          printf 'Node %s: completed build with script %s\n' "${VER}" "${SCRIPTNAME}"
+        if ${SCRIPTNAME} "${options[@]}"; then
+            printf 'Node %s: completed build with script %s\n' "${VER}" "${SCRIPTNAME}"
         else
-          build_error "${SCRIPTNAME}"
+            build_error "${SCRIPTNAME}"
         fi
     done
 

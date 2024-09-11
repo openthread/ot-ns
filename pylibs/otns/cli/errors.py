@@ -24,7 +24,6 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-
 """
 This file contains definitions of OTNS CLI errors
 """
@@ -33,8 +32,10 @@ from otns.errors import OTNSError
 
 
 class OTNSCliError(OTNSError):
+
     def __init__(self, error: str):
         super(OTNSCliError, self).__init__(error)
+
 
 class OTNSExitedError(OTNSCliError):
     """
@@ -58,6 +59,7 @@ class OTNSCommandInterruptedError(OTNSExitedError):
 
 
 class UnexpectedError(OTNSError):
+
     def __init__(self, error: str):
         super(UnexpectedError, self).__init__(error)
 

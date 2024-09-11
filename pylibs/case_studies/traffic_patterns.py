@@ -30,10 +30,12 @@
 from otns.cli import OTNS
 from otns.cli.errors import OTNSExitedError
 
+
 def build_topology(ns):
     # 34 pixels =~ 2 map grid units =~ 5 feet =~ 1.524 m
-    ns.set_radioparam('MeterPerUnit', 1.524/34 )
+    ns.set_radioparam('MeterPerUnit', 1.524 / 34)
     ns.load("etc/mesh-topologies/office_50.yaml")
+
 
 def main():
     ns = OTNS()
@@ -48,9 +50,9 @@ def main():
 
     # send unicast and multicast traffic over mesh
     ns.kpi_start()
-    ns.cmd("send coap con 1 50 ds 64") # unicast from BR to node
+    ns.cmd("send coap con 1 50 ds 64")  # unicast from BR to node
     ns.go(0.002)
-    ns.cmd("send coap 48 31-50") # sensor triggers lights of lower group
+    ns.cmd("send coap 48 31-50")  # sensor triggers lights of lower group
     ns.go(5)
     ns.kpi_save('tmp/cs_traffic_patterns.json')
     ns.kpi_save()
@@ -59,10 +61,10 @@ def main():
     ns.interactive_cli()
     ns.web_display()
 
+
 if __name__ == '__main__':
     try:
         main()
     except OTNSExitedError as ex:
         if ex.exit_code != 0:
             raise
-

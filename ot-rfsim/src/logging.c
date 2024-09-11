@@ -30,11 +30,11 @@
 #include <openthread-core-config.h>
 #include <openthread/config.h>
 
+#include <libgen.h>
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <syslog.h>
-#include <libgen.h>
 
 #include <openthread/platform/logging.h>
 #include <openthread/platform/toolchain.h>
@@ -49,7 +49,8 @@
 
 static int convertOtLogLevelToSyslogLevel(otLogLevel otLevel);
 
-void platformLoggingInit(char *processName){
+void platformLoggingInit(char *processName)
+{
     openlog(basename(processName), LOG_PID, LOG_USER);
     setlogmask(setlogmask(0) & LOG_UPTO(SYSLOG_LEVEL));
     syslog(LOG_NOTICE, "Started process for ot-rfsim node ID: %d", gNodeId);
@@ -71,27 +72,30 @@ OT_TOOL_WEAK void otPlatLog(otLogLevel aLogLevel, otLogRegion aLogRegion, const 
     syslog(convertOtLogLevelToSyslogLevel(aLogLevel), "%s", logString);
 
     // extend logString with newline, and then log this string in an event.
-    if (!gTerminate) {
-        logString[strLen] = '\n';
+    if (!gTerminate)
+    {
+        logString[strLen]     = '\n';
         logString[strLen + 1] = '\0';
-        otSimSendLogWriteEvent((const uint8_t *) &logString[0], strLen + 1);
+        otSimSendLogWriteEvent((const uint8_t *)&logString[0], strLen + 1);
     }
 }
 
-int convertOtLogLevelToSyslogLevel(otLogLevel otLevel) {
-    switch(otLevel){
-        case OT_LOG_LEVEL_CRIT:
-            return LOG_CRIT;
-        case OT_LOG_LEVEL_WARN:
-            return LOG_WARNING;
-        case OT_LOG_LEVEL_NOTE:
-            return LOG_NOTICE;
-        case OT_LOG_LEVEL_INFO:
-            return LOG_INFO;
-        case OT_LOG_LEVEL_DEBG:
-            return LOG_DEBUG;
-        default:
-            return LOG_CRIT;
+int convertOtLogLevelToSyslogLevel(otLogLevel otLevel)
+{
+    switch (otLevel)
+    {
+    case OT_LOG_LEVEL_CRIT:
+        return LOG_CRIT;
+    case OT_LOG_LEVEL_WARN:
+        return LOG_WARNING;
+    case OT_LOG_LEVEL_NOTE:
+        return LOG_NOTICE;
+    case OT_LOG_LEVEL_INFO:
+        return LOG_INFO;
+    case OT_LOG_LEVEL_DEBG:
+        return LOG_DEBUG;
+    default:
+        return LOG_CRIT;
     }
 }
 #endif

@@ -35,7 +35,7 @@ NUM_BR = 2
 NUM_NODES = 10
 BR_ID_OFFSET = 100
 
-SCRIPT_BR="""
+SCRIPT_BR = """
 # OT BR CLI script to configure a BR to use its own OMR prefix, if needed.
 # There is no DHCPv6-PD available to get a prefix from.
 
@@ -60,30 +60,32 @@ br init 1 1
 br enable
 """
 
+
 def print_services(srv):
     for line in srv:
         if ':' in line:
-            print('\t',line)
+            print('\t', line)
         else:
             print(line)
 
+
 def main():
-    ns = OTNS(otns_args=['-seed','34541','-logfile', 'info'])
+    ns = OTNS(otns_args=['-seed', '34541', '-logfile', 'info'])
     ns.speed = 200
     ns.radiomodel = 'MutualInterference'
     ns.web()
 
     # Leader
-    ns.add("router", id = 200)
+    ns.add("router", id=200)
     ns.go(10)
 
     # setup of Border Routers
-    for i in range(1, NUM_BR+1):
-        ns.add("br", id = BR_ID_OFFSET+i, script=SCRIPT_BR)
+    for i in range(1, NUM_BR + 1):
+        ns.add("br", id=BR_ID_OFFSET + i, script=SCRIPT_BR)
     ns.go(10)
 
     # setup of Router nodes - each with service registration using SRP
-    for i in range(1, NUM_NODES+1):
+    for i in range(1, NUM_NODES + 1):
         nid = ns.add("router", id=i)
         host = f'host{i}'
         port = 18000 + i
@@ -93,17 +95,17 @@ def main():
         ns.go(10)
     ns.go(20)
 
-    for i in range(1, NUM_BR+1):
+    for i in range(1, NUM_BR + 1):
         nid = BR_ID_OFFSET + i
         print(f"Services registered on BR node {nid}:")
         print_services(ns.node_cmd(nid, 'srp server service'))
 
     ns.kpi_start()
     ns.delete(102)  # delete the BR that provides winning OMR prefix
-    ns.go(700) # timeout removed BR info and let re-registrations occur
+    ns.go(700)  # timeout removed BR info and let re-registrations occur
     ns.kpi_stop()
 
-    for i in range(1, NUM_BR+1):
+    for i in range(1, NUM_BR + 1):
         nid = BR_ID_OFFSET + i
         if nid == 102:
             continue

@@ -60,11 +60,10 @@ class StressTest(BaseStressTest):
     }
 
     def __init__(self):
-        super(StressTest, self).__init__("Parent with max Children count",
-                                         [])
+        super(StressTest, self).__init__("Parent with max Children count", [])
 
     def run(self):
-        self.ns.speed = 30 # speed is lowered to see the visualization, when run locally.
+        self.ns.speed = 30  # speed is lowered to see the visualization, when run locally.
         self.test('fed', 'router')
         self.test('med', 'router')
         self.test('sed', 'router')
@@ -74,8 +73,7 @@ class StressTest(BaseStressTest):
         self.test('fed', 'br', CHILDREN_N_BR)
         self.test('med', 'br', CHILDREN_N_BR)
         self.test('sed', 'br', CHILDREN_N_BR)
-        self.test('ssed','br', CHILDREN_N_BR)
-
+        self.test('ssed', 'br', CHILDREN_N_BR)
 
     def test(self, child_type: str, parent_type: str, n_children_max: int = CHILDREN_N):
         self.reset()
@@ -90,7 +88,7 @@ class StressTest(BaseStressTest):
 
         for i in range(n_children_max):
             angle = math.pi * 2 * i / n_children_max
-            d = random.randint(0, MAX_DISTANCE * MAX_DISTANCE) ** 0.5
+            d = random.randint(0, MAX_DISTANCE * MAX_DISTANCE)**0.5
             child_x = int(PARENT_X + d * math.cos(angle))
             child_y = int(PARENT_Y + d * math.sin(angle))
             child = self.ns.add(child_type, child_x, child_y)
@@ -99,18 +97,21 @@ class StressTest(BaseStressTest):
 
         for i in range(time_limit):
             self.ns.go(60)
-            n_children=0
+            n_children = 0
             for child in all_children:
                 if self.ns.get_state(child) == 'child':
                     n_children += 1
             if n_children == n_children_max:
-                logging.info("All %s children attached successfully within %d minutes, with time limit set to %d minutes.", child_type, i + 1, time_limit)
+                logging.info(
+                    "All %s children attached successfully within %d minutes, with time limit set to %d minutes.",
+                    child_type, i + 1, time_limit)
                 break
 
         self.ns.web_display()
 
         if n_children < n_children_max:
             raise Exception("Not all %s children attached within time limit of %d minutes." % (child_type, time_limit))
+
 
 if __name__ == '__main__':
     StressTest().run()

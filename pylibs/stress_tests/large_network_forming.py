@@ -36,7 +36,7 @@ YGAP = 80
 RADIO_RANGE = int(XGAP * 2.5)
 
 LARGE_N = 11
-PACKET_LOSS_RATIO = max((int(os.getenv('STRESS_LEVEL', '1')) -1)/10.0, 0.0)
+PACKET_LOSS_RATIO = max((int(os.getenv('STRESS_LEVEL', '1')) - 1) / 10.0, 0.0)
 
 SIMULATE_TIME_TOTAL = 600
 SIMULATE_TIME_PERIOD = 30
@@ -57,7 +57,7 @@ class StressTest(BaseStressTest):
 
         durations = []
         partition_counts = []
-        for nrep in range(1, REPEAT+1):
+        for nrep in range(1, REPEAT + 1):
             durations, partition_counts = self.test_n(LARGE_N, durations, partition_counts, nrep)
 
     def test_n(self, n, durations, partition_counts, nrep):

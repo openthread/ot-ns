@@ -50,6 +50,7 @@ jobs:
     env:
       HOMEBREW_NO_AUTO_UPDATE: 1
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go-version }}
@@ -59,7 +60,6 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - run: |
           mkdir -p /home/runner/work/_temp/_github_home
-      - uses: actions/checkout@v3
       - name: Stress Test
         env:
           STRESS_LEVEL: 2

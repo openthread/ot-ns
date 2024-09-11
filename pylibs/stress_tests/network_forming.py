@@ -49,9 +49,7 @@ MAX_N = 6
 
 REPEAT = 6
 
-EXPECTED_MERGE_TIME_MAX = [
-    None, 10, 14, 40, 60, 130, 190
-]
+EXPECTED_MERGE_TIME_MAX = [None, 10, 14, 40, 60, 130, 190]
 
 
 class StressTest(BaseStressTest):
@@ -76,8 +74,8 @@ class StressTest(BaseStressTest):
 
             self.result.append_row(f'{n}x{n}', *['%ds' % d for d in durations])
             avg_dura = self.avg_except_max(durations)
-            self.result.fail_if(avg_dura > EXPECTED_MERGE_TIME_MAX[n],
-                                f"""{n}x{n} average formation time {avg_dura} > {
+            self.result.fail_if(
+                avg_dura > EXPECTED_MERGE_TIME_MAX[n], f"""{n}x{n} average formation time {avg_dura} > {
                                 EXPECTED_MERGE_TIME_MAX[n]}""")
 
     @staticmethod
@@ -85,7 +83,7 @@ class StressTest(BaseStressTest):
         ex = sum(nums) / len(nums)
         s = 0
         for i in nums:
-            s += (i - ex) ** 2
+            s += (i - ex)**2
         return float(s) / len(nums)
 
     def test_n(self, n):

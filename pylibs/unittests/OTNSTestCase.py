@@ -40,15 +40,15 @@ class OTNSTestCase(unittest.TestCase):
         logging.basicConfig(level=logging.DEBUG, format='%(asctime)-15s - %(levelname)s - %(message)s')
 
     def name(self) -> str:
-        return self.id().replace('__main__.','')
+        return self.id().replace('__main__.', '')
 
     def setUp(self) -> None:
         logging.info("Setting up for test: %s", self.name())
-        self.ns = OTNS(otns_args=['-log', 'debug']) # may add '-watch', 'trace' to see detailed OT node traces.
+        self.ns = OTNS(otns_args=['-log', 'debug'])  # may add '-watch', 'trace' to see detailed OT node traces.
 
     def tearDown(self) -> None:
         self.ns.close()
-        self.ns.save_pcap("tmp/unittest_pcap", self.name() + ".pcap" )
+        self.ns.save_pcap("tmp/unittest_pcap", self.name() + ".pcap")
 
     def go(self, duration: float) -> None:
         """
@@ -67,7 +67,8 @@ class OTNSTestCase(unittest.TestCase):
         pars = self.ns.partitions()
         parsNoOrphans = []
         parsNoOrphans[:] = (value for value in pars if value != 0)
-        self.assertEqual(count, len(parsNoOrphans), f"Partitions count mismatch: expected {count}, but is {len(parsNoOrphans)}")
+        self.assertEqual(count, len(parsNoOrphans),
+                         f"Partitions count mismatch: expected {count}, but is {len(parsNoOrphans)}")
 
     def assertNodeState(self, nodeid: int, state: str):
         cur_state = self.ns.get_state(nodeid)

@@ -51,7 +51,9 @@ def main():
 
     # here we call the CLI for the user to type commands. Now the simulation can be manipulated as wanted,
     # using the CLI or GUI commands. Typing 'exit' will exit this call.
-    ns.set_title("Interactive simulation with OTNS CLI example - switch to cmdline and e.g. type 'ping 1 5', then look at animation")
+    ns.set_title(
+        "Interactive simulation with OTNS CLI example - switch to cmdline and e.g. type 'ping 1 5', then look at animation"
+    )
     ns.speed = 0.008
     ns.autogo = True
     ns.interactive_cli()
