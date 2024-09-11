@@ -31,13 +31,13 @@
 #include <setjmp.h>
 #include <unistd.h>
 
-#include <openthread/platform/misc.h>
-#include <openthread/logging.h>
 #include "openthread-system.h"
+#include <openthread/logging.h>
+#include <openthread/platform/misc.h>
 
 #include "common/logging.hpp"
 
-extern jmp_buf gResetJump;
+extern jmp_buf      gResetJump;
 extern struct Event gLastSentEvent, gLastRecvEvent;
 
 otPlatResetReason   gPlatResetReason = OT_PLAT_RESET_REASON_POWER_ON;
@@ -67,12 +67,12 @@ void otPlatReset(otInstance *aInstance)
 void otPlatAssertFail(const char *aFilename, int aLineNumber)
 {
     otLogCritPlat("assert failed at %s:%d\n", aFilename, aLineNumber);
-    otLogCritPlat( "Last sent Event: tp=%i dly=%lu datalen=%u\n",
-                   gLastSentEvent.mEvent, (unsigned long)gLastSentEvent.mDelay, gLastSentEvent.mDataLength);
-    otLogCritPlat( "Last recv Event: tp=%i dly=%lu datalen=%u\n",
-                   gLastRecvEvent.mEvent, (unsigned long)gLastRecvEvent.mDelay, gLastRecvEvent.mDataLength);
+    otLogCritPlat("Last sent Event: tp=%i dly=%lu datalen=%u\n", gLastSentEvent.mEvent,
+                  (unsigned long)gLastSentEvent.mDelay, gLastSentEvent.mDataLength);
+    otLogCritPlat("Last recv Event: tp=%i dly=%lu datalen=%u\n", gLastRecvEvent.mEvent,
+                  (unsigned long)gLastRecvEvent.mDelay, gLastRecvEvent.mDataLength);
 
-    fprintf(stderr,"assert failed at %s:%d\n", aFilename, aLineNumber);
+    fprintf(stderr, "assert failed at %s:%d\n", aFilename, aLineNumber);
 
     // For debug build, use assert to generate a core dump
     assert(false);

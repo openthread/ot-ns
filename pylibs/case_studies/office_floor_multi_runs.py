@@ -37,26 +37,28 @@ from otns.cli import OTNS
 from otns.cli.errors import OTNSExitedError
 
 NUM_RUNS = 50
-MAX_SIM_TIME = 20*60
+MAX_SIM_TIME = 20 * 60
 
 
 def build_topology(ns):
     # 34 pixels =~ 2 map grid units =~ 5 feet =~ 1.524 m
-    ns.set_radioparam('MeterPerUnit', 1.524/34 )
+    ns.set_radioparam('MeterPerUnit', 1.524 / 34)
     ns.load("etc/mesh-topologies/office_200.yaml")
 
+
 def test_ulimit():
-    n_files = resource.getrlimit(7)[0] # check RLIMIT_NOFILE, number of open files
+    n_files = resource.getrlimit(7)[0]  # check RLIMIT_NOFILE, number of open files
     if n_files < 4096:
         print(f'Current open-files limit too low: {n_files}')
         print('Please configure "ulimit -Sn 4096" prior to running this script.')
         exit(1)
 
+
 def run_formation(run_id, sim_time):
     run_id_str = f'{run_id:02d}'
     print(f'run_formation: run_id = {run_id_str}')
 
-    ns = OTNS(otns_args=['-seed',str(2342+run_id)])
+    ns = OTNS(otns_args=['-seed', str(2342 + run_id)])
     #ns.web('main')
     ns.web('stats')
 
@@ -72,6 +74,7 @@ def run_formation(run_id, sim_time):
     shutil.copy('tmp/0_stats.csv', f'office_runs/{run_id_str}.csv')
     shutil.copy('current.pcap', f'office_runs/{run_id_str}.pcap')
 
+
 def main():
     test_ulimit()
     try:
@@ -79,8 +82,8 @@ def main():
     except:
         pass
 
-    for n in range(1,NUM_RUNS+1):
-        run_formation(run_id = n, sim_time = MAX_SIM_TIME)
+    for n in range(1, NUM_RUNS + 1):
+        run_formation(run_id=n, sim_time=MAX_SIM_TIME)
 
 
 if __name__ == '__main__':

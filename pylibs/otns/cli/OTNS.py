@@ -131,8 +131,8 @@ class OTNS(object):
         :param fpath: the path where the new .pcap file will reside. Intermediate directories are created if needed.
         :param fname: the file name of the .pcap file to save to.
         """
-        os.makedirs(fpath, exist_ok = True)
-        shutil.copy2("current.pcap", os.path.join(fpath,fname))
+        os.makedirs(fpath, exist_ok=True)
+        shutil.copy2("current.pcap", os.path.join(fpath, fname))
 
     @property
     def autogo(self) -> bool:
@@ -268,7 +268,7 @@ class OTNS(object):
 
         :return: current simulation time in seconds (us resolution)
         """
-        return self._expect_int(self._do_command(f'time')) /1.0e6
+        return self._expect_int(self._do_command(f'time')) / 1.0e6
 
     def set_poll_period(self, nodeid: int, period: float) -> None:
         ms = int(period * 1000)
@@ -290,11 +290,13 @@ class OTNS(object):
 
         return which_otns
 
-    def _do_command(self, cmd: str, do_logging: bool = True,
+    def _do_command(self,
+                    cmd: str,
+                    do_logging: bool = True,
                     raise_cli_err: bool = True,
                     output_donestrings: bool = False,
                     force_global_scope: bool = True) -> List[str]:
-        if force_global_scope and len(cmd)>0 and cmd[0] != '!':
+        if force_global_scope and len(cmd) > 0 and cmd[0] != '!':
             cmd = '!' + cmd
 
         with self._lock_otns_do_command:
@@ -333,7 +335,7 @@ class OTNS(object):
 
                 output.append(line)
 
-    def cmd(self, cmd:str) -> List[str]:
+    def cmd(self, cmd: str) -> List[str]:
         """
         Execute an arbitrary OTNS CLI command and return the resulting output lines (if any).
 
@@ -354,9 +356,16 @@ class OTNS(object):
                 break
             if cmd == '':
                 # force a 'Done' from OTNS. This allows collecting async outputlines with Enter key.
-                output_lines = self._do_command('debug', raise_cli_err=False, do_logging=False, output_donestrings=False)
+                output_lines = self._do_command('debug',
+                                                raise_cli_err=False,
+                                                do_logging=False,
+                                                output_donestrings=False)
             else:
-                output_lines = self._do_command(cmd, raise_cli_err=False, do_logging=True, output_donestrings=True, force_global_scope=False)
+                output_lines = self._do_command(cmd,
+                                                raise_cli_err=False,
+                                                do_logging=True,
+                                                output_donestrings=True,
+                                                force_global_scope=False)
 
             # CLI context tracking - only done to display the right prompt (node-context) to user
             if cmd == 'node 0' or cmd == 'exit':
@@ -373,7 +382,8 @@ class OTNS(object):
             self.close()
         self._cli_thread = None
 
-    def interactive_cli(self, prompt: Optional[str] = CLI_PROMPT,
+    def interactive_cli(self,
+                        prompt: Optional[str] = CLI_PROMPT,
                         user_hint: Optional[str] = CLI_USER_HINT,
                         close_otns_on_exit: Optional[bool] = False) -> bool:
         """
@@ -395,7 +405,8 @@ class OTNS(object):
 
         return True
 
-    def interactive_cli_threaded(self, prompt: Optional[str] = CLI_PROMPT,
+    def interactive_cli_threaded(self,
+                                 prompt: Optional[str] = CLI_PROMPT,
                                  user_hint: Optional[str] = CLI_USER_HINT,
                                  close_otns_on_exit: Optional[bool] = True) -> bool:
         """
@@ -419,8 +430,17 @@ class OTNS(object):
 
             return True
 
-    def add(self, type: str, x: float = None, y: float = None, id=None, radio_range=None, executable=None,
-            restore=False, txpower: int=None, version: str = None, script: str = None) -> int:
+    def add(self,
+            type: str,
+            x: float = None,
+            y: float = None,
+            id=None,
+            radio_range=None,
+            executable=None,
+            restore=False,
+            txpower: int = None,
+            version: str = None,
+            script: str = None) -> int:
         """
         Add a new node to the simulation.
 
@@ -466,7 +486,7 @@ class OTNS(object):
             self.node_script(nodeid, script)
 
         if txpower is not None:
-            self.node_cmd(nodeid,f'txpower {txpower}')
+            self.node_cmd(nodeid, f'txpower {txpower}')
 
         return nodeid
 
@@ -520,7 +540,7 @@ class OTNS(object):
         """
         cmd = f'watch'
         ids_str = self._do_command(cmd)[0]
-        if len(ids_str)==0:
+        if len(ids_str) == 0:
             return []
         return list(map(int, ids_str.split(" ")))
 
@@ -555,7 +575,11 @@ class OTNS(object):
             cmd = f'move {nodeid} {x} {y} {z}'
         self._do_command(cmd)
 
-    def ping(self, srcid: int, dst: Union[int, str, ipaddress.IPv6Address], addrtype: str = 'any', datasize: int = 4,
+    def ping(self,
+             srcid: int,
+             dst: Union[int, str, ipaddress.IPv6Address],
+             addrtype: str = 'any',
+             datasize: int = 4,
              count: int = 1,
              interval: float = 10) -> None:
         """
@@ -733,8 +757,17 @@ class OTNS(object):
 
         return counters
 
-    def prefix_add(self, nodeid: int, prefix: str, preferred=True, slaac=True, dhcp=False, dhcp_other=False,
-                   default_route=True, on_mesh=True, stable=True, prf='med') -> None:
+    def prefix_add(self,
+                   nodeid: int,
+                   prefix: str,
+                   preferred=True,
+                   slaac=True,
+                   dhcp=False,
+                   dhcp_other=False,
+                   default_route=True,
+                   on_mesh=True,
+                   stable=True,
+                   prf='med') -> None:
         """
         Add a prefix to the network data of a node and register the updated network data with the Leader.
 
@@ -796,7 +829,7 @@ class OTNS(object):
         lines = script.split('\n')
         for line in lines:
             line = line.strip()
-            if len(line)==0 or line[0]=='#':
+            if len(line) == 0 or line[0] == '#':
                 continue
             output_one = self.node_cmd(nodeid, line)
             for o in output_one:
@@ -937,9 +970,16 @@ class OTNS(object):
         """
         self.node_cmd(nodeid, f'networkkey {key}')
 
-    def config_dataset(self, nodeid: int, channel: int = None, panid: int = None, extpanid: str = None,
-                       networkkey: str = None, network_name: str = None, active_timestamp: int = None,
-                       set_remaining: bool = False, dataset: str = 'active'):
+    def config_dataset(self,
+                       nodeid: int,
+                       channel: int = None,
+                       panid: int = None,
+                       extpanid: str = None,
+                       networkkey: str = None,
+                       network_name: str = None,
+                       active_timestamp: int = None,
+                       set_remaining: bool = False,
+                       dataset: str = 'active'):
         """
         Configure the active or pending dataset. Parameters not provided (or set to None) are not set in the
         resulting dataset.
@@ -999,7 +1039,7 @@ class OTNS(object):
         Wait for web browser display/rendering of current topology/situation to be done.
         TODO: currently uses a heuristic method and it's not verified that the web browser has actually rendered.
         """
-        self._do_command('go 0us speed 1') # a 'go' triggers a PostAsyncWait and sends an advance-time event to viz.
+        self._do_command('go 0us speed 1')  # a 'go' triggers a PostAsyncWait and sends an advance-time event to viz.
         time.sleep(0.020)
 
     def ifconfig_up(self, nodeid: int) -> None:
@@ -1212,7 +1252,7 @@ class OTNS(object):
         :param nodeid: the node ID
         :return: the uptime in seconds (converted from node's Dd.hh:mm:ss.ms format)
         """
-        uptime_str = self._expect_str(self.node_cmd(nodeid,'uptime'))
+        uptime_str = self._expect_str(self.node_cmd(nodeid, 'uptime'))
         # example 'uptime' command OT node output: 1d.00:33:20.020
         m = re.search('((\d+)d\.)?(\d\d):(\d\d):(\d\d)\.(\d\d\d)', uptime_str)
         assert m is not None, uptime_str
@@ -1220,7 +1260,7 @@ class OTNS(object):
         time_sec = int(g[2]) * 3600 + int(g[3]) * 60 + int(g[4]) + int(g[5]) / 1000.0
         if g[1] is not None:
             time_sec += int(g[1]) * 24 * 3600
-        return round(time_sec,3)
+        return round(time_sec, 3)
 
     def set_node_clock_drift(self, nodeid: int, drift: int):
         """
@@ -1296,7 +1336,7 @@ class OTNS(object):
         """
         self._do_command(f'load "{filename}"')
 
-    def save(self, filename:str) -> None:
+    def save(self, filename: str) -> None:
         """
         Save nodes / network topology to a YAML file.
 

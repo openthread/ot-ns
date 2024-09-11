@@ -38,10 +38,13 @@ class ExternalRoutesTestbench(object):
     the number of border routers (Nbr), number of GUA prefixes (Nglobals) and ULA prefixes (Nulas) that
     are present on the AIL.
     """
-    aGlobalPrefixes = ['2001:db8:1234::/64', '2002:db9:5678::/64', '2002:db8:5678::/64', '2002:db7:5678::/64',
-                       '2001:4567:5678::/64']
-    aUlaPrefixes = ['fd12:3456::/64', 'fc00:abcd::/64', 'fd34:1234:5678:abcd:abcd::/80', 'fdab:1234:1234::/64',
-                    'fd0a:c394:a051:8d93::/64']
+    aGlobalPrefixes = [
+        '2001:db8:1234::/64', '2002:db9:5678::/64', '2002:db8:5678::/64', '2002:db7:5678::/64', '2001:4567:5678::/64'
+    ]
+    aUlaPrefixes = [
+        'fd12:3456::/64', 'fc00:abcd::/64', 'fd34:1234:5678:abcd:abcd::/80', 'fdab:1234:1234::/64',
+        'fd0a:c394:a051:8d93::/64'
+    ]
 
     ns = None
     sz = []
@@ -65,12 +68,12 @@ class ExternalRoutesTestbench(object):
             self.ns.delete(id)
 
     def add_route(self, nodeId, prefix):
-        self.ns.node_cmd(nodeId, 'netdata publish route %s s med' % prefix )
+        self.ns.node_cmd(nodeId, 'netdata publish route %s s med' % prefix)
 
     def track_netdata_size(self):
         self.ns.go(10)  # Time for Leader to collect new data.
-        self.sz.append(len(self.ns.node_cmd(1, 'netdata show -x')[0])/2)  # Count datalen based on hex string.
-        self.netdata.append( '\n'.join(self.ns.node_cmd(1, 'netdata show')) )
+        self.sz.append(len(self.ns.node_cmd(1, 'netdata show -x')[0]) / 2)  # Count datalen based on hex string.
+        self.netdata.append('\n'.join(self.ns.node_cmd(1, 'netdata show')))
 
     def run_topology(self, Nbr=1, Nglobals=1, Nulas=1):
         ns = self.setup_otns()
@@ -84,10 +87,11 @@ class ExternalRoutesTestbench(object):
         # Border Routers
         for k in range(0, Nbr):
             id = ns.add("router", x=300 + 100 + k * 50, y=300)
-            ns.node_cmd(id, 'netdata publish prefix fd00:dead:beef::/64 paosr med') # OMR prefix
-            ns.node_cmd(id, 'netdata publish dnssrp anycast 1') # DNS/SRP Anycast Dataset
-            ns.node_cmd(id, 'netdata publish dnssrp unicast 2001:db8:1234::1234 53') # DNS/SRP Unicast Dataset (external srv)
-            ns.node_cmd(id, 'netdata publish route 64:ff9b::/96 sn med') # RFC 6146 address
+            ns.node_cmd(id, 'netdata publish prefix fd00:dead:beef::/64 paosr med')  # OMR prefix
+            ns.node_cmd(id, 'netdata publish dnssrp anycast 1')  # DNS/SRP Anycast Dataset
+            ns.node_cmd(
+                id, 'netdata publish dnssrp unicast 2001:db8:1234::1234 53')  # DNS/SRP Unicast Dataset (external srv)
+            ns.node_cmd(id, 'netdata publish route 64:ff9b::/96 sn med')  # RFC 6146 address
             ns.go(10)
 
         self.track_netdata_size()
@@ -97,10 +101,10 @@ class ExternalRoutesTestbench(object):
         for j in range(0, N):
             for k in range(0, Nbr):
                 if j < Nglobals:
-                    self.add_route(k+1, self.aGlobalPrefixes[j])
+                    self.add_route(k + 1, self.aGlobalPrefixes[j])
                     #self.track_netdata_size()
                 if j < Nulas:
-                    self.add_route(k+1, self.aUlaPrefixes[j])
+                    self.add_route(k + 1, self.aUlaPrefixes[j])
                     #self.track_netdata_size()
             self.track_netdata_size()
 
@@ -111,13 +115,13 @@ class ExternalRoutesTestbench(object):
         return self.sz, self.netdata
 
     def run_tests(self):
-        self.display_tab_separated( ('Nbr', 'Nglob', 'Nula', 'Size[B]', 'MaxSz[B]') )
+        self.display_tab_separated(('Nbr', 'Nglob', 'Nula', 'Size[B]', 'MaxSz[B]'))
         for Nbr in range(1, 13):
             for Nglobals in range(0, 4):
                 for Nulas in range(0, 5):
                     sz, netdata = self.run_topology(Nbr, Nglobals, Nulas)
                     for k in range(0, len(sz)):
-                        self.display_tab_separated( (Nbr, Nglobals, Nulas, round(sz[k]), round(max(sz))) )
+                        self.display_tab_separated((Nbr, Nglobals, Nulas, round(sz[k]), round(max(sz))))
                         #print(netdata[k])
 
 

@@ -36,6 +36,7 @@ class ExeVersionTests(OTNSTestCase):
     Unit tests of the 'exe' command to select OT node executables; running nodes with manually specified
     executable; and the 'vxx' parameters for adding nodes of different (prebuilt) OT versions.
     """
+
     def testAddNodeWrongExecutable(self):
         ns: OTNS = self.ns
         ns.add('router')
@@ -50,7 +51,7 @@ class ExeVersionTests(OTNSTestCase):
     def testExe(self):
         ns: OTNS = self.ns
         nid = ns.add('router')
-        self.assertTrue( ns.get_thread_version(nid) >= 4)
+        self.assertTrue(ns.get_thread_version(nid) >= 4)
         ns.go(10)
         ns.cmd("exe ftd \"./path/to/non-existent-executable\"")
         with self.assertRaises(errors.OTNSCliError):
@@ -59,10 +60,10 @@ class ExeVersionTests(OTNSTestCase):
         ns.cmd("exe default")
         ns.go(10)
         nid = ns.add('router')
-        self.assertTrue( ns.get_thread_version(nid) >= 4)
+        self.assertTrue(ns.get_thread_version(nid) >= 4)
         ns.go(30)
         nid = ns.add('fed')
-        self.assertTrue( ns.get_thread_version(nid) >= 4)
+        self.assertTrue(ns.get_thread_version(nid) >= 4)
         self.assertEqual(3, len(ns.nodes()))
         ns.go(140)
         self.assertEqual(3, len(ns.nodes()))
@@ -71,21 +72,21 @@ class ExeVersionTests(OTNSTestCase):
         ns.cmd("exe v11")
         nid = ns.add('router')
         ns.go(10)
-        self.assertEqual( 2, ns.get_thread_version(nid))
+        self.assertEqual(2, ns.get_thread_version(nid))
 
         ns.cmd("exe v12")
         nid = ns.add('router')
         ns.go(10)
-        self.assertEqual( 3, ns.get_thread_version(nid))
+        self.assertEqual(3, ns.get_thread_version(nid))
 
         ns.cmd("exe v13")
         nid = ns.add('router')
-        self.assertEqual( 4, ns.get_thread_version(nid))
+        self.assertEqual(4, ns.get_thread_version(nid))
         ns.go(10)
 
         ns.cmd("exe v14")
         nid = ns.add('router')
-        self.assertEqual( 5, ns.get_thread_version(nid))
+        self.assertEqual(5, ns.get_thread_version(nid))
         ns.go(10)
         self.assertEqual(7, len(ns.nodes()))
         ns.go(60)
@@ -97,16 +98,16 @@ class ExeVersionTests(OTNSTestCase):
         ns.add('router', x=250, y=250)
         ns.go(10)
         nid = ns.add('router', version='v14')
-        self.assertEqual( 5, ns.get_thread_version(nid))
+        self.assertEqual(5, ns.get_thread_version(nid))
         ns.go(10)
         nid = ns.add('router', version='v13')
-        self.assertEqual( 4, ns.get_thread_version(nid))
+        self.assertEqual(4, ns.get_thread_version(nid))
         ns.go(10)
         nid = ns.add('router', version='v12')
-        self.assertEqual( 3, ns.get_thread_version(nid))
+        self.assertEqual(3, ns.get_thread_version(nid))
         ns.go(10)
         nid = ns.add('router', version='v11')
-        self.assertEqual( 2, ns.get_thread_version(nid))
+        self.assertEqual(2, ns.get_thread_version(nid))
         ns.go(10)
         self.assertEqual(5, len(ns.nodes()))
         self.assertEqual(1, len(ns.partitions()))
@@ -124,14 +125,14 @@ class ExeVersionTests(OTNSTestCase):
         self.assertFormPartitions(1)
 
         # SSED pings parent
-        for n in range(2,6):
-            ns.ping(n,1,datasize=n+10)
+        for n in range(2, 6):
+            ns.ping(n, 1, datasize=n + 10)
             ns.go(5)
         self.assertPings(ns.pings(), 4, max_delay=3000, max_fails=1)
 
         # parent pings SSED
-        for n in range(2,6):
-            ns.ping(1,n,datasize=n+10)
+        for n in range(2, 6):
+            ns.ping(1, n, datasize=n + 10)
             ns.go(5)
         self.assertPings(ns.pings(), 4, max_delay=3000, max_fails=1)
 

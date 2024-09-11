@@ -8,12 +8,11 @@ You generally only need to submit a CLA once, so if you've already submitted one
 
 ## Code of Conduct
 
-Help us keep OTNS open and inclusive.  Please read and follow our [Code of Conduct](CODE_OF_CONDUCT.md).
+Help us keep OTNS open and inclusive. Please read and follow our [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Bugs
 
-If you find a bug in the source code, you can help us by [submitting a GitHub Issue](https://github.com/EskoDijk/ot-ns/issues/new).
-Even better, you can [submit a Pull Request](#pull-requests) with a fix.
+If you find a bug in the source code, you can help us by [submitting a GitHub Issue](https://github.com/EskoDijk/ot-ns/issues/new). Even better, you can [submit a Pull Request](#pull-requests) with a fix.
 
 ## New features
 
@@ -21,9 +20,9 @@ You can request a new feature by [submitting a GitHub Issue](https://github.com/
 
 If you would like to implement a new feature, please consider the scope of the new feature:
 
-* *Large feature* — [Submit a GitHub Issue](https://github.com/EskoDijk/ot-ns/issues/new) with your proposal so that the community can review and provide feedback first. Early feedback helps to ensure your proposal is accepted by the community, better coordinate our efforts, and minimize duplicated work.
+- _Large feature_ — [Submit a GitHub Issue](https://github.com/EskoDijk/ot-ns/issues/new) with your proposal so that the community can review and provide feedback first. Early feedback helps to ensure your proposal is accepted by the community, better coordinate our efforts, and minimize duplicated work.
 
-* *Small feature* — Can be implemented and directly [submitted as a Pull Request](#pull-requests) without a proposal.
+- _Small feature_ — Can be implemented and directly [submitted as a Pull Request](#pull-requests) without a proposal.
 
 ## Contributing code
 
@@ -99,13 +98,11 @@ This will open up a text editor where you can specify which commits to squash.
 
 #### Coding conventions and style
 
-OTNS requires all Go code be formatted with the [gofmt](https://golang.org/cmd/gofmt/) program. 
-Refer to [go fmt your code](https://blog.golang.org/go-fmt-your-code) for further guidance. 
+OTNS requires all Go code be formatted with the [gofmt](https://golang.org/cmd/gofmt/) program. Refer to [go fmt your code](https://blog.golang.org/go-fmt-your-code) for further guidance.
 
 All style and coding suggestions in [Effective Go](https://golang.org/doc/effective_go.html) should be followed, subject to the above rules.
 
-OTNS uses [golangci-lint](https://golangci.com/) in continuous-integration checks. 
-You can run `./script/make-pretty` and `./script/check-pretty` to automatically reformat code and check for code-style compliance, respectively.
+OTNS uses [golangci-lint](https://golangci.com/) in continuous-integration checks. You can run `./script/make-pretty` and `./script/check-pretty` to automatically reformat code and check for code-style compliance, respectively.
 
 #### Push and test
 

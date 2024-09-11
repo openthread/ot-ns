@@ -49,15 +49,12 @@ static uint32_t sUsAlarm     = 0;
 
 void platformAlarmInit()
 {
-    sNow = 0;
-    sDriftPicoSec = 0;
+    sNow           = 0;
+    sDriftPicoSec  = 0;
     sClockDriftPpm = 0;
 }
 
-uint64_t platformAlarmGetNow(void)
-{
-    return sNow;
-}
+uint64_t platformAlarmGetNow(void) { return sNow; }
 
 void platformAlarmAdvanceNow(uint64_t aDelta)
 {
@@ -67,27 +64,19 @@ void platformAlarmAdvanceNow(uint64_t aDelta)
 
     // additional clock drift computed in picosec precision.
     sDriftPicoSec += (int64_t)sClockDriftPpm * (int64_t)aDelta;
-    if (sDriftPicoSec >= PS_PER_US || sDriftPicoSec <= -PS_PER_US) { // time to adjust the microsec resolution clock?
+    if (sDriftPicoSec >= PS_PER_US || sDriftPicoSec <= -PS_PER_US)
+    { // time to adjust the microsec resolution clock?
         adjust = sDriftPicoSec / PS_PER_US;
         sNow += adjust;
         sDriftPicoSec -= adjust * PS_PER_US;
     }
 }
 
-int16_t platformAlarmGetClockDrift()
-{
-    return sClockDriftPpm;
-}
+int16_t platformAlarmGetClockDrift() { return sClockDriftPpm; }
 
-void platformAlarmSetClockDrift(int16_t aDrift)
-{
-    sClockDriftPpm = aDrift;
-}
+void platformAlarmSetClockDrift(int16_t aDrift) { sClockDriftPpm = aDrift; }
 
-uint32_t otPlatAlarmMilliGetNow(void)
-{
-    return (uint32_t)(sNow / US_PER_MS);
-}
+uint32_t otPlatAlarmMilliGetNow(void) { return (uint32_t)(sNow / US_PER_MS); }
 
 void otPlatAlarmMilliStartAt(otInstance *aInstance, uint32_t aT0, uint32_t aDt)
 {
@@ -104,10 +93,7 @@ void otPlatAlarmMilliStop(otInstance *aInstance)
     sIsMsRunning = false;
 }
 
-uint32_t otPlatAlarmMicroGetNow(void)
-{
-    return (uint32_t)sNow;
-}
+uint32_t otPlatAlarmMicroGetNow(void) { return (uint32_t)sNow; }
 
 void otPlatAlarmMicroStartAt(otInstance *aInstance, uint32_t aT0, uint32_t aDt)
 {
@@ -172,7 +158,8 @@ void platformAlarmUpdateTimeout(struct timeval *aTimeout)
     if (sIsMsRunning)
     {
         remaining = (int32_t)(sMsAlarm - (uint32_t)(now / US_PER_MS));
-        if(remaining <= 0) {
+        if (remaining <= 0)
+        {
             goto exit;
         }
         remaining *= US_PER_MS;
@@ -249,15 +236,8 @@ void platformAlarmProcess(otInstance *aInstance)
 #endif // OPENTHREAD_CONFIG_PLATFORM_USEC_TIMER_ENABLE
 }
 
-uint64_t otPlatTimeGet(void)
-{
-    return platformAlarmGetNow();
-}
+uint64_t otPlatTimeGet(void) { return platformAlarmGetNow(); }
 
 #if OPENTHREAD_CONFIG_TIME_SYNC_ENABLE
-uint16_t otPlatTimeGetXtalAccuracy(void)
-{
-    return 0;
-}
+uint16_t otPlatTimeGetXtalAccuracy(void) { return 0; }
 #endif
-

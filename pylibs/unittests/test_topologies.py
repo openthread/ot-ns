@@ -36,27 +36,27 @@ from otns.cli import OTNS
 class TopologiesTests(OTNSTestCase):
 
     def testLargeNetwork(self):
-        n = 1024 # network size (nodes)
+        n = 1024  # network size (nodes)
         ns = self.ns
         ns.loglevel = 'info'
         ns.add("router")
         ns.go(10)
         self.assertEqual("leader", ns.get_state(1))
 
-        for i in range(n-1):
+        for i in range(n - 1):
             ns.add("router")
             ns.go(0.001)
 
         ns.go(1)
-        self.assertEqual(n,len(ns.nodes()))
+        self.assertEqual(n, len(ns.nodes()))
         self.assertEqual("leader", ns.get_state(1))
 
     def testDenseNetwork(self):
-        nn = 144 # number of nodes
-        x0 = 100 # start coordinate (x,y) (pixels)
-        dx = 100 # coordinate delta x/y between nodes (pixels)
-        rr = 700 # radio range (pixels)
-        probability_med = 0.20 # probability that new node is a MED
+        nn = 144  # number of nodes
+        x0 = 100  # start coordinate (x,y) (pixels)
+        dx = 100  # coordinate delta x/y between nodes (pixels)
+        rr = 700  # radio range (pixels)
+        probability_med = 0.20  # probability that new node is a MED
 
         ns = self.ns
         ns.loglevel = 'info'
@@ -69,33 +69,36 @@ class TopologiesTests(OTNSTestCase):
                 ns.add("router", x, y, radio_range=rr)
             ns.go(1)
             x += dx
-            if x >= (x0+math.sqrt(nn)*dx):
+            if x >= (x0 + math.sqrt(nn) * dx):
                 x = x0
                 y += dx
 
         ns.go(20)
-        self.assertEqual(nn,len(ns.nodes()))
+        self.assertEqual(nn, len(ns.nodes()))
 
     def testMultiChannel(self):
         ns = self.ns
         ns.loglevel = 'info'
-        ns.watch_default('warn') # show errors+warnings from all OT nodes
+        ns.watch_default('warn')  # show errors+warnings from all OT nodes
 
-        n_netw_group = [2, 3] # number of different network-groups [rows,cols]
+        n_netw_group = [2, 3]  # number of different network-groups [rows,cols]
         n_netw_groups = n_netw_group[0] * n_netw_group[1]
-        n_node_group = [4, 4] # nodes per Thread Network (i.e. channel) [rows,cols]
+        n_node_group = [4, 4]  # nodes per Thread Network (i.e. channel) [rows,cols]
         gdx = 500
         gdy = 400
         ndx = 70
         ndy = 70
         ofs_x = 100
         ofs_y = 100
-        ng = 1 # number of group (network) a node is in.
-        for rg in range(0,n_netw_group[0]):
-            for cg in range(0,n_netw_group[1]):
-                for rn in range(0,n_node_group[0]):
-                    for cn in range(0,n_node_group[1]):
-                        nid = ns.add('router', x=ofs_x+cg*gdx+cn*ndx, y=ofs_y+rg*gdy+rn*ndy, script=None)
+        ng = 1  # number of group (network) a node is in.
+        for rg in range(0, n_netw_group[0]):
+            for cg in range(0, n_netw_group[1]):
+                for rn in range(0, n_node_group[0]):
+                    for cn in range(0, n_node_group[1]):
+                        nid = ns.add('router',
+                                     x=ofs_x + cg * gdx + cn * ndx,
+                                     y=ofs_y + rg * gdy + rn * ndy,
+                                     script=None)
                         self.setup_node_for_group(nid, ng)
                 ng += 1
 
@@ -106,10 +109,15 @@ class TopologiesTests(OTNSTestCase):
 
     # executes a startup script on each node, params depending on each group (ngrp)
     def setup_node_for_group(self, nid, ngrp):
-        chan = ngrp-1 + 11
-        self.ns.config_dataset(nid, network_name=f"Netw{ngrp}_Chan{chan}", panid=ngrp, extpanid=f"{ngrp:#0{16}}",
-                               networkkey=f"{ngrp:#0{34}x}"[2:], channel=chan,
-                               active_timestamp=42, set_remaining=True)
+        chan = ngrp - 1 + 11
+        self.ns.config_dataset(nid,
+                               network_name=f"Netw{ngrp}_Chan{chan}",
+                               panid=ngrp,
+                               extpanid=f"{ngrp:#0{16}}",
+                               networkkey=f"{ngrp:#0{34}x}"[2:],
+                               channel=chan,
+                               active_timestamp=42,
+                               set_remaining=True)
 
 
 if __name__ == '__main__':

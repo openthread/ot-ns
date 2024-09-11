@@ -69,8 +69,7 @@ class StressTest(BaseStressTest):
     SUITE = 'multicast-performance'
 
     def __init__(self):
-        super(StressTest, self).__init__("Multicast Performance Test",
-                                         ["Router", "FED", "MED", "SED"])
+        super(StressTest, self).__init__("Multicast Performance Test", ["Router", "FED", "MED", "SED"])
         self._last_ping_succ_time = {}
         self._cur_time = 0
         self._ping_fail_count = 0
@@ -144,22 +143,32 @@ class StressTest(BaseStressTest):
 
             router_coverages.append(
                 sum(1 for nid in range(1, ROUTER_COUNT + 1) if nid in req_received) / (ROUTER_COUNT - 1))
-            fed_coverages.append(sum(1 for nid in range(ROUTER_COUNT + 1, ROUTER_COUNT + FED_COUNT + 1) if
-                                     nid in req_received) / FED_COUNT)
-            med_coverages.append(sum(
-                1 for nid in range(ROUTER_COUNT + FED_COUNT + 1, ROUTER_COUNT + FED_COUNT + MED_COUNT + 1) if
-                nid in req_received) / MED_COUNT)
-            sed_coverages.append(sum(1 for nid in range(ROUTER_COUNT + FED_COUNT + MED_COUNT + 1,
-                                                        ROUTER_COUNT + FED_COUNT + MED_COUNT + SED_COUNT + 1) if
-                                     nid in req_received) / SED_COUNT)
+            fed_coverages.append(
+                sum(1 for nid in range(ROUTER_COUNT + 1, ROUTER_COUNT + FED_COUNT + 1) if nid in req_received) /
+                FED_COUNT)
+            med_coverages.append(
+                sum(1 for nid in range(ROUTER_COUNT + FED_COUNT + 1, ROUTER_COUNT + FED_COUNT + MED_COUNT + 1)
+                    if nid in req_received) / MED_COUNT)
+            sed_coverages.append(
+                sum(1 for nid in range(ROUTER_COUNT + FED_COUNT + MED_COUNT + 1, ROUTER_COUNT + FED_COUNT + MED_COUNT +
+                                       SED_COUNT + 1) if nid in req_received) / SED_COUNT)
 
             router_delays += [time - send_time for nid, time in req_received.items() if 1 <= nid <= ROUTER_COUNT]
-            fed_delays += [time - send_time for nid, time in req_received.items() if
-                           ROUTER_COUNT + 1 <= nid <= ROUTER_COUNT + FED_COUNT]
-            med_delays += [time - send_time for nid, time in req_received.items() if
-                           ROUTER_COUNT + FED_COUNT + 1 <= nid <= ROUTER_COUNT + FED_COUNT + MED_COUNT]
-            sed_delays += [time - send_time for nid, time in req_received.items() if
-                           ROUTER_COUNT + FED_COUNT + MED_COUNT + 1 <= nid <= ROUTER_COUNT + FED_COUNT + MED_COUNT + SED_COUNT]
+            fed_delays += [
+                time - send_time
+                for nid, time in req_received.items()
+                if ROUTER_COUNT + 1 <= nid <= ROUTER_COUNT + FED_COUNT
+            ]
+            med_delays += [
+                time - send_time
+                for nid, time in req_received.items()
+                if ROUTER_COUNT + FED_COUNT + 1 <= nid <= ROUTER_COUNT + FED_COUNT + MED_COUNT
+            ]
+            sed_delays += [
+                time - send_time
+                for nid, time in req_received.items()
+                if ROUTER_COUNT + FED_COUNT + MED_COUNT + 1 <= nid <= ROUTER_COUNT + FED_COUNT + MED_COUNT + SED_COUNT
+            ]
 
         def format_delay(coverages, delays):
             if not delays:
@@ -170,8 +179,7 @@ class StressTest(BaseStressTest):
             return f'cov:{int(self.avg(coverages) * 100)}%%, avg:{avg}ms, max:{_max}ms'
 
         self.result.append_row(format_delay(router_coverages, router_delays), format_delay(fed_coverages, fed_delays),
-                               format_delay(med_coverages, med_delays),
-                               format_delay(sed_coverages, sed_delays))
+                               format_delay(med_coverages, med_delays), format_delay(sed_coverages, sed_delays))
 
         self.result.fail_if(self.avg(router_coverages) < 0.7, 'Router coverage < 70%')
         self.result.fail_if(self.avg(fed_coverages) < 0.7, 'FED coverage < 70%')

@@ -38,11 +38,11 @@
 
 #include <openthread/config.h>
 #include <openthread/logging.h>
-#include "core/common/logging.hpp"
 #include <openthread/platform/flash.h>
+#include "core/common/logging.hpp"
 
-#include "lib/platform/exit_code.h"
 #include "common/debug.hpp"
+#include "lib/platform/exit_code.h"
 
 static int sFlashFd = -1;
 
@@ -86,7 +86,7 @@ void otPlatFlashInit(otInstance *aInstance)
 
     if (create)
     {
-        for (uint8_t index = 0; index < SWAP_NUM; index++)
+        for (uint8_t index = 0; index < (uint8_t)SWAP_NUM; index++)
         {
             otPlatFlashErase(aInstance, index);
         }

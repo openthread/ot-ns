@@ -70,7 +70,7 @@ class PingTests(OTNSTestCase):
         ns = self.ns
 
         for i in range(10):
-            ns.add("router", i*80, 200)
+            ns.add("router", i * 80, 200)
         for i in range(100):
             ns.go(20)
             pts = ns.partitions()
@@ -79,14 +79,14 @@ class PingTests(OTNSTestCase):
 
         # two-fragment ping packet adds extra closely spaced traffic. This impacts performance greatly in
         # hidden-node situations.
-        for pingDataSize in [64,128]:
+        for pingDataSize in [64, 128]:
             #ns.go(50)
             pingDelays = []
 
             for i in range(80):
                 ns.ping(1, 10, datasize=pingDataSize)
                 ns.go(0.100)
-                ns.ping(10, 1, datasize=pingDataSize) # reverse-direction ping may collide with earlier ping
+                ns.ping(10, 1, datasize=pingDataSize)  # reverse-direction ping may collide with earlier ping
                 ns.go(10.900)
 
             pings = ns.pings()
@@ -116,6 +116,7 @@ class PingTests(OTNSTestCase):
                     self.assertTrue(pingAvg < 500 and pingSuccess > 0.75)
             else:
                 self.assertTrue(pingAvg < 600 and pingSuccess > 0.1)
+
 
 if __name__ == '__main__':
     unittest.main()

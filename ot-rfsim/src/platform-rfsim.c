@@ -41,10 +41,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <openthread/tasklet.h>
-#include <openthread/udp.h>
 #include <openthread/coap.h>
 #include <openthread/logging.h>
+#include <openthread/tasklet.h>
+#include <openthread/udp.h>
 
 #include "common/debug.hpp"
 #include "common/logging.hpp"
@@ -53,7 +53,7 @@
 
 #include "event-sim.h"
 
-#define VERIFY_EVENT_SIZE(X) OT_ASSERT( (payloadLen >= sizeof(X)) && "received event payload too small" );
+#define VERIFY_EVENT_SIZE(X) OT_ASSERT((payloadLen >= sizeof(X)) && "received event payload too small");
 
 extern int gSockFd;
 
@@ -62,13 +62,16 @@ struct Event gLastRecvEvent;
 
 static otIp6Address unspecifiedIp6Address;
 
-void platformRfsimInit(void) {
-    if(otIp6AddressFromString("::", &unspecifiedIp6Address) != OT_ERROR_NONE) {
+void platformRfsimInit(void)
+{
+    if (otIp6AddressFromString("::", &unspecifiedIp6Address) != OT_ERROR_NONE)
+    {
         platformExit(EXIT_FAILURE);
     }
 }
 
-void platformExit(int exitCode) {
+void platformExit(int exitCode)
+{
     gTerminate = true;
     otLogNotePlat("Exiting with exit code %d.", exitCode);
     exit(exitCode);
@@ -76,10 +79,10 @@ void platformExit(int exitCode) {
 
 void platformReceiveEvent(otInstance *aInstance)
 {
-    struct Event  event;
-    ssize_t       rval;
+    struct Event   event;
+    ssize_t        rval;
     const uint8_t *evData = event.mData;
-    otError       error;
+    otError        error;
 
     rval = recvfrom(gSockFd, (char *)&event, sizeof(struct EventHeader), 0, NULL, NULL);
     if (rval < 0)
@@ -91,7 +94,8 @@ void platformReceiveEvent(otInstance *aInstance)
 
     // read the rest of data (payload data - optional).
     uint16_t payloadLen = event.mDataLength;
-    if (payloadLen > 0) {
+    if (payloadLen > 0)
+    {
         OT_ASSERT(payloadLen <= OT_EVENT_DATA_MAX_SIZE);
 
         rval = recvfrom(gSockFd, (char *)&event.mData, payloadLen, 0, NULL, NULL);
@@ -100,11 +104,11 @@ void platformReceiveEvent(otInstance *aInstance)
             perror("recvfrom");
             platformExit(EXIT_FAILURE);
         }
-        OT_ASSERT(rval == (ssize_t) payloadLen);
+        OT_ASSERT(rval == (ssize_t)payloadLen);
     }
 
     gLastRecvEvent = event;
-    gLastMsgId = event.mMsgId;
+    gLastMsgId     = event.mMsgId;
 
     platformAlarmAdvanceNow(event.mDelay);
 
@@ -126,8 +130,7 @@ void platformReceiveEvent(otInstance *aInstance)
     case OT_SIM_EVENT_RADIO_RX_DONE:
         VERIFY_EVENT_SIZE(struct RadioCommEventData)
         const size_t sz = sizeof(struct RadioCommEventData);
-        platformRadioRxDone(aInstance, evData + sz,
-                       event.mDataLength - sz, (struct RadioCommEventData *)evData);
+        platformRadioRxDone(aInstance, evData + sz, event.mDataLength - sz, (struct RadioCommEventData *)evData);
         break;
 
     case OT_SIM_EVENT_RADIO_TX_DONE:
@@ -155,13 +158,14 @@ void platformReceiveEvent(otInstance *aInstance)
     case OT_SIM_EVENT_IP6_FROM_HOST:
         VERIFY_EVENT_SIZE(struct MsgToHostEventData)
 #if OPENTHREAD_CONFIG_BORDER_ROUTING_ENABLE
-        error = platformIp6FromHostToNode(aInstance, (struct MsgToHostEventData *) evData,
+        error = platformIp6FromHostToNode(aInstance, (struct MsgToHostEventData *)evData,
                                           event.mData + sizeof(struct MsgToHostEventData),
                                           payloadLen - sizeof(struct MsgToHostEventData));
 #else
         error = OT_ERROR_NOT_IMPLEMENTED;
 #endif
-        if (error != OT_ERROR_NONE) {
+        if (error != OT_ERROR_NONE)
+        {
             otLogCritPlat("Error handling IP6_FROM_HOST event, dropping datagram: %s", otThreadErrorToString(error));
         }
         break;
@@ -169,13 +173,14 @@ void platformReceiveEvent(otInstance *aInstance)
     case OT_SIM_EVENT_UDP_FROM_HOST:
         VERIFY_EVENT_SIZE(struct MsgToHostEventData)
 #if OPENTHREAD_CONFIG_BORDER_ROUTING_ENABLE
-        error = platformUdpFromHostToNode(aInstance, (struct MsgToHostEventData *) evData,
+        error = platformUdpFromHostToNode(aInstance, (struct MsgToHostEventData *)evData,
                                           event.mData + sizeof(struct MsgToHostEventData),
                                           payloadLen - sizeof(struct MsgToHostEventData));
 #else
         error = OT_ERROR_NOT_IMPLEMENTED;
 #endif
-        if (error != OT_ERROR_NONE) {
+        if (error != OT_ERROR_NONE)
+        {
             otLogCritPlat("Error handling IP6_FROM_HOST event, dropping datagram: %s", otThreadErrorToString(error));
         }
         break;
@@ -187,36 +192,44 @@ void platformReceiveEvent(otInstance *aInstance)
 
 void otPlatOtnsStatus(const char *aStatus)
 {
-    uint16_t     statusLength = (uint16_t)strlen(aStatus);
-    if (statusLength > OT_EVENT_DATA_MAX_SIZE){
+    uint16_t statusLength = (uint16_t)strlen(aStatus);
+    if (statusLength > OT_EVENT_DATA_MAX_SIZE)
+    {
         statusLength = OT_EVENT_DATA_MAX_SIZE;
     }
     otSimSendOtnsStatusPushEvent(aStatus, statusLength);
 }
 
 #if OPENTHREAD_CONFIG_BORDER_ROUTING_ENABLE && OPENTHREAD_CONFIG_UDP_FORWARD_ENABLE
-otError platformIp6FromHostToNode(otInstance *aInstance, const struct MsgToHostEventData *aEvData, const uint8_t *aMsg, size_t aMsgLen) {
-    otMessage *ip6;
-    otError   error = OT_ERROR_NONE;
+otError platformIp6FromHostToNode(otInstance                      *aInstance,
+                                  const struct MsgToHostEventData *aEvData,
+                                  const uint8_t                   *aMsg,
+                                  size_t                           aMsgLen)
+{
+    otMessage    *ip6;
+    otError       error = OT_ERROR_NONE;
     otIp6Address *dstIp6;
     otIp6Address *srcIp6;
 
     ip6 = otIp6NewMessageFromBuffer(aInstance, aMsg, aMsgLen, NULL);
     otEXPECT_ACTION(ip6 != NULL, error = OT_ERROR_NO_BUFS);
-    srcIp6 = (otIp6Address *) aEvData->mSrcIp6;
-    dstIp6 = (otIp6Address *) aEvData->mDstIp6;
+    srcIp6 = (otIp6Address *)aEvData->mSrcIp6;
+    dstIp6 = (otIp6Address *)aEvData->mDstIp6;
 
-    if(otIp6IsAddressUnspecified(dstIp6)) {
+    if (otIp6IsAddressUnspecified(dstIp6))
+    {
         // local: message is from host to node itself.
-        //otMessage *testMsg; // test message for future CCM/relay testing.
-        //testMsg = otCoapNewMessage(aInstance, NULL);
-        //otCoapMessageInit(testMsg, OT_COAP_TYPE_CONFIRMABLE, OT_COAP_CODE_POST);
-        //uint8_t magic[2] = {0xed, 0xda};
-        //otEXPECT( error = otCoapMessageSetToken(testMsg, magic, 2) == OT_ERROR_NONE);
-        //otUdpForwardReceive(aInstance, testMsg, aEvData->mSrcPort, srcIp6, aEvData->mDstPort);
+        // otMessage *testMsg; // test message for future CCM/relay testing.
+        // testMsg = otCoapNewMessage(aInstance, NULL);
+        // otCoapMessageInit(testMsg, OT_COAP_TYPE_CONFIRMABLE, OT_COAP_CODE_POST);
+        // uint8_t magic[2] = {0xed, 0xda};
+        // otEXPECT( error = otCoapMessageSetToken(testMsg, magic, 2) == OT_ERROR_NONE);
+        // otUdpForwardReceive(aInstance, testMsg, aEvData->mSrcPort, srcIp6, aEvData->mDstPort);
 
         otUdpForwardReceive(aInstance, ip6, aEvData->mSrcPort, srcIp6, aEvData->mDstPort);
-    }else {
+    }
+    else
+    {
         // non-local: send as IPv6 datagram to (potentially) other node.
         error = otIp6Send(aInstance, ip6);
     }
@@ -224,18 +237,22 @@ exit:
     return error;
 }
 
-otError platformUdpFromHostToNode(otInstance *aInstance, const struct MsgToHostEventData *aEvData, const uint8_t *aMsg, size_t aMsgLen) {
+otError platformUdpFromHostToNode(otInstance                      *aInstance,
+                                  const struct MsgToHostEventData *aEvData,
+                                  const uint8_t                   *aMsg,
+                                  size_t                           aMsgLen)
+{
     otMessage *udp;
-    otError   error;
-    //otIp6Address *dstIp6;
+    otError    error;
+    // otIp6Address *dstIp6;
     otIp6Address *srcIp6;
 
     udp = otUdpNewMessage(aInstance, NULL);
     otEXPECT_ACTION(udp != NULL, error = OT_ERROR_NO_BUFS);
     otEXPECT((error = otMessageAppend(udp, aMsg, aMsgLen)) == OT_ERROR_NONE);
 
-    srcIp6 = (otIp6Address *) aEvData->mSrcIp6;
-    //dstIp6 = (otIp6Address *) aEvData->mDstIp6;
+    srcIp6 = (otIp6Address *)aEvData->mSrcIp6;
+    // dstIp6 = (otIp6Address *) aEvData->mDstIp6;
     otUdpForwardReceive(aInstance, udp, aEvData->mSrcPort, srcIp6, aEvData->mDstPort);
 
 exit:
@@ -244,17 +261,17 @@ exit:
     return error;
 }
 
-void handleUdpForwarding(otMessage *aMessage,
-                         uint16_t aPeerPort,
+void handleUdpForwarding(otMessage    *aMessage,
+                         uint16_t      aPeerPort,
                          otIp6Address *aPeerAddr,
-                         uint16_t aSockPort,
-                         void *aContext)
+                         uint16_t      aSockPort,
+                         void         *aContext)
 {
     OT_UNUSED_VARIABLE(aContext);
 
     struct MsgToHostEventData evData;
-    uint8_t buf[OPENTHREAD_CONFIG_IP6_MAX_DATAGRAM_LENGTH];
-    size_t msgLen = otMessageGetLength(aMessage);
+    uint8_t                   buf[OPENTHREAD_CONFIG_IP6_MAX_DATAGRAM_LENGTH];
+    size_t                    msgLen = otMessageGetLength(aMessage);
 
     OT_ASSERT(msgLen <= sizeof(buf));
 
@@ -270,8 +287,8 @@ void handleUdpForwarding(otMessage *aMessage,
 // utility function to check IPv6 address for fe80::/10 or ffx2::/16 prefix -> link-local.
 static bool isLinkLocal(otIp6Address *aAddr)
 {
-    return (aAddr->mFields.m8[0] == 0xfe && (aAddr->mFields.m8[1] & 0b11000000) == 0x80)
-           || (aAddr->mFields.m8[0] == 0xff && (aAddr->mFields.m8[1] & 0b00001111) == 0x02);
+    return (aAddr->mFields.m8[0] == 0xfe && (aAddr->mFields.m8[1] & 0b11000000) == 0x80) ||
+           (aAddr->mFields.m8[0] == 0xff && (aAddr->mFields.m8[1] & 0b00001111) == 0x02);
 }
 
 // utility function that returns IPv6 address' multicast scope 0x0-0xf or 0xff for parse-error.
@@ -287,11 +304,11 @@ void handleIp6FromNodeToHost(otMessage *aMessage, void *aContext)
     OT_UNUSED_VARIABLE(aContext);
 
     struct MsgToHostEventData evData;
-    uint8_t buf[OPENTHREAD_CONFIG_IP6_MAX_DATAGRAM_LENGTH];
-    //const uint8_t dstAddrZero[OT_IP6_ADDRESS_SIZE] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-    size_t msgLen;
+    uint8_t                   buf[OPENTHREAD_CONFIG_IP6_MAX_DATAGRAM_LENGTH];
+    // const uint8_t dstAddrZero[OT_IP6_ADDRESS_SIZE] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    size_t        msgLen;
     otMessageInfo ip6Info;
-    otError error;
+    otError       error;
 
     msgLen = otMessageGetLength(aMessage);
     OT_ASSERT(msgLen <= sizeof(buf));
@@ -301,12 +318,9 @@ void handleIp6FromNodeToHost(otMessage *aMessage, void *aContext)
     OT_ASSERT(error == OT_ERROR_NONE);
 
     // determine if IPv6 datagram must go to AIL. This implements simulation-specific BR packet filtering.
-    otEXPECT(otMessageIsLoopbackToHostAllowed(aMessage) &&
-             ip6Info.mSockPort > 0 &&
-             ip6Info.mPeerPort > 0 &&
-             ip6Info.mPeerPort != 61631 &&  // drop mesh-local TMF messages (TODO constant)
-             !isLinkLocal(&ip6Info.mPeerAddr) &&
-             !isLinkLocal(&ip6Info.mSockAddr) &&
+    otEXPECT(otMessageIsLoopbackToHostAllowed(aMessage) && ip6Info.mSockPort > 0 && ip6Info.mPeerPort > 0 &&
+             ip6Info.mPeerPort != 61631 && // drop mesh-local TMF messages (TODO constant)
+             !isLinkLocal(&ip6Info.mPeerAddr) && !isLinkLocal(&ip6Info.mSockAddr) &&
              ip6McastScope(&ip6Info.mPeerAddr) >= 0x4);
 
     // create simulator event
@@ -330,22 +344,22 @@ void platformNetifSetUp(otInstance *aInstance)
 
 #if OPENTHREAD_CONFIG_BORDER_ROUTING_ENABLE
     otIp6SetReceiveFilterEnabled(aInstance, true); // FIXME - needed?
-    //otIcmp6SetEchoMode(gInstance, OT_ICMP6_ECHO_HANDLER_ALL); // TODO
-    //otIcmp6SetEchoMode(gInstance, OT_ICMP6_ECHO_HANDLER_DISABLED);
+    // otIcmp6SetEchoMode(gInstance, OT_ICMP6_ECHO_HANDLER_ALL); // TODO
+    // otIcmp6SetEchoMode(gInstance, OT_ICMP6_ECHO_HANDLER_DISABLED);
     otIp6SetReceiveCallback(aInstance, handleIp6FromNodeToHost, aInstance);
 #endif
 #if OPENTHREAD_CONFIG_NAT64_TRANSLATOR_ENABLE
     // We can use the same function for IPv6 and translated IPv4 messages.
     // otNat64SetReceiveIp4Callback(gInstance, processReceive, gInstance);
 #endif
-    //otIp6SetAddressCallback(aInstance, processAddressChange, aInstance);
+    // otIp6SetAddressCallback(aInstance, processAddressChange, aInstance);
 #if OPENTHREAD_POSIX_MULTICAST_PROMISCUOUS_REQUIRED
-    //otIp6SetMulticastPromiscuousEnabled(aInstance, true);
+    // otIp6SetMulticastPromiscuousEnabled(aInstance, true);
 #endif
 #if OPENTHREAD_CONFIG_NAT64_TRANSLATOR_ENABLE
-    //nat64Init();
+    // nat64Init();
 #endif
 #if OPENTHREAD_CONFIG_DNS_UPSTREAM_QUERY_ENABLE
-    //gResolver.Init();
+    // gResolver.Init();
 #endif
 }

@@ -34,11 +34,11 @@
 
 #include "common/debug.hpp"
 
-#include "platform-rfsim.h"
 #include "event-sim.h"
+#include "platform-rfsim.h"
 
 // socket communication parameters for events
-extern int      gSockFd;
+extern int gSockFd;
 
 struct Event gLastSentEvent;
 
@@ -74,7 +74,7 @@ void otSimSendRadioCommInterferenceEvent(struct RadioCommEventData *aEventData)
     event.mEvent = OT_SIM_EVENT_RADIO_COMM_START;
     memcpy(event.mData, aEventData, sizeof(struct RadioCommEventData));
     event.mData[sizeof(struct RadioCommEventData)] = aEventData->mChannel; // channel is stored twice TODO
-    event.mDataLength = sizeof(struct RadioCommEventData) + 1;
+    event.mDataLength                              = sizeof(struct RadioCommEventData) + 1;
 
     otSimSendEvent(&event);
 }
@@ -103,7 +103,8 @@ void otSimSendRadioStateEvent(struct RadioStateEventData *aStateData, uint64_t a
     otSimSendEvent(&event);
 }
 
-void otSimSendUartWriteEvent(const uint8_t *aData, uint16_t aLength) {
+void otSimSendUartWriteEvent(const uint8_t *aData, uint16_t aLength)
+{
     OT_ASSERT(aLength <= OT_EVENT_DATA_MAX_SIZE);
     struct Event event;
 
@@ -115,7 +116,8 @@ void otSimSendUartWriteEvent(const uint8_t *aData, uint16_t aLength) {
     otSimSendEvent(&event);
 }
 
-void otSimSendLogWriteEvent(const uint8_t *aData, uint16_t aLength) {
+void otSimSendLogWriteEvent(const uint8_t *aData, uint16_t aLength)
+{
     OT_ASSERT(aLength <= OT_EVENT_DATA_MAX_SIZE);
 
     struct Event event;
@@ -127,7 +129,8 @@ void otSimSendLogWriteEvent(const uint8_t *aData, uint16_t aLength) {
     otSimSendEvent(&event);
 }
 
-void otSimSendOtnsStatusPushEvent(const char *aStatus, uint16_t aLength) {
+void otSimSendOtnsStatusPushEvent(const char *aStatus, uint16_t aLength)
+{
     OT_ASSERT(aLength <= OT_EVENT_DATA_MAX_SIZE);
     struct Event event;
 
@@ -139,7 +142,8 @@ void otSimSendOtnsStatusPushEvent(const char *aStatus, uint16_t aLength) {
     otSimSendEvent(&event);
 }
 
-void otSimSendExtAddrEvent(const otExtAddress *aExtAddress) {
+void otSimSendExtAddrEvent(const otExtAddress *aExtAddress)
+{
     OT_ASSERT(aExtAddress != NULL);
     struct Event event;
 
@@ -151,7 +155,8 @@ void otSimSendExtAddrEvent(const otExtAddress *aExtAddress) {
     otSimSendEvent(&event);
 }
 
-void otSimSendNodeInfoEvent(uint32_t nodeId) {
+void otSimSendNodeInfoEvent(uint32_t nodeId)
+{
     struct Event event;
     OT_ASSERT(nodeId > 0);
 
@@ -163,7 +168,8 @@ void otSimSendNodeInfoEvent(uint32_t nodeId) {
     otSimSendEvent(&event);
 }
 
-void otSimSendRfSimParamRespEvent(uint8_t param, int32_t value) {
+void otSimSendRfSimParamRespEvent(uint8_t param, int32_t value)
+{
     struct Event event;
 
     event.mData[0] = param;
@@ -175,7 +181,8 @@ void otSimSendRfSimParamRespEvent(uint8_t param, int32_t value) {
     otSimSendEvent(&event);
 }
 
-void otSimSendMsgToHostEvent(uint8_t evType, struct MsgToHostEventData *aEventData, uint8_t *aMsgBytes, size_t aMsgLen) {
+void otSimSendMsgToHostEvent(uint8_t evType, struct MsgToHostEventData *aEventData, uint8_t *aMsgBytes, size_t aMsgLen)
+{
     const size_t evDataSz = sizeof(struct MsgToHostEventData);
     struct Event event;
     OT_ASSERT(aMsgLen <= OT_EVENT_DATA_MAX_SIZE - evDataSz);
@@ -196,7 +203,7 @@ void otSimSendEvent(struct Event *aEvent)
     aEvent->mMsgId = gLastMsgId;
     gLastSentEvent = *aEvent;
 
-    if (gSockFd == 0)   // don't send events if socket invalid.
+    if (gSockFd == 0) // don't send events if socket invalid.
         return;
 
     // send header and data.

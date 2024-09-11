@@ -64,8 +64,7 @@ class CommissioningStressTest(BaseStressTest):
                             "Join Count (%d) < %d" % (self._join_count, expected_join_count))
         join_ok_percent = self._join_count * 100 // total_join_count
         avg_join_time = self._join_time_accum / self._join_count if self._join_count else float('inf')
-        self.result.append_row(total_join_count, '%d%%' % join_ok_percent,
-                               '%.0fs' % avg_join_time)
+        self.result.append_row(total_join_count, '%d%%' % join_ok_percent, '%.0fs' % avg_join_time)
         self.result.fail_if(join_ok_percent < 90, "Success Percent (%d%%) < 90%%" % join_ok_percent)
         self.result.fail_if(avg_join_time > 20, "Average Join Time (%.0f) > 20s" % avg_join_time)
 
@@ -81,7 +80,7 @@ class CommissioningStressTest(BaseStressTest):
             for c in range(C):
                 device_role = 'router'
                 if R >= 3 and C >= 3 and (r in (0, R - 1) or c in (0, C - 1)):
-                    device_role = random.choice(['fed','med','sed'])
+                    device_role = random.choice(['fed', 'med', 'sed'])
                 G[r][c] = ns.add(device_role, x=c * XGAP + XGAP, y=YGAP + r * YGAP)
                 RC[G[r][c]] = (r, c)
 
@@ -176,7 +175,8 @@ class CommissioningStressTest(BaseStressTest):
 
         # (typically) all nodes are now joined and started. Simulate some time to see the full partition form.
         ns.go(200)
-        time.sleep(2)   # in GUI case, allow display to catch up before exiting.
+        time.sleep(2)  # in GUI case, allow display to catch up before exiting.
+
 
 if __name__ == '__main__':
     CommissioningStressTest().run()

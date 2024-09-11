@@ -43,15 +43,15 @@ class RadioModelTests(OTNSTestCase):
         ns.radiomodel = 'Ideal'
         radio_range = 100
 
-        ns.add("router",0, 0, radio_range=radio_range)
-        ns.add("router",0, radio_range+1, radio_range=radio_range)
-        ns.add("router",radio_range+1, radio_range+1, radio_range=radio_range)
+        ns.add("router", 0, 0, radio_range=radio_range)
+        ns.add("router", 0, radio_range + 1, radio_range=radio_range)
+        ns.add("router", radio_range + 1, radio_range + 1, radio_range=radio_range)
         # Reason to raise TxPower is that near the range limit, in MI radio model, there may be a
         # valid link but there also may be not (Shadow Fading effects). For the Ideal model, the
         # Tx power does not influence the range.
-        ns.node_cmd(1,'txpower 20')
-        ns.node_cmd(2,'txpower 20')
-        ns.node_cmd(3,'txpower 20')
+        ns.node_cmd(1, 'txpower 20')
+        ns.node_cmd(2, 'txpower 20')
+        ns.node_cmd(3, 'txpower 20')
         ns.go(20)
         self.assertFormPartitions(3)
 
@@ -74,26 +74,26 @@ class RadioModelTests(OTNSTestCase):
             ns.radiomodel = 'NotExistingName'
         self.assertEqual('MIDisc', ns.radiomodel)
 
-        ns.node_cmd(1,'txpower -60')
-        ns.node_cmd(2,'txpower -60')
-        ns.node_cmd(3,'txpower -60')
+        ns.node_cmd(1, 'txpower -60')
+        ns.node_cmd(2, 'txpower -60')
+        ns.node_cmd(3, 'txpower -60')
         ns.radiomodel = 'MutualInterference'
         self.assertEqual('MutualInterference', ns.radiomodel)
         ns.go(200)
         self.assertFormPartitions(3)
 
-        ns.node_cmd(1,'txpower 20')
-        ns.node_cmd(2,'txpower 20')
-        ns.node_cmd(3,'txpower 20')
+        ns.node_cmd(1, 'txpower 20')
+        ns.node_cmd(2, 'txpower 20')
+        ns.node_cmd(3, 'txpower 20')
         ns.go(200)
         self.assertFormPartitions(1)
 
     def testRadioParametersGet(self):
         ns = self.ns
         rp = ns.radioparams()
-        self.assertEqual(0,rp['IsDiscLimit'])
-        self.assertEqual(-126,rp['RssiMinDbm'])
-        self.assertEqual(126,rp['RssiMaxDbm'])
+        self.assertEqual(0, rp['IsDiscLimit'])
+        self.assertEqual(-126, rp['RssiMinDbm'])
+        self.assertEqual(126, rp['RssiMaxDbm'])
         self.assertEqual(rp['NoiseFloorDbm'], ns.get_radioparam('NoiseFloorDbm'))
         self.assertEqual(rp['ExponentDb'], ns.get_radioparam('ExponentDb'))
         with self.assertRaises(errors.OTNSCliError):
@@ -106,7 +106,7 @@ class RadioModelTests(OTNSTestCase):
         self.assertEqual(48.0, rp['NlosExponentDb'])
         self.assertEqual(0, rp['IsDiscLimit'])
 
-        ns.radiomodel = 'MIDisc' # selecting a model resets the parameters
+        ns.radiomodel = 'MIDisc'  # selecting a model resets the parameters
         rp = ns.radioparams()
         self.assertNotEquals(48.0, rp['NlosExponentDb'])
         self.assertEqual(1, rp['IsDiscLimit'])

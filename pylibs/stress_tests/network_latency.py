@@ -67,7 +67,9 @@ class StressTest(BaseStressTest):
     def add_6_nodes(self, x, y, start_angle):
         for i in range(6):
             angle = start_angle - math.pi / 3 * i
-            nid = self.ns.add("router", int(x + math.cos(angle) * RADIUS), int(y + math.sin(angle) * RADIUS),
+            nid = self.ns.add("router",
+                              int(x + math.cos(angle) * RADIUS),
+                              int(y + math.sin(angle) * RADIUS),
                               radio_range=RADIO_RANGE)
             self.ns.set_router_upgrade_threshold(nid, 32)
             self.ns.set_router_downgrade_threshold(nid, 33)
@@ -110,7 +112,7 @@ class StressTest(BaseStressTest):
     def collect_pings(self, hop: int) -> None:
         pings = self.ns.pings()
         for srcid, dst, datasize, latency in pings:
-            if latency == 10000: # skip the failed pings (packet lost)
+            if latency == 10000:  # skip the failed pings (packet lost)
                 continue
             latencys = self._ping_latencys_by_datasize.setdefault(datasize, [[0, 0], [0, 0], [0, 0]])
             latency_info = latencys[hop - 1]
@@ -139,7 +141,7 @@ class StressTest(BaseStressTest):
         logging.debug("real test starts...")
         ns.set_title("Network (Ping) Latency test - test phase")
         for _ in range(REPEAT):
-            self.ns.radiomodel = 'MIDisc' # reset the radiomodel with new static random deviations.
+            self.ns.radiomodel = 'MIDisc'  # reset the radiomodel with new static random deviations.
             for datasize in (32, 64, 128, 256, 512, 1024):
                 self.pings_1_hop(datasize)
                 ns.go(10)  # wait for all ping replies
@@ -161,9 +163,10 @@ class StressTest(BaseStressTest):
                 else:
                     latency = 0
                 row.append('%dms' % latency)
-                maxlatency = 3 * datasize + 500 * (datasize>=128)
-                self.result.fail_if(latency > maxlatency,
-                     f"average ping latency (for datasize={datasize}) is {latency} ms > {maxlatency} ms")
+                maxlatency = 3 * datasize + 500 * (datasize >= 128)
+                self.result.fail_if(
+                    latency > maxlatency,
+                    f"average ping latency (for datasize={datasize}) is {latency} ms > {maxlatency} ms")
 
             self.result.append_row(*row)
 

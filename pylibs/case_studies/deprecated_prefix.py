@@ -47,44 +47,45 @@ def main():
     ns.node_cmd(1, 'netdata register')
 
     # rest of network
-    ns.add("router", x=300, y=300) #
+    ns.add("router", x=300, y=300)  #
     ns.add("router", x=300, y=500)
     ns.add("fed", x=300, y=700)
     ns.add("med", x=350, y=675)
     ns.add("fed", x=400, y=675)
 
     # FED / MED have a deprecated (not anymore on-mesh) address
-    ns.node_cmd(4,'ipaddr add 2001:db8::1234')
-    ns.node_cmd(5,'ipaddr add 2001:db8::5678')
+    ns.node_cmd(4, 'ipaddr add 2001:db8::1234')
+    ns.node_cmd(5, 'ipaddr add 2001:db8::5678')
     ns.go(20)
 
     # show IP addresses of children
-    ns.node_cmd(4,'ipaddr -v')
-    ns.node_cmd(4,'netdata show')
-    ns.node_cmd(5,'ipaddr -v')
-    ns.node_cmd(6,'ipaddr -v')
+    ns.node_cmd(4, 'ipaddr -v')
+    ns.node_cmd(4, 'netdata show')
+    ns.node_cmd(5, 'ipaddr -v')
+    ns.node_cmd(6, 'ipaddr -v')
 
     # BR pings deprecated-prefix address of FED - it fails
     omr_fed = ns.get_ipaddrs(4)[0]
-    ns.node_cmd(1,'ping async 2001:db8::1234')
+    ns.node_cmd(1, 'ping async 2001:db8::1234')
     ns.go(10)
-    ns.node_cmd(1,f'ping async {omr_fed}')
+    ns.node_cmd(1, f'ping async {omr_fed}')
     ns.go(10)
-    ns.node_cmd(1,'eidcache')
+    ns.node_cmd(1, 'eidcache')
 
     # BR sends addr-query of non-existing on-mesh addr - used once to find the byte sequence for ADDR_QRY UDP payload
     #ns.node_cmd(1,'ping async fd00:db8::1234')
     #ns.go(10)
 
     # BR sends addr-query to find 2001:db8::1234 FED
-    ns.node_cmd(1,'udp send ff03::2 61631 -x 5202a1e4efb1b161026171ff001020010db8000000000000000000001234')
+    ns.node_cmd(1, 'udp send ff03::2 61631 -x 5202a1e4efb1b161026171ff001020010db8000000000000000000001234')
     ns.go(20)
 
     # BR sends addr-query to find 2001:db8::5678 MED
-    ns.node_cmd(1,'udp send ff03::2 61631 -x 5202a1e4efb1b161026171ff001020010db8000000000000000000005678')
+    ns.node_cmd(1, 'udp send ff03::2 61631 -x 5202a1e4efb1b161026171ff001020010db8000000000000000000005678')
     ns.go(20)
 
     ns.web_display()
+
 
 if __name__ == '__main__':
     try:

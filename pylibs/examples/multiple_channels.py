@@ -43,30 +43,30 @@ class MultipleChannelsExample:
 
     # executes a startup script on each node, params depending on each group (ngrp)
     def setup_node_for_group(self, nid, ngrp):
-        chan = ngrp-1 + 11
-        self.ns.set_network_name(nid,f"Netw{ngrp}_Chan{chan}")
-        self.ns.set_panid(nid,ngrp)
-        self.ns.set_extpanid(nid,ngrp)
-        self.ns.set_networkkey(nid, "00112233445566778899aabbccddeef" + str(ngrp)) # each grp own network-key
-        self.ns.set_channel(nid,chan)
+        chan = ngrp - 1 + 11
+        self.ns.set_network_name(nid, f"Netw{ngrp}_Chan{chan}")
+        self.ns.set_panid(nid, ngrp)
+        self.ns.set_extpanid(nid, ngrp)
+        self.ns.set_networkkey(nid, "00112233445566778899aabbccddeef" + str(ngrp))  # each grp own network-key
+        self.ns.set_channel(nid, chan)
         self.ns.ifconfig_up(nid)
         self.ns.thread_start(nid)
 
     def create_topology(self):
-        n_netw_group = [2, 3] # number of different network-groups [rows,cols]
-        n_node_group = [4, 4] # nodes per Thread Network (i.e. channel) [rows,cols]
+        n_netw_group = [2, 3]  # number of different network-groups [rows,cols]
+        n_node_group = [4, 4]  # nodes per Thread Network (i.e. channel) [rows,cols]
         gdx = 500
         gdy = 400
         ndx = 70
         ndy = 70
         ofs_x = 100
         ofs_y = 100
-        ng = 1 # number of group (network) a node is in.
-        for rg in range(0,n_netw_group[0]):
-            for cg in range(0,n_netw_group[1]):
-                for rn in range(0,n_node_group[0]):
-                    for cn in range(0,n_node_group[1]):
-                        nid = self.ns.add('router', x=ofs_x+cg*gdx+cn*ndx, y=ofs_y+rg*gdy+rn*ndy)
+        ng = 1  # number of group (network) a node is in.
+        for rg in range(0, n_netw_group[0]):
+            for cg in range(0, n_netw_group[1]):
+                for rn in range(0, n_node_group[0]):
+                    for cn in range(0, n_node_group[1]):
+                        nid = self.ns.add('router', x=ofs_x + cg * gdx + cn * ndx, y=ofs_y + rg * gdy + rn * ndy)
                         self.setup_node_for_group(nid, ng)
                 ng += 1
 
@@ -78,7 +78,7 @@ def main():
     ex = MultipleChannelsExample()
 
     ex.ns.loglevel = 'info'
-    ex.ns.watch_default('warn') # show errors+warnings from all OT nodes
+    ex.ns.watch_default('warn')  # show errors+warnings from all OT nodes
 
     ex.create_topology()
     ex.go()

@@ -38,20 +38,21 @@ YGAP = 100
 RADIO_RANGE = 130
 N = 10  # network size is N^2
 
+
 class PowerCycleExample:
 
     def setup_topology_size_n(self, n):
         for r in range(n):
             for c in range(n):
-                self.ns.add("router", XGAP * (c+1), YGAP * (r+1), radio_range=RADIO_RANGE)
+                self.ns.add("router", XGAP * (c + 1), YGAP * (r + 1), radio_range=RADIO_RANGE)
 
     def __init__(self):
-        self.ns = OTNS(otns_args=["-log", "debug"]) # OTNS log level
-        self.ns.logconfig(logging.DEBUG) #pyOTNS log level
+        self.ns = OTNS(otns_args=["-log", "debug"])  # OTNS log level
+        self.ns.logconfig(logging.DEBUG)  #pyOTNS log level
 
     def run(self):
         ns: OTNS = self.ns
-        ns.set_radioparam('MeterPerUnit', 0.2) # set scale of distances
+        ns.set_radioparam('MeterPerUnit', 0.2)  # set scale of distances
 
         #ns.watch_default('trace')
         ns.set_title("Network Power Cycle Example - Topology setup")
@@ -68,27 +69,27 @@ class PowerCycleExample:
         ns.go(2)
 
         ns.set_title("Network Power Cycle Example - Power down period")
-        Nn=N*N
+        Nn = N * N
         #restart_nodes = [13, 14, 18,19]
-        restart_nodes = range(1,Nn+1)
+        restart_nodes = range(1, Nn + 1)
         for n in restart_nodes:
-            ns.node_cmd(n,'reset')
+            ns.node_cmd(n, 'reset')
         ns.go(3)
 
         ns.set_title("Network Power Cycle Example - Powered up & forming network")
         for n in restart_nodes:
-            ns.node_cmd(n,'ifconfig up')
-            ns.node_cmd(n,'thread start')
+            ns.node_cmd(n, 'ifconfig up')
+            ns.node_cmd(n, 'thread start')
 
         form_time = 0
         ns.speed = 2
         while True:
             pars = ns.partitions()
             detached_nodes = []
-            for n in range(1,Nn+1):
+            for n in range(1, Nn + 1):
                 if ns.get_state(n) == 'detached':
                     detached_nodes.append(n)
-            if len(pars) == 1 and 0 not in pars and len(detached_nodes)==0:
+            if len(pars) == 1 and 0 not in pars and len(detached_nodes) == 0:
                 break
             ns.go(1)
             form_time += 1
@@ -99,6 +100,7 @@ class PowerCycleExample:
         ns.speed = 1
         ns.autogo = True
         ns.interactive_cli()
+
 
 if __name__ == '__main__':
     try:

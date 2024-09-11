@@ -30,6 +30,8 @@
 # shellcheck source=script/common.sh
 . "$(dirname "$0")"/common.sh
 
+# TODO verify how this is used (interacting with utils.sh)
+# shellcheck disable=SC2034
 apt_update_once=0
 
 install_packages()
@@ -37,6 +39,8 @@ install_packages()
     install_package git --apt git --brew git || true
     install_package cmake --apt cmake --brew cmake || true
     install_package g++ --apt build-essential --brew gcc || true
+    install_package cmake --apt cmake --brew cmake
+    install_package ninja --apt ninja-build --brew ninja
     install_package wget --apt wget --brew wget || true
     install_package unzip --apt unzip --brew unzip || true
     install_package python3 --apt python3 --brew python3 || true

@@ -194,6 +194,7 @@ do_markdown_check()
 
 do_python_format()
 {
+    activate_python_venv
     echo -e '========================================'
     echo -e '     format python'
     echo -e '========================================'
@@ -204,6 +205,7 @@ do_python_format()
 
 do_python_check()
 {
+    activate_python_venv
     echo -e '========================================'
     echo -e '     check python'
     echo -e '========================================'
@@ -232,7 +234,7 @@ do_shell_check()
         | xargs -n10 -P"$OTNS_BUILD_JOBS" shfmt -i 4 -bn -ci -fn -s -d
 
     git ls-files | xargs shfmt -f | grep -v -E "^($(echo "${OTNS_EXCLUDE_DIRS[@]}" | tr ' ' '|'))" \
-        | xargs -n10 -P"$OTNS_BUILD_JOBS" shellcheck
+        | xargs -n10 -P"$OTNS_BUILD_JOBS" shellcheck -x
 }
 
 do_check()

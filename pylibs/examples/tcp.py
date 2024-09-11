@@ -34,9 +34,11 @@ import sys
 from otns.cli import OTNS
 from otns.cli.errors import OTNSExitedError
 
+
 def display(list):
     for line in list:
         print(line, file=sys.stderr)
+
 
 def main():
     #logging.basicConfig(level=logging.WARNING)
@@ -48,29 +50,29 @@ def main():
     ns.watch_default('warn')
     ns.web()
 
-    nid_cl=ns.add("router", x=100, y=300)
+    nid_cl = ns.add("router", x=100, y=300)
     ns.add("router", x=300, y=300)
     ns.add("router", x=500, y=300)
-    nid_srv=ns.add("router", x=700, y=300)
+    nid_srv = ns.add("router", x=700, y=300)
     mleid = ns.get_mleid(nid_srv)
     ns.go(130)
 
     # for TCP commands, see https://github.com/openthread/openthread/blob/main/src/cli/README_TCP.md
-    ns.node_cmd(nid_srv,'tcp init')
-    ns.node_cmd(nid_srv,'tcp listen :: 30000')
+    ns.node_cmd(nid_srv, 'tcp init')
+    ns.node_cmd(nid_srv, 'tcp listen :: 30000')
     ns.go(2)
-    ns.node_cmd(nid_cl,'tcp init')
-    ns.node_cmd(nid_cl,f'tcp connect {mleid} 30000')
+    ns.node_cmd(nid_cl, 'tcp init')
+    ns.node_cmd(nid_cl, f'tcp connect {mleid} 30000')
     ns.go(2)
 
     # test connection
-    ns.node_cmd(nid_cl,'tcp send hello')
+    ns.node_cmd(nid_cl, 'tcp send hello')
     ns.go(10)
 
     # benchmark
-    ns.node_cmd(nid_cl,'tcp benchmark run')
+    ns.node_cmd(nid_cl, 'tcp benchmark run')
     ns.go(20)
-    ns.node_cmd(nid_cl,'tcp benchmark result')
+    ns.node_cmd(nid_cl, 'tcp benchmark result')
 
     # allow some time for graphics to be displayed in web GUI.
     ns.web_display()

@@ -43,7 +43,7 @@ def main():
     id_br = ns.add('br', x=200, y=300)
     # starting the server manually is not really needed, due to the autostart feature for BR.
     # But it's left here to show the command to manually enable/disable.
-    ns.node_cmd(id_br,'srp server enable')
+    ns.node_cmd(id_br, 'srp server enable')
     ns.go(10)
 
     ns.add('router', x=400, y=300)
@@ -51,44 +51,44 @@ def main():
 
     # start an SRP client
     id_cl = ns.add('fed', x=600, y=300)
-    ns.go(200) # form network
-    ns.node_cmd(id_cl,'srp client host name MyExampleHost')
-    ns.node_cmd(id_cl,'srp client host address auto')
+    ns.go(200)  # form network
+    ns.node_cmd(id_cl, 'srp client host name MyExampleHost')
+    ns.node_cmd(id_cl, 'srp client host address auto')
 
     # client registers an SRP service
-    ns.node_cmd(id_cl,'srp client service add MyExampleInstance _otns-test._udp 8080 1 2')
-    ns.node_cmd(id_cl,'srp client autostart enable')
+    ns.node_cmd(id_cl, 'srp client service add MyExampleInstance _otns-test._udp 8080 1 2')
+    ns.node_cmd(id_cl, 'srp client autostart enable')
     ns.go(50)
 
     # client: check status
-    ns.node_cmd(id_cl,'srp client host')
-    ns.node_cmd(id_cl,'srp client service')
+    ns.node_cmd(id_cl, 'srp client host')
+    ns.node_cmd(id_cl, 'srp client service')
 
     # server: check status
-    ns.node_cmd(id_br,'srp server host')
-    ns.node_cmd(id_br,'srp server service')
+    ns.node_cmd(id_br, 'srp server host')
+    ns.node_cmd(id_br, 'srp server service')
 
     ns.go(100)
 
     # register another service
-    ns.node_cmd(id_cl,'srp client service add TestService _thread-test._udp 8081 0 0')
+    ns.node_cmd(id_cl, 'srp client service add TestService _thread-test._udp 8081 0 0')
     ns.go(50)
 
     # client: check status
-    ns.node_cmd(id_cl,'srp client host')
-    ns.node_cmd(id_cl,'srp client service')
+    ns.node_cmd(id_cl, 'srp client host')
+    ns.node_cmd(id_cl, 'srp client service')
 
     # server: check status
-    ns.node_cmd(id_br,'srp server host')
-    ns.node_cmd(id_br,'srp server service')
+    ns.node_cmd(id_br, 'srp server host')
+    ns.node_cmd(id_br, 'srp server service')
 
     # client: remove host and all services
     ns.node_cmd(id_cl, 'srp client host remove')
     ns.go(10)
 
     # server: check status
-    ns.node_cmd(id_br,'srp server host')
-    ns.node_cmd(id_br,'srp server service')
+    ns.node_cmd(id_br, 'srp server host')
+    ns.node_cmd(id_br, 'srp server service')
 
     # allow some time for graphics to be displayed in web GUI.
     ns.web_display()

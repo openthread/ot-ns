@@ -33,10 +33,11 @@ import resource
 from otns.cli import OTNS
 from otns.cli.errors import OTNSExitedError
 
+
 def build_topology(ns, radio_rng):
     # Below code ns.add() lines were built using an office map and ./pylibs/node_clicker.py
     # 34 pixels =~ 2 map grid units =~ 5 feet =~ 1.524 m
-    ns.set_radioparam('MeterPerUnit', 1.524/34 )
+    ns.set_radioparam('MeterPerUnit', 1.524 / 34)
     node_tp1 = 'router'
     node_tp1_radiorange = radio_rng
     # Nodes 1-70
@@ -243,12 +244,14 @@ def build_topology(ns, radio_rng):
     ns.add(node_tp1, x=655, y=1161, radio_range=node_tp1_radiorange)
     ns.add(node_tp1, x=690, y=1181, radio_range=node_tp1_radiorange)
 
+
 def test_ulimit():
-    n_files = resource.getrlimit(7)[0] # check RLIMIT_NOFILE, number of open files
+    n_files = resource.getrlimit(7)[0]  # check RLIMIT_NOFILE, number of open files
     if n_files < 4096:
         print(f'Current open-files limit too low: {n_files}')
         print('Please configure "ulimit -Sn 4096" prior to running this script.')
         exit(1)
+
 
 def main():
     test_ulimit()
@@ -262,10 +265,11 @@ def main():
     ns.web('stats')
 
     build_topology(ns, radio_rng=320)
-    ns.go(13*60)
+    ns.go(13 * 60)
     ns.interactive_cli()
 
     ns.web_display()
+
 
 if __name__ == '__main__':
     try:
@@ -273,4 +277,3 @@ if __name__ == '__main__':
     except OTNSExitedError as ex:
         if ex.exit_code != 0:
             raise
-

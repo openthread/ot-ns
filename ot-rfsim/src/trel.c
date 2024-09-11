@@ -31,8 +31,8 @@
 #if OPENTHREAD_CONFIG_RADIO_LINK_TREL_ENABLE
 
 #include <openthread/random_noncrypto.h>
-#include "utils/code_utils.h"
 #include <openthread/platform/trel.h>
+#include "utils/code_utils.h"
 
 // Change DEBUG_LOG to all extra logging
 #define DEBUG_LOG 0
@@ -365,8 +365,8 @@ void otPlatTrelRegisterService(otInstance *aInstance, uint16_t aPort, const uint
 #endif
 }
 
-void otPlatTrelSend(otInstance *      aInstance,
-                    const uint8_t *   aUdpPayload,
+void otPlatTrelSend(otInstance       *aInstance,
+                    const uint8_t    *aUdpPayload,
                     uint16_t          aUdpPayloadLen,
                     const otSockAddr *aDestSockAddr)
 {
@@ -418,10 +418,7 @@ void platformTrelInit(uint32_t aSpeedUpFactor)
     OT_UNUSED_VARIABLE(aSpeedUpFactor);
 }
 
-void platformTrelDeinit(void)
-{
-    deinitFds();
-}
+void platformTrelDeinit(void) { deinitFds(); }
 
 void platformTrelUpdateFdSet(fd_set *aReadFdSet, fd_set *aWriteFdSet, struct timeval *aTimeout, int *aMaxFd)
 {

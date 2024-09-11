@@ -58,8 +58,8 @@
 #include <unistd.h>
 
 #include <openthread/instance.h>
-#include <openthread/message.h>
 #include <openthread/ip6.h>
+#include <openthread/message.h>
 
 #include "event-sim.h"
 
@@ -238,7 +238,10 @@ void platformRadioReportStateToSimulator(bool force);
  * @param aMsgLen
  * @return
  */
-otError platformIp6FromHostToNode(otInstance *aInstance, const struct MsgToHostEventData *aEvData, const uint8_t *aMsg, size_t aMsgLen);
+otError platformIp6FromHostToNode(otInstance                      *aInstance,
+                                  const struct MsgToHostEventData *aEvData,
+                                  const uint8_t                   *aMsg,
+                                  size_t                           aMsgLen);
 
 /**
  * performs the processing of a UDP datagram that was sent from the (higher-layer) host to the OT node.
@@ -249,7 +252,10 @@ otError platformIp6FromHostToNode(otInstance *aInstance, const struct MsgToHostE
  * @param aMsgLen
  * @return
  */
-otError platformUdpFromHostToNode(otInstance *aInstance, const struct MsgToHostEventData *aEvData, const uint8_t *aMsg, size_t aMsgLen);
+otError platformUdpFromHostToNode(otInstance                      *aInstance,
+                                  const struct MsgToHostEventData *aEvData,
+                                  const uint8_t                   *aMsg,
+                                  size_t                           aMsgLen);
 
 /**
  * parses aMessage as an IPv6 packet, writing the packet-info into ip6Info.
@@ -260,7 +266,7 @@ otError platformUdpFromHostToNode(otInstance *aInstance, const struct MsgToHostE
  * @retval  OT_ERROR_NONE   Successfully parsed the message as IPv6 packet.
  * @retval  OT_ERROR_PARSE  Failed to parse the message as IPv6 packet.
  */
-otError platformParseIp6(otMessage *aMessage,  otMessageInfo *aIp6Info);
+otError platformParseIp6(otMessage *aMessage, otMessageInfo *aIp6Info);
 
 /**
  * handler called when OT performs UDP-forwarding to the host. This is for UDP datagrams that
@@ -272,11 +278,11 @@ otError platformParseIp6(otMessage *aMessage,  otMessageInfo *aIp6Info);
  * @param aSockPort
  * @param aContext
  */
-void handleUdpForwarding(otMessage *aMessage,
-                         uint16_t aPeerPort,
+void handleUdpForwarding(otMessage    *aMessage,
+                         uint16_t      aPeerPort,
                          otIp6Address *aPeerAddr,
-                         uint16_t aSockPort,
-                         void *aContext);
+                         uint16_t      aSockPort,
+                         void         *aContext);
 
 /**
  * Setup any simulated non-Thread interfaces. For example, an interface to a host process or
@@ -303,8 +309,7 @@ bool platformRadioIsBusy(void);
  * @param[in]  aRxParams   A pointer to parameters related to the reception event.
  *
  */
-void platformRadioRxStart(otInstance *aInstance,
-                          struct RadioCommEventData *aRxParams);
+void platformRadioRxStart(otInstance *aInstance, struct RadioCommEventData *aRxParams);
 
 /**
  * signals the end of a received radio frame and inputs the frame data.
@@ -315,8 +320,9 @@ void platformRadioRxStart(otInstance *aInstance,
  * @param[in]  aRxParams   A pointer to parameters related to the reception event.
  *
  */
-void platformRadioRxDone(otInstance *aInstance, const uint8_t *aBuf,
-                         uint16_t aBufLength,
+void platformRadioRxDone(otInstance                *aInstance,
+                         const uint8_t             *aBuf,
+                         uint16_t                   aBufLength,
                          struct RadioCommEventData *aRxParams);
 
 /**
@@ -369,8 +375,7 @@ void platformTrelDeinit(void);
  * @param[in,out]  aMaxFd       A pointer to the max file descriptor.
  *
  */
-void platformTrelUpdateFdSet(fd_set *aReadFdSet, fd_set *aWriteFdSet,
-                             struct timeval *aTimeout, int *aMaxFd);
+void platformTrelUpdateFdSet(fd_set *aReadFdSet, fd_set *aWriteFdSet, struct timeval *aTimeout, int *aMaxFd);
 
 /**
  * performs TREL processing.
@@ -380,8 +385,7 @@ void platformTrelUpdateFdSet(fd_set *aReadFdSet, fd_set *aWriteFdSet,
  * @param[in]  aWriteFdSet  A pointer to the write file descriptors.
  *
  */
-void platformTrelProcess(otInstance *aInstance, const fd_set *aReadFdSet,
-                         const fd_set *aWriteFdSet);
+void platformTrelProcess(otInstance *aInstance, const fd_set *aReadFdSet, const fd_set *aWriteFdSet);
 
 #endif // OPENTHREAD_CONFIG_RADIO_LINK_TREL_ENABLE
 

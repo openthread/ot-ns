@@ -41,7 +41,8 @@ TYPE_UNICAST = 0x5d
 SERVICE_DATA_LEN_TYPE1 = 19
 SERVICE_DATA_LEN_TYPE3 = 1
 
-def get_services(ns, id, tp, service_data_len = 0):
+
+def get_services(ns, id, tp, service_data_len=0):
     lines = ns.node_cmd(id, "netdata show")
     # example outputs:
     # 44970 01 28000500000e10 s 7800
@@ -59,27 +60,29 @@ def get_services(ns, id, tp, service_data_len = 0):
                 retval.append(line)
     return retval
 
+
 def expect_count(expected_count, lines):
     actual_count = len(lines)
     if expected_count != actual_count:
         print(f"Expectation FAILED: expected = {expected_count}, actual = {actual_count}")
         traceback.print_stack()
 
+
 def main():
-    ns = OTNS(otns_args=['-seed','84541','-logfile', 'info'])
+    ns = OTNS(otns_args=['-seed', '84541', '-logfile', 'info'])
     ns.speed = 200
     ns.web()
 
     # Leader
-    ns.add("router", id = LEADER_ID)
+    ns.add("router", id=LEADER_ID)
     ns.go(10)
     expect_count(0, get_services(ns, LEADER_ID, TYPE_UNICAST, SERVICE_DATA_LEN_TYPE1))
     expect_count(0, get_services(ns, LEADER_ID, TYPE_UNICAST, SERVICE_DATA_LEN_TYPE3))
     expect_count(0, get_services(ns, LEADER_ID, TYPE_ANYCAST))
 
     # setup of Border Routers
-    for i in range(1, NUM_BR+1):
-        ns.add("br", id = i)
+    for i in range(1, NUM_BR + 1):
+        ns.add("br", id=i)
     ns.go(20)
 
     # check for services getting added

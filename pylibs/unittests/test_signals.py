@@ -39,7 +39,7 @@ from subprocess import TimeoutExpired
 from OTNSTestCase import OTNSTestCase
 from otns.cli.errors import OTNSExitedError
 
-WAIT_OTNS_TIMEOUT = 5 # seconds, max wait time for OTNS to exit fully. Includes 3 sec max node exit time.
+WAIT_OTNS_TIMEOUT = 5  # seconds, max wait time for OTNS to exit fully. Includes 3 sec max node exit time.
 
 
 class SignalsTest(OTNSTestCase):
@@ -106,7 +106,6 @@ class SignalsTest(OTNSTestCase):
             raise
 
         self.assertTrue(exit_code == 0 or exit_code == -signal.SIGTERM)
-
 
     def _test_signal_ignore(self, sig: int):
         t = threading.Thread(target=self._send_signal, args=(1, sig))

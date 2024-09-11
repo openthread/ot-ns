@@ -37,29 +37,18 @@
 #include "event-sim.h"
 #include "utils/uart.h"
 
-otError otPlatUartEnable(void)
-{
-    return OT_ERROR_NONE;
-}
+otError otPlatUartEnable(void) { return OT_ERROR_NONE; }
 
-otError otPlatUartDisable(void)
-{
-    return OT_ERROR_NONE;
-}
+otError otPlatUartDisable(void) { return OT_ERROR_NONE; }
 
-otError otPlatUartSend(const uint8_t *aData, uint16_t aLength)
+otError otPlatUartSend(const uint8_t *aBuf, uint16_t aBufLength)
 {
-    otSimSendUartWriteEvent(aData, aLength);
+    otSimSendUartWriteEvent(aBuf, aBufLength);
     otPlatUartSendDone();
 
     return OT_ERROR_NONE;
 }
 
-otError otPlatUartFlush(void)
-{
-    return OT_ERROR_NONE;
-}
+otError otPlatUartFlush(void) { return OT_ERROR_NONE; }
 
-void platformUartRestore(void)
-{
-}
+void platformUartRestore(void) {}

@@ -54,7 +54,7 @@ class StressTest(BaseStressTest):
     def __init__(self):
         super(StressTest, self).__init__("Large Network Formation Test",
                                          ["Rep", "Simulation Time", "Execution Time", "Partition Count"],
-                                         web = False)
+                                         web=False)
 
     def run(self):
         self.ns.packet_loss_ratio = PACKET_LOSS_RATIO
@@ -63,7 +63,7 @@ class StressTest(BaseStressTest):
 
         durations = []
         partition_counts = []
-        for nrep in range(1, REPEAT+1):
+        for nrep in range(1, REPEAT + 1):
             durations, partition_counts = self.test_n(LARGE_N, durations, partition_counts, nrep)
 
     def test_n(self, n, durations, partition_counts, nrep):
@@ -71,7 +71,10 @@ class StressTest(BaseStressTest):
 
         for r in range(n):
             for c in range(n):
-                self.ns.add("router", 50 + XGAP * c, 50 + YGAP * r, radio_range=RADIO_RANGE,
+                self.ns.add("router",
+                            50 + XGAP * c,
+                            50 + YGAP * r,
+                            radio_range=RADIO_RANGE,
                             executable="ot-cli-ftd_nologs")
 
         for _ in range(SIMULATE_TIME_TOTAL // SIMULATE_TIME_PERIOD):

@@ -58,24 +58,27 @@ class CcmTests(OTNSTestCase):
         self.ns.node_cmd(n1, "dataset init new")
         self.ns.node_cmd(n1, "dataset channel 22")
         self.ns.node_cmd(n1, "dataset meshlocalprefix fd00:777e::")
-        self.ns.node_cmd(n1, "dataset networkkey 00112233445566778899aabbccddeeff") # allow easy Wireshark dissecting
-        self.ns.node_cmd(n1, "dataset securitypolicy 672 orcCR 3") # enable CCM-commissioning flag in secpolicy
+        self.ns.node_cmd(n1, "dataset networkkey 00112233445566778899aabbccddeeff")  # allow easy Wireshark dissecting
+        self.ns.node_cmd(n1, "dataset securitypolicy 672 orcCR 3")  # enable CCM-commissioning flag in secpolicy
         self.ns.node_cmd(n1, "dataset commit active")
 
     def setAlternativeDataset(self, n1) -> None:
         self.ns.node_cmd(n1, "dataset init active")
         self.ns.node_cmd(n1, "dataset channel 22")
         self.ns.node_cmd(n1, "dataset meshlocalprefix fd00:777e::")
-        self.ns.node_cmd(n1, "dataset securitypolicy 672 orcCR 3") # enable CCM-commissioning flag in secpolicy
+        self.ns.node_cmd(n1, "dataset securitypolicy 672 orcCR 3")  # enable CCM-commissioning flag in secpolicy
         self.ns.node_cmd(n1, "dataset commit active")
 
     def startRegistrar(self):
         self.registrar_log_file = open("tmp/ot-registrar.log", 'w')
-        self.registrar_process = subprocess.Popen(['java', '-jar', './etc/ot-registrar/ot-registrar-0.3-jar-with-dependencies.jar',
-                                                   '-registrar', '-vv', '-f', './etc/ot-registrar/credentials_registrar.p12'],
-                                                  stdout = self.registrar_log_file, stderr = subprocess.STDOUT)
+        self.registrar_process = subprocess.Popen([
+            'java', '-jar', './etc/ot-registrar/ot-registrar-0.3-jar-with-dependencies.jar', '-registrar', '-vv', '-f',
+            './etc/ot-registrar/credentials_registrar.p12'
+        ],
+                                                  stdout=self.registrar_log_file,
+                                                  stderr=subprocess.STDOUT)
         self.assertIsNone(self.registrar_process.returncode)
-        time.sleep(1) # FIXME could detect when Registrar is ready to serve, with process.communicate()
+        time.sleep(1)  # FIXME could detect when Registrar is ready to serve, with process.communicate()
 
     def stopRegistrar(self):
         if self.registrar_process is None:
@@ -103,10 +106,10 @@ class CcmTests(OTNSTestCase):
         self.startRegistrar()
         #ns.web()
         ns.coaps_enable()
-        ns.radiomodel = 'MIDisc' # enforce strict line topologies for testing
+        ns.radiomodel = 'MIDisc'  # enforce strict line topologies for testing
 
-        n1 = ns.add("br", x = 100, y = 100, radio_range = 120, version="ccm", script="")
-        n2 = ns.add("router", x = 100, y = 200, radio_range = 120, version="ccm", script="")
+        n1 = ns.add("br", x=100, y=100, radio_range=120, version="ccm", script="")
+        n2 = ns.add("router", x=100, y=200, radio_range=120, version="ccm", script="")
 
         # configure sim-host server that acts as BRSKI Registrar
         # TODO update IPv6 addr
@@ -121,7 +124,7 @@ class CcmTests(OTNSTestCase):
         self.assertTrue(state_n1 == "leader")
         ns.commissioner_start(n1)
         ns.go(5)
-        ns.coaps() # see emitted CoAP events
+        ns.coaps()  # see emitted CoAP events
 
         # n2 joins as CCM joiner
         # because CoAP server is real, let simulation also move in near real time speed.
@@ -132,7 +135,7 @@ class CcmTests(OTNSTestCase):
         ns.go(20)
 
         # check join result
-        ns.coaps() # see emitted CoAP events
+        ns.coaps()  # see emitted CoAP events
         ns.cmd('host list')
         state_n2 = ns.get_state(n2)
         self.assertTrue(state_n2 == "router" or state_n2 == "child")
@@ -146,11 +149,11 @@ class CcmTests(OTNSTestCase):
         #ns.web()
         ns.watch_default('debug')
         ns.coaps_enable()
-        ns.radiomodel = 'MIDisc' # enforce strict line topologies for testing
+        ns.radiomodel = 'MIDisc'  # enforce strict line topologies for testing
 
-        n1 = ns.add("br", x = 100, y = 100, radio_range = 120, version="ccm")
-        n2 = ns.add("router", x = 100, y = 200, radio_range = 120, version="ccm")
-        n3 = ns.add("router", x = 100, y = 300, radio_range = 120, version="ccm", script="")
+        n1 = ns.add("br", x=100, y=100, radio_range=120, version="ccm")
+        n2 = ns.add("router", x=100, y=200, radio_range=120, version="ccm")
+        n3 = ns.add("router", x=100, y=300, radio_range=120, version="ccm", script="")
 
         # configure sim-host server that acts as BRSKI Registrar
         # TODO update IPv6 addr
@@ -166,7 +169,7 @@ class CcmTests(OTNSTestCase):
         # n1 starts commissioner
         ns.commissioner_start(n1)
         ns.go(5)
-        ns.coaps() # see emitted CoAP events
+        ns.coaps()  # see emitted CoAP events
 
         # n2 also added out-of-band, for Joiner Router role
         self.setAlternativeDataset(n2)
@@ -175,7 +178,7 @@ class CcmTests(OTNSTestCase):
         ns.go(20)
         state_n2 = ns.get_state(n2)
         self.assertTrue(state_n2 == "router" or state_n2 == "child")
-        ns.coaps() # see emitted CoAP events
+        ns.coaps()  # see emitted CoAP events
 
         # n3 joins as CCM joiner - needs to search channel.
         # because CoAP server is real, let simulation also move in near real time speed.
@@ -185,7 +188,7 @@ class CcmTests(OTNSTestCase):
         ns.node_cmd(n3, 'coaps x509')
         ns.joiner_startccm(n3)
         ns.go(10)
-        ns.coaps() # see emitted CoAP events
+        ns.coaps()  # see emitted CoAP events
         ns.cmd('host list')
 
         # n3 automatically has enabled Thread and joined the network
@@ -193,16 +196,15 @@ class CcmTests(OTNSTestCase):
         state_n3 = ns.get_state(n3)
         self.assertTrue(state_n3 == "router" or state_n3 == "child")
 
-
     def testCommissioningOneHop(self):
         ns = self.ns
         ns.web()
         ns.coaps_enable()
-        ns.radiomodel = 'MIDisc' # enforce strict line topologies for testing
+        ns.radiomodel = 'MIDisc'  # enforce strict line topologies for testing
 
-        n1 = ns.add("br", x = 100, y = 100, radio_range = 120, script="", version="ccm")
-        n2 = ns.add("router", x = 100, y = 200, radio_range = 120, script="")
-        n3 = ns.add("router", x = 200, y = 100, radio_range = 120, script="", version="ccm")
+        n1 = ns.add("br", x=100, y=100, radio_range=120, script="", version="ccm")
+        n2 = ns.add("router", x=100, y=200, radio_range=120, script="")
+        n3 = ns.add("router", x=200, y=100, radio_range=120, script="", version="ccm")
 
         # configure sim-host server that acts as BRSKI Registrar
         # TODO update IPv6 addr
@@ -227,7 +229,7 @@ class CcmTests(OTNSTestCase):
         print('counters', c)
         joins = ns.joins()
         print('joins', joins)
-        self.assertFormPartitionsIgnoreOrphans(1) # ignore orphan n3
+        self.assertFormPartitionsIgnoreOrphans(1)  # ignore orphan n3
         self.assertTrue(joins and joins[0][1] > 0)  # assert join success
 
         # n3 joins as CCM joiner

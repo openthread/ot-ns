@@ -31,6 +31,7 @@
 from otns.cli import OTNS
 from otns.cli.errors import OTNSExitedError
 
+
 def main():
     ns = OTNS()
     ns.speed = 100
@@ -46,19 +47,20 @@ def main():
     ns.go(10)
 
     # ping - both src and dst use Key Index 0x79 in Aux Security Header.
-    ns.ping(1,2)
+    ns.ping(1, 2)
     ns.go(10)
 
     # force tKSC update +1
     ns.node_cmd(1, "keysequence counter 128")
 
     # ping again - both src and dst must use Key Index 0x01 in Aux Security Header.
-    ns.ping(1,2)
+    ns.ping(1, 2)
     ns.go(10)
 
     # run some time to catch MLE messages from node 2 - should reflect same Key Index.
     ns.go(150)
     ns.web_display()
+
 
 if __name__ == '__main__':
     try:

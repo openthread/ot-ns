@@ -61,18 +61,18 @@ YMAX = 1000
 # Note: the "delay time" for a node is the time period since contact with the BR by means of ping was
 # last successful.
 TOTAL_SIMULATION_TIME = 3600 * int(os.getenv("STRESS_LEVEL", 1))
-MAX_DELAY_TIME = 1800 # seconds - the max allowable delay time for any node.
-MAX_AVG_DELAY_TIME = 1000 # seconds - the max allowable average of all nodes' delay times.
-MOVE_INTERVAL = 60 # seconds
-PING_INTERVAL = 10 # seconds
-PING_DATA_SIZE = 32 # bytes
-FAIL_DURATION = 30 # seconds (of failure during one FAIL_INTERVAL)
-FAIL_INTERVAL = 600 # seconds
-MOVE_COUNT = 3 # number of nodes moved per move-interval
+MAX_DELAY_TIME = 1800  # seconds - the max allowable delay time for any node.
+MAX_AVG_DELAY_TIME = 1000  # seconds - the max allowable average of all nodes' delay times.
+MOVE_INTERVAL = 60  # seconds
+PING_INTERVAL = 10  # seconds
+PING_DATA_SIZE = 32  # bytes
+FAIL_DURATION = 30  # seconds (of failure during one FAIL_INTERVAL)
+FAIL_INTERVAL = 600  # seconds
+MOVE_COUNT = 3  # number of nodes moved per move-interval
 
 BR = None  # the Border Router
 
-SED_PULL_PERIOD = 1 # seconds
+SED_PULL_PERIOD = 1  # seconds
 
 
 class MleidConnectivityStressTest(BaseStressTest):
@@ -116,9 +116,12 @@ class MleidConnectivityStressTest(BaseStressTest):
             ns.set_poll_period(nid, SED_PULL_PERIOD)
 
         for nodeid in range(1, TOTAL_NODE_COUNT + 1):
-            ns.ping(nodeid, BR_ADDR, datasize=PING_DATA_SIZE, count=TOTAL_SIMULATION_TIME // PING_INTERVAL,
+            ns.ping(nodeid,
+                    BR_ADDR,
+                    datasize=PING_DATA_SIZE,
+                    count=TOTAL_SIMULATION_TIME // PING_INTERVAL,
                     interval=PING_INTERVAL)
-            ns.go(PING_INTERVAL/TOTAL_NODE_COUNT) # spread out pings over time within interval.
+            ns.go(PING_INTERVAL / TOTAL_NODE_COUNT)  # spread out pings over time within interval.
 
         for _ in range(TOTAL_SIMULATION_TIME // MOVE_INTERVAL):
             nodeids = list(range(1, TOTAL_NODE_COUNT + 1))
@@ -130,12 +133,14 @@ class MleidConnectivityStressTest(BaseStressTest):
         ns.go(MOVE_INTERVAL)
         self._collect_pings(PING_INTERVAL)
 
-        delays = [TOTAL_SIMULATION_TIME - self._last_ping_succ_time.get(nodeid, 0) for nodeid in
-                  range(1, TOTAL_NODE_COUNT + 1)]
+        delays = [
+            TOTAL_SIMULATION_TIME - self._last_ping_succ_time.get(nodeid, 0)
+            for nodeid in range(1, TOTAL_NODE_COUNT + 1)
+        ]
         logging.debug("_last_ping_succ_time %s delays %s", self._last_ping_succ_time, delays)
         avg_delay = sum(delays) / TOTAL_NODE_COUNT
-        self.result.append_row("%dh" % (TOTAL_SIMULATION_TIME // 3600),
-                               '%ds' % max(delays), '%ds' % min(delays), '%ds' % avg_delay)
+        self.result.append_row("%dh" % (TOTAL_SIMULATION_TIME // 3600), '%ds' % max(delays), '%ds' % min(delays),
+                               '%ds' % avg_delay)
         self.result.fail_if(avg_delay > MAX_AVG_DELAY_TIME, "Avg Delay (%ds)> %ds" % (avg_delay, MAX_AVG_DELAY_TIME))
         self.result.fail_if(max(delays) > MAX_DELAY_TIME, "Max Delay (%ds)> %ds" % (max(delays), MAX_DELAY_TIME))
 
