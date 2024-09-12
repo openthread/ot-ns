@@ -17,6 +17,7 @@ Note: this is a fork of the [OpenThread OTNS project](https://github.com/openthr
 - Support for easily adding various node types (1.1, 1.2, 1.3, 1.4, 1.4 Border Router)
 - New graphical displays for overall node type statistics, and energy usage (beta - contribution by [Vinggui](https://github.com/Vinggui)).
 - Extensive set of Python scripts for unit testing, examples, and case studies.
+- Additional ["WPAN-TAP"](https://exegin.com/wp-content/uploads/ieee802154_tap.pdf) PCAP format that captures channel information.
 - Various UI look & feel improvements.
 
 More information about Thread can be found at [threadgroup.org](http://threadgroup.org/). Thread is a registered trademark of the Thread Group, Inc.
