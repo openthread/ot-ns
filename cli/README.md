@@ -44,7 +44,7 @@ The OTNS CLI exposes configuration and management APIs via a command line interf
 
 ## OTNS CLI command reference
 
-NOTE: the below sections including header and contents are automatically read and parsed during the build of OTNS, and used for providing inline help in the CLI via the `help` command. Specific syntax is followed in headers and in the triple backtick marked code segments.
+NOTE: the below sections including header and contents are automatically read and parsed during the build of OTNS, and used for providing inline help in the CLI via the `help` command. Specific syntax is followed in headers and in the triple backtick marked code segments in the Markdown source of this document. So, the help provided here or interactively in the OTNS CLI is exactly the same.
 
 ### add
 

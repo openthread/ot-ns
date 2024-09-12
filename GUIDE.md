@@ -61,11 +61,9 @@ This installs `otns` in the Go binary directory of the user (typically `~/go/bin
 ./script/install-nodes
 ```
 
-This checks for availability of prebuilt OT nodes, and builds any OT nodes not yet present. This includes a standard set of nodes like FTD, MTD, Border Router (BR) and different Thread versions (1.1, 1.2, 1.3.0, 1.4). This build can take a long time. During the build specific commits of the `openthread` Git repo submodule will be checked out in order to access older OpenThread codebases. In case the build stops unexpectedly and the script is aborted, it may be the case that an older OT commit is checked out in the `./openthread` subdirectory. This can be manually restored again by running `git submodule update`.
+This checks for availability of prebuilt OT nodes, and builds any OT nodes not yet present. This includes a standard set of nodes like FTD, MTD, Border Router (BR) and different Thread versions (1.1, 1.2, 1.3, 1.4). This build can take a long time. During the build specific `openthread*` Git repo submodules will be checked out in order to access older/different OpenThread codebases. In case of a build error, the script is stopped and remaining node builds are not even attempted.
 
-NOTE: the mechanism of using a single repo and checking out different commits from it will be replaced in an upcoming new version of OTNS. There's a better method that can be used.
-
-These nodes of specific versions can be added to a simulation using specific flags in the `add` command that adds a node. Type `help add` later on in the OTNS CLI to see this.
+These nodes of specific versions can be added to a simulation using specific flags in the `add` command that adds a node. Type `help add` later on in the OTNS CLI to see the syntax.
 
 ## Run OTNS Interactively
 
@@ -104,6 +102,32 @@ A detailed CodeLab guide for this is still under development.
 
 See [OTNS CLI Reference](cli/README.md).
 
+## Running OTNS Tests
+
+The command `./script/test` can be used to run selected test suites.
+
+```bash
+$ ./script/test
+Usage: test <test-group-name-1> [<test-group-name-N>]*
+
+The following test-group-names can be provided as arguments:
+  go-tests
+  py-unittests
+  py-ver-unittests
+  py-examples
+  stress-tests
+  build-openthread
+  build-openthread-versions
+```
+
+Some test suites may take a long time (2-10 minutes). The `stress-tests` can have a selectable "stress level" that can be increased. The effect of this depends on the particular test. In most cases, the test simulation time is made longer. For example:
+
+```bash
+$ STRESS_LEVEL=3 ./script/test stress-tests commissioning
+```
+
+The default stress level is always `1`.
+
 ## OTNS Python Scripting
 
 [pyOTNS](pylibs/otns) library provides utilities to create and manage simulations through OTNS CLI. It is installed in a Python 3 virtual environment `.venv-otns` by the installation process.
@@ -114,9 +138,14 @@ To review the `pyOTNS` documentation:
 
 1. Start `pydoc3` document server:
    ```bash
-   pydoc3 -p 8080
+   $ source .venv-otns/bin/activate
+   $ python3 -m pydoc -p 8080
+   Server ready at http://localhost:8080/
+   ...
    ```
-2. Open a web browser and navigate to http://localhost:8080/otns.html.
+2. Open a web browser and navigate to http://localhost:8080/otns.cli.html.
+
+Alternatively, load [`OTNS.py`](pylibs/otns/cli/OTNS.py) in your IDE and look at the methods.
 
 ### Example Python Scripts
 
@@ -143,6 +172,8 @@ The prompt will change to reflect the virtual environment has been entered. Then
 (.venv-otns) $ ./pylibs/examples/farm.py
 ...
 ```
+
+Once the virtual environment is active, any further Python scripts can be started requiring the `source` command first. Note that for a number of test suite scripts the command `./script/test` is the recommended way to start these. The `test` script will also automatically install any required OT nodes, if needed.
 
 ## Manually Build OpenThread Nodes for OTNS (Optional, for Advanced Use Only)
 
