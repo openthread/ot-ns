@@ -247,7 +247,7 @@ List, or change, OT versions/executables used per node type.
 
 Use 'exe' without arguments to list the OpenThread (OT) executables, or shell scripts, that are preconfigured for each of the node types FTD (Full Thread Device), MTD (Minimal Thread Device) and BR (Thread Border Router). When a new node is created the executable currently in this list is used to start a node instance of that node type. The `br` (Border Router) node type is an FTD with some additional functions, and prefixes/routes, typical for a Thread 1.3 Border Router.
 
-The line `Executables search path` lists the paths where the executable of that given name will be searched first. Finally, the lines `Detected ... path` lists the final detected path where the executable has been found. This is provided as a sanity check that the right executable has been detected for to-be-created OT nodes. If no explicit path is listed as detected path, it means that OT-NS2 will try to launch the executable using the OS \$PATH.
+The line `Executables search path` lists the paths where the executable of that given name will be searched first. Finally, the lines `Detected ... path` lists the final detected path where the executable has been found. This is provided as a sanity check that the right executable has been detected for to-be-created OT nodes. If no explicit path is listed as detected path, it means that OTNS will try to launch the executable using the OS \$PATH.
 
 ```bash
 > exe
@@ -1074,7 +1074,7 @@ Open a web browser (tab) for visualization.
 web [ <TabName> ]
 ```
 
-The optional `TabName` indicates which OTNS2 tab to open:
+The optional `TabName` indicates which OTNS tab to open:
 
 - if not provided, or "main", the default main simulation window will open.
 - if "stats", the stats-viewer will be opened.
