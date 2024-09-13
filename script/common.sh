@@ -43,8 +43,12 @@ fi
 SCRIPTDIR=$(realpathf "$(dirname "$0")")
 export readonly SCRIPTDIR
 
-OTNSDIR=$(realpathf "$SCRIPTDIR"/..)
+OTNSDIR=$(realpathf "${SCRIPTDIR}"/..)
 export readonly OTNSDIR
+
+OT_DIR=${OT_DIR:-./openthread}
+OT_DIR=$(realpathf "${OT_DIR}")
+export readonly OT_DIR
 
 GOPATH=$(go env GOPATH)
 export readonly GOPATH
@@ -117,6 +121,7 @@ build_openthread_br()
     )
 }
 
+# Note: any environment var OT_DIR is not used for legacy node version (1.1, 1.2, 1.3) builds.
 build_openthread_versions()
 {
     get_openthread_versions

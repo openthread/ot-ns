@@ -131,8 +131,8 @@ py_examples()
     install_deps
     activate_python_venv
     install_otns
-    build_openthread_br
     build_openthread
+    build_openthread_br
 
     check_py_example "$OTNSDIR"/pylibs/examples/simple.py
     check_py_example "$OTNSDIR"/pylibs/examples/form_partition.py
@@ -151,8 +151,8 @@ stress_tests()
     install_deps
     activate_python_venv
     install_otns
-    build_openthread_br
     build_openthread
+    build_openthread_br
 
     python3 "$OTNSDIR"/pylibs/stress_tests/run_stress_suite.py "$@"
 }

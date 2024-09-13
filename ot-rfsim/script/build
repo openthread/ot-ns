@@ -29,8 +29,12 @@
 
 set -euxo pipefail
 
+# shellcheck source=../script/utils.sh
+. "$(dirname "$0")"/../../script/utils.sh
+
 OTRFSIM_SRCDIR="$(pwd)"
 OT_DIR=${OT_DIR:-../openthread}
+OT_DIR=$(realpathf "${OT_DIR}")
 OT_CMAKE_NINJA_TARGET=${OT_CMAKE_NINJA_TARGET-}
 readonly OTRFSIM_SRCDIR
 readonly OT_DIR
