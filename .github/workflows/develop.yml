@@ -61,3 +61,10 @@ jobs:
           docker build -t otns-env -f etc/docker/environment/Dockerfile .
           docker run -t -v$PWD:/otns otns-env -c "./script/pack-web"
           git diff --quiet
+      - name: Build custom OT node
+        # Note: OT_CMAKE_NINJA_TARGET excludes tests because test_platform.cpp is missing otPlatAssertFail()
+        run: |
+          ./script/install-deps
+          ./script/setup-dev
+          cd ot-rfsim
+          OT_CMAKE_NINJA_TARGET="ot-cli-ftd ot-cli-mtd" ./script/build
