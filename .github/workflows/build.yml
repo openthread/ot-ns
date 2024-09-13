@@ -71,3 +71,16 @@ jobs:
         run: |
           ./script/install-deps
           ./script/install-nodes
+
+  bootstrap-script:
+    name: Bootstrap script (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-22.04, macos-13, macos-14 ]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Bootstrap
+        run: |
+          ./script/bootstrap        

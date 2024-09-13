@@ -28,7 +28,7 @@
 # This script bootstraps a complete install of OTNS, nodes, dependencies.
 # It can be used after a fresh Git clone, or after an update (Git pull).
 
-set -euo pipefail
+set -euxo pipefail
 
 if [[ "$(uname)" == "Darwin" ]]; then
     export readonly Darwin=1
@@ -54,9 +54,6 @@ fi
 
 # Install Go if needed
 install_package go --apt golang --brew golang || true
-
-# Remove any older standard node builds - these might be incompatible with latest version.
-rm ./ot-rfsim/ot-versions/ot-cli-?td* || true
 
 # Do the rest via the test script, automatically
 ./script/test py-ver-unittests || die "OTNS Installation/tests failed!"
