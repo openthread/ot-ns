@@ -1,8 +1,8 @@
 # OpenThread on RF-SIMulator (OT-RFSIM) platform
 
-This directory contains 'ot-rfsim', an OpenThread platform driver for simulated OT nodes. A simulated OT node can be started in the OT-NS2 simulator. It connects to the simulator using the Unix Domain Socket provided in the commandline parameters.
+This directory contains 'ot-rfsim', an OpenThread platform driver for simulated OT nodes. A simulated OT node can be started in the OTNS simulator. It connects to the simulator using the Unix Domain Socket provided in the commandline parameters.
 
-The easiest way to use this code is just to install OT-NS2, following the [OT-NS2 Guide](../GUIDE.md).
+The easiest way to use this code is just to install OTNS using the `bootstrap` script, following the [OTNS Guide](../GUIDE.md).
 
 ## Prerequisites
 
