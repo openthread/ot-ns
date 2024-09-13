@@ -2,27 +2,32 @@
 
 ---
 
-# OpenThread Network Simulator 2
+# OpenThread Network Simulator
 
-OpenThread Network Simulator 2 (OTNS2) simulates Thread networks using OpenThread POSIX instances and provides visualization and management of those simulated networks.
-
-Note: this is a fork of the [OpenThread OTNS project](https://github.com/openthread/ot-ns), made by [IoTconsultancy.nl](https://www.iotconsultancy.nl/). It offers additional features including:
-
-- Support for more accurate RF simulation of OpenThread nodes. This uses the OpenThread platform `ot-rfsim`, which specifically supports RF simulation, for OT nodes. This C code is included.
-- Selectable radio (RF propagation) models with tunable RF parameters.
-- Tunable radio parameters on each individual OT node. For example, CSL parameters or Rx sensitivity.
-- Control of logging display from OT-node, using `log` and `watch` CLI commands. Logging to file per OT-node. The logging output can include all enabled OT-node log items.
-- Detailed logging options for RF operations (at log-level 'trace') performed in the simulated radio, at 1 us resolution.
-- Animations with duration scaled to the actual time duration of a packet in flight (at low simulation speed only).
-- Support for easily adding various node types (1.1, 1.2, 1.3, 1.4, 1.4 Border Router)
-- New graphical displays for overall node type statistics, and energy usage (beta - contribution by [Vinggui](https://github.com/Vinggui)).
-- Extensive set of Python scripts for unit testing, examples, and case studies.
-- Additional ["WPAN-TAP"](https://exegin.com/wp-content/uploads/ieee802154_tap.pdf) PCAP format that captures channel information.
-- Various UI look & feel improvements.
+OpenThread Network Simulator (OTNS) simulates Thread networks using OpenThread POSIX instances and provides visualization and management of those simulated networks.
 
 More information about Thread can be found at [threadgroup.org](http://threadgroup.org/). Thread is a registered trademark of the Thread Group, Inc.
 
 To learn more about OpenThread, visit [openthread.io](https://openthread.io).
+
+## Features
+
+Note: this is version 2.x of OTNS. It offers additional features compared to version 1:
+
+- Support for more accurate RF simulation of OpenThread nodes. This uses the OpenThread platform `ot-rfsim`, which specifically supports RF simulation for OT nodes. This C code is included.
+- Selectable radio (RF propagation) models with tunable RF parameters.
+- Runtime tunable radio parameters on each individual OT node. For example, CSL parameters or Rx sensitivity.
+- Control of logging display from OT-node, using `log` and `watch` CLI commands. Logging to file per OT-node. The logging output can include any enabled OT-node log items.
+- Detailed logging options for RF operations (at log-level 'trace') performed in the simulated radio, at 1 us resolution.
+- See packets in flight: animations in the GUI with a duration scaled to the actual time duration of a packet in flight (works at low simulation speed only).
+- Support for easily adding various Thread node types (1.1, 1.2, 1.3, 1.4, 1.4 Border Router).
+- New graphical displays for overall node type statistics, and energy usage (beta - contribution by [Vinggui](https://github.com/Vinggui)).
+- Extended set of Python scripts for unit testing, examples, and case studies.
+- Key Performance Indicators (KPI) module that tracks counters and statistics for all nodes.
+- Loading/saving of network topologies in YAML files.
+- Custom startup scripts with OT CLI commands, defined in a YAML file.
+- Additional ["WPAN-TAP"](https://exegin.com/wp-content/uploads/ieee802154_tap.pdf) PCAP format that captures channel information.
+- Various UI look & feel improvements.
 
 [build-actions-svg]: https://github.com/EskoDijk/ot-ns/workflows/Build/badge.svg?branch=main&event=push
 [build-actions]: https://github.com/EskoDijk/ot-ns/actions?query=workflow%3ABuild+branch%3Amain+event%3Apush
@@ -43,7 +48,7 @@ See [OTNS CLI Reference](cli/README.md) for the OTNS CLI commands.
 
 We would love for you to contribute to OTNS and help make it even better than it is today! See our [Contributing Guidelines](CONTRIBUTING.md) for more information.
 
-Contributors are required to abide by our [Code of Conduct](CODE_OF_CONDUCT.md) and [Coding Conventions and Style Guide](CONTRIBUTING.md#coding-conventions-and-style).
+Contributors are required to abide by our [Code of Conduct](CODE_OF_CONDUCT.md) and [Coding Conventions and Style Guide](CONTRIBUTING.md#coding-conventions-and-style). See [AUTHORS](AUTHORS) for the list of present authors.
 
 ## Version
 
