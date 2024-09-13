@@ -1,5 +1,2 @@
-grpcio-tools==1.53.0
-grpcio==1.53.0
-protobuf==4.21.6
-wheel==0.42.0
+wheel>=0.42.0
 aiocoap==0.4.7

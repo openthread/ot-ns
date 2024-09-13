@@ -34,7 +34,7 @@ function die()
 function realpathf()
 {
     # the Python3 method is a backup. Used for max portability.
-    realpath -s "$1" || python3 -c "import os; print(os.path.realpath('$1'))"
+    realpath -s "$1" 2>/dev/null || python3 -c "import os; print(os.path.realpath('$1'))"
 }
 
 function installed()
