@@ -70,6 +70,7 @@ class CcmTests(OTNSTestCase):
         self.ns.node_cmd(n1, "dataset commit active")
 
     def startRegistrar(self):
+        logging.debug("starting OT Registrar")
         self.registrar_log_file = open("tmp/ot-registrar.log", 'w')
         self.registrar_process = subprocess.Popen([
             'java', '-jar', './etc/ot-registrar/ot-registrar-0.3-jar-with-dependencies.jar', '-registrar', '-vv', '-f',
@@ -77,8 +78,14 @@ class CcmTests(OTNSTestCase):
         ],
                                                   stdout=self.registrar_log_file,
                                                   stderr=subprocess.STDOUT)
-        self.assertIsNone(self.registrar_process.returncode)
-        time.sleep(1)  # FIXME could detect when Registrar is ready to serve, with process.communicate()
+        time.sleep(2)
+        self.verifyRegistrarStarted()
+
+    def verifyRegistrarStarted(self) -> None:
+        with open("tmp/ot-registrar.log", 'r') as file:
+            if "Registrar listening (CoAPS)" in file.read():
+                return
+        raise Exception("OT-Registrar not started correctly")
 
     def stopRegistrar(self):
         if self.registrar_process is None:
