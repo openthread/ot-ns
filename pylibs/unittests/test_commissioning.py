@@ -111,6 +111,36 @@ class CommissioningTests(OTNSTestCase):
         self.assertFormPartitions(1)
         self.assertTrue(joins and joins[0][1] > 0)  # assert join success
 
+    def testCommissioningOneHopWithSteeringDataAndDomain(self):
+        ns = self.ns
+
+        n1 = ns.add("router")
+        n2 = ns.add("med")
+        joiner_eui = ns.node_cmd(2, "eui64")[0]
+
+        self.setFirstNodeDataset(n1)
+        # Set a non-default Thread Domain Name. This will be sent in the MLE Discovery Response.
+        ns.node_cmd(1, 'domainname TestingDomainThr')
+        ns.ifconfig_up(n1)
+        ns.thread_start(n1)
+        self.go(35)
+        self.assertTrue(ns.get_state(n1) == "leader")
+
+        ns.commissioner_start(n1)
+        ns.commissioner_joiner_add(n1, joiner_eui, "J01NM3")
+
+        ns.ifconfig_up(n2)
+        ns.joiner_start(n2, "J01NM3")
+        self.go(100)
+        ns.thread_start(n2)
+        self.go(100)
+        c = ns.counters()
+        print('counters', c)
+        joins = ns.joins()
+        print('joins', joins)
+        self.assertFormPartitions(1)
+        self.assertTrue(joins and joins[0][1] > 0)  # assert join success
+
     def testCommissioningThreeHop(self):
         ns = self.ns
         ns.radiomodel = 'MIDisc'
