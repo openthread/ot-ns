@@ -195,6 +195,8 @@ class CcmTests(OTNSTestCase):
         ns.node_cmd(n3, 'coaps x509')
         ns.joiner_startccm(n3)
         ns.go(10)
+        ns.speed = 50
+        ns.go(30)
         ns.coaps()  # see emitted CoAP events
         ns.cmd('host list')
 
