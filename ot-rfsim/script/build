@@ -29,7 +29,7 @@
 
 set -euxo pipefail
 
-# shellcheck source=../script/utils.sh
+# shellcheck source=/dev/null
 . "$(dirname "$0")"/../../script/utils.sh
 
 OTRFSIM_SRCDIR="$(pwd)"
