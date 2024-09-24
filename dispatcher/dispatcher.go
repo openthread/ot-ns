@@ -696,20 +696,9 @@ func (d *Dispatcher) advanceNodeTime(node *Node, timestamp uint64, force bool) {
 		return
 	}
 
-	msg := make([]byte, 11)
-	binary.LittleEndian.PutUint64(msg[:8], elapsed)
-	msg[8] = eventTypeAlarmFired
-	binary.LittleEndian.PutUint16(msg[9:11], 0)
-	node.SendMessage(msg)
-	node.CurTime = timestamp
-	if timestamp > oldTime {
-		node.failureCtrl.OnTimeAdvanced(oldTime)
-	}
-
-	d.alarmMgr.SetNotified(id)
-	d.setAlive(id)
-	if d.isWatching(id) {
-		simplelogger.Infof("Node %d >>> advance time %v -> %v", id, oldTime, timestamp)
+	msg := &Event{
+		Type:      EventTypeAlarmFired,
+		Timestamp: timestamp,
 	}
 	node.sendEvent(msg) // move the OT-node's virtual-time to new time using an alarm msg.
 }
@@ -875,34 +864,6 @@ func (d *Dispatcher) sendOneRadioFrame(evt *Event, srcnode *Node, dstnode *Node)
 		// send the event plus time keeping - moves dstnode's time to the current send-event's time.
 		dstnode.sendEvent(&evt2)
 	}
-
-	dstnode.Send(elapsed, sit.Data)
-	dstnode.CurTime = timestamp
-	if timestamp > oldTime {
-		dstnode.failureCtrl.OnTimeAdvanced(oldTime)
-	}
-
-	dstnodeid := dstnode.Id
-	d.alarmMgr.SetNotified(dstnodeid)
-	d.setAlive(dstnodeid)
-
-	if d.IsWatching(dstnodeid) {
-		if dstnode == srcnode {
-			simplelogger.Infof("Node %d >>> TX DONE", dstnodeid)
-		} else {
-			simplelogger.Infof("Node %d >>> received message from node %d", dstnodeid, srcnode.Id)
-		}
-	}
-}
-
-func (d *Dispatcher) newNode(nodeid NodeId, x, y int, radioRange int) (node *Node) {
-	node = newNode(d, nodeid, x, y, radioRange)
-	d.nodes[nodeid] = node
-	d.alarmMgr.AddNode(nodeid)
-	d.setAlive(nodeid)
-
-	d.vis.AddNode(nodeid, x, y, radioRange)
-	return
 }
 
 func (d *Dispatcher) sendMsgToHost(node *Node, evt *Event) {

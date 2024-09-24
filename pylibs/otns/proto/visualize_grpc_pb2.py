@@ -4,7 +4,6 @@
 """Generated protocol buffer code."""
 from google.protobuf.internal import enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
-from google.protobuf import descriptor_pool as _descriptor_pool
 from google.protobuf import message as _message
 from google.protobuf import reflection as _reflection
 from google.protobuf import symbol_database as _symbol_database
@@ -64,7 +63,6 @@ _OTDEVICEROLE = _descriptor.EnumDescriptor(
 )
 _sym_db.RegisterEnumDescriptor(_OTDEVICEROLE)
 
-_OTDEVICEROLE = DESCRIPTOR.enum_types_by_name['OtDeviceRole']
 OtDeviceRole = enum_type_wrapper.EnumTypeWrapper(_OTDEVICEROLE)
 OT_DEVICE_ROLE_DISABLED = 0
 OT_DEVICE_ROLE_DETACHED = 1
@@ -2188,8 +2186,6 @@ Empty = _reflection.GeneratedProtocolMessageType('Empty', (_message.Message,), {
   })
 _sym_db.RegisterMessage(Empty)
 
-_VISUALIZEGRPCSERVICE = DESCRIPTOR.services_by_name['VisualizeGrpcService']
-if _descriptor._USE_C_DESCRIPTORS == False:
 
 DESCRIPTOR._options = None
 
