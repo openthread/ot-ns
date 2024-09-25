@@ -777,12 +777,12 @@ class BasicTests(OTNSTestCase):
     def testSaveYamlTopology(self):
         ns: OTNS = self.ns
         self.assertEqual(0, len(ns.nodes()))
-        ns.add('router')
+        ns.add('router', x=100, y=100)
         ns.go(10)
-        ns.add('router')
-        ns.add('router', version='')
-        ns.add('router')
-        ns.add('ssed')
+        ns.add('router', x=200, y=100)
+        ns.add('router', version='', x=300, y=100)
+        ns.add('router', x=400, y=100)
+        ns.add('med', x=400, y=160)
         ns.go(25)
         self.assertEqual(5, len(ns.nodes()))
         self.assertFormPartitions(1)
@@ -795,8 +795,18 @@ class BasicTests(OTNSTestCase):
 
         ns.load('tmp/unittest_save_topology.yaml')
         self.assertEqual(5, len(ns.nodes()))
+        nodes_info = ns.nodes()
+        for n in range(1, 5):
+            self.assertEqual(n * 100, nodes_info[n]['x'])
+            self.assertEqual(100, nodes_info[n]['y'])
+            self.assertEqual(0, nodes_info[n]['z'])
+            self.assertEqual('router', nodes_info[n]['type'])
+        self.assertEqual(160, nodes_info[5]['y'])
+        self.assertEqual('med', nodes_info[5]['type'])
+        self.assertFormPartitionsIgnoreOrphans(0)
         ns.go(125)
         self.assertFormPartitions(1)
+        self.assertFormPartitionsIgnoreOrphans(1)
 
     def testRealtimeMode(self):
         self.tearDown()
