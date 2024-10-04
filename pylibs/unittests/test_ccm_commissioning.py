@@ -108,6 +108,34 @@ class CcmTests(OTNSTestCase):
         ns.go(30)
         self.assertFormPartitions(1)
 
+    def testOneCcmBorderRouter(self):
+        ns = self.ns
+        self.startRegistrar()
+        ns.watch_default('debug')
+        ns.coaps_enable()
+
+        # configure sim-host server that acts as BRSKI Registrar
+        # TODO update IPv6 addr
+        ns.cmd('host add "masa.example" "910b::1234" 5684 5684')
+
+        n1 = ns.add("br", version="ccm", script="")
+        self.setFirstNodeDataset(n1)
+        ns.ifconfig_up(n1)
+        ns.thread_start(n1)
+        ns.go(10)
+        ns.get_ipaddrs(1)
+        ns.thread_stop(n1)
+
+        # n1 uses cBRSKI via its infrastructure network interface to get LDevID.
+        # because CoAP server is real, let simulation also move in near real time speed.
+        ns.speed = 1
+        ns.joiner_startccmbr(n1)
+        ns.go(15)
+
+        ns.coaps()  # see emitted CoAP events
+        ns.cmd('host list') # list external hosts, just to check Registrar was in
+        ns.interactive_cli()
+
     def testCommissioningOneCcmNode(self):
         ns = self.ns
         self.startRegistrar()
@@ -192,13 +220,15 @@ class CcmTests(OTNSTestCase):
         ns.speed = 1
         ns.commissioner_ccm_joiner_add(n1, "*")
         ns.ifconfig_up(n3)
-        ns.node_cmd(n3, 'coaps x509')
-        ns.joiner_startccm(n3)
-        ns.go(10)
+        ns.joiner_startae(n3)
+        ns.go(15)
+
+        ns.interactive_cli()
+
         ns.speed = 50
         ns.go(30)
         ns.coaps()  # see emitted CoAP events
-        ns.cmd('host list')
+        ns.cmd('host list') # list external hosts, just to check Registrar was in
 
         # n3 automatically has enabled Thread and joined the network
         #ns.interactive_cli()
@@ -246,7 +276,7 @@ class CcmTests(OTNSTestCase):
         ns.speed = 5
         ns.commissioner_ccm_joiner_add(n1, "*")
         ns.ifconfig_up(n3)
-        ns.joiner_startccm(n3)
+        ns.joiner_startae(n3)
         self.go(20)
         ns.thread_start(n3)
         self.go(100)
