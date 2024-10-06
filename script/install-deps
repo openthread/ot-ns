@@ -69,11 +69,22 @@ install_python_libs()
     python3 -m pip install setuptools wheel yapf
 }
 
+install_ot_registrar()
+{
+    file="ot-registrar-0.3.0-jar-with-dependencies.jar"
+    url="https://github.com/EskoDijk/ot-registrar/releases/download/v0.3.0/${file}"
+
+    if [ -d "./etc/ot-registrar" ] && [ ! -f "./etc/ot-registrar/${file}" ]; then
+        wget "${url}" -O "./etc/ot-registrar/${file}"
+    fi
+}
+
 main()
 {
     install_packages
     install_grpcwebproxy
     install_python_libs
+    install_ot_registrar
 }
 
 main

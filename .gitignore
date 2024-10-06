@@ -58,3 +58,6 @@ ot-rcp
 # lock files
 package-lock.json
 
+# downloaded files
+/etc/ot-registrar/ot-registrar*.jar
+

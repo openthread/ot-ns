@@ -73,7 +73,7 @@ class CcmTests(OTNSTestCase):
         logging.debug("starting OT Registrar")
         self.registrar_log_file = open("tmp/ot-registrar.log", 'w')
         self.registrar_process = subprocess.Popen([
-            'java', '-jar', './etc/ot-registrar/ot-registrar-0.3-jar-with-dependencies.jar', '-registrar', '-vv', '-f',
+            'java', '-jar', './etc/ot-registrar/ot-registrar-0.3.0-jar-with-dependencies.jar', '-registrar', '-vv', '-f',
             './etc/ot-registrar/credentials_registrar.p12'
         ],
                                                   stdout=self.registrar_log_file,
@@ -118,7 +118,16 @@ class CcmTests(OTNSTestCase):
         # TODO update IPv6 addr
         ns.cmd('host add "masa.example" "910b::1234" 5684 5684')
 
+        # n1 uses cBRSKI via its infrastructure network interface to get LDevID.
+        # because CoAP server is real, let simulation also move in near real time speed.
         n1 = ns.add("br", version="ccm", script="")
+        ns.node_cmd(n1,"ipaddr add fd12::5")
+        ns.speed = 1
+        ns.joiner_startccmbr(n1)
+        ns.go(15)
+
+        ns.interactive_cli()
+
         self.setFirstNodeDataset(n1)
         ns.ifconfig_up(n1)
         ns.thread_start(n1)
