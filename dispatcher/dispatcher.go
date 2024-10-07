@@ -1414,7 +1414,8 @@ func (d *Dispatcher) handleCoapEvent(node *Node, argsStr string) {
 	action := args[0]
 
 	if action == "send" || action == "recv" || action == "send_error" {
-		var messageId, coapType, coapCode, port int
+		var messageId, coapType, coapCode, port, srcPort int
+		var srcIp string
 
 		logger.AssertTrue(len(args) >= 7)
 
@@ -1434,8 +1435,15 @@ func (d *Dispatcher) handleCoapEvent(node *Node, argsStr string) {
 		port, err = strconv.Atoi(args[6])
 		logger.PanicIfError(err)
 
+		if len(args) >= 9 {
+			srcIp = args[7]
+
+			srcPort, err = strconv.Atoi(args[8])
+			logger.PanicIfError(err)
+		}
+
 		if action == "send" {
-			d.coaps.OnSend(d.CurTime, node.Id, messageId, CoapType(coapType), CoapCode(coapCode), uri, ip, port)
+			d.coaps.OnSend(d.CurTime, node.Id, messageId, CoapType(coapType), CoapCode(coapCode), uri, ip, port, srcIp, srcPort)
 		} else if action == "recv" {
 			d.coaps.OnRecv(d.CurTime, node.Id, messageId, CoapType(coapType), CoapCode(coapCode), uri, ip, port)
 		} else {

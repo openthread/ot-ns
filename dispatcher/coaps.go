@@ -55,6 +55,8 @@ type CoapMessage struct {
 	Type      CoapType              `yaml:"type"`
 	Code      CoapCode              `yaml:"code"`
 	URI       string                `yaml:"uri,omitempty"`
+	SrcAddr   string                `yaml:"src_addr,omitempty"`
+	SrcPort   int                   `yaml:"src_port"`
 	DstAddr   string                `yaml:"dst_addr"`
 	DstPort   int                   `yaml:"dst_port"`
 	Error     string                `yaml:"error,omitempty"`
@@ -65,7 +67,7 @@ type coapsHandler struct {
 	messages []*CoapMessage
 }
 
-func (coaps *coapsHandler) OnSend(curTime uint64, nodeId NodeId, messageId int, coapType CoapType, coapCode CoapCode, uri string, peerAddr string, peerPort int) {
+func (coaps *coapsHandler) OnSend(curTime uint64, nodeId NodeId, messageId int, coapType CoapType, coapCode CoapCode, uri string, peerAddr string, peerPort int, srcAddr string, srcPort int) {
 	coaps.messages = append(coaps.messages, &CoapMessage{
 		Timestamp: curTime,
 		SrcNode:   nodeId,
@@ -73,6 +75,8 @@ func (coaps *coapsHandler) OnSend(curTime uint64, nodeId NodeId, messageId int, 
 		Type:      coapType,
 		Code:      coapCode,
 		URI:       uri,
+		SrcAddr:   srcAddr,
+		SrcPort:   srcPort,
 		DstAddr:   peerAddr,
 		DstPort:   peerPort,
 	})
