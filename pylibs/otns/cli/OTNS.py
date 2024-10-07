@@ -894,9 +894,28 @@ class OTNS(object):
         Get network name.
 
         :param nodeid: node ID
-        :return: network name
+        :return: network name of node
         """
         return self._expect_str(self.node_cmd(nodeid, 'networkname'))
+
+    def set_domain_name(self, nodeid: int, name: str = None) -> None:
+        """
+        Set Thread Domain name.
+
+        :param nodeid: node ID
+        :param name: Thread Domain name to set
+        """
+        name = self._escape_whitespace(name)
+        self.node_cmd(nodeid, f'domainname {name}')
+
+    def get_domain_name(self, nodeid: int) -> str:
+        """
+        Get Thread Domain name.
+
+        :param nodeid: node ID
+        :return: Thread Domain name of node
+        """
+        return self._expect_str(self.node_cmd(nodeid, 'domainname'))
 
     def set_panid(self, nodeid: int, panid: int) -> None:
         """
