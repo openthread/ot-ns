@@ -98,24 +98,28 @@ class CcmTests(OTNSTestCase):
             'java', '-jar', './etc/ot-registrar/ot-registrar.jar', '-registrar', '-vv', '-f',
             './etc/ot-registrar/credentials_registrar.p12', '-m', 'localhost:9443', '-d', CcmTests.thread_domain_name
         ],
-                                                  stdout=cls.registrar_log_file,
-                                                  stderr=subprocess.STDOUT)
+                                                 stdout=cls.registrar_log_file,
+                                                 stderr=subprocess.STDOUT)
         cls.masa_log_file = open("tmp/ot-masa.log", 'w')
         cls.masa_process = subprocess.Popen([
             'java', '-jar', './etc/ot-registrar/ot-registrar.jar', '-masa', '-vv', '-f',
             './etc/ot-registrar/credentials_masa.p12'
         ],
-            stdout=cls.masa_log_file,
-            stderr=subprocess.STDOUT)
-        time.sleep(2)
+                                            stdout=cls.masa_log_file,
+                                            stderr=subprocess.STDOUT)
         cls.verifyRegistrarStarted()
 
     @classmethod
     def verifyRegistrarStarted(cls) -> None:
-        with open("tmp/ot-registrar.log", 'r') as file:
-            if "Registrar listening (CoAPS)" in file.read():
-                return
-        raise Exception("OT-Registrar not started correctly")
+        for n in range(1, 20):
+            time.sleep(0.5)
+            with open("tmp/ot-registrar.log", 'r') as file:
+                if "Registrar listening (CoAPS)" in file.read():
+                    with open("tmp/ot-masa.log", 'r') as file2:
+                        if "MASA server listening (HTTPS)" in file2.read():
+                            return
+        cls.stopRegistrar()
+        raise Exception("OT-Registrar or OT-Masa not started correctly")
 
     @classmethod
     def stopRegistrar(cls):
@@ -136,18 +140,17 @@ class CcmTests(OTNSTestCase):
             cls.masa_log_file.close()
             cls.masa_log_file = None
 
-    def enrollBr(self,nid):
-        self.ns.coaps() # clear coaps
+    def enrollBr(self, nid):
+        self.ns.coaps()  # clear coaps
 
         # BR enrolls via AIL.
         self.ns.speed = 2
-        self.ns.node_cmd(nid, "ipaddr add fd12::5") # dummy address to allow sending to AIL. TODO resolve in stack.
+        self.ns.node_cmd(nid, "ipaddr add fd12::5")  # dummy address to allow sending to AIL. TODO resolve in stack.
         self.ns.joiner_startccmbr(nid)
         self.ns.go(3)
 
         coap_events = self.ns.coaps()  # see emitted CoAP events
-        self.assertEqual(4, len(coap_events)) # messages are /rv, /vs, /sen, /es
-
+        self.assertEqual(4, len(coap_events))  # messages are /rv, /vs, /sen, /es
 
     def testCcmNodesMixedWithRegular(self):
         ns = self.ns
@@ -176,14 +179,14 @@ class CcmTests(OTNSTestCase):
 
         self.enrollBr(n1)
 
-        ns.speed=1e6
+        ns.speed = 1e6
         self.setActiveDataset(n1)
         ns.ifconfig_up(n1)
         ns.thread_start(n1)
         ns.go(10)
 
         ns.get_ipaddrs(1)
-        ns.cmd('host list') # list external hosts, just to check Registrar was in
+        ns.cmd('host list')  # list external hosts, just to check Registrar was in
         self.assertEqual(CcmTests.thread_domain_name, ns.get_domain_name(n1))
         state_n1 = ns.get_state(n1)
         self.assertTrue(state_n1 == "leader")
@@ -290,7 +293,7 @@ class CcmTests(OTNSTestCase):
         ns.thread_start(n3)
         ns.go(30)
         ns.coaps()  # see emitted CoAP events
-        ns.cmd('host list') # list external hosts, just to check Registrar was in
+        ns.cmd('host list')  # list external hosts, just to check Registrar was in
 
         # test n3 joined the network
         self.assertEqual(CcmTests.thread_domain_name, ns.get_domain_name(n3))
