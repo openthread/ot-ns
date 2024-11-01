@@ -29,6 +29,7 @@ import ipaddress
 import logging
 import os
 import shutil
+import sys
 import signal
 import subprocess
 from typing import List, Union, Optional, Tuple, Dict, Any, Collection
@@ -58,8 +59,9 @@ class OTNS(object):
         self._otns = subprocess.Popen([self._otns_path] + self._otns_args,
                                       bufsize=16384,
                                       stdin=subprocess.PIPE,
-                                      stdout=subprocess.PIPE)
-        logging.info("otns process launched: %s", self._otns)
+                                      stdout=subprocess.PIPE,
+                                      stderr=os.stderr)
+        logging.info("otns process launched: %s - (ABTIN with stderr)", self._otns)
 
     def close(self) -> None:
         """
