@@ -744,6 +744,8 @@ func (d *Dispatcher) syncAliveNodes() {
 	}
 
 	simplelogger.Warnf("syncing %d alive nodes: %v", len(d.aliveNodes), d.aliveNodes)
+	simplelogger.Warnf("syncAliveNodes curTime %v - pauseTime %v", d.CurTime, d.pauseTime)
+
 	for nodeid := range d.aliveNodes {
 		d.advanceNodeTime(nodeid, d.CurTime, true)
 	}
