@@ -38,6 +38,7 @@ type NodeConfig struct {
 	IsMtd          bool
 	IsRouter       bool
 	IsBorderRouter bool
+	IsOTBR		   bool
 	RxOffWhenIdle  bool
 	NodeLogFile    bool
 	RadioRange     int
@@ -55,31 +56,44 @@ func (cfg *NodeConfig) UpdateNodeConfigFromType() {
 		cfg.IsMtd = false
 		cfg.IsBorderRouter = false
 		cfg.RxOffWhenIdle = false
+		cfg.IsOTBR = false
 	case FED:
 		cfg.IsRouter = false
 		cfg.IsMtd = false
 		cfg.IsBorderRouter = false
 		cfg.RxOffWhenIdle = false
+		cfg.IsOTBR = false
 	case MED, MTD:
 		cfg.IsRouter = false
 		cfg.IsMtd = true
 		cfg.IsBorderRouter = false
 		cfg.RxOffWhenIdle = false
+		cfg.IsOTBR = false
 	case SED, SSED:
 		cfg.IsRouter = false
 		cfg.IsMtd = true
 		cfg.IsBorderRouter = false
 		cfg.RxOffWhenIdle = true
+		cfg.IsOTBR = false
 	case BR:
 		cfg.IsRouter = true
 		cfg.IsMtd = false
 		cfg.IsBorderRouter = true
 		cfg.RxOffWhenIdle = false
+		cfg.IsOTBR = false
+	case OTBR:
+		cfg.IsRouter = true
+		cfg.IsMtd = false
+		cfg.IsBorderRouter = false
+		cfg.RxOffWhenIdle = false
+		cfg.IsOTBR = true
 	case WIFI:
 		cfg.IsRouter = true
 		cfg.IsMtd = false
 		cfg.IsBorderRouter = false
 		cfg.RxOffWhenIdle = false
+		cfg.IsOTBR = false
+
 	default:
 		panic("unknown node type cfg.Type")
 	}

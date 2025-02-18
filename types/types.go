@@ -60,6 +60,7 @@ const (
 	MTD    = "mtd"
 	FTD    = "ftd"
 	WIFI   = "wifi" // Wi-Fi interferer node
+	OTBR   = "otbr" // Complete OTBR node
 )
 
 func GetNodeName(id NodeId) string {

@@ -490,6 +490,14 @@ loop:
 	return count
 }
 
+func (d *Dispatcher) RecvEvent(ev *Event) {
+	d.handleRecvEvent(ev)
+}
+
+func (d *Dispatcher) EventChan() <-chan *Event {
+	return d.eventChan
+}
+
 // processNextEvent processes all next events from the eventQueue for the next time instant.
 // Returns true if the simulation needs to continue, or false if not (e.g. it's time to pause).
 func (d *Dispatcher) processNextEvent(simSpeed float64) bool {
@@ -902,6 +910,10 @@ func (d *Dispatcher) isDeleted(nodeid NodeId) bool {
 func (d *Dispatcher) setSleeping(nodeid NodeId) {
 	logger.AssertFalse(d.isDeleted(nodeid))
 	delete(d.aliveNodes, nodeid)
+}
+
+func (d *Dispatcher) SyncNode(nodeId int) {
+	d.advanceNodeTime(d.nodes[nodeId], d.CurTime, true)
 }
 
 // syncAliveNodes advances the node's time of alive nodes only to current dispatcher time.

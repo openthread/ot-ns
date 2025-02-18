@@ -350,6 +350,20 @@ void platformRadioRfSimParamGet(otInstance *aInstance, struct RfSimParamEventDat
 // TODO
 void platformRadioRfSimParamSet(otInstance *aInstance, struct RfSimParamEventData *params);
 
+
+/**
+ * Updates the file descriptor sets with file descriptors used by the UART driver.
+ *
+ * @param[in,out]  aReadFdSet   A pointer to the read file descriptors.
+ * @param[in,out]  aWriteFdSet  A pointer to the write file descriptors.
+ * @param[in,out]  aMaxFd       A pointer to the max file descriptor.
+ */
+void platformUartUpdateFdSet(fd_set *aReadFdSet, fd_set *aWriteFdSet, fd_set *aErrorFdSet, int *aMaxFd);
+
+/**
+ * Performs radio driver processing.
+ */
+void platformUartProcess(void);
 #if OPENTHREAD_CONFIG_RADIO_LINK_TREL_ENABLE
 
 /**

@@ -142,6 +142,9 @@ void otSysProcessDrivers(otInstance *aInstance)
 
     FD_SET(gSockFd, &read_fds);
     max_fd = gSockFd;
+#if OPENTHREAD_SIMULATION_VIRTUAL_TIME_UART == 0
+    platformUartUpdateFdSet(&read_fds, &write_fds, &error_fds, &max_fd);
+#endif
 
     if (!otTaskletsArePending(aInstance) && platformAlarmGetNext() > 0 &&
         (!platformRadioIsTransmitPending() || platformRadioIsBusy()))
@@ -170,6 +173,9 @@ void otSysProcessDrivers(otInstance *aInstance)
     platformRadioInterfererProcess(aInstance);
 #if OPENTHREAD_CONFIG_BLE_TCAT_ENABLE
     platformBleProcess(aInstance);
+#endif
+#if OPENTHREAD_SIMULATION_VIRTUAL_TIME_UART == 0
+    platformUartProcess();
 #endif
 }
 
