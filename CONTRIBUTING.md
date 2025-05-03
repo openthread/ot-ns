@@ -12,15 +12,15 @@ Help us keep OTNS open and inclusive. Please read and follow our [Code of Conduc
 
 ## Bugs
 
-If you find a bug in the source code, you can help us by [submitting a GitHub Issue](https://github.com/EskoDijk/ot-ns/issues/new). Even better, you can [submit a Pull Request](#pull-requests) with a fix.
+If you find a bug in the source code, you can help us by [submitting a GitHub Issue](https://github.com/openthread/ot-ns/issues/new). Even better, you can [submit a Pull Request](#pull-requests) with a fix.
 
 ## New features
 
-You can request a new feature by [submitting a GitHub Issue](https://github.com/EskoDijk/ot-ns/issues/new).
+You can request a new feature by [submitting a GitHub Issue](https://github.com/openthread/ot-ns/issues/new).
 
 If you would like to implement a new feature, please consider the scope of the new feature:
 
-- _Large feature_ — [Submit a GitHub Issue](https://github.com/EskoDijk/ot-ns/issues/new) with your proposal so that the community can review and provide feedback first. Early feedback helps to ensure your proposal is accepted by the community, better coordinate our efforts, and minimize duplicated work.
+- _Large feature_ — [Submit a GitHub Issue](https://github.com/openthread/ot-ns/issues/new) with your proposal so that the community can review and provide feedback first. Early feedback helps to ensure your proposal is accepted by the community, better coordinate our efforts, and minimize duplicated work.
 
 - _Small feature_ — Can be implemented and directly [submitted as a Pull Request](#pull-requests) without a proposal.
 
@@ -32,7 +32,7 @@ The OTNS Project follows the "Fork-and-Pull" model for accepting contributions.
 
 Setup your GitHub fork and continuous integration services:
 
-1. Fork the [otns repository](https://github.com/EskoDijk/ot-ns) by clicking **Fork** on the web UI.
+1. Fork the [otns repository](https://github.com/openthread/ot-ns) by clicking **Fork** on the web UI.
 
 Setup your local development environment:
 

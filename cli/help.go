@@ -1,4 +1,4 @@
-// Copyright (c) 2023, The OTNS Authors.
+// Copyright (c) 2023-2025, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -96,7 +96,7 @@ func (help *Help) outputGeneralHelp() string {
 		wordwrap.WrapString("\nFor detailed help per command, use: 'help <command>'\n",
 			help.termWidth) +
 		wordwrap.WrapString("\nFor detailed CLI command reference in browser go to:\n"+
-			"https://github.com/EskoDijk/ot-ns/blob/main/cli/README.md\n",
+			"https://github.com/openthread/ot-ns/blob/main/cli/README.md\n",
 			help.termWidth)
 }
 

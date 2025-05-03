@@ -21,7 +21,7 @@ After installation, manually check that the directory `$(go env GOPATH)/bin` (no
 ## Get OTNS code using Git
 
 ```bash
-git clone https://github.com/EskoDijk/ot-ns.git ./otns
+git clone https://github.com/openthread/ot-ns.git ./otns
 cd otns
 ```
 

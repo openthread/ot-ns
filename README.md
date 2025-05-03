@@ -29,14 +29,14 @@ Note: this is version 2.x of OTNS. It offers additional features compared to ver
 - Additional ["WPAN-TAP"](https://exegin.com/wp-content/uploads/ieee802154_tap.pdf) PCAP format that captures channel information.
 - Various UI look & feel improvements.
 
-[build-actions-svg]: https://github.com/EskoDijk/ot-ns/workflows/Build/badge.svg?branch=main&event=push
-[build-actions]: https://github.com/EskoDijk/ot-ns/actions?query=workflow%3ABuild+branch%3Amain+event%3Apush
-[lint-actions-svg]: https://github.com/EskoDijk/ot-ns/workflows/Lint/badge.svg?branch=main&event=push
-[lint-actions]: https://github.com/EskoDijk/ot-ns/actions?query=workflow%3ALint+branch%3Amain+event%3Apush
-[test-actions-svg]: https://github.com/EskoDijk/ot-ns/workflows/Test/badge.svg?branch=main&event=push
-[test-actions]: https://github.com/EskoDijk/ot-ns/actions?query=workflow%3ATest+branch%3Amain+event%3Apush
-[codecov-svg]: https://codecov.io/gh/EskoDijk/ot-ns/branch/main/graph/badge.svg
-[codecov-url]: https://codecov.io/gh/EskoDijk/ot-ns
+[build-actions-svg]: https://github.com/openthread/ot-ns/workflows/Build/badge.svg?branch=main&event=push
+[build-actions]: https://github.com/openthread/ot-ns/actions?query=workflow%3ABuild+branch%3Amain+event%3Apush
+[lint-actions-svg]: https://github.com/openthread/ot-ns/workflows/Lint/badge.svg?branch=main&event=push
+[lint-actions]: https://github.com/openthread/ot-ns/actions?query=workflow%3ALint+branch%3Amain+event%3Apush
+[test-actions-svg]: https://github.com/openthread/ot-ns/workflows/Test/badge.svg?branch=main&event=push
+[test-actions]: https://github.com/openthread/ot-ns/actions?query=workflow%3ATest+branch%3Amain+event%3Apush
+[codecov-svg]: https://codecov.io/gh/openthread/ot-ns/branch/main/graph/badge.svg
+[codecov-url]: https://codecov.io/gh/openthread/ot-ns
 
 ## Get started
 
