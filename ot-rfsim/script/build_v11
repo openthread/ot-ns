@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-#  Copyright (c) 2023-2024, The OpenThread Authors.
+#  Copyright (c) 2023-2025, The OpenThread Authors.
 #  All rights reserved.
 #
 #  Redistribution and use in source and binary forms, with or without
@@ -29,9 +29,13 @@
 
 set -euxo pipefail
 
+# shellcheck source=/dev/null
+. "$(dirname "$0")"/../../script/utils.sh
+
 OT_OPTIONS=(
     "-DOT_THREAD_VERSION=1.1"
     "-DOT_VENDOR_MODEL=RFSIM-Node-v1.1"
+    "-DOT_PACKAGE_VERSION=1.1-0a5152b4fa"
     "-DOT_COMPILE_WARNING_AS_ERROR=OFF"
 )
 readonly OT_OPTIONS
@@ -41,7 +45,11 @@ main()
     local options=()
     options+=("${OT_OPTIONS[@]}" "$@")
 
-    OT_DIR="../openthread-v11" OTNS_NODE_TYPE="v11" OT_CMAKE_NINJA_TARGET="ot-cli-ftd ot-cli-mtd" ./script/build "${options[@]}"
+    if [[ ! -f ./openthread-v11/README.md ]]; then
+        get_openthread_commit "0a5152b4fa9f9cbff57da89d9aa33d409e915241" "./openthread-v11" "../openthread"
+    fi
+
+    OT_DIR="./openthread-v11" OTNS_NODE_TYPE="v11" OT_CMAKE_NINJA_TARGET="ot-cli-ftd ot-cli-mtd" ./script/build "${options[@]}"
 
     cp ./build/v11/bin/ot-cli-ftd ./ot-versions/ot-cli-ftd_v11
     cp ./build/v11/bin/ot-cli-mtd ./ot-versions/ot-cli-mtd_v11

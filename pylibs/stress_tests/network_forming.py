@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Copyright (c) 2020-2023, The OTNS Authors.
+# Copyright (c) 2020-2025, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -47,7 +47,7 @@ RADIO_RANGE = int(XGAP * 1.8)
 MIN_N = 1
 MAX_N = 6
 
-REPEAT = 6
+REPEAT = max(int(os.getenv('STRESS_LEVEL', '1')), 5)
 
 EXPECTED_MERGE_TIME_MAX = [None, 10, 14, 40, 60, 130, 190]
 

@@ -2,7 +2,7 @@
 
 This contains the `ot-cli-ftd` and `ot-cli-mtd` binaries for a number of specific OpenThread builds of current or previously released codebases. Older versions can be used for testing legacy node behavior and backwards-compatibility. Newer versions typically have more features enabled.
 
-Versions are listed below. With each version tag, the directory in this OTNS repository is listed in which the code for that version is located as a Git submodule.
+Versions are listed below. With each version tag, the directory is listed in which the code for that version is expected to be located. Of these directories, only the `openthread` directory is included as a submodule in this repo. The `openthread-v*` directories are created on-the-fly by the respective build scripts by getting a historic commit from the `openthread` submodule repo.
 
 - v11 - `openthread-v11` - A Thread v1.2 codebase compiled with v1.1 version flag. (v1.1 codebase is too old to compile with OT-RFSIM. For this reason, a 1.2 codebase is used.)
 
@@ -18,4 +18,4 @@ Versions are listed below. With each version tag, the directory in this OTNS rep
 
 - br-ccm - `openthread-ccm` - (In development) A Thread CCM Border Router.
 
-Build scripts: the build scripts to build all of the versions are `../script/build_<version-tag>`. Each of these specific build scripts invokes the general `build` script. The `../script/build_all` builds all versions.
+Build scripts: the build scripts to build all of the versions are `../script/build_<version-tag>`. Each of these specific build scripts invokes the general `build` script. The `../script/build_all` builds all commonly used versions.

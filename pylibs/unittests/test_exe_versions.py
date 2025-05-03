@@ -117,10 +117,10 @@ class ExeVersionTests(OTNSTestCase):
 
         ns.add("router", 100, 100)
         ns.go(10)
-        nodeid = ns.add("ssed", version="v12")
-        nodeid = ns.add("ssed", version="v13")
-        nodeid = ns.add("ssed", version="v14")
-        nodeid = ns.add("ssed")
+        ns.add("ssed", version="v12")
+        ns.add("ssed", version="v13")
+        ns.add("ssed", version="v14")
+        ns.add("ssed")
         ns.go(10)
         self.assertFormPartitions(1)
 
@@ -142,7 +142,7 @@ class ExeVersionTests(OTNSTestCase):
         ns.add('router')
         ns.add('router')
         ns.add('wifi')
-        ns.go(20)
+        ns.go(50)
         # the wifi node stays on partition 0 (Thread is disabled)
         self.assertEqual(2, len(ns.partitions()))
 

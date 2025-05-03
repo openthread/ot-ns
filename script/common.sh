@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright (c) 2020-2024, The OTNS Authors.
+# Copyright (c) 2020-2025, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -74,21 +74,7 @@ go_install()
 get_openthread()
 {
     if [[ ! -f ./openthread/README.md ]]; then
-        git submodule update --init --depth 1 openthread
-    fi
-}
-
-get_openthread_versions()
-{
-    get_openthread
-    if [[ ! -f ./openthread-v11/README.md ]]; then
-        git submodule update --init --depth 1 openthread-v11
-    fi
-    if [[ ! -f ./openthread-v12/README.md ]]; then
-        git submodule update --init --depth 1 openthread-v12
-    fi
-    if [[ ! -f ./openthread-v13/README.md ]]; then
-        git submodule update --init --depth 1 openthread-v13
+        git submodule update --init openthread
     fi
 }
 
@@ -124,7 +110,7 @@ build_openthread_br()
 # Note: any environment var OT_DIR is not used for legacy node version (1.1, 1.2, 1.3) builds.
 build_openthread_versions()
 {
-    get_openthread_versions
+    get_openthread
     (
         cd ot-rfsim
         ./script/build_all "$(get_build_options)"

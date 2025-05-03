@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright (c) 2020-2024, The OTNS Authors.
+# Copyright (c) 2020-2025, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -116,4 +116,20 @@ function install_pretty_tools()
 
     install_package shfmt --apt shfmt --brew shfmt
     install_package shellcheck --apt shellcheck --brew shellcheck
+}
+
+get_openthread_commit()
+{
+    local commit="${1}"
+    local ot_commit_dir="${2}"
+    local ot_dir="${3}"
+    ot_commit_dir=$(realpathf "${ot_commit_dir}")
+    ot_dir=$(realpathf "${ot_dir}")
+    mkdir -p "${ot_commit_dir}"
+    (
+        cd "${ot_dir}" || die "OpenThread directory not found: ${ot_dir}"
+        git archive --format=tar "${commit}" | tar -x -C "${ot_commit_dir}"
+        cd "${ot_commit_dir}" || die "OpenThread target directory for commit not found: ${ot_commit_dir}"
+        patch -p1 <../etc/ot-mbedtls-settings.patch
+    )
 }

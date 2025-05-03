@@ -45,6 +45,7 @@ coverage.txt
 # ot-rfsim build items
 /ot-rfsim/build*/
 /ot-rfsim/cmake-build-debug
+/ot-rfsim/openthread-v*/
 ot-cli-ftd*
 ot-cli-mtd*
 ot-rcp
@@ -57,4 +58,3 @@ ot-rcp
 
 # lock files
 package-lock.json
-

@@ -2,7 +2,7 @@
 
 This directory contains 'ot-rfsim', an OpenThread platform driver for simulated OT nodes. A simulated OT node can be started in the OTNS simulator. It connects to the simulator using the Unix Domain Socket provided in the commandline parameters.
 
-The easiest way to use this code is just to install OTNS using the `bootstrap` script, following the [OTNS Guide](../GUIDE.md).
+The easiest way to use this code is just to install OTNS following the [OTNS Guide](../GUIDE.md).
 
 ## Prerequisites
 
@@ -40,7 +40,7 @@ After a successful build, the executable files are found in the directory `./bui
 
 There are some scripts (`./script/build_*`) for building specific versions of OpenThread nodes for use in OT-NS. There are specific commands in OT-NS to add e.g. v1.1, or v1.2 nodes, all mixed in one simulation.
 
-These build scripts produce executables that are copied into the `ot-versions` directory. The scripts will use specific branches of the `openthread` repository, which are included as submodules in the Git OTNS project. To keep the data size small, each submodule is cloned shallow (depth=1) by default.
+These build scripts produce executables that are copied into the `ot-versions` directory. The scripts will use specific historic commits of the `openthread` repository, which is included as submodule in the Git OTNS repository. To use the build scripts, the `openthread` submodule must not be cloned shallow, but with full depth.
 
 ## Running
 
@@ -68,4 +68,4 @@ Done
 >
 ```
 
-The standard way is to run OT-NS from the same directory from where it was installed. In this case, it will use the binaries that are built into `./ot-rfsim/ot-versions`. These binaries can be built using the various `./script/build_*` scripts. Users can copy their own builds into this folder as well and refer to the named binaries when starting a new node in OTNS.
+The standard recommended way is to run OT-NS from the same directory from where it was installed. In this case, it will use the binaries that are built into `./ot-rfsim/ot-versions`. These binaries can be built using the various `./script/build_*` scripts. Users can copy their own builds into this folder as well and refer to the named binaries when starting a new node in OTNS.
