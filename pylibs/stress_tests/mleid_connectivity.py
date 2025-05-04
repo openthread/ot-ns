@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Copyright (c) 2020-2023, The OTNS Authors.
+# Copyright (c) 2020-2025, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -60,7 +60,7 @@ YMAX = 1000
 
 # Note: the "delay time" for a node is the time period since contact with the BR by means of ping was
 # last successful.
-TOTAL_SIMULATION_TIME = 3600 * int(os.getenv("STRESS_LEVEL", 1))
+TOTAL_SIMULATION_TIME = 3000 + 600 * int(os.getenv("STRESS_LEVEL", 1))  # seconds
 MAX_DELAY_TIME = 1800  # seconds - the max allowable delay time for any node.
 MAX_AVG_DELAY_TIME = 1000  # seconds - the max allowable average of all nodes' delay times.
 MOVE_INTERVAL = 60  # seconds

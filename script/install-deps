@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright (c) 2020-2024, The OTNS Authors.
+# Copyright (c) 2020-2025, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -24,8 +24,8 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-#
-# This script installs OTNS dependencies and is called by 'test'.
+
+# Installs OTNS dependencies/packages and is called by 'test'.
 
 # shellcheck source=script/common.sh
 . "$(dirname "$0")"/common.sh
@@ -44,8 +44,8 @@ install_packages()
     install_package wget --apt wget --brew wget || true
     install_package unzip --apt unzip --brew unzip || true
     install_package python3 --apt python3 --brew python3 || true
-    # FIXME: on Mac, this brew package doesn't exist - seems not needed(?)
-    install_package virtualenv --apt python3-venv --brew python3-venv || true
+    # On Mac, this brew package doesn't exist - not needed.
+    install_package virtualenv --apt python3-venv || true
 }
 
 install_grpcwebproxy()

@@ -36,7 +36,7 @@ YGAP = 80
 RADIO_RANGE = int(XGAP * 2.5)
 
 LARGE_N = 11
-PACKET_LOSS_RATIO = max((int(os.getenv('STRESS_LEVEL', '1')) - 1) / 10.0, 0.0)
+PACKET_LOSS_RATIO = max((int(os.getenv('STRESS_LEVEL', '1')) - 1) / 50.0, 0.0)
 
 SIMULATE_TIME_TOTAL = 600
 SIMULATE_TIME_PERIOD = 30

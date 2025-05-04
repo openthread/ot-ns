@@ -1,4 +1,5 @@
-# Copyright (c) 2021, The OTNS Authors.
+#!/bin/bash
+# Copyright (c) 2025, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -24,17 +25,45 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-version: 2
-updates:
-  - package-ecosystem: "gitsubmodule"
-    directory: "/"
-    schedule:
-      interval: "monthly"
-    allow:
-      - dependency-name: "openthread"
-    commit-message:
-      prefix: "submodule"
-    rebase-strategy: "disabled"
-    open-pull-requests-limit: 1
-    assignees:
-      - "jwhui"
+# Performs Docker buildx for a selected OTNS2 Docker.
+
+if [ "$1" = "environment" ]; then
+    VERSION="environment"
+elif [ "$1" = "playground" ]; then
+    VERSION="playground"
+else
+    echo "Usage: $0 [environment|playground]" >&2
+    exit 1
+fi
+
+DOCKER_IMAGE="openthread/otns2"
+DOCKER_FILE="etc/docker/${VERSION}/Dockerfile"
+DOCKER_PLATFORMS="linux/amd64"
+# Get the short commit SHA.
+VCS_REF=$(git rev-parse --short HEAD)
+BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+
+TAGS="--tag ${DOCKER_IMAGE}:${VERSION}"
+
+BUILDX_ARGS="--platform ${DOCKER_PLATFORMS} \
+  --build-arg VERSION=${VERSION} \
+  --build-arg BUILD_DATE=${BUILD_DATE} \
+  --build-arg VCS_REF=${VCS_REF} \
+  ${TAGS} --file ${DOCKER_FILE} ."
+
+echo "DOCKER_IMAGE=${DOCKER_IMAGE}"
+echo "VERSION=${VERSION}"
+echo "BUILDX_ARGS=${BUILDX_ARGS}"
+
+echo "Docker Buildx (build): ${DOCKER_IMAGE}:${VERSION}"
+
+# Using '--load' to ensure image is sent to local Docker images store.
+# shellcheck disable=SC2086
+if docker buildx build --output "type=image,push=false" --load ${BUILDX_ARGS}; then
+    echo "Docker build ${DOCKER_IMAGE} version '${VERSION}' completed successfully."
+else
+    echo "Docker build ${DOCKER_IMAGE} version '${VERSION}' failed."
+    exit 1
+fi
+
+exit 0

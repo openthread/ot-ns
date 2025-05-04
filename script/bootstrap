@@ -24,8 +24,9 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-#
-# This script bootstraps a complete install of OTNS, nodes, dependencies.
+
+# Bootstraps a complete install of OTNS, nodes, and dependencies. Also
+# performs a quick unit-test.
 # It can be used after a fresh Git clone, or after an update (Git pull).
 
 set -euxo pipefail
@@ -46,8 +47,9 @@ fi
 
 # Some basic items are missing on Ubuntu Docker; they're assumed present on MacOS.
 if [[ $Linux == 1 ]]; then
+    # sudo is required for install_package to work
     if ! installed sudo; then
-        apt install sudo
+        apt-get install -y sudo
     fi
     install_package xdg-open --apt xdg-utils || true
 fi

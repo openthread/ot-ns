@@ -25,6 +25,9 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+# Common script setup and build/install functions shared by all scripts in
+# this directory.
+
 set -euox pipefail
 
 if [[ "$(uname)" == "Darwin" ]]; then

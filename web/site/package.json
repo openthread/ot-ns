@@ -13,8 +13,8 @@
   "dependencies": {
     "chart.js": "3.9.1",
     "pixi-scrollbox": "2.1.5",
-    "pixi-viewport": "^4.13.2",
-    "pixi.js": "^5.3.3",
-    "pixi.js-legacy": "^5.3.3"
+    "pixi-viewport": "4.13.2",
+    "pixi.js": "5.3.3",
+    "pixi.js-legacy": "5.3.3"
   }
 }

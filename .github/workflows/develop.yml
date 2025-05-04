@@ -1,4 +1,4 @@
-# Copyright (c) 2020-2024, The OTNS Authors.
+# Copyright (c) 2020-2025, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,10 +27,12 @@
 name: Develop
 
 on:
-  workflow_dispatch:
+  push:
+    branches-ignore:
+      - 'dependabot/**'
   pull_request:
     branches:
-      - 'develop'
+      - 'main'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -50,21 +52,35 @@ jobs:
         os: [ubuntu-22.04]
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
       - uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go }}
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Buildx Docker 'environment'
+        run: |
+          ./script/docker-build environment
       - name: Build OTNS Web
         run: |
-          docker build -t otns-env -f etc/docker/environment/Dockerfile .
-          docker run -t -v$PWD:/otns otns-env -c "./script/pack-web"
-          git diff --quiet
-      - name: Build custom OT node
-        # Note: OT_CMAKE_NINJA_TARGET excludes tests because test_platform.cpp is missing otPlatAssertFail()
-        run: |
           ./script/install-deps
-          ./script/setup-dev
+          ./script/run-docker-pack-web
+          if ! git diff --quiet; then
+            echo "script/pack-web was not properly executed:"
+            git diff
+            exit 1
+          fi
+          ./script/install
+      - name: Build custom OT node
+        # FIXME: OT_CMAKE_NINJA_TARGET used to exclude tests, because test_platform.cpp is missing otPlatAssertFail()
+        run: |
           cd ot-rfsim
-          OT_CMAKE_NINJA_TARGET="ot-cli-ftd ot-cli-mtd" ./script/build
+          OT_CMAKE_NINJA_TARGET="ot-cli-ftd ot-cli-mtd" ./script/build -DOT_HISTORY_TRACKER=ON
+          # ./script/build -DOT_HISTORY_TRACKER=ON # this should be the command above (after the OT fix)
+      - name: Setup dev environment
+        run: |
+          ./script/setup-dev

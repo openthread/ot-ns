@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Copyright (c) 2020-2023, The OTNS Authors.
+# Copyright (c) 2020-2025, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -52,7 +52,7 @@ class StressTest(BaseStressTest):
     SUITE = 'very-large'
 
     def __init__(self):
-        super(StressTest, self).__init__("Large Network Formation Test",
+        super(StressTest, self).__init__("Very Large Network Formation Test",
                                          ["Rep", "Simulation Time", "Execution Time", "Partition Count"],
                                          web=False)
 

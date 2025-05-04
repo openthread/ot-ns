@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright (c) 2020, The OTNS Authors.
+# Copyright (c) 2020-2025, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -24,8 +24,8 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-#
-# This script sets up the environment for OTNS development.
+
+# Sets up the environment for OTNS2 development including web (gRPC, nodejs, npm).
 
 # shellcheck source=script/common.sh
 . "$(dirname "$0")"/common.sh
@@ -114,7 +114,7 @@ install_nodejs()
     if [[ $Darwin == 1 ]]; then
         echo "nodejs is required for OTNS-Web development. Please install from https://nodejs.org/"
     else
-        sudo apt-get install nodejs npm -y
+        sudo apt-get install -y nodejs npm
     fi
 }
 
@@ -130,7 +130,13 @@ install_go_bindata()
 
 install_py_libraries()
 {
-    python3 -m pip install grpcio-tools==${GRPCIO_TOOLS_VERSION} --user
+    if [[ $Darwin == 1 ]]; then
+        sudo python3 -m pip install --only-binary :all: grpcio-tools==${GRPCIO_TOOLS_VERSION}
+    else
+        # Due to Python "externally managed environment" issue, and virtual-env issues in the Docker,
+        # we install this via apt, on Linux.
+        sudo apt-get install -y python3-grpc-tools
+    fi
 }
 
 install_protoc
@@ -140,5 +146,4 @@ install_nodejs
 install_go_bindata
 install_py_libraries
 install_pretty_tools || true
-install_openthread_buildtools
 go mod tidy

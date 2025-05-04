@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright (c) 2020-2023, The OTNS Authors.
+# Copyright (c) 2020-2025, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -24,8 +24,12 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-#
+
 # Runs the pack-web script via a Docker with the right tools environment.
-# Only used during OTNS-web development.
+# Only used during OTNS-web development. The Docker image is created via
+# /.github/workflows/docker.yml . It can also be created using script
+# `./script/docker-build environment`.
+
+set -euxo pipefail
 
 docker run -t -v"$PWD":/otns openthread/otns2:environment -c "./script/pack-web"

@@ -25,6 +25,8 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+# Collection of utility functions for scripts in this directory or elsewhere.
+
 function die()
 {
     echo "fatal: $1"
@@ -109,7 +111,7 @@ install_package()
 
 function install_pretty_tools()
 {
-    # TODO Known bug: version v1.59.0 won't work with Go 1.23 or higher. Requires version <= 1.22
+    # FIXME Known bug: version v1.59.0 won't work with Go 1.23 or higher. Requires version <= 1.22
     if ! installed golangci-lint; then
         curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b "$(go env GOPATH)"/bin v1.59.0
     fi
