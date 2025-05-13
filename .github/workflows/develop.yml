@@ -38,6 +38,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   develop:
     name: Develop (Go${{ matrix.go }}, Python${{ matrix.python-version }}, ${{ matrix.os }})
