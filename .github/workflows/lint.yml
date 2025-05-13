@@ -44,7 +44,7 @@ permissions:
 jobs:
   go-lint:
     name: Go/Shell/Python/C/Markdown Lint
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     env:
       HOMEBREW_NO_AUTO_UPDATE: 1
     steps:
@@ -52,6 +52,10 @@ jobs:
       - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
         with:
           go-version: '1.22'
+      - name: Bootstrap
+        run: |
+          sudo apt-get update
+          sudo apt-get --no-install-recommends install -y clang-format-14 clang-tidy-14
       - name: Check pretty
         run: |
           ./script/install-deps

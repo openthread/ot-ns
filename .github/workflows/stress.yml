@@ -50,7 +50,7 @@ jobs:
         python-version: ['3.10']
         go-version: ['1.22']
         suite: ["network-forming", "commissioning", "connectivity", "network-latency", "multicast-performance", "otns-performance", "network-limits"]
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 120
     env:
       HOMEBREW_NO_AUTO_UPDATE: 1
