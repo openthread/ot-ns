@@ -32,11 +32,11 @@
 set -euxo pipefail
 
 if [[ "$(uname)" == "Darwin" ]]; then
-    export readonly Darwin=1
-    export readonly Linux=0
+    declare -rx Darwin=1
+    declare -rx Linux=0
 elif [[ "$(uname)" == "Linux" ]]; then
-    export readonly Darwin=0
-    export readonly Linux=1
+    declare -rx Darwin=0
+    declare -rx Linux=1
 else
     echo "Unsupported OS: $(uname)"
     exit 1
