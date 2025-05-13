@@ -10,7 +10,7 @@ More information about Thread can be found at [threadgroup.org](http://threadgro
 
 To learn more about OpenThread, visit [openthread.io](https://openthread.io).
 
-## Features
+# Features
 
 Note: this is version 2.x of OTNS. It offers additional features compared to version 1:
 
@@ -38,22 +38,31 @@ Note: this is version 2.x of OTNS. It offers additional features compared to ver
 [codecov-svg]: https://codecov.io/gh/openthread/ot-ns/branch/main/graph/badge.svg
 [codecov-url]: https://codecov.io/gh/openthread/ot-ns
 
-## Get started
+# Getting started
 
 See [GUIDE](GUIDE.md) to get started.
 
 See [OTNS CLI Reference](cli/README.md) for the OTNS CLI commands.
 
-## Contributing
+# Contributing
 
 We would love for you to contribute to OTNS and help make it even better than it is today! See our [Contributing Guidelines](CONTRIBUTING.md) for more information.
 
 Contributors are required to abide by our [Code of Conduct](CODE_OF_CONDUCT.md) and [Coding Conventions and Style Guide](CONTRIBUTING.md#coding-conventions-and-style). See [AUTHORS](AUTHORS) for the list of present authors.
 
-## Version
+# Versioning
 
 OTNS follows the [Semantic Versioning guidelines](http://semver.org/) for release cycle transparency and to maintain backwards compatibility.
 
-## License
+# License
 
 OTNS is released under the [BSD 3-Clause license](LICENSE). See the [`LICENSE`](LICENSE) file for more information.
+
+Please only use the OpenThread name and marks when accurately referencing this software distribution. Do not use the marks in a way that suggests you are endorsed by or otherwise affiliated with Nest, Google, or The Thread Group.
+
+# Need Help?
+
+OpenThread support is available on GitHub:
+
+- Bugs and feature requests — [submit to the Issue Tracker](https://github.com/openthread/ot-ns/issues)
+- Community Discussion - [ask questions, share ideas, and engage with other community members](https://github.com/openthread/openthread/discussions)
