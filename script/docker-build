@@ -1,0 +1,69 @@
+#!/bin/bash
+# Copyright (c) 2025, The OTNS Authors.
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+# 3. Neither the name of the copyright holder nor the
+#    names of its contributors may be used to endorse or promote products
+#    derived from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+
+# Performs Docker buildx for a selected OTNS2 Docker.
+
+if [ "$1" = "environment" ]; then
+    VERSION="environment"
+elif [ "$1" = "playground" ]; then
+    VERSION="playground"
+else
+    echo "Usage: $0 [environment|playground]" >&2
+    exit 1
+fi
+
+DOCKER_IMAGE="openthread/otns2"
+DOCKER_FILE="etc/docker/${VERSION}/Dockerfile"
+DOCKER_PLATFORMS="linux/amd64"
+# Get the short commit SHA.
+VCS_REF=$(git rev-parse --short HEAD)
+BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+
+TAGS="--tag ${DOCKER_IMAGE}:${VERSION}"
+
+BUILDX_ARGS="--platform ${DOCKER_PLATFORMS} \
+  --build-arg VERSION=${VERSION} \
+  --build-arg BUILD_DATE=${BUILD_DATE} \
+  --build-arg VCS_REF=${VCS_REF} \
+  ${TAGS} --file ${DOCKER_FILE} ."
+
+echo "DOCKER_IMAGE=${DOCKER_IMAGE}"
+echo "VERSION=${VERSION}"
+echo "BUILDX_ARGS=${BUILDX_ARGS}"
+
+echo "Docker Buildx (build): ${DOCKER_IMAGE}:${VERSION}"
+
+# Using '--load' to ensure image is sent to local Docker images store.
+# shellcheck disable=SC2086
+if docker buildx build --output "type=image,push=false" --load ${BUILDX_ARGS}; then
+    echo "Docker build ${DOCKER_IMAGE} version '${VERSION}' completed successfully."
+else
+    echo "Docker build ${DOCKER_IMAGE} version '${VERSION}' failed."
+    exit 1
+fi
+
+exit 0

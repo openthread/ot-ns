@@ -1,3 +1,3 @@
-run:
-  skip-files:
+issues:
+  exclude-files:
     - "web/site/bindata.go"

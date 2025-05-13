@@ -1,0 +1,25 @@
+From 5b77e200f648c36787109eebf4bb97380cc06960 Mon Sep 17 00:00:00 2001
+From: Esko Dijk <esko.dijk@iotconsultancy.nl>
+Date: Fri, 5 Jul 2024 10:51:51 +0200
+Subject: [PATCH] [OTNS] remove -Werror build flag in [mbedtls] to enable
+ building legacy code on newer (Apple Clang) compilers.
+
+---
+ third_party/mbedtls/repo/CMakeLists.txt | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/third_party/mbedtls/repo/CMakeLists.txt b/third_party/mbedtls/repo/CMakeLists.txt
+index ac24bf41b..eef0a9260 100644
+--- a/third_party/mbedtls/repo/CMakeLists.txt
++++ b/third_party/mbedtls/repo/CMakeLists.txt
+@@ -218,7 +218,7 @@ if(MBEDTLS_FATAL_WARNINGS)
+     endif(CMAKE_COMPILER_IS_MSVC)
+
+     if(CMAKE_COMPILER_IS_CLANG OR CMAKE_COMPILER_IS_GNU)
+-        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror")
++        # set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror")
+         if(UNSAFE_BUILD)
+             set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error=cpp")
+             set(CMAKE_C_FLAGS_ASAN "${CMAKE_C_FLAGS_ASAN} -Wno-error=cpp")
+--
+2.34.1

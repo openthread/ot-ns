@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2020-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -29,54 +29,49 @@ package otns_main
 import (
 	"flag"
 	"fmt"
-	"math/rand"
 	"os"
 	"os/signal"
 	"strconv"
 	"strings"
 	"syscall"
-	"time"
-
-	"github.com/openthread/ot-ns/cli/runcli"
-
-	"github.com/openthread/ot-ns/threadconst"
-
-	"github.com/openthread/ot-ns/dispatcher"
-
-	webSite "github.com/openthread/ot-ns/web/site"
-
-	"github.com/openthread/ot-ns/web"
 
 	"github.com/pkg/errors"
 
-	"github.com/openthread/ot-ns/progctx"
-	"github.com/openthread/ot-ns/visualize"
-
-	visualizeGrpc "github.com/openthread/ot-ns/visualize/grpc"
-
-	visualizeMulti "github.com/openthread/ot-ns/visualize/multi"
-
 	"github.com/openthread/ot-ns/cli"
-
+	"github.com/openthread/ot-ns/dispatcher"
+	"github.com/openthread/ot-ns/logger"
+	"github.com/openthread/ot-ns/pcap"
+	"github.com/openthread/ot-ns/prng"
+	"github.com/openthread/ot-ns/progctx"
 	"github.com/openthread/ot-ns/simulation"
-	"github.com/simonlingoogle/go-simplelogger"
+	. "github.com/openthread/ot-ns/types"
+	visualizeGrpc "github.com/openthread/ot-ns/visualize/grpc"
+	visualizeMulti "github.com/openthread/ot-ns/visualize/multi"
+	visualizeStatslog "github.com/openthread/ot-ns/visualize/statslog"
+	"github.com/openthread/ot-ns/web"
+	webSite "github.com/openthread/ot-ns/web/site"
 )
 
 type MainArgs struct {
 	Speed          string
 	OtCliPath      string
+	OtCliMtdPath   string
+	InitScriptName string
 	AutoGo         bool
 	ReadOnly       bool
 	LogLevel       string
+	LogFileLevel   string
+	WatchLevel     string
 	OpenWeb        bool
-	RawMode        bool
-	Real           bool
+	Realtime       bool
 	ListenAddr     string
 	DispatcherHost string
 	DispatcherPort int
 	DumpPackets    bool
-	NoPcap         bool
+	PcapType       string
 	NoReplay       bool
+	RandomSeed     int64
+	PhyTxStats     bool
 }
 
 var (
@@ -85,31 +80,41 @@ var (
 
 func parseArgs() {
 	defaultOtCli := os.Getenv("OTNS_OT_CLI")
-	if defaultOtCli == "" {
-		defaultOtCli = "./ot-cli-ftd"
+	defaultOtCliMtd := os.Getenv("OTNS_OT_CLI_MTD")
+	if defaultOtCli == "" && defaultOtCliMtd == "" {
+		defaultOtCli = simulation.DefaultExecutableConfig.Ftd
+		defaultOtCliMtd = simulation.DefaultExecutableConfig.Mtd
+	} else if defaultOtCliMtd == "" {
+		defaultOtCliMtd = defaultOtCli // use same CLI for MTD, by default. FTD can simulate being MTD.
+	} else if defaultOtCli == "" {
+		defaultOtCli = simulation.DefaultExecutableConfig.Ftd // only use custom MTD, not FTD.
 	}
 
-	flag.StringVar(&args.Speed, "speed", "1", "set simulating speed")
-	flag.StringVar(&args.OtCliPath, "ot-cli", defaultOtCli, "specify the OT CLI executable")
-	flag.BoolVar(&args.AutoGo, "autogo", true, "auto go")
+	flag.StringVar(&args.Speed, "speed", "1", "set simulation speed")
+	flag.StringVar(&args.OtCliPath, "ot-cli", defaultOtCli, "specify the OT CLI executable, for FTD and also for MTD if not configured otherwise.")
+	flag.StringVar(&args.OtCliMtdPath, "ot-cli-mtd", defaultOtCliMtd, "specify the OT CLI MTD executable, separately from FTD executable.")
+	flag.StringVar(&args.InitScriptName, "ot-script", "", "specify the OT node init script filename, to use for init of new nodes. By default an internal script is used. Use 'none' for no script.")
+	flag.BoolVar(&args.AutoGo, "autogo", true, "auto go (runs the simulation at given speed, without issuing 'go' commands.)")
 	flag.BoolVar(&args.ReadOnly, "readonly", false, "readonly simulation can not be manipulated")
-	flag.StringVar(&args.LogLevel, "log", "warn", "set logging level")
-	flag.BoolVar(&args.OpenWeb, "web", true, "open web")
-	flag.BoolVar(&args.RawMode, "raw", false, "use raw mode")
-	flag.BoolVar(&args.Real, "real", false, "use real mode (for real devices)")
-	flag.StringVar(&args.ListenAddr, "listen", fmt.Sprintf("localhost:%d", threadconst.InitialDispatcherPort), "specify listen address")
+	flag.StringVar(&args.LogLevel, "log", "warn", "set OTNS display logging level: trace, debug, info, warn, error.")
+	flag.StringVar(&args.LogFileLevel, "logfile", "debug", "set OTNS + node file logging level: trace, debug, info, warn, error, off.")
+	flag.StringVar(&args.WatchLevel, "watch", "off", "set default watch (display) level for new nodes: trace, debug, info, note, warn, error, off.")
+	flag.BoolVar(&args.OpenWeb, "web", true, "open web visualization")
+	flag.BoolVar(&args.Realtime, "realtime", false, "use real-time mode (forced speed=1 and autogo)")
+	flag.StringVar(&args.ListenAddr, "listen", fmt.Sprintf("localhost:%d", InitialDispatcherPort), "specify TCP/UDP host and port base value for web-GUI/RPC. Recommended ports are 9000, 9010, 9020, etc.")
 	flag.BoolVar(&args.DumpPackets, "dump-packets", false, "dump packets")
-	flag.BoolVar(&args.NoPcap, "no-pcap", false, "do not generate Pcap")
-	flag.BoolVar(&args.NoReplay, "no-replay", false, "do not generate Replay")
-
+	flag.StringVar(&args.PcapType, "pcap", pcap.FrameTypeWpanStr, "PCAP file type: 'off', 'wpan', or 'wpan-tap'. PCAP is saved to file 'current.pcap'.")
+	flag.BoolVar(&args.NoReplay, "no-replay", false, "do not generate Replay file (named \"otns_?.replay\")")
+	flag.Int64Var(&args.RandomSeed, "seed", 0, "set specific random-seed value (for reproducability)")
+	flag.BoolVar(&args.PhyTxStats, "phy-tx-stats", false, "generate PHY Tx statistics CSV file")
 	flag.Parse()
 }
 
-func parseListenAddr() {
+func parseListenAddr() (int, error) {
 	var err error
 
 	notifyInvalidListenAddr := func() {
-		simplelogger.Fatalf("invalid listen address: %s (port must be larger than or equal to 9000 and must be a multiple of 1000).", args.ListenAddr)
+		err = fmt.Errorf("invalid listen address: %s (port must be larger than or equal to 9000 and must be a multiple of 10", args.ListenAddr)
 	}
 
 	subs := strings.Split(args.ListenAddr, ":")
@@ -122,140 +127,188 @@ func parseListenAddr() {
 		notifyInvalidListenAddr()
 	}
 
-	if args.DispatcherPort < threadconst.InitialDispatcherPort || args.DispatcherPort%threadconst.WellKnownNodeId != 0 {
+	if args.DispatcherPort < InitialDispatcherPort || args.DispatcherPort%10 != 0 {
 		notifyInvalidListenAddr()
 	}
 
-	portOffset := (args.DispatcherPort - threadconst.InitialDispatcherPort) / threadconst.WellKnownNodeId
-	simplelogger.Infof("Using env PORT_OFFSET=%d", portOffset)
-	if err = os.Setenv("PORT_OFFSET", strconv.Itoa(portOffset)); err != nil {
-		simplelogger.Panic(err)
-	}
+	simId := (args.DispatcherPort - InitialDispatcherPort) / 10
+	return simId, err
 }
 
-func Main(ctx *progctx.ProgCtx, visualizerCreator func(ctx *progctx.ProgCtx, args *MainArgs) visualize.Visualizer, cliOptions *runcli.CliOptions) {
-	parseArgs()
-
-	simplelogger.SetLevel(simplelogger.ParseLevel(args.LogLevel))
-
-	parseListenAddr()
-
-	rand.Seed(time.Now().UnixNano())
-	// run console in the main goroutine
-	ctx.Defer(func() {
-		_ = os.Stdin.Close()
-	})
-
+func Main(ctx *progctx.ProgCtx, cliOptions *cli.CliOptions) {
 	handleSignals(ctx)
+	parseArgs()
+	simId, err := parseListenAddr()
+	logger.FatalIfError(err)
 
-	var vis visualize.Visualizer
-	if visualizerCreator != nil {
-		vis = visualizerCreator(ctx, &args)
-	}
+	prng.Init(args.RandomSeed)
+	sim, err := createSimulation(simId, ctx)
+	logger.FatalIfError(err)
 
 	visGrpcServerAddr := fmt.Sprintf("%s:%d", args.DispatcherHost, args.DispatcherPort-1)
 
 	replayFn := ""
 	if !args.NoReplay {
-		replayFn = fmt.Sprintf("otns_%s.replay", os.Getenv("PORT_OFFSET"))
-	}
-	if vis != nil {
-		vis = visualizeMulti.NewMultiVisualizer(
-			vis,
-			visualizeGrpc.NewGrpcVisualizer(visGrpcServerAddr, replayFn),
-		)
-	} else {
-		vis = visualizeGrpc.NewGrpcVisualizer(visGrpcServerAddr, replayFn)
+		replayFn = fmt.Sprintf("otns_%d.replay", simId)
 	}
 
-	sim := createSimulation(ctx)
-	rt := cli.NewCmdRunner(ctx, sim)
-	sim.SetVisualizer(vis)
-	go sim.Run()
-	go func() {
-		err := cli.Run(rt, cliOptions)
-		ctx.Cancel(errors.Wrapf(err, "console exit"))
-	}()
+	chanGrpcClientNotifier := make(chan string, 1)
 
+	vis := visualizeMulti.NewMultiVisualizer(
+		visualizeGrpc.NewGrpcVisualizer(visGrpcServerAddr, replayFn, chanGrpcClientNotifier),
+		visualizeStatslog.NewStatslogVisualizer(sim.GetConfig().OutputDir, simId, visualizeStatslog.NodeStatsType),
+	)
+	if args.PhyTxStats {
+		vis.AddVisualizer(visualizeStatslog.NewStatslogVisualizer(sim.GetConfig().OutputDir, simId, visualizeStatslog.TxBytesStatsType))
+		vis.AddVisualizer(visualizeStatslog.NewStatslogVisualizer(sim.GetConfig().OutputDir, simId, visualizeStatslog.ChanSampleCountStatsType))
+	}
+
+	ctx.WaitAdd("webserver", 1)
 	go func() {
+		defer ctx.WaitDone("webserver")
 		siteAddr := fmt.Sprintf("%s:%d", args.DispatcherHost, args.DispatcherPort-3)
-		err := webSite.Serve(siteAddr)
-		if err != nil {
-			simplelogger.Errorf("site quited: %+v, OTNS-Web won't be available!", err)
+		err := webSite.Serve(siteAddr) // blocks until webSite.StopServe() called
+		if err != nil && ctx.Err() == nil {
+			logger.Errorf("webserver stopped unexpectedly: %+v, OTNS-Web won't be available!", err)
 		}
 	}()
+	<-webSite.Started
 
-	if args.AutoGo {
-		go autoGo(ctx, sim)
-	}
+	rt := cli.NewCmdRunner(ctx, sim)
+	vis.Init()
+	sim.SetVisualizer(vis)
+
+	ctx.WaitAdd("cli", 1)
+	go func() {
+		defer ctx.WaitDone("cli")
+		err := cli.Cli.Run(rt, cliOptions)
+		ctx.Cancel(errors.Wrapf(err, "cli-exit"))
+	}()
+	<-cli.Cli.Started
+	logger.SetStdoutCallback(cli.Cli)
+
+	ctx.WaitAdd("simulation", 1)
+	go func() {
+		defer ctx.WaitDone("simulation")
+		sim.Run()
+	}()
+	<-sim.Started
 
 	web.ConfigWeb(args.DispatcherHost, args.DispatcherPort-2, args.DispatcherPort-1, args.DispatcherPort-3)
-
-	simplelogger.Debugf("open web: %v", args.OpenWeb)
+	logger.Debugf("open web: %v", args.OpenWeb)
 	if args.OpenWeb {
-		_ = web.OpenWeb(ctx)
+		sim.PostAsync(func() {
+			err := web.OpenWeb(ctx, web.MainTab)
+			if err != nil {
+				logger.Error(err)
+			}
+		})
 	}
 
-	vis.Run() // visualize must run in the main thread
+	ctx.WaitAdd("autogo", 1)
+	go sim.AutoGoRoutine(ctx, sim)
 
-	simplelogger.Infof("waiting for OTNS to stop gracefully ...")
+	vis.Run() // visualize must run in the main thread
+	ctx.Cancel("main")
+
+	logger.Debugf("waiting for OTNS to stop gracefully ...")
+	cli.Cli.Stop()
+	webSite.StopServe()
 	ctx.Wait()
 }
 
 func handleSignals(ctx *progctx.ProgCtx) {
 	c := make(chan os.Signal, 1)
+	sigHandlerReady := make(chan struct{})
 	signal.Notify(c, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGINT, syscall.SIGHUP)
 	signal.Ignore(syscall.SIGALRM)
 
 	ctx.WaitAdd("handleSignals", 1)
 	go func() {
 		defer ctx.WaitDone("handleSignals")
-		defer simplelogger.Debugf("handleSignals exit.")
+		defer logger.Debugf("handleSignals exit.")
 
+		done := ctx.Done()
+		close(sigHandlerReady)
 		for {
 			select {
 			case sig := <-c:
-				simplelogger.Infof("signal received: %v", sig)
-				ctx.Cancel(nil)
-			case <-ctx.Done():
+				signal.Reset()
+				logger.Infof("Unix signal received: %v", sig)
+				ctx.Cancel("signal-" + sig.String())
+				return
+			case <-done:
 				return
 			}
 		}
 	}()
+	<-sigHandlerReady
 }
 
-func autoGo(prog *progctx.ProgCtx, sim *simulation.Simulation) {
-	for {
-		<-sim.Go(time.Second)
-	}
-}
-
-func createSimulation(ctx *progctx.ProgCtx) *simulation.Simulation {
+func createSimulation(simId int, ctx *progctx.ProgCtx) (*simulation.Simulation, error) {
 	var speed float64
 	var err error
 
 	simcfg := simulation.DefaultConfig()
-	simcfg.OtCliPath = args.OtCliPath
 
+	simcfg.LogLevel, err = logger.ParseLevelString(args.LogLevel)
+	if err != nil {
+		return nil, err
+	}
+	logger.SetLevel(simcfg.LogLevel)
+	simcfg.LogFileLevel, err = logger.ParseLevelString(args.LogFileLevel)
+	if err != nil {
+		return nil, err
+	}
+	if args.LogFileLevel == logger.NoneLevelString || args.LogFileLevel == logger.OffLevelString {
+		simcfg.NewNodeConfig.NodeLogFile = false
+	}
+	simcfg.ExeConfig.Ftd = args.OtCliPath
+	simcfg.ExeConfig.Mtd = args.OtCliMtdPath
 	args.Speed = strings.ToLower(args.Speed)
 	if args.Speed == "max" {
 		speed = dispatcher.MaxSimulateSpeed
 	} else {
 		speed, err = strconv.ParseFloat(args.Speed, 64)
-		simplelogger.PanicIfError(err)
+		if err != nil {
+			return nil, err
+		}
 	}
 	simcfg.Speed = speed
 	simcfg.ReadOnly = args.ReadOnly
-	simcfg.RawMode = args.RawMode
-	simcfg.Real = args.Real
+	simcfg.Realtime = args.Realtime
 	simcfg.DispatcherHost = args.DispatcherHost
 	simcfg.DispatcherPort = args.DispatcherPort
 	simcfg.DumpPackets = args.DumpPackets
+	simcfg.AutoGo = args.AutoGo
+	simcfg.Id = simId
+	if len(args.InitScriptName) > 0 {
+		if args.InitScriptName == "none" {
+			simcfg.NewNodeScripts = &simulation.YamlScriptConfig{}
+		} else {
+			simcfg.NewNodeScripts, err = simulation.ReadNodeScript(args.InitScriptName)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+	simcfg.RandomSeed = prng.RandomSeed(args.RandomSeed)
 
 	dispatcherCfg := dispatcher.DefaultConfig()
-	dispatcherCfg.NoPcap = args.NoPcap
+	dispatcherCfg.SimulationId = simcfg.Id
+	dispatcherCfg.PcapEnabled = args.PcapType != pcap.FrameTypeOffStr
+	dispatcherCfg.PcapFrameType = pcap.ParseFrameTypeStr(args.PcapType)
+	if dispatcherCfg.PcapFrameType == pcap.FrameTypeUnknown {
+		logger.Fatalf("Unknown PCAP frame type '%s', use -h flag for an overview.", args.PcapType)
+	}
+	dispatcherCfg.DefaultWatchLevel = args.WatchLevel
+	watchLevel, err := logger.ParseLevelString(args.WatchLevel)
+	if err != nil {
+		return nil, err
+	}
+	dispatcherCfg.DefaultWatchOn = watchLevel != logger.OffLevel
+	dispatcherCfg.PhyTxStats = args.PhyTxStats
 
 	sim, err := simulation.NewSimulation(ctx, simcfg, dispatcherCfg)
-	simplelogger.FatalIfError(err)
-	return sim
+	return sim, err
 }

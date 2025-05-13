@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright (c) 2020, The OTNS Authors.
+# Copyright (c) 2020-2025, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -25,11 +25,28 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+# Entry point to running any OTNS tests.
+
 # shellcheck source=script/common.sh
 . "$(dirname "$0")"/common.sh
 
-OT_DIR=${OT_DIR:-""}
-OTBIN_DIR=
+show_help()
+{
+    set +x
+    echo -e "\nUsage: test <test-group-name-1> [<test-group-name-N>]* "
+    echo -e "\nThe following test-group-names can be provided as arguments:"
+    echo -e "  go-tests\n  py-unittests\n  py-ver-unittests\n  py-examples\n  stress-tests"
+    echo -e "  build-openthread\n  build-openthread-versions\n"
+}
+
+show_help_stress_tests()
+{
+    set +x
+    echo -e "\nUsage: test stress-tests <stress-test-name>"
+    echo -e "\nThe following stress-test-names can be provided as second argument:"
+    echo -e "  network-forming\n  commissioning\n  connectivity\n  network-latency\n  multicast-performance"
+    echo -e "  otns-performance\n  network-limits\n"
+}
 
 installed()
 {
@@ -40,15 +57,15 @@ go_tests()
 {
     install_deps
     install_otns
-
     build_openthread
 
     echo "" >coverage.txt
 
     PKG=$(go list ./...)
 
+    pwd
     for d in $PKG; do
-        OTNS_OT_CLI=$OTBIN_DIR/ot-cli-ftd go test -race -coverprofile=profile.out -covermode=atomic -coverpkg=./... "$d"
+        go test -race -coverprofile=profile.out -covermode=atomic -coverpkg=./... "$d"
         if [ -f profile.out ]; then
             cat profile.out >>coverage.txt
             rm profile.out
@@ -66,68 +83,38 @@ install_otns()
     ./script/install
 }
 
-get_openthread()
-{
-    if [[ -z $OT_DIR ]]; then
-        OT_DIR=$PWD/openthread
-        git submodule update --init --depth 1
-    fi
-
-    OTBIN_DIR=$OT_DIR/build/otns/examples/apps/cli
-}
-
-build_openthread()
-{
-    get_openthread
-
-    install_openthread_buildtools
-
-    (
-        cd "$OT_DIR"
-        mkdir -p build/otns
-        cd build/otns
-
-        local options=(
-            "-DOT_PLATFORM=simulation"
-            "-DOT_OTNS=ON"
-            "-DOT_SIMULATION_VIRTUAL_TIME=ON"
-            "-DOT_SIMULATION_VIRTUAL_TIME_UART=ON"
-            "-DOT_SIMULATION_MAX_NETWORK_SIZE=999"
-            "-DOT_COMMISSIONER=ON"
-            "-DOT_JOINER=ON"
-            "-DOT_BORDER_ROUTER=ON"
-            "-DOT_SERVICE=ON"
-            "-DOT_COAP=ON"
-            "-DOT_THREAD_VERSION=${THREAD_VERSION:-1.2}"
-        )
-
-        local COVERAGE=${COVERAGE:-0}
-        if [[ $COVERAGE == 1 ]]; then
-            options+=(
-                "-DOT_COVERAGE=ON"
-            )
-        fi
-
-        cmake -GNinja ../.. "${options[@]}"
-        ninja
-    )
-
-    OT_CLI_FTD_PATH="$OT_DIR/build/otns/examples/apps/cli/ot-cli-ftd"
-    echo "Please launch OTNS with command: otns -ot-cli $OT_CLI_FTD_PATH"
-}
-
 py_unittests()
 {
     install_deps
-    python3 -m pip install --user -r "$OTNSDIR"/pylibs/unittests/requirements.txt
+    activate_python_venv
+    python3 -m pip install -r "$OTNSDIR"/pylibs/unittests/requirements.txt
     install_otns
     build_openthread
-    cd "$OTBIN_DIR"
+    build_openthread_br
+
     python3 "$OTNSDIR"/pylibs/unittests/test_basic.py
     python3 "$OTNSDIR"/pylibs/unittests/test_ping.py
     python3 "$OTNSDIR"/pylibs/unittests/test_commissioning.py
-    python3 "$OTNSDIR"/pylibs/unittests/test_real.py
-    cd -
+    python3 "$OTNSDIR"/pylibs/unittests/test_signals.py
+    python3 "$OTNSDIR"/pylibs/unittests/test_radiomodels.py
+    python3 "$OTNSDIR"/pylibs/unittests/test_csl.py
+    python3 "$OTNSDIR"/pylibs/unittests/test_border_router.py
+    python3 "$OTNSDIR"/pylibs/unittests/test_sim_hosts.py
+
+    # Increase number of open files limit to allow large number of nodes. Ubuntu 22.04 has 8192 hard limit.
+    ulimit -Sn 8192
+    python3 "$OTNSDIR"/pylibs/unittests/test_topologies.py
+}
+
+py_versions_unittests()
+{
+    install_deps
+    activate_python_venv
+    python3 -m pip install -r "$OTNSDIR"/pylibs/unittests/requirements.txt
+    install_otns
+    build_openthread_versions
+
+    python3 "$OTNSDIR"/pylibs/unittests/test_exe_versions.py
 }
 
 check_py_example()
@@ -138,42 +125,47 @@ check_py_example()
     sleep 10
     killall otns || true
     wait $pid || die "Run pyOTNS example failed :$1"
+    sleep 0.5 # in rare cases, it takes more time for the UDP ports to be freed.
 }
 
 py_examples()
 {
     install_deps
+    activate_python_venv
     install_otns
     build_openthread
-    cd "$OTBIN_DIR"
+    build_openthread_br
+
     check_py_example "$OTNSDIR"/pylibs/examples/simple.py
+    check_py_example "$OTNSDIR"/pylibs/examples/form_partition.py
     check_py_example "$OTNSDIR"/pylibs/examples/ping.py
     check_py_example "$OTNSDIR"/pylibs/examples/farm.py
-    cd -
-}
-
-test_signals()
-{
-    install_deps
-    install_otns
-    build_openthread
-    cd "$OTBIN_DIR"
-    python3 "$OTNSDIR"/pylibs/unittests/test_signals.py
-    cd -
+    check_py_example "$OTNSDIR"/pylibs/examples/many_hops_network.py
+    check_py_example "$OTNSDIR"/pylibs/examples/dns_client.py
+    check_py_example "$OTNSDIR"/pylibs/examples/srp.py
+    check_py_example "$OTNSDIR"/pylibs/examples/multiple_channels.py
+    check_py_example "$OTNSDIR"/pylibs/examples/rekey.py
+    check_py_example "$OTNSDIR"/pylibs/examples/diagnostics.py
 }
 
 stress_tests()
 {
     install_deps
+    activate_python_venv
     install_otns
     build_openthread
-    cd "$OTBIN_DIR"
+    build_openthread_br
+
     python3 "$OTNSDIR"/pylibs/stress_tests/run_stress_suite.py "$@"
-    cd -
 }
 
 main()
 {
+    if [ "$#" -eq 0 ]; then
+        show_help
+        return 1
+    fi
+
     while (("$#")); do
         case "$1" in
             go-tests)
@@ -184,24 +176,34 @@ main()
                 py_unittests
                 shift 1
                 ;;
+            py-ver-unittests)
+                py_versions_unittests
+                shift 1
+                ;;
             py-examples)
                 py_examples
                 shift 1
                 ;;
-            signals)
-                test_signals
-                shift 1
-                ;;
             stress-tests)
+                if [ "$#" -le 1 ]; then
+                    show_help_stress_tests
+                    return 1
+                fi
                 stress_tests "$2"
                 shift 2
                 ;;
             build-openthread)
                 build_openthread
+                build_openthread_br
+                shift 1
+                ;;
+            build-openthread-versions)
+                build_openthread_versions
                 shift 1
                 ;;
             *)
                 echo "Error: Unsupported test $1" >&2
+                show_help
                 return 1
                 ;;
         esac

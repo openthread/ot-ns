@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2020-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -27,15 +27,17 @@
 import * as PIXI from "pixi.js-legacy";
 import VObject from "./VObject";
 import Button from "./Button";
-import {MAX_SPEED, PAUSE_SPEED} from "./consts";
+import {
+    MAX_SPEED,
+    PAUSE_SPEED,
+    TUNE_SPEED_SETTINGS,
+    NODE_SPACING_ABOVE_ACTIONBAR_PX
+} from "./consts";
 import {Resources} from "./resources";
 
 const {
     OtDeviceRole, NodeMode,
 } = require('../proto/visualize_grpc_pb.js');
-
-const TUNE_SPEED_MIN = 0.25;
-const TUNE_SPEED_MAX = 1024;
 
 export default class ActionBar extends VObject {
     constructor() {
@@ -49,6 +51,7 @@ export default class ActionBar extends VObject {
         this._buttonContext = {};
         this._buttonRequiredAbility = {};
         this._abilities = {};
+        this._tuneSpeedIndex = TUNE_SPEED_SETTINGS.indexOf(1);
 
         this.addButton("<<", "any", "speed", (e) => {
             this.actionSpeedDown()
@@ -71,6 +74,8 @@ export default class ActionBar extends VObject {
             sprite.tint = 0x4193F5;
             button.sprite = sprite
         });
+        this._speedDisplayBtn.minWidth = 88;
+        // add any-context buttons
         this.addButton(">>", "any", "speed", (e) => {
             this.actionSpeedUp()
         });
@@ -86,8 +91,11 @@ export default class ActionBar extends VObject {
         this.addButton("SED", "any", "add", (e) => {
             this.actionNewSED(e)
         });
-        this.addButton("Clear", "any", "del", (e) => {
-            this.actionClear(e)
+        this.addButton("SSED", "any", "add", (e) => {
+            this.actionNewSSED(e)
+        });
+        this.addButton("BR", "any", "add", (e) => {
+            this.actionNewBR(e)
         });
         // add node context buttons
         this.addButton("Delete", "node", "del", (e) => {
@@ -99,12 +107,24 @@ export default class ActionBar extends VObject {
         this.addButton("Radio On", "node", "radio", (e) => {
             this.actionRadioOn(e)
         });
+        // add more any-context buttons
         this._logClearButton = this.addButton("Clear Log", "any", "", (e) => {
             this.actionClearLog()
         });
         this._logOnOffButton = this.addButton("Show Log", "any", "", (e) => {
             this.actionToggleLogWindow()
         });
+        this.addButton("Delete All", "any", "del", (e) => {
+            this.actionClear(e)
+        });
+        // add buttons that open different viewers in separate tab
+        this._energyChartOpenButton = this.addButton("Energy-stats \u2197", "any", "", (e) => {
+            this.actionOpenEnergyWindow()
+        });
+        this._statsViewerOpenButton = this.addButton("Node-stats \u2197", "any", "", (e) => {
+            this.actionOpenStatsWindow()
+        });
+
     }
 
     setAbilities(abilities) {
@@ -113,8 +133,11 @@ export default class ActionBar extends VObject {
     }
 
     setSpeed(speed) {
+        let oldspeed = this.speed;
         this.speed = speed;
-        this.refresh()
+        if (Math.round(this.speed / oldspeed * 100) != 1.0) {
+            this.refresh()
+        }
     }
 
     actionTogglePauseResume() {
@@ -127,22 +150,24 @@ export default class ActionBar extends VObject {
     }
 
     actionSpeedDown() {
-        if (!this.vis.isPaused()) {
-            if (this.vis.isMaxSpeed()) {
-                this.setNewSpeed(TUNE_SPEED_MAX)
-            } else {
-                this.setNewSpeed(this.vis.speed / 2)
-            }
+        if (this.vis.isPaused())
+            return;
+        this._tuneSpeedIndex--;
+        if (this._tuneSpeedIndex < 0){
+            this._tuneSpeedIndex = 0;
+        }else{
+            this.setNewSpeed(TUNE_SPEED_SETTINGS[this._tuneSpeedIndex]);
         }
     }
 
     actionSpeedUp() {
-        if (!this.vis.isPaused() && !this.vis.isMaxSpeed()) {
-            if (this.vis.speed >= TUNE_SPEED_MAX) {
-                this.setNewSpeed(MAX_SPEED)
-            } else {
-                this.setNewSpeed(this.vis.speed * 2)
-            }
+        if (this.vis.isPaused())
+            return;
+        this._tuneSpeedIndex++;
+        if (this._tuneSpeedIndex >= TUNE_SPEED_SETTINGS.length){
+            this._tuneSpeedIndex = TUNE_SPEED_SETTINGS.length-1;
+        }else{
+            this.setNewSpeed(TUNE_SPEED_SETTINGS[this._tuneSpeedIndex]);
         }
     }
 
@@ -151,52 +176,32 @@ export default class ActionBar extends VObject {
             speed = MAX_SPEED
         } else if (speed <= PAUSE_SPEED) {
             speed = PAUSE_SPEED;
-        } else {
-            if (speed >= 1) {
-                speed = Math.round(speed)
-            } else {
-                speed = Math.fround(speed)
-            }
-            speed = Math.max(TUNE_SPEED_MIN, speed);
-            speed = Math.min(TUNE_SPEED_MAX, speed);
         }
-        this.vis.setSpeed(speed)
+        this.vis.setSpeed(speed);
     }
 
     actionNewRouter(e) {
-        let pos = e.data.getLocalPosition(this.vis._root);
-        let mode = new NodeMode();
-        mode.setRxOnWhenIdle(true);
-        mode.setFullThreadDevice(true);
-        mode.setFullNetworkData(true);
-        this.vis.ctrlAddNode(Math.round(pos.x), Math.round(pos.y - 100), "router")
+        this.vis.ctrlAddNode("router")
     }
 
     actionNewFED(e) {
-        let pos = e.data.getLocalPosition(this.vis._root);
-        let mode = new NodeMode();
-        mode.setRxOnWhenIdle(true);
-        mode.setFullThreadDevice(true);
-        mode.setFullNetworkData(true);
-        this.vis.ctrlAddNode(Math.round(pos.x), Math.round(pos.y - 100), "fed")
+        this.vis.ctrlAddNode("fed")
     }
 
     actionNewMED(e) {
-        let pos = e.data.getLocalPosition(this.vis._root);
-        let mode = new NodeMode();
-        mode.setRxOnWhenIdle(true);
-        mode.setFullThreadDevice(false);
-        mode.setFullNetworkData(true);
-        this.vis.ctrlAddNode(Math.round(pos.x), Math.round(pos.y - 100), "med")
+        this.vis.ctrlAddNode("med")
     }
 
     actionNewSED(e) {
-        let pos = e.data.getLocalPosition(this.vis._root);
-        let mode = new NodeMode();
-        mode.setRxOnWhenIdle(false);
-        mode.setFullThreadDevice(false);
-        mode.setFullNetworkData(true);
-        this.vis.ctrlAddNode(Math.round(pos.x), Math.round(pos.y - 100), "sed")
+        this.vis.ctrlAddNode("sed")
+    }
+
+    actionNewSSED(e) {
+        this.vis.ctrlAddNode("ssed")
+    }
+
+    actionNewBR(e) {
+        this.vis.ctrlAddNode("br")
     }
 
     actionDelete(e) {
@@ -229,6 +234,14 @@ export default class ActionBar extends VObject {
             this._logOnOffButton.text = "Show Log"
         }
         this.vis.actionBar.refresh()
+    }
+    
+    actionOpenEnergyWindow() {
+        window.open(document.location.href.replace("/visualize","/energyViewer"), '_blank');
+    }
+
+    actionOpenStatsWindow() {
+        window.open(document.location.href.replace("/visualize","/statsViewer"), '_blank');
     }
 
     addButton(label, context, requiredAbility, callback, onRefresh) {
@@ -285,6 +298,6 @@ export default class ActionBar extends VObject {
     }
 
     onDraggingDone() {
-
+        //
     }
 }

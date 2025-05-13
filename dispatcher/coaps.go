@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2020-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -28,7 +28,6 @@ package dispatcher
 
 import (
 	. "github.com/openthread/ot-ns/types"
-	"github.com/simonlingoogle/go-simplelogger"
 )
 
 type CoapType int
@@ -81,11 +80,11 @@ func (coaps *coapsHandler) OnSend(curTime uint64, nodeId NodeId, messageId int, 
 
 func (coaps *coapsHandler) OnRecv(curTime uint64, nodeId NodeId, messageId int, coapType CoapType, coapCode CoapCode, uri string, peerAddr string, peerPort int) {
 	msg := coaps.findMessage(messageId, coapType, coapCode, uri)
-	if msg == nil {
-		simplelogger.Warnf("CoAP message %d,%d,%d,%s not sent but received by Node %d", messageId, coapType, coapCode, uri, nodeId)
+	if msg == nil { // may happen if CoAP message originated from outside of mesh (external process)
 		return
 	}
 
+	// keep all received CoAP messages for KPI purposes.
 	msg.Receivers = append(msg.Receivers, CoapMessageRecvInfo{
 		Timestamp: curTime,
 		DstNode:   nodeId,
@@ -96,12 +95,11 @@ func (coaps *coapsHandler) OnRecv(curTime uint64, nodeId NodeId, messageId int, 
 
 func (coaps *coapsHandler) OnSendError(nodeId NodeId, messageId int, coapType CoapType, coapCode CoapCode, uri string, peerAddr string, peerPort int, error string) {
 	msg := coaps.findMessage(messageId, coapType, coapCode, uri)
-	if msg == nil {
-		simplelogger.Warnf("CoAP message %d,%d,%d,%s not sent but received by Node %d", messageId, coapType, coapCode, uri, nodeId)
+	if msg == nil { // may happen if CoAP message originated from outside of mesh (external process) ?
 		return
 	}
 
-	msg.Error = error
+	msg.Error = error // mark the message as having had a send error
 }
 
 func (coaps *coapsHandler) findMessage(id int, coapType CoapType, coapCode CoapCode, uri string) *CoapMessage {
@@ -115,9 +113,12 @@ func (coaps *coapsHandler) findMessage(id int, coapType CoapType, coapCode CoapC
 	return nil
 }
 
-func (coaps *coapsHandler) DumpMessages() (ret []*CoapMessage) {
-	ret, coaps.messages = coaps.messages, nil
-	return
+func (coaps *coapsHandler) DumpMessages(clearCollectedMessages bool) []*CoapMessage {
+	ret := coaps.messages
+	if clearCollectedMessages {
+		coaps.messages = nil
+	}
+	return ret
 }
 
 func newCoapsHandler() *coapsHandler {

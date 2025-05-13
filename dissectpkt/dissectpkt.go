@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2020-2022, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -49,4 +49,8 @@ func Dissect(data []byte) *PktInfo {
 	}
 
 	return pktinfo
+}
+
+func IsAckFrame(pkt *PktInfo) bool {
+	return pkt.MacFrame.FrameControl.FrameType() == wpan.FrameTypeAck
 }

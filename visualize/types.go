@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2022-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -27,18 +27,19 @@
 package visualize
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/openthread/ot-ns/dissectpkt/wpan"
+	"github.com/openthread/ot-ns/energy"
 	. "github.com/openthread/ot-ns/types"
 )
 
 type Visualizer interface {
+	Init()
 	Run()
 	Stop()
 
-	AddNode(nodeid NodeId, x int, y int, radioRange int)
+	AddNode(nodeid NodeId, cfg *NodeConfig)
 	SetNodeRloc16(nodeid NodeId, rloc16 uint16)
 	SetNodeRole(nodeid NodeId, role OtDeviceRole)
 	SetNodeMode(nodeid NodeId, mode NodeMode)
@@ -46,11 +47,10 @@ type Visualizer interface {
 	SetNodePartitionId(nodeid NodeId, parid uint32)
 	SetSpeed(speed float64)
 	AdvanceTime(ts uint64, speed float64)
-
 	OnNodeFail(nodeId NodeId)
 	OnNodeRecover(nodeId NodeId)
 	SetController(ctrl SimulationController)
-	SetNodePos(nodeid NodeId, x, y int)
+	SetNodePos(nodeid NodeId, x, y, z int)
 	DeleteNode(id NodeId)
 	AddRouterTable(id NodeId, extaddr uint64)
 	RemoveRouterTable(id NodeId, extaddr uint64)
@@ -62,6 +62,10 @@ type Visualizer interface {
 	OnExtAddrChange(id NodeId, extaddr uint64)
 	SetTitle(titleInfo TitleInfo)
 	SetNetworkInfo(networkInfo NetworkInfo)
+	UpdateNodesEnergy(node []*energy.NodeEnergy, timestamp uint64, updateView bool)
+	SetEnergyAnalyser(ea *energy.EnergyAnalyser)
+	UpdateNodeStats(statsInfo *NodeStatsInfo)
+	UpdateTimeWindowStats(statsInfo *TimeWindowStatsInfo)
 }
 
 type MsgVisualizeInfo struct {
@@ -70,28 +74,9 @@ type MsgVisualizeInfo struct {
 	Seq             uint8
 	DstAddrShort    uint16
 	DstAddrExtended uint64
-}
-
-func (info *MsgVisualizeInfo) Label() string {
-	frameType := info.FrameControl.FrameType()
-	if frameType == wpan.FrameTypeAck {
-		return fmt.Sprintf("ACK%03d", info.Seq)
-	} else if info.FrameControl.SecurityEnabled() {
-		return fmt.Sprintf("MAC%03d", info.Seq)
-	} else {
-		return fmt.Sprintf("MLE%03d", info.Seq)
-	}
-}
-
-func (info *MsgVisualizeInfo) FormatDstAddr() interface{} {
-	dstaddrmode := info.FrameControl.DstAddrMode()
-	if dstaddrmode == wpan.DstAddrModeShort {
-		return fmt.Sprintf("%04x", info.DstAddrShort)
-	} else if dstaddrmode == wpan.DstAddrModeExtended {
-		return fmt.Sprintf("%016x", info.DstAddrExtended)
-	} else {
-		return "@"
-	}
+	SendDurationUs  uint32
+	PowerDbm        int8
+	FrameSizeBytes  uint16
 }
 
 type TitleInfo struct {
@@ -111,15 +96,39 @@ func DefaultTitleInfo() TitleInfo {
 }
 
 type NetworkInfo struct {
-	Real    bool
-	Version string
-	Commit  string
+	Real          bool
+	Version       string
+	Commit        string
+	NodeId        int
+	ThreadVersion uint16
 }
 
 func DefaultNetworkInfo() NetworkInfo {
 	return NetworkInfo{
-		Real:    false,
-		Version: "",
-		Commit:  "main",
+		Real:          false,
+		Version:       "",
+		Commit:        "",
+		NodeId:        InvalidNodeId,
+		ThreadVersion: InvalidThreadVersion,
 	}
+}
+
+type NodeStatsInfo struct {
+	TimeUs uint64
+	Stats  NodeStats
+}
+
+func DefaultNodeStatsInfo() NodeStatsInfo {
+	return NodeStatsInfo{
+		TimeUs: 0,
+		Stats:  NodeStats{},
+	}
+}
+
+type TimeWindowStatsInfo struct {
+	WinStartUs      uint64
+	WinWidthUs      uint64
+	PhyTxBytes      map[NodeId]uint64
+	ChanSampleCount map[NodeId]uint64
+	NodePhyStats    map[NodeId]PhyStats
 }

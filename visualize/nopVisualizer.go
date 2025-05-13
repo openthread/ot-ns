@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2022-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -29,100 +29,123 @@ package visualize
 import (
 	"time"
 
+	"github.com/openthread/ot-ns/energy"
 	. "github.com/openthread/ot-ns/types"
 )
 
-type nopVisualizer struct{}
-
-func (nv nopVisualizer) SetNetworkInfo(networkInfo NetworkInfo) {
+type NopVisualizer struct {
 }
 
-func (nv nopVisualizer) OnExtAddrChange(id NodeId, extaddr uint64) {
-}
-
-func (nv nopVisualizer) SetSpeed(speed float64) {
-}
-
-func (nv nopVisualizer) SetParent(id NodeId, extaddr uint64) {
-}
-
-func (nv nopVisualizer) CountDown(duration time.Duration, text string) {
-}
-
-func (nv nopVisualizer) ShowDemoLegend(x int, y int, title string) {
-}
-
-func (nv nopVisualizer) AddRouterTable(id NodeId, extaddr uint64) {
-}
-
-func (nv nopVisualizer) RemoveRouterTable(id NodeId, extaddr uint64) {
-}
-
-func (nv nopVisualizer) AddChildTable(id NodeId, extaddr uint64) {
-}
-
-func (nv nopVisualizer) RemoveChildTable(id NodeId, extaddr uint64) {
-}
-
-func (nv nopVisualizer) DeleteNode(id NodeId) {
-}
-
-func (nv nopVisualizer) SetNodePos(nodeid NodeId, x, y int) {
-}
-
-func (nv nopVisualizer) SetController(ctrl SimulationController) {
-}
-
-func (nv nopVisualizer) Run() {
-	for {
-		time.Sleep(time.Hour)
-	}
-}
-
-func (nv nopVisualizer) Stop() {
-
-}
-
-func (nv nopVisualizer) AddNode(nodeid NodeId, x int, y int, radioRange int) {
-
-}
-
-func (nv nopVisualizer) Send(srcid NodeId, dstid NodeId, mvinfo *MsgVisualizeInfo) {
-
-}
-
-func (nv nopVisualizer) SetNodeRloc16(id NodeId, rloc16 uint16) {
-
-}
-
-func (nv nopVisualizer) SetNodeRole(nodeid NodeId, role OtDeviceRole) {
-
-}
-
-func (nv nopVisualizer) SetNodeMode(nodeid NodeId, mode NodeMode) {
-
-}
-
-func (nv nopVisualizer) SetNodePartitionId(nodeid NodeId, parid uint32) {
-
-}
-
-func (nv nopVisualizer) AdvanceTime(ts uint64, speed float64) {
-
-}
-
-func (nv nopVisualizer) OnNodeFail(NodeId) {
-
-}
-
-func (nv nopVisualizer) OnNodeRecover(NodeId) {
-
-}
-
-func (nv nopVisualizer) SetTitle(titleInfo TitleInfo) {
-
-}
-
+// NewNopVisualizer creates a new Visualizer that does nothing. It can be used as a base class to build
+// an own Visualizer that implements a useful subset of the methods.
 func NewNopVisualizer() Visualizer {
-	return nopVisualizer{}
+	return &NopVisualizer{}
+}
+
+func (nv *NopVisualizer) SetNetworkInfo(networkInfo NetworkInfo) {
+}
+
+func (nv *NopVisualizer) OnExtAddrChange(id NodeId, extaddr uint64) {
+}
+
+func (nv *NopVisualizer) SetSpeed(speed float64) {
+}
+
+func (nv *NopVisualizer) SetParent(id NodeId, extaddr uint64) {
+}
+
+func (nv *NopVisualizer) CountDown(duration time.Duration, text string) {
+}
+
+func (nv *NopVisualizer) ShowDemoLegend(x int, y int, title string) {
+}
+
+func (nv *NopVisualizer) AddRouterTable(id NodeId, extaddr uint64) {
+}
+
+func (nv *NopVisualizer) RemoveRouterTable(id NodeId, extaddr uint64) {
+}
+
+func (nv *NopVisualizer) AddChildTable(id NodeId, extaddr uint64) {
+}
+
+func (nv *NopVisualizer) RemoveChildTable(id NodeId, extaddr uint64) {
+}
+
+func (nv *NopVisualizer) DeleteNode(id NodeId) {
+}
+
+func (nv *NopVisualizer) SetNodePos(nodeid NodeId, x, y, z int) {
+}
+
+func (nv *NopVisualizer) SetController(simController SimulationController) {
+
+}
+
+func (nv *NopVisualizer) Init() {
+
+}
+
+func (nv *NopVisualizer) Run() {
+
+}
+
+func (nv *NopVisualizer) Stop() {
+
+}
+
+func (nv *NopVisualizer) AddNode(nodeid NodeId, cfg *NodeConfig) {
+
+}
+
+func (nv *NopVisualizer) Send(srcid NodeId, dstid NodeId, mvinfo *MsgVisualizeInfo) {
+
+}
+
+func (nv *NopVisualizer) SetNodeRloc16(id NodeId, rloc16 uint16) {
+
+}
+
+func (nv *NopVisualizer) SetNodeRole(nodeid NodeId, role OtDeviceRole) {
+
+}
+
+func (nv *NopVisualizer) SetNodeMode(nodeid NodeId, mode NodeMode) {
+
+}
+
+func (nv *NopVisualizer) SetNodePartitionId(nodeid NodeId, parid uint32) {
+
+}
+
+func (nv *NopVisualizer) AdvanceTime(ts uint64, speed float64) {
+
+}
+
+func (nv *NopVisualizer) OnNodeFail(NodeId) {
+
+}
+
+func (nv *NopVisualizer) OnNodeRecover(NodeId) {
+
+}
+
+func (nv *NopVisualizer) SetTitle(titleInfo TitleInfo) {
+
+}
+
+func (nv *NopVisualizer) UpdateNodesEnergy(node []*energy.NodeEnergy, timestamp uint64, updateView bool) {
+
+}
+
+func (nv *NopVisualizer) SetEnergyAnalyser(ea *energy.EnergyAnalyser) {
+
+}
+
+func (nv *NopVisualizer) UpdateNodeStats(nodeStatsInfo *NodeStatsInfo) {
+
+}
+
+func (nv *NopVisualizer) UpdateTimeWindowStats(timeWinStatsInfo *TimeWindowStatsInfo) {
+
 }

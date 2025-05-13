@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2020-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -28,30 +28,107 @@ package pcap
 
 import (
 	"encoding/binary"
+	"fmt"
 	"os"
+
+	"github.com/openthread/ot-ns/logger"
+	. "github.com/openthread/ot-ns/types"
+)
+
+type FrameType int
+
+const (
+	FrameTypeOff FrameType = iota
+	FrameTypeWpan
+	FrameTypeWpanTap
+	FrameTypeUnknown
 )
 
 const (
-	dltIeee802154    = 195
-	pcapMagicNumber  = 0xA1B2C3D4
-	pcapVersionMajor = 2
-	pcapVersionMinor = 4
+	FrameTypeOffStr     string = "off"
+	FrameTypeWpanStr    string = "wpan"
+	FrameTypeWpanTapStr string = "wpan-tap"
+)
 
+const (
+	dltIeee802154       = 195
+	pcapMagicNumber     = 0xA1B2C3D4
+	pcapVersionMajor    = 2
+	pcapVersionMinor    = 4
 	pcapFileHeaderSize  = 24
 	pcapFrameHeaderSize = 16
 )
 
-type File struct {
+const (
+	// 802.15.4 frame that uses a Reserved type and is only included as t=0 simulation time reference for the PCAP file.
+	timeReference802154frameData string = "\x04\x21This is an OTNS simulation PCAP-start t=0 reference frame.\x61\x3f"
+)
+
+// File represents a PCAP file
+type File interface {
+	AppendFrame(frame Frame) error
+	Sync() error
+	Close() error
+}
+
+// Frame represents a single radio frame that can be added to a PCAP file
+type Frame struct {
+	Timestamp uint64
+	Data      []byte
+	Channel   ChannelId
+	Rssi      float32
+}
+
+type wpanFile struct {
 	fd *os.File
 }
 
-func NewFile(filename string) (*File, error) {
+// NewFile creates a new PCAP file with all frames using specified frameType
+func NewFile(filename string, frameType FrameType, useTimeRefFrame bool) (File, error) {
+	var f File
+	var err error
+
+	switch frameType {
+	case FrameTypeWpan:
+		f, err = newWpanFile(filename)
+	case FrameTypeWpanTap:
+		f, err = newWpanTapFile(filename)
+	default:
+		f, err = nil, fmt.Errorf("invalid PCAP frame type: %d", frameType)
+	}
+
+	if useTimeRefFrame && err == nil && f != nil {
+		logger.PanicfIfError(f.AppendFrame(Frame{
+			Timestamp: 0,
+			Data:      []byte(timeReference802154frameData),
+			Channel:   0,
+			Rssi:      0,
+		}), "PCAP file time-reference 0 frame could not be written")
+	}
+
+	return f, err
+}
+
+func ParseFrameTypeStr(tp string) FrameType {
+	switch tp {
+	case FrameTypeOffStr:
+		return FrameTypeOff
+	case FrameTypeWpanStr:
+		return FrameTypeWpan
+	case FrameTypeWpanTapStr:
+		return FrameTypeWpanTap
+	default:
+		return FrameTypeUnknown
+	}
+}
+
+func newWpanFile(filename string) (File, error) {
 	fd, err := os.OpenFile(filename, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
 	if err != nil {
 		return nil, err
 	}
 
-	pf := &File{
+	pf := &wpanFile{
 		fd: fd,
 	}
 
@@ -63,14 +140,15 @@ func NewFile(filename string) (*File, error) {
 	return pf, nil
 }
 
-func (pf *File) AppendFrame(ustime uint64, frame []byte) error {
+func (pf *wpanFile) AppendFrame(frame Frame) error {
 	var header [pcapFrameHeaderSize]byte
-	sec := uint32(ustime / 1000000)
-	usec := uint32(ustime % 1000000)
+	sec := uint32(frame.Timestamp / 1000000)
+	usec := uint32(frame.Timestamp % 1000000)
 	binary.LittleEndian.PutUint32(header[:4], sec)
 	binary.LittleEndian.PutUint32(header[4:8], usec)
-	binary.LittleEndian.PutUint32(header[8:12], uint32(len(frame)))
-	binary.LittleEndian.PutUint32(header[12:16], uint32(len(frame)))
+	plen := uint32(len(frame.Data))
+	binary.LittleEndian.PutUint32(header[8:12], plen)
+	binary.LittleEndian.PutUint32(header[12:16], plen)
 
 	var err error
 
@@ -79,19 +157,19 @@ func (pf *File) AppendFrame(ustime uint64, frame []byte) error {
 		return err
 	}
 
-	_, err = pf.fd.Write(frame)
+	_, err = pf.fd.Write(frame.Data)
 	return err
 }
 
-func (pf *File) Sync() error {
+func (pf *wpanFile) Sync() error {
 	return pf.fd.Sync()
 }
 
-func (pf *File) Close() error {
+func (pf *wpanFile) Close() error {
 	return pf.fd.Close()
 }
 
-func (pf *File) writeHeader() error {
+func (pf *wpanFile) writeHeader() error {
 	var header [pcapFileHeaderSize]byte
 	binary.LittleEndian.PutUint32(header[:4], pcapMagicNumber)
 	binary.LittleEndian.PutUint16(header[4:6], pcapVersionMajor)

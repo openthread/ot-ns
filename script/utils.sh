@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright (c) 2020, The OTNS Authors.
+# Copyright (c) 2020-2025, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -25,7 +25,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-readonly Darwin
+# Collection of utility functions for scripts in this directory or elsewhere.
 
 function die()
 {
@@ -33,9 +33,10 @@ function die()
     false
 }
 
-function realpath()
+function realpathf()
 {
-    python3 -c "import os; print(os.path.realpath('$1'))"
+    # the Python3 method is a backup. Used for max portability.
+    realpath -s "$1" 2>/dev/null || python3 -c "import os; print(os.path.realpath('$1'))"
 }
 
 function installed()
@@ -82,9 +83,16 @@ install_package()
                 shift 2
                 ;;
             --brew)
-
                 if installed brew; then
                     brew install "$2"
+                    return 0
+                fi
+
+                shift 2
+                ;;
+            --snap)
+                if installed snap; then
+                    sudo snap install "$2"
                     return 0
                 fi
 
@@ -103,23 +111,27 @@ install_package()
 
 function install_pretty_tools()
 {
+    # FIXME Known bug: version v1.59.0 won't work with Go 1.23 or higher. Requires version <= 1.22
     if ! installed golangci-lint; then
-        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b "$(go env GOPATH)"/bin v1.51.2
+        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b "$(go env GOPATH)"/bin v1.59.0
     fi
 
-    go install mvdan.cc/sh/v3/cmd/shfmt@latest
+    install_package shfmt --apt shfmt --brew shfmt
     install_package shellcheck --apt shellcheck --brew shellcheck
 }
 
-install_openthread_buildtools()
+get_openthread_commit()
 {
-    if installed "ninja"; then
-        return 0
-    fi
-
-    if [[ $Darwin == 1 ]]; then
-        brew install ninja
-    else
-        sudo apt-get install ninja-build
-    fi
+    local commit="${1}"
+    local ot_commit_dir="${2}"
+    local ot_dir="${3}"
+    ot_commit_dir=$(realpathf "${ot_commit_dir}")
+    ot_dir=$(realpathf "${ot_dir}")
+    mkdir -p "${ot_commit_dir}"
+    (
+        cd "${ot_dir}" || die "OpenThread directory not found: ${ot_dir}"
+        git archive --format=tar "${commit}" | tar -x -C "${ot_commit_dir}"
+        cd "${ot_commit_dir}" || die "OpenThread target directory for commit not found: ${ot_commit_dir}"
+        patch -p1 <../etc/ot-mbedtls-settings.patch
+    )
 }

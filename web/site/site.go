@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2022-2023, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -27,16 +27,25 @@
 package web_site
 
 import (
+	"html"
 	"html/template"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
 	"path/filepath"
+	"sync"
 
-	"github.com/simonlingoogle/go-simplelogger"
+	"github.com/openthread/ot-ns/logger"
 )
 
+var httpServer *http.Server = nil
+var canServe bool = true
+var httpServerMutex sync.Mutex
+var Started = make(chan struct{})
+
 func Serve(listenAddr string) error {
+	defer logger.Debugf("webserver exit.")
+
 	assetDir := os.Getenv("HOME")
 	if assetDir == "" {
 		assetDir = "/tmp"
@@ -73,8 +82,8 @@ func Serve(listenAddr string) error {
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
 
 	http.HandleFunc("/visualize", func(writer http.ResponseWriter, request *http.Request) {
-		addr := request.URL.Query()["addr"][0]
-		simplelogger.Debugf("visualizing addr=%+v", addr)
+		addr := html.EscapeString(request.URL.Query()["addr"][0])
+		logger.Debugf("visualizing addr=%+v", addr)
 		err := templates.ExecuteTemplate(writer, "visualize.html", map[string]interface{}{
 			"addr": addr,
 		})
@@ -83,6 +92,49 @@ func Serve(listenAddr string) error {
 		}
 	})
 
-	simplelogger.Infof("OTNS web serving on %s ...", listenAddr)
-	return http.ListenAndServe(listenAddr, nil)
+	http.HandleFunc("/energyViewer", func(writer http.ResponseWriter, request *http.Request) {
+		addr := html.EscapeString(request.URL.Query()["addr"][0])
+		logger.Debugf("energy charts visualizing addr=%+v", addr)
+		err := templates.ExecuteTemplate(writer, "energyViewer.html", map[string]interface{}{
+			"addr": addr,
+		})
+		if err != nil {
+			writer.WriteHeader(501)
+		}
+	})
+
+	http.HandleFunc("/statsViewer", func(writer http.ResponseWriter, request *http.Request) {
+		addr := html.EscapeString(request.URL.Query()["addr"][0])
+		logger.Debugf("statsViewer visualizing addr=%+v", addr)
+		err := templates.ExecuteTemplate(writer, "statsViewer.html", map[string]interface{}{
+			"addr": addr,
+		})
+		if err != nil {
+			writer.WriteHeader(501)
+		}
+	})
+
+	httpServerMutex.Lock()
+	if !canServe {
+		httpServer = nil
+		httpServerMutex.Unlock()
+		close(Started)
+		return http.ErrServerClosed
+	}
+	httpServer = &http.Server{Addr: listenAddr, Handler: nil}
+	logger.Infof("OTNS webserver now serving on %s ...", listenAddr)
+	defer logger.Tracef("webserver: httpServer.ListenAndServe() done")
+	httpServerMutex.Unlock()
+	close(Started)
+	return httpServer.ListenAndServe()
+}
+
+func StopServe() {
+	logger.Debugf("requesting webserver to exit ...")
+	httpServerMutex.Lock()
+	if httpServer != nil {
+		_ = httpServer.Close()
+	}
+	canServe = false // prevent serving again in same execution.
+	httpServerMutex.Unlock()
 }

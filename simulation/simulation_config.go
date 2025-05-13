@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2020-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -26,45 +26,62 @@
 
 package simulation
 
-import "github.com/openthread/ot-ns/threadconst"
+import (
+	"github.com/openthread/ot-ns/logger"
+	"github.com/openthread/ot-ns/prng"
+	. "github.com/openthread/ot-ns/types"
+)
 
 const (
 	DefaultChannel         = 11
-	DefaultChannelMask     = 0x07fff800
 	DefaultExtPanid        = "dead00beef00cafe"
 	DefaultMeshLocalPrefix = "fdde:ad00:beef:0::"
 	DefaultNetworkKey      = "00112233445566778899aabbccddeeff"
 	DefaultNetworkName     = "otns"
 	DefaultPanid           = 0xface
 	DefaultPskc            = "3aa55f91ca47d1e4e71a08cb35e91591"
-	DefaultSecurityPolicy  = "672 onrc"
 )
 
 type Config struct {
-	NetworkKey     string
-	Panid          uint16
-	Channel        int
-	OtCliPath      string
-	Speed          float64
-	ReadOnly       bool
-	RawMode        bool
-	Real           bool
-	DispatcherHost string
-	DispatcherPort int
-	DumpPackets    bool
+	ExeConfig        ExecutableConfig
+	ExeConfigDefault ExecutableConfig
+	NewNodeConfig    NodeConfig
+	NewNodeScripts   *YamlScriptConfig
+	Speed            float64
+	ReadOnly         bool
+	Realtime         bool
+	AutoGo           bool
+	DumpPackets      bool
+	DispatcherHost   string
+	DispatcherPort   int
+	RadioModel       string
+	Id               int
+	Channel          ChannelId
+	LogLevel         logger.Level
+	LogFileLevel     logger.Level
+	RandomSeed       prng.RandomSeed
+	OutputDir        string
 }
 
 func DefaultConfig() *Config {
 	return &Config{
-		NetworkKey:     DefaultNetworkKey,
-		Panid:          DefaultPanid,
-		Channel:        DefaultChannel,
-		Speed:          1,
-		ReadOnly:       false,
-		RawMode:        false,
-		OtCliPath:      "./ot-cli-ftd",
-		Real:           false,
-		DispatcherHost: "localhost",
-		DispatcherPort: threadconst.InitialDispatcherPort,
+		ExeConfig:        DefaultExecutableConfig,
+		ExeConfigDefault: DefaultExecutableConfig,
+		NewNodeConfig:    DefaultNodeConfig(),
+		NewNodeScripts:   DefaultNodeScripts(),
+		Speed:            1,
+		ReadOnly:         false,
+		Realtime:         false,
+		AutoGo:           true,
+		DumpPackets:      false,
+		DispatcherHost:   "localhost",
+		DispatcherPort:   InitialDispatcherPort,
+		RadioModel:       "MutualInterference",
+		Id:               0,
+		Channel:          DefaultChannel,
+		LogLevel:         logger.WarnLevel,
+		LogFileLevel:     logger.DebugLevel,
+		RandomSeed:       0,
+		OutputDir:        "tmp",
 	}
 }

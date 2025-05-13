@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2020-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -28,15 +28,17 @@ package cli
 
 import (
 	"strconv"
-
-	. "github.com/openthread/ot-ns/types"
+	"strings"
 
 	"github.com/alecthomas/participle"
+
+	. "github.com/openthread/ot-ns/types"
 )
 
-// noinspection GoStructTag
+// noinspection GoVetStructTag
 type Command struct {
 	Add                 *AddCmd                 `  @@` //nolint
+	AutoGo              *AutoGoCmd              `| @@` //nolint
 	Coaps               *CoapsCmd               `| @@` //nolint
 	ConfigVisualization *ConfigVisualizationCmd `| @@` //nolint
 	CountDown           *CountDownCmd           `| @@` //nolint
@@ -44,10 +46,17 @@ type Command struct {
 	Debug               *DebugCmd               `| @@` //nolint
 	Del                 *DelCmd                 `| @@` //nolint
 	DemoLegend          *DemoLegendCmd          `| @@` //nolint
+	Energy              *EnergyCmd              `| @@` //nolint
+	Exe                 *ExeCmd                 `| @@` //nolint
 	Exit                *ExitCmd                `| @@` //nolint
 	Go                  *GoCmd                  `| @@` //nolint
+	Help                *HelpCmd                `| @@` //nolint
+	Host                *HostCmd                `| @@` //nolint
 	Joins               *JoinsCmd               `| @@` //nolint
-	Move                *Move                   `| @@` //nolint
+	Kpi                 *KpiCmd                 `| @@` //nolint
+	Load                *LoadCmd                `| @@` //nolint
+	LogLevel            *LogLevelCmd            `| @@` //nolint
+	Move                *MoveCmd                `| @@` //nolint
 	NetInfo             *NetInfoCmd             `| @@` //nolint
 	Node                *NodeCmd                `| @@` //nolint
 	Nodes               *NodesCmd               `| @@` //nolint
@@ -56,94 +65,128 @@ type Command struct {
 	Pings               *PingsCmd               `| @@` //nolint
 	Plr                 *PlrCmd                 `| @@` //nolint
 	Radio               *RadioCmd               `| @@` //nolint
+	RadioModel          *RadioModelCmd          `| @@` //nolint
+	RadioParam          *RadioParamCmd          `| @@` //nolint
+	RfSim               *RfSimCmd               `| @@` //nolint
+	Save                *SaveCmd                `| @@` //nolint
 	Scan                *ScanCmd                `| @@` //nolint
+	Send                *SendCmd                `| @@` //nolint
 	Speed               *SpeedCmd               `| @@` //nolint
+	Time                *TimeCmd                `| @@` //nolint
 	Title               *TitleCmd               `| @@` //nolint
+	Unwatch             *UnwatchCmd             `| @@` //nolint
+	Watch               *WatchCmd               `| @@` //nolint
 	Web                 *WebCmd                 `| @@` //nolint
 }
 
-// noinspection GoStructTag
+// noinspection GoVetStructTag
 type FullScreen struct {
 	FullScreen struct{} `"fs"` //nolint
 }
 
-// noinspection GoStructTag
+// noinspection GoVetStructTag
 type RadioRange struct {
 	Val int `"rr" @Int` //nolint
 }
 
-// noinspection GoStructTag
+// noinspection GoVetStructTag
 type FieldWidth struct {
 	Val int `"fw" @Int` //nolint
 }
 
-// noinspection GoStructTag
+// noinspection GoVetStructTag
 type FieldHeight struct {
 	Val int `"fh" @Int` //nolint
 }
 
-// noinspection GoStructTag
+// noinspection GoVetStructTag
 type VisualizeArg struct {
 	Flag struct{}  `"v"`    //nolint
 	None *NoneFlag `( @@`   //nolint
 	Gui  *GuiFlag  `| @@ )` //nolint
 }
 
-// noinspection GoStructTag
+// noinspection GoVetStructTag
 type DebugCmd struct {
 	Cmd  struct{} `"debug"`            //nolint
 	Fail *string  `[ @"fail" ]`        //nolint
 	Echo *string  `[ "echo" @String ]` //nolint
 }
 
-// noinspection GoStructTag
-type GoCmd struct {
-	Cmd     struct{}  `"go"`                      //nolint
-	Seconds float64   `( (@Int|@Float)`           //nolint
-	Ever    *EverFlag `| @@ )`                    //nolint
-	Speed   *float64  `[ "speed" (@Int|@Float) ]` //nolint
+// noinspection GoVetStructTag
+type AutoGoCmd struct {
+	Cmd struct{}     `"autogo"` //nolint
+	Val *YesOrNoFlag `[ @@ ]`   // nolint
 }
 
-// noinspection GoStructTag
-type NodeSelector struct {
-	Id int `@Int` //nolint
+// noinspection GoVetStructTag
+type GoCmd struct {
+	Cmd   struct{}  `"go"`                                     //nolint
+	Time  string    `( @((Int|Float)["h"|"us"|"m"|"ms"|"s"]) ` //nolint
+	Ever  *EverFlag `| @@ )`                                   //nolint
+	Speed *float64  `[ "speed" (@Int|@Float) ]`                //nolint
 }
+
+// noinspection GoVetStructTag
+type NodeSelector struct {
+	Id      int     `( @Int`       //nolint
+	All     *string `| @"all" )`   //nolint
+	IdRange int     `[ "-" @Int ]` //nolint
+}
+
+type NodeSelectorSlice []NodeSelector
 
 func (ns *NodeSelector) String() string {
+	if ns.All != nil {
+		return "all"
+	}
+	if ns.IdRange > 0 {
+		return strconv.Itoa(ns.Id) + "-" + strconv.Itoa(ns.IdRange)
+	}
 	return strconv.Itoa(ns.Id)
 }
 
-// noinspection GoStructTag
+// String creates a string of NodeID numbers from a []NodeSelector.
+func (ns NodeSelectorSlice) String() string {
+	var line strings.Builder
+	for _, n := range ns {
+		line.WriteString(n.String())
+		line.WriteRune(' ')
+	}
+	return line.String()
+}
+
+// noinspection GoVetStructTag
 type Ipv6Address struct {
 	Addr string `@String` //nolint
 }
 
-// noinspection GoStructTag
+// noinspection GoVetStructTag
 type AddrTypeFlag struct {
-	Type AddrType `@( "any" | "mleid" | "rloc" | "aloc" | "linklocal" )` //nolint
+	Type AddrType `@( "any" | "mleid" | "rloc" | "slaac" | "linklocal" )` //nolint
 }
 
-// noinspection GoStructTag
+// noinspection GoVetStructTag
 type DataSizeFlag struct {
 	Val int `("datasize"|"ds") @Int` //nolint
 }
 
-// noinspection GoStructTag
+// noinspection GoVetStructTag
 type IntervalFlag struct {
 	Val int `("interval"|"itv") @Int` //nolint
 }
 
-// noinspection GoStructTag
+// noinspection GoVetStructTag
 type CountFlag struct {
 	Val int `("count" | "c") @Int` //nolint
 }
 
-// noinspection GoStructTag
+// noinspection GoVetStructTag
 type HopLimitFlag struct {
 	Val int `("hoplimit" | "hl") @Int` //nolint
 }
 
-// noinspection GoStructTag
+// noinspection GoVetStructTag
 type PingCmd struct {
 	Cmd      struct{}      `"ping"`   //nolint
 	Src      NodeSelector  `@@`       //nolint
@@ -156,22 +199,21 @@ type PingCmd struct {
 	HopLimit *HopLimitFlag `| @@ )*`  //nolint
 }
 
-// noinspection GoStructTag
+// noinspection GoVetStructTag
 type NetInfoCmd struct {
-	Cmd     struct{}     `"netinfo" (`         //nolint
-	Version *string      `  "version" @String` //nolint
-	Commit  *string      `| "commit" @String`  //nolint
-	Real    *YesOrNoFlag `| "real" @@ )+`      //nolint
+	Cmd     struct{} `"netinfo" (`           //nolint
+	Version *string  `  "version" @String`   //nolint
+	Commit  *string  `| "commit" @String )+` //nolint
 }
 
-// noinspection GoStructTag
+// noinspection GoVetStructTag
 type NodeCmd struct {
 	Cmd     struct{}     `"node"`      //nolint
 	Node    NodeSelector `@@`          //nolint
 	Command *string      `[ @String ]` //nolint
 }
 
-// noinspection GoStructTag
+// noinspection GoVetStructTag
 type DemoLegendCmd struct {
 	Cmd   struct{} `"demo_legend"` //nolint
 	Title string   `@String`       //nolint
@@ -179,7 +221,7 @@ type DemoLegendCmd struct {
 	Y     int      `@Int`          //nolint
 }
 
-// noinspection GoStructTag
+// noinspection GoVetStructTag
 type ConfigVisualizationCmd struct {
 	Cmd              struct{}            `"cv"`    //nolint
 	BroadcastMessage *CVBroadcastMessage `( @@`    //nolint
@@ -189,57 +231,62 @@ type ConfigVisualizationCmd struct {
 	ChildTable       *CVChildTable       `| @@ )*` //nolint
 }
 
-// noinspection GoStructTag
+// noinspection GoVetStructTag
 type CVBroadcastMessage struct {
 	Flag    struct{}    `"bro"` //nolint
 	OnOrOff OnOrOffFlag `@@`    //nolint
 }
 
-// noinspection GoStructTag
+// noinspection GoVetStructTag
 type CVUnicastMessage struct {
 	Flag    struct{}    `"uni"` //nolint
 	OnOrOff OnOrOffFlag `@@`    //nolint
 }
 
-// noinspection GoStructTag
+// noinspection GoVetStructTag
 type CVAckMessage struct {
 	Flag    struct{}    `"ack"` //nolint
 	OnOrOff OnOrOffFlag `@@`    //nolint
 }
 
-// noinspection GoStructTag
+// noinspection GoVetStructTag
 type CVRouterTable struct {
 	Flag    struct{}    `"rtb"` //nolint
 	OnOrOff OnOrOffFlag `@@`    //nolint
 }
 
-// noinspection GoStructTag
+// noinspection GoVetStructTag
 type CVChildTable struct {
 	Flag    struct{}    `"ctb"` //nolint
 	OnOrOff OnOrOffFlag `@@`    //nolint
 }
 
-// noinspection GoStructTag
+// noinspection GoVetStructTag
 type CountDownCmd struct {
 	Cmd     struct{} `"countdown"` //nolint
 	Seconds int      `@Int`        //nolint
 	Text    *string  `[ @String ]` //nolint
 }
 
-// noinspection GoStructTag
+// noinspection GoVetStructTag
 type ScanCmd struct {
 	Cmd  struct{}     `"scan"` //nolint
 	Node NodeSelector `@@`     // nolint
 }
 
-// noinspection GoStructTag
+// noinspection GoVetStructTag
 type SpeedCmd struct {
-	Cmd   struct{}      `"speed"`               //nolint
-	Max   *MaxSpeedFlag `( @@`                  //nolint
-	Speed *float64      `| [ (@Int|@Float) ] )` //nolint
+	Cmd   struct{}      `"speed"`             //nolint
+	Max   *MaxSpeedFlag `[ ( @@`              //nolint
+	Speed *float64      `| (@Int|@Float) ) ]` //nolint
 }
 
-// noinspection GoStructTag
+// noinspection GoVetStructTag
+type TimeCmd struct {
+	Cmd struct{} `"time"` //nolint
+}
+
+// noinspection GoVetStructTag
 type TitleCmd struct {
 	Cmd      struct{} `"title"`              //nolint
 	Title    string   `@String`              //nolint
@@ -248,86 +295,132 @@ type TitleCmd struct {
 	FontSize *int     `| "fs" @Int )*`       //nolint
 }
 
-// noinspection GoStructTag
+// noinspection GoVetStructTag
 type AddCmd struct {
 	Cmd        struct{}        `"add"`                //nolint
-	Type       NodeType        `@@`                   //nolint
+	Type       NodeTypeOrRole  `@@`                   //nolint
 	X          *int            `( "x" (@Int|@Float) ` //nolint
 	Y          *int            `| "y" (@Int|@Float) ` //nolint
+	Z          *int            `| "z" (@Int|@Float) ` //nolint
 	Id         *AddNodeId      `| @@`                 //nolint
 	RadioRange *RadioRangeFlag `| @@`                 //nolint
 	Restore    *RestoreFlag    `| @@`                 //nolint
+	Version    *ThreadVersion  `| @@`                 //nolint
+	Raw        *RawFlag        `| @@`                 //nolint
 	Executable *ExecutableFlag `| @@ )*`              //nolint
 }
 
-// noinspection GoStructTag
+// noinspection GoVetStructTag
+type NodeTypeOrRole struct {
+	Val string `@("router"|"reed"|"fed"|"med"|"sed"|"ssed"|"br"|"mtd"|"ftd"|"wifi")` //nolint
+}
+
+// noinspection GoVetStructTag
+type AddNodeId struct {
+	Val int `"id" @Int` //nolint
+}
+
+// noinspection GoVetStructTag
 type RadioRangeFlag struct {
 	Val int `"rr" @Int` //nolint
 }
 
-// noinspection GoStructTag
+// noinspection GoVetStructTag
 type RestoreFlag struct {
 	Dummy struct{} `"restore"` //nolint
 }
 
-// noinspection GoStructTag
+// noinspection GoVetStructTag
+type ThreadVersion struct {
+	Val string `@("v11"|"v12"|"v13"|"v14"|"ccm")` //nolint
+}
+
+// noinspection GoVetStructTag
 type ExecutableFlag struct {
 	Dummy struct{} `"exe"`   //nolint
 	Path  string   `@String` //nolint
 }
 
-// noinspection MaxSpeedFlag
+// noinspection GoVetStructTag
+type RawFlag struct {
+	Dummy struct{} `"raw"` //nolint
+}
+
+// noinspection GoVetStructTag
 type MaxSpeedFlag struct {
 	Dummy struct{} `( "max" | "inf")` //nolint
 }
 
-// noinspection GoStructTag
-type NodeType struct {
-	Val string `@("router"|"fed"|"med"|"sed")` //nolint
+// noinspection GoVetStructTag
+type AddFlag struct {
+	Dummy struct{} `"add"` //nolint
 }
 
-// noinspection GoStructTag
-type AddNodeId struct {
-	Val int `"id" @Int` //nolint
-}
-
-// noinspection GoStructTag
+// noinspection GoVetStructTag
 type CoapsCmd struct {
 	Cmd    struct{}    `"coaps"` //nolint
 	Enable *EnableFlag `@@ ?`    //nolint
 }
 
+// noinspection GoVetStructTag
 type EnableFlag struct {
 	Dummy struct{} `"enable"` //nolint
 }
 
-// noinspection GoStructTag
+// noinspection GoVetStructTag
 type DelCmd struct {
 	Cmd   struct{}       `"del"`   //nolint
 	Nodes []NodeSelector `( @@ )+` //nolint
 }
 
-// noinspection GoStructTag
+// noinspection GoVetStructTag
 type EverFlag struct {
 	Dummy struct{} `"ever"` //nolint
 }
 
-// noinspection GoStructTag
+// noinspection GoVetStructTag
 type Empty struct {
 	Empty struct{} `""` //nolint
 }
 
-// noinspection GoStructTag
+// noinspection GoVetStructTag
 type ExitCmd struct {
 	Cmd struct{} `"exit"` //nolint
 }
 
-// noinspection GoStructTag
+// noinspection GoVetStructTag
 type WebCmd struct {
-	Cmd struct{} `"web"` //nolint
+	Cmd     struct{} `"web"`                            //nolint
+	TabName *string  `@[ "main" | "energy" | "stats" ]` //nolint
 }
 
-// noinspection GoStructTag
+// noinspection GoVetStructTag
+type EnergyCmd struct {
+	Cmd  struct{}  `"energy"` //nolint
+	Save *SaveFlag `( @@ )?`  //nolint
+	Name string    `@String?` //nolint
+}
+
+// noinspection GoVetStructTag
+type SaveFlag struct {
+	Dummy struct{} `"save"` //nolint
+}
+
+// noinspection GoVetStructTag
+type ExeCmd struct {
+	Cmd      struct{}       `"exe"`       //nolint
+	NodeType NodeTypeOrRole `( @@`        //nolint
+	Default  *DefaultFlag   `| @@`        //nolint
+	Version  ThreadVersion  `| @@ )?`     //nolint
+	Path     string         `[ @String ]` //nolint
+}
+
+// noinspection GoVetStructTag
+type DefaultFlag struct {
+	Dummy struct{} `"default"` //nolint
+}
+
+// noinspection GoVetStructTag
 type RadioCmd struct {
 	Cmd      struct{}        `"radio"` //nolint
 	Nodes    []NodeSelector  `( @@ )+` //nolint
@@ -336,90 +429,182 @@ type RadioCmd struct {
 	FailTime *FailTimeParams `| @@ )`  //nolint
 }
 
-// noinspection GoStructTag
+// noinspection GoVetStructTag
 type OnFlag struct {
 	Dummy struct{} `"on"` //nolint
 }
 
-// noinspection GoStructTag
+// noinspection GoVetStructTag
 type OffFlag struct {
 	Dummy struct{} `"off"` //nolint
 }
 
-// noinspection GoStructTag
+// noinspection GoVetStructTag
 type OnOrOffFlag struct {
 	On  *OnFlag  `( @@`   //nolint
 	Off *OffFlag `| @@ )` //nolint
 }
 
-// noinspection GoStructTag
+// noinspection GoVetStructTag
 type YesFlag struct {
 	Dummy struct{} `("y"|"yes"|"true"|"1")` //nolint
 }
 
-// noinspection GoStructTag
+// noinspection GoVetStructTag
 type NoFlag struct {
 	Dummy struct{} `("n"|"no"|"false"|"0")` //nolint
 }
 
-// noinspection GoStructTag
+// noinspection GoVetStructTag
 type YesOrNoFlag struct {
 	Yes *YesFlag `( @@`   //nolint
 	No  *NoFlag  `| @@ )` //nolint
 }
 
-// noinspection GoStructTag
-type Move struct {
-	Cmd    struct{}     `"move"` //nolint
-	Target NodeSelector `@@`     //nolint
-	X      int          `@Int`   //nolint
-	Y      int          `@Int`   //nolint
+// noinspection GoVetStructTag
+type MoveCmd struct {
+	Cmd    struct{}     `"move"`   //nolint
+	Target NodeSelector `@@`       //nolint
+	X      int          `@Int`     //nolint
+	Y      int          `@Int`     //nolint
+	Z      *int         `[ @Int ]` //nolint
 }
 
-// noinspection GoStructTag
+// noinspection GoVetStructTag
 type NodesCmd struct {
 	Cmd struct{} `"nodes"` //nolint
 }
 
-// noinspection GoStructTag
+// noinspection GoVetStructTag
 type PartitionsCmd struct {
 	Cmd struct{} `( "partitions" | "pts")` //nolint
 }
 
-// noinspection GoStructTag
+// noinspection GoVetStructTag
 type PingsCmd struct {
 	Cmd struct{} `"pings"` //nolint
 }
 
-// noinspection GoStructTag
+// noinspection GoVetStructTag
 type JoinsCmd struct {
 	Cmd struct{} `"joins"` //nolint
 }
 
-// noinspection GoStructTag
+// noinspection GoVetStructTag
 type CountersCmd struct {
 	Cmd struct{} `"counters"` //nolint
 }
 
-// noinspection GoStructTag
+// noinspection GoVetStructTag
 type PlrCmd struct {
 	Cmd struct{} `"plr"`             //nolint
 	Val *float64 `[ (@Int|@Float) ]` //nolint
 }
 
-// noinspection GoStructTag
+// noinspection GoVetStructTag
+type RadioModelCmd struct {
+	Cmd   struct{} `"radiomodel"`    //nolint
+	Model string   `[(@Ident|@Int)]` //nolint
+}
+
+// noinspection GoVetStructTag
+type RadioParamCmd struct {
+	Cmd   struct{} `"radioparam"`      //nolint
+	Param string   `[@Ident]`          //nolint
+	Sign  string   `[@("-"|"+")]`      //nolint
+	Val   *float64 `[ (@Int|@Float) ]` //nolint
+}
+
+// noinspection GoVetStructTag
+type RfSimCmd struct {
+	Cmd   struct{}     `"rfsim"`      //nolint
+	Id    NodeSelector `@@`           //nolint
+	Param string       `[@Ident]`     //nolint
+	Sign  string       `[@("-"|"+")]` //nolint
+	Val   *int         `[ @Int ]`     //nolint
+}
+
+// noinspection GoVetStructTag
+type LogLevelCmd struct {
+	Cmd   struct{} `"log"`                                                                        //nolint
+	Level string   `[@( "micro"|"trace"|"debug"|"info"|"warn"|"error"|"D"|"I"|"N"|"W"|"C"|"E" )]` //nolint
+}
+
+// noinspection GoVetStructTag
+type WatchCmd struct {
+	Cmd     struct{}       `"watch"`                                                                                             //nolint
+	Default string         `[ @("default"|"def") ]`                                                                              //nolint
+	Nodes   []NodeSelector `[ ( @@ )+ ]`                                                                                         //nolint
+	Level   string         `[@( "trace"|"debug"|"info"|"note"|"warn"|"error"|"crit"|"off"|"none"|"T"|"D"|"I"|"N"|"W"|"E"|"C" )]` //nolint
+}
+
+// noinspection GoVetStructTag
+type UnwatchCmd struct {
+	Cmd   struct{}       `"unwatch"` //nolint
+	Nodes []NodeSelector `( @@ )+`   //nolint
+}
+
+// noinspection GoVetStructTag
+type HelpCmd struct {
+	Cmd       struct{} `"help"`       //nolint
+	HelpTopic string   `[ (@Ident) ]` //nolint
+}
+
+// noinspection GoVetStructTag
+type KpiCmd struct {
+	Cmd       struct{} `"kpi"`                        //nolint
+	Operation string   `[ @("start"|"stop"|"save") ]` //nolint
+	Filename  string   `[ @String ]`                  //nolint
+}
+
+// noinspection GoVetStructTag
+type LoadCmd struct {
+	Cmd      struct{} `"load"`  //nolint
+	Filename string   `@String` //nolint
+	Add      *AddFlag `[ @@ ]`  //nolint
+}
+
+// noinspection GoVetStructTag
+type SaveCmd struct {
+	Cmd       struct{} `"save"`                   //nolint
+	Filename  string   `@String`                  //nolint
+	Operation string   `[ @("all"|"topo"|"py") ]` //nolint
+}
+
+// noinspection GoVetStructTag
+type SendCmd struct {
+	Cmd        struct{}       `"send"`                        //nolint
+	Protocol   string         `@("udp"|"tcp"|"coap"|"reset")` //nolint
+	ProtoParam string         `[ @("non"|"con") ]?`           //nolint
+	SrcId      NodeSelector   `@@`                            //nolint
+	DstId      []NodeSelector `( @@ )*`                       //nolint
+	AddrType   *AddrTypeFlag  `[ @@ ]`                        //nolint
+	DataSize   *DataSizeFlag  `[ @@ ]`                        //nolint
+}
+
+// noinspection GoVetStructTag
+type HostCmd struct {
+	Cmd        struct{}     `"host"`                //nolint
+	SubCmd     string       `@("add"|"del"|"list")` //nolint
+	Hostname   string       `[ @String ]`           //nolint
+	IpAddr     *Ipv6Address `[ @@ ]`                //nolint
+	Port       uint16       `[ @Int ]`              //nolint
+	PortMapped uint16       `[ @Int ]`              //nolint
+}
+
+// noinspection GoVetStructTag
 type FailTimeParams struct {
 	Dummy        struct{} `"ft"`          //nolint
 	FailDuration float64  `(@Int|@Float)` //nolint
 	FailInterval float64  `(@Int|@Float)` //nolint
 }
 
-// noinspection GoStructTag
+// noinspection GoVetStructTag
 type NoneFlag struct {
 	Dummy struct{} `"none"` //nolint
 }
 
-// noinspection GoStructTag
+// noinspection GoVetStructTag
 type GuiFlag struct {
 	Dummy struct{} `"gui"` //nolint
 }
@@ -428,7 +613,7 @@ var (
 	commandParser = participle.MustBuild(&Command{})
 )
 
-func ParseBytes(b []byte, cmd *Command) error {
+func parseBytes(b []byte, cmd *Command) error {
 	err := commandParser.ParseBytes(b, cmd)
 	return err
 }

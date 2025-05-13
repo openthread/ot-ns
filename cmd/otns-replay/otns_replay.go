@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2022-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -30,13 +30,14 @@ import (
 	"context"
 	"flag"
 	"net"
+	"net/http"
 	"os"
 
+	"github.com/openthread/ot-ns/logger"
 	"github.com/openthread/ot-ns/progctx"
-	pb "github.com/openthread/ot-ns/visualize/grpc/pb"
+	"github.com/openthread/ot-ns/visualize/grpc/pb"
 	"github.com/openthread/ot-ns/web"
 	webSite "github.com/openthread/ot-ns/web/site"
-	"github.com/simonlingoogle/go-simplelogger"
 	"google.golang.org/grpc"
 )
 
@@ -58,7 +59,7 @@ func parseArgs() {
 func main() {
 	parseArgs()
 	checkReplayFile(args.ReplayFile)
-	simplelogger.SetLevel(simplelogger.InfoLevel)
+	logger.SetLevel(logger.InfoLevel)
 
 	ctx := progctx.New(context.Background())
 
@@ -67,32 +68,34 @@ func main() {
 	pb.RegisterVisualizeGrpcServiceServer(server, gs)
 
 	lis, err := net.Listen("tcp", ":8999")
-	simplelogger.PanicIfError(err)
+	logger.PanicIfError(err)
 
 	go func() {
 		siteAddr := ":8997"
 		err := webSite.Serve(siteAddr)
-		simplelogger.PanicIfError(err)
+		if err != http.ErrServerClosed {
+			logger.PanicIfError(err)
+		}
 	}()
 
 	go func() {
 		web.ConfigWeb("", 8998, 8999, 8997)
-		_ = web.OpenWeb(ctx)
+		_ = web.OpenWeb(ctx, web.MainTab)
 	}()
 
 	err = server.Serve(lis)
-	simplelogger.Errorf("server quit: %v", err)
+	logger.Errorf("server quit: %v", err)
 }
 
 func checkReplayFile(filename string) {
 	f, err := os.Open(filename)
-	simplelogger.PanicIfError(err)
+	logger.PanicIfError(err)
 
 	defer f.Close()
 	fs, err := f.Stat()
-	simplelogger.PanicIfError(err)
+	logger.PanicIfError(err)
 
 	if fs.IsDir() {
-		simplelogger.Panicf("%s is not a valid replay", filename)
+		logger.Panicf("%s is not a valid replay", filename)
 	}
 }

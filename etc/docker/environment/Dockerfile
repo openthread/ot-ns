@@ -1,4 +1,4 @@
-# Copyright (c) 2022, The OTNS Authors.
+# Copyright (c) 2022-2025, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -24,15 +24,18 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-FROM golang:1.17-buster
+# Builds the OTNS2 web development environment Docker (nodejs, npm, gRPC).
+# All build file results are kept.
+# The .dockerignore file from the repo root is used during build.
+# An older OS is used to avoid breaking the web build which heavily relies
+# on specific versions of tools/libraries.
+
+FROM golang:1.18
 
 RUN apt-get update && apt-get install -y python3 python3-pip sudo unzip nodejs npm git && rm -rf /var/lib/apt/lists/*
-
 COPY . /otns
 WORKDIR /otns
-RUN ./script/setup-dev
 RUN ./script/install-deps
-RUN ./script/pack-web
-RUN ./script/install
+RUN ./script/setup-dev
 
 ENTRYPOINT [ "bash" ]

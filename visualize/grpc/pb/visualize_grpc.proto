@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2020-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -31,7 +31,12 @@ package visualize_grpc_pb;
 option go_package = "github.com/openthread/ot-ns/visualize/grpc/pb";
 
 message VisualizeRequest {
+}
 
+message EnergyRequest {
+}
+
+message NodeStatsRequest {
 }
 
 message VisualizeEvent {
@@ -59,6 +64,7 @@ message VisualizeEvent {
         SetTitleEvent set_title = 21;
         SetNodeModeEvent set_node_mode = 22;
         SetNetworkInfoEvent set_network_info = 23;
+        NodeStatsInfoEvent node_stats_info = 24;
     }
 }
 
@@ -74,6 +80,10 @@ message MsgVisualizeInfo {
     uint32 seq = 3;
     uint32 dst_addr_short = 4;
     uint64 dst_addr_extended = 5;
+    uint32 send_duration_us = 6;
+    bool vis_true_duration = 7;
+    int32 power_dbm = 8;
+    uint32 frame_size_bytes = 9;
 }
 
 message AddRouterTableEvent {
@@ -102,7 +112,7 @@ message HeartbeatEvent {
 }
 
 message AdvanceTimeEvent {
-    uint64 ts = 1;
+    uint64 timestamp = 1;
     double speed = 2;
 }
 
@@ -126,6 +136,7 @@ message SetNodePosEvent {
     int32 node_id = 1;
     int32 x = 2;
     int32 y = 3;
+    int32 z = 4;
 }
 
 message SetNodeRoleEvent {
@@ -162,7 +173,9 @@ message AddNodeEvent {
     int32 node_id = 1;
     int32 x = 2;
     int32 y = 3;
-    int32 radio_range = 4;
+    int32 z = 4;
+    int32 radio_range = 5;
+    string node_type = 6;
 }
 
 message NodeMode {
@@ -198,6 +211,38 @@ message SetNetworkInfoEvent {
     bool real = 1;
     string version = 2;
     string commit = 3;
+    int32 node_id = 4;
+    int32 thread_version = 5;
+}
+
+message NodeEnergy {
+    int32 node_id = 1;
+    double disabled = 2;
+    double sleep = 3;
+    double tx = 4;
+    double rx = 5;
+}
+
+message EnergyEvent {
+    uint64 timestamp = 1;
+    repeated NodeEnergy NodesEnergy = 2;
+}
+
+message NodeStats {
+    uint32 NumNodes = 1;
+    uint32 NumLeaders = 2;
+    uint32 NumPartitions = 3;
+    uint32 NumRouters = 4;
+    uint32 NumEndDevices = 5;
+    uint32 NumDetached = 6;
+    uint32 NumDisabled = 7;
+    uint32 NumSleepy = 8;
+    uint32 NumFailed = 9;
+}
+
+message NodeStatsInfoEvent {
+    uint64 timestamp = 1;
+    NodeStats node_stats = 2;
 }
 
 message CommandRequest {
@@ -214,11 +259,11 @@ message ReplayEntry {
 }
 
 service VisualizeGrpcService {
-    //    rpc Echo (EchoRequest) returns (EchoResponse);
     rpc Visualize (VisualizeRequest) returns (stream VisualizeEvent);
     rpc Command (CommandRequest) returns (CommandResponse);
+    rpc Energy (EnergyRequest) returns (stream EnergyEvent);
+    rpc NodeStats (NodeStatsRequest) returns (stream VisualizeEvent);
 }
 
 message Empty {
-
 }

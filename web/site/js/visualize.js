@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2020-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -27,9 +27,10 @@
 import PixiVisualizer from "./vis/PixiVisualizer";
 import * as PIXI from 'pixi.js'
 import {SetResources} from "./vis/resources";
+import {StatusCode} from "grpc-web";
 
 const {
-    VisualizeRequest, VisualizeEvent, OtDeviceRole, NodeMode,
+    VisualizeRequest, VisualizeEvent,
 } = require('./proto/visualize_grpc_pb.js');
 const {VisualizeGrpcServiceClient} = require('./proto/visualize_grpc_grpc_web_pb.js');
 
@@ -57,6 +58,11 @@ let app = new PIXI.Application({
 
 document.body.appendChild(app.view);
 
+// ensure that double-click outside the nodeWindow does not select text in there.
+document.getElementById('nodeWindow').addEventListener("dblclick", function () {
+    return false;
+});
+
 let vis = null;
 let grpcServiceClient = null;
 let ticker = PIXI.Ticker.shared;
@@ -74,7 +80,7 @@ window.addEventListener("resize", function () {
 });
 
 function loadOk() {
-    console.log('connecting to server ' + server);
+    console.log('connecting to gRPC server ' + server);
     grpcServiceClient = new VisualizeGrpcServiceClient(server);
 
     vis = new PixiVisualizer(app, grpcServiceClient);
@@ -85,9 +91,8 @@ function loadOk() {
         vis.update(ticker.deltaMS / 1000)
     });
 
-
     let visualizeRequest = new VisualizeRequest();
-    let metadata = {'custom-header-1': 'value1'};
+    let metadata = {'tab': 'visualize'};
     let stream = grpcServiceClient.visualize(visualizeRequest, metadata);
     stream.on('data', function (resp) {
         let e = null;
@@ -98,7 +103,7 @@ function loadOk() {
                 break;
             case VisualizeEvent.TypeCase.ADD_NODE:
                 e = resp.getAddNode();
-                vis.visAddNode(e.getNodeId(), e.getX(), e.getY(), e.getRadioRange());
+                vis.visAddNode(e.getNodeId(), e.getX(), e.getY(), e.getZ(), e.getRadioRange(), e.getNodeType());
                 break;
             case VisualizeEvent.TypeCase.DELETE_NODE:
                 e = resp.getDeleteNode();
@@ -106,7 +111,7 @@ function loadOk() {
                 break;
             case VisualizeEvent.TypeCase.SET_NODE_POS:
                 e = resp.getSetNodePos();
-                vis.visSetNodePos(e.getNodeId(), e.getX(), e.getY());
+                vis.visSetNodePos(e.getNodeId(), e.getX(), e.getY(), e.getZ());
                 break;
             case VisualizeEvent.TypeCase.ON_NODE_FAIL:
                 e = resp.getOnNodeFail();
@@ -134,6 +139,7 @@ function loadOk() {
                 break;
             case VisualizeEvent.TypeCase.SET_PARENT:
                 e = resp.getSetParent();
+                // TODO - currently OT does not emit this event. Workaround is used to call visSetParent().
                 vis.visSetParent(e.getNodeId(), e.getExtAddr());
                 break;
             case VisualizeEvent.TypeCase.SET_NODE_PARTITION_ID:
@@ -142,7 +148,7 @@ function loadOk() {
                 break;
             case VisualizeEvent.TypeCase.ADVANCE_TIME:
                 e = resp.getAdvanceTime();
-                vis.visAdvanceTime(e.getTs(), e.getSpeed());
+                vis.visAdvanceTime(e.getTimestamp(), e.getSpeed());
                 break;
             case VisualizeEvent.TypeCase.HEARTBEAT:
                 e = resp.getHeartbeat();
@@ -182,19 +188,29 @@ function loadOk() {
                 break;
             case VisualizeEvent.TypeCase.SET_NETWORK_INFO:
                 e = resp.getSetNetworkInfo();
-                vis.visSetNetworkInfo(e.getVersion(), e.getCommit(), e.getReal());
+                vis.visSetNetworkInfo(e.getVersion(), e.getCommit(), e.getReal(), e.getNodeId(), e.getThreadVersion());
                 break;
             default:
-                console.log('unknown event!!! ' + resp.getTypeCase());
                 break
         }
 
     });
 
     stream.on('status', function (status) {
+        if (status != null) {
+            if (status.code !== StatusCode.OK) {
+                console.error('visualize gRPC stream status: code = ' + status.code + ' details = ' + status.details);
+                vis.stopIdleCheckTimer(); // stop expecting the HeartBeat events
+            }else{
+                console.log('visualize gRPC stream status: code = ' + status.code + ' details = ' + status.details);
+            }
+        }
     });
+
     stream.on('end', function (end) {
         // stream end signal
+        console.log('visualize gRPC stream end');
+        vis.stopIdleCheckTimer();
     });
 }
 
@@ -202,7 +218,9 @@ app.loader
     .add('WhiteSolidCircle64', '/static/image/white-shapes/circle-64.png')
     .add('WhiteSolidTriangle64', '/static/image/white-shapes/triangle-64.png')
     .add('WhiteSolidHexagon64', '/static/image/white-shapes/hexagon-64.png')
+    .add('WhiteSolidSquare64', '/static/image/white-shapes/square-64.png')
     .add('WhiteDashed4Circle64', '/static/image/white-shapes/circle-dashed-4-64.png')
+    .add('WhiteDashed6Circle64', '/static/image/white-shapes/circle-dashed-6-64.png')
     .add('WhiteDashed8Circle64', '/static/image/white-shapes/circle-dashed-8-64.png')
     .add('WhiteDashed8Circle128', '/static/image/white-shapes/circle-dashed-8-128.png')
     .add('FailedNodeMark', '/static/image/gua.png')

@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2020-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -29,25 +29,37 @@ import VObject from "./VObject";
 import {NodeMode, OtDeviceRole} from '../proto/visualize_grpc_pb'
 import {Visualizer} from "./PixiVisualizer";
 import {Resources} from "./resources";
+import {NODE_ID_INVALID, NODE_LABEL_FONT_FAMILY, NODE_LABEL_FONT_SIZE, POWER_DBM_INVALID,
+        EXT_ADDR_INVALID} from "./consts";
 
-const NODE_LABEL_FONT_FAMILY = 'Comic Sans MS';
 const NODE_SHAPE_SCALE = 64;
 const NODE_SELECTION_SCALE = 128;
+const NODE_Z_SCALER = 2000;
 const CIRCULAR_SHAPE_RADIUS = 20;
 const HEXAGONAL_SHAPE_RADIUS = 22;
+const SQUARE_SHAPE_RADIUS = 22;
 
 let vis = Visualizer();
 
 export default class Node extends VObject {
-    constructor(nodeId, x, y, radioRange) {
+    constructor(nodeId, x, y, z, radioRange, nodeType) {
         super();
 
         this.id = nodeId;
-        this.extAddr = 0xFFFFFFFFFFFFFFFF;
+        this.type = nodeType;
+        this.threadVersion = 0;
+        this.extAddr = EXT_ADDR_INVALID;
         this.radioRange = radioRange;
         this.nodeMode = new NodeMode([true, true, true, true]);
         this.rloc16 = 0xfffe;
+        this.routerId = NODE_ID_INVALID;
+        this.childId = NODE_ID_INVALID;
+        this.parentId = NODE_ID_INVALID;
         this.role = OtDeviceRole.OT_DEVICE_ROLE_DISABLED;
+        this.txPowerLast = POWER_DBM_INVALID;
+        this.channelLast = -1;
+        this.otVersion = "";
+        this.otCommit = "";
         this._failed = false;
         this._parent = 0;
         this._partition = 0;
@@ -60,6 +72,7 @@ export default class Node extends VObject {
         this._root = new PIXI.Container();
         this.x = x;
         this.y = y;
+        this.z = z;
         this.position.set(x, y);
 
         let radius = CIRCULAR_SHAPE_RADIUS;
@@ -94,7 +107,7 @@ export default class Node extends VObject {
 
         this._updateSize();
 
-        let label = new PIXI.Text("", {fontFamily: NODE_LABEL_FONT_FAMILY, fontSize: 13, align: 'left'});
+        let label = new PIXI.Text("", {fontFamily: NODE_LABEL_FONT_FAMILY, fontSize: NODE_LABEL_FONT_SIZE, align: 'left'});
         label.position.set(11, 11);
         this._root.addChild(label);
         this.label = label;
@@ -151,6 +164,9 @@ export default class Node extends VObject {
     }
 
     _getStatusSpriteTexture() {
+        if (this.type === 'br') {
+            return Resources().WhiteSolidSquare64.texture;
+        }
         switch (this.role) {
             case OtDeviceRole.OT_DEVICE_ROLE_LEADER:
             case OtDeviceRole.OT_DEVICE_ROLE_ROUTER:
@@ -161,11 +177,17 @@ export default class Node extends VObject {
         } else if (this.nodeMode.getRxOnWhenIdle()) {
             return Resources().WhiteDashed4Circle64.texture;
         } else {
+            if (this.type == 'ssed'){
+                return Resources().WhiteDashed6Circle64.texture;
+            }
             return Resources().WhiteDashed8Circle64.texture;
         }
     }
 
     _getPartitionSpriteTexture() {
+        if (this.type === 'br') {
+            return Resources().WhiteSolidSquare64.texture;
+        }
         switch (this.role) {
             case OtDeviceRole.OT_DEVICE_ROLE_LEADER:
             case OtDeviceRole.OT_DEVICE_ROLE_ROUTER:
@@ -175,11 +197,16 @@ export default class Node extends VObject {
         }
     }
 
-    setPosition(x, y) {
+    setPosition(x, y, z) {
+        let zChanged = z != this.z;
         this.x = x;
         this.y = y;
+        this.z = z;
         if (!this.isDragging()) {
             this.position.set(x, y)
+        }
+        if (zChanged) {
+            this._updateSize(); // higher (z coord) nodes appear larger.
         }
     }
 
@@ -190,17 +217,23 @@ export default class Node extends VObject {
 
     _updateSize() {
         let radius = CIRCULAR_SHAPE_RADIUS;
+        let heightScale = 1.0 + this.z / NODE_Z_SCALER;
+        if (this.type === 'br') {
+            radius = SQUARE_SHAPE_RADIUS;
+        }
         switch (this.role) {
             case OtDeviceRole.OT_DEVICE_ROLE_LEADER:
             case OtDeviceRole.OT_DEVICE_ROLE_ROUTER:
                 radius = HEXAGONAL_SHAPE_RADIUS
         }
-        this._statusSprite.scale.x = this._statusSprite.scale.y = radius * 2 / NODE_SHAPE_SCALE;
-        this._partitionSprite.scale.x = this._partitionSprite.scale.y = radius * 2 / NODE_SHAPE_SCALE / 1.5;
+        this._statusSprite.scale.x = this._statusSprite.scale.y = radius * 2 / NODE_SHAPE_SCALE * heightScale;
+        this._partitionSprite.scale.x = this._partitionSprite.scale.y = radius * 2 / NODE_SHAPE_SCALE / 1.5  * heightScale;
     }
 
     setRloc16(rloc16) {
         this.rloc16 = rloc16;
+        this.routerId = rloc16 >> 10;
+        this.childId = rloc16 & 0x01ff;
         this._updateLabel()
     }
 
@@ -212,6 +245,12 @@ export default class Node extends VObject {
             this._partitionSprite.texture = this._getPartitionSpriteTexture();
             this._updateSize()
         }
+        if (role == OtDeviceRole.OT_DEVICE_ROLE_DISABLED || role == OtDeviceRole.OT_DEVICE_ROLE_DETACHED) {
+            this._parent = NODE_ID_INVALID;
+            this.parentId = NODE_ID_INVALID;
+            this.childId = NODE_ID_INVALID;
+            this.routerId = NODE_ID_INVALID;
+        }
     }
 
     setMode(mode) {
@@ -219,6 +258,15 @@ export default class Node extends VObject {
             this.nodeMode = mode;
             this._statusSprite.texture = this._getStatusSpriteTexture();
         }
+    }
+
+    setThreadVersion(version) {
+        this.threadVersion = version;
+    }
+
+    setOTVersion(version, commit) {
+        this.otVersion = version;
+        this.otCommit = commit;
     }
 
     getRoleColor() {
@@ -310,5 +358,4 @@ export default class Node extends VObject {
             delete this._rangeCircle;
         }
     }
-
 }

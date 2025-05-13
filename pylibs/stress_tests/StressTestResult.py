@@ -86,5 +86,4 @@ class StressTestResult(object):
         if fail_msg:
             fail_msg = ': ' + fail_msg
 
-        return f'#### {self.name} **{passed_str}**{fail_msg} _({start_time} ~ {stop_time})_\n' + '\n'.join(
-            rows) + '\n'
+        return f'#### {self.name} **{passed_str}**{fail_msg} _({start_time} ~ {stop_time})_\n' + '\n'.join(rows) + '\n'

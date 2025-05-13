@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2020-2023, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -32,7 +32,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/simonlingoogle/go-simplelogger"
+	"github.com/openthread/ot-ns/logger"
 )
 
 type ProgCtx struct {
@@ -67,9 +67,9 @@ func (ctx *ProgCtx) Cancel(err interface{}) {
 	ctx.cancel()
 
 	if e, ok := err.(error); ok {
-		simplelogger.TraceError("program exit: %v", e)
+		logger.TraceError("program exit requested with ctx error: %v", e)
 	} else {
-		simplelogger.Infof("program exit: %v", err)
+		logger.Debugf("program exit requested without ctx error: %v", err)
 	}
 
 	for _, f := range ctx.deferred {
@@ -91,7 +91,7 @@ func (ctx *ProgCtx) WaitDone(name string) {
 
 	count := ctx.routines[name]
 	if count <= 0 {
-		simplelogger.Panicf("routine %s is not running, should not call WaitDone", name)
+		logger.Panicf("routine %s is not running, should not call WaitDone", name)
 	}
 
 	ctx.routines[name] -= 1
@@ -100,7 +100,7 @@ func (ctx *ProgCtx) WaitDone(name string) {
 
 func (ctx *ProgCtx) Wait() {
 	ctx.routinesLock.Lock()
-	simplelogger.Infof("program context waiting routines: %v", ctx.routines)
+	logger.Debugf("program context waiting routines: %v", ctx.routines)
 	ctx.routinesLock.Unlock()
 
 	ctx.wg.Wait()

@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2020-2022, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -85,7 +85,7 @@ export default class VObject {
     }
 
     update(dt) {
-        this._timerMgr.update(dt)
+        this._timerMgr.update(dt);
     }
 
     addCallback(duration, callback) {
@@ -204,7 +204,7 @@ export default class VObject {
         this._doDraggingMove(pos);
         delete this._draggingOffset;
         // apply the drag position at last
-        this.onDraggingDone()
+        this.onDraggingDone();
     }
 
     _doDraggingMove(pos) {
@@ -212,6 +212,9 @@ export default class VObject {
     }
 
     onDraggingTimer() {
+    }
+
+    onDraggingDone() {
     }
 }
 

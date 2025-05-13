@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2020-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -27,14 +27,13 @@
 package dispatcher
 
 import (
-	"encoding/binary"
 	"fmt"
-	"math"
 	"net"
 
-	"github.com/openthread/ot-ns/threadconst"
+	. "github.com/openthread/ot-ns/event"
+	"github.com/openthread/ot-ns/logger"
+	"github.com/openthread/ot-ns/radiomodel"
 	. "github.com/openthread/ot-ns/types"
-	"github.com/simonlingoogle/go-simplelogger"
 )
 
 const (
@@ -47,6 +46,7 @@ type pingRequest struct {
 	Dst       string
 	DataSize  int
 }
+
 type PingResult struct {
 	Dst      string
 	DataSize int
@@ -67,102 +67,186 @@ type JoinResult struct {
 type Node struct {
 	D           *Dispatcher
 	Id          NodeId
-	X, Y        int
+	X, Y, Z     int
 	PartitionId uint32
 	ExtAddr     uint64
 	Rloc16      uint16
 	CreateTime  uint64
 	CurTime     uint64
+	Mode        NodeMode
 	Role        OtDeviceRole
+	Type        string
+	RadioNode   *radiomodel.RadioNode
 
-	peerAddr      *net.UDPAddr
+	conn          net.Conn
+	msgId         uint64
+	err           error
 	failureCtrl   *FailureCtrl
 	isFailed      bool
-	radioRange    int
 	pendingPings  []*pingRequest
 	pingResults   []*PingResult
 	joinerState   OtJoinerState
 	joinerSession *joinerSession
 	joinResults   []*JoinResult
+	logger        *logger.NodeLogger
 }
 
-func newNode(d *Dispatcher, nodeid NodeId, x, y int, radioRange int) *Node {
-	simplelogger.AssertTrue(radioRange >= 0)
+func newNode(d *Dispatcher, nodeid NodeId, cfg *NodeConfig) *Node {
+	logger.AssertTrue(cfg.RadioRange >= 0)
+
+	radioCfg := &radiomodel.RadioNodeConfig{
+		X:          cfg.X,
+		Y:          cfg.Y,
+		Z:          cfg.Z,
+		RadioRange: cfg.RadioRange,
+	}
 
 	nc := &Node{
 		D:           d,
 		Id:          nodeid,
 		CurTime:     d.CurTime,
 		CreateTime:  d.CurTime,
-		X:           x,
-		Y:           y,
+		X:           cfg.X,
+		Y:           cfg.Y,
+		Z:           cfg.Z,
 		ExtAddr:     InvalidExtAddr,
-		Rloc16:      threadconst.InvalidRloc16,
+		Rloc16:      InvalidRloc16,
+		Mode:        DefaultNodeMode(),
 		Role:        OtDeviceRoleDisabled,
-		peerAddr:    nil, // peer address will be set when the first event is received
-		radioRange:  radioRange,
+		Type:        cfg.Type,
+		conn:        nil, // connection will be set when first event is received from node.
+		err:         nil, // keep track of connection errors.
+		RadioNode:   radiomodel.NewRadioNode(nodeid, radioCfg),
 		joinerState: OtJoinerStateIdle,
+		logger:      logger.GetNodeLogger(d.cfg.OutputDir, d.cfg.SimulationId, cfg),
 	}
 
 	nc.failureCtrl = newFailureCtrl(nc, NonFailTime)
-
 	return nc
 }
 
 func (node *Node) String() string {
-	return fmt.Sprintf("Node<%016x@%d,%d>", node.ExtAddr, node.X, node.Y)
+	return GetNodeName(node.Id)
 }
 
-func (node *Node) Send(elapsed uint64, data []byte) {
-	msg := make([]byte, len(data)+11)
-	binary.LittleEndian.PutUint64(msg[:8], elapsed)
-	msg[8] = eventTypeRadioReceived
-	binary.LittleEndian.PutUint16(msg[9:11], uint16(len(data)))
-	n := copy(msg[11:], data)
-	simplelogger.AssertTrue(n == len(data))
+// SendToUART sends any data to virtual time UART of the node.
+func (node *Node) SendToUART(data []byte) error {
+	var err error
+	evt := &Event{
+		Timestamp: node.D.CurTime,
+		Type:      EventTypeUartWrite,
+		Data:      data,
+		NodeId:    node.Id,
+	}
 
-	node.SendMessage(msg)
+	node.logger.Tracef("UART-write: %s", data)
+	node.sendEvent(evt)
+	if node.err != nil {
+		err = node.err
+	}
+	return err
 }
 
-func (node *Node) SendMessage(msg []byte) {
-	if node.peerAddr != nil {
-		_, _ = node.D.udpln.WriteToUDP(msg, node.peerAddr)
+func (node *Node) SendRfSimEvent(writeValue bool, param RfSimParam, value RfSimParamValue) error {
+	var eventType EventType
+	if writeValue {
+		eventType = EventTypeRadioRfSimParamSet
 	} else {
-		simplelogger.Errorf("%s does not have a peer address", node)
+		eventType = EventTypeRadioRfSimParamGet
+	}
+
+	evt := &Event{
+		Timestamp: node.D.CurTime,
+		Type:      eventType,
+		NodeId:    node.Id,
+		RfSimParamData: RfSimParamEventData{
+			Param: param,
+			Value: int32(value),
+		},
+	}
+	node.sendEvent(evt)
+	return node.err
+}
+
+// SendEvent sends Event evt serialized to the node, over socket. It uses evt.Timestamp
+// to calculate the evt.Delay value based on the target node's CurTime; and
+// it sets evt.nodeId to the Id of the current node.
+// Any send-errors are stored in node.err.
+func (node *Node) sendEvent(evt *Event) {
+	node.msgId += 1
+	evt.NodeId = node.Id
+	evt.MsgId = node.msgId
+	oldTime := node.CurTime
+	logger.AssertTrue(evt.Timestamp == node.D.CurTime)
+	evt.Delay = evt.Timestamp - oldTime
+
+	// time keeping - move node's time to the current send-event's time.
+	node.D.alarmMgr.SetNotified(node.Id)
+	node.CurTime += evt.Delay
+	logger.AssertTrue(node.CurTime == node.D.CurTime)
+
+	// re-evaluate the FailureCtrl when node time advances.
+	if evt.Timestamp > oldTime {
+		reEvaluateTime, isUpdated := node.failureCtrl.OnTimeAdvanced(oldTime)
+		if isUpdated {
+			wakeEvt := &Event{
+				Type:      EventTypeAlarmFired,
+				NodeId:    node.Id,
+				Timestamp: reEvaluateTime,
+			}
+			node.D.eventQueue.Add(wakeEvt)
+		}
+	}
+
+	err := node.sendRawData(evt.Serialize())
+	if err != nil {
+		node.logger.Error(err)
+		node.err = err
+	} else {
+		node.D.setAlive(node.Id)
 	}
 }
 
-func (node *Node) GetDistanceTo(other *Node) (dist int) {
-	dx := other.X - node.X
-	dy := other.Y - node.Y
-	dist = int(math.Sqrt(float64(dx*dx + dy*dy)))
-	return
+// sendRawData is INTERNAL to send bytes to socket of node
+func (node *Node) sendRawData(msg []byte) error {
+	if node.conn == nil {
+		return fmt.Errorf("sendRawData(): node connection is closed")
+	}
+	n, err := node.conn.Write(msg)
+	if err != nil {
+		return err
+	} else if len(msg) != n {
+		return fmt.Errorf("failed to write complete Event to %s socket %v+", node.String(), node.conn)
+	}
+	return err
 }
 
 func (node *Node) IsFailed() bool {
 	return node.isFailed
 }
 
+func (node *Node) IsConnected() bool {
+	return node.conn != nil
+}
+
 func (node *Node) Fail() {
 	if !node.isFailed {
 		node.isFailed = true
-		node.D.cbHandler.OnNodeFail(node.Id)
 		node.D.vis.OnNodeFail(node.Id)
+		node.logger.Debugf("radio set to scheduled failure")
 	}
 }
 
 func (node *Node) Recover() {
 	if node.isFailed {
 		node.isFailed = false
-		node.D.cbHandler.OnNodeRecover(node.Id)
 		node.D.vis.OnNodeRecover(node.Id)
+		node.logger.Debugf("radio recovered from scheduled failure")
 	}
 }
 
 func (node *Node) DumpStat() string {
-	d := node.D
-	alarmTs := d.alarmMgr.GetTimestamp(node.Id)
-	return fmt.Sprintf("CurTime=%v, AlarmTs=%v, Failed=%-5v, RecoverTS=%v", node.CurTime, alarmTs, node.isFailed, node.failureCtrl.recoverTs)
+	return fmt.Sprintf("CurTime=%v, Failed=%-5v, RecoverTS=%v", node.CurTime, node.isFailed, node.failureCtrl.recoverTs)
 }
 
 func (node *Node) SetFailTime(failTime FailTime) {
@@ -172,6 +256,7 @@ func (node *Node) SetFailTime(failTime FailTime) {
 func (node *Node) onPingRequest(timestamp uint64, dstaddr string, datasize int) {
 	if datasize < 4 {
 		// if datasize < 4, timestamp is 0, these ping requests are ignored
+		node.logger.Warnf("onPingRequest(): ignoring ping request with datasize=%d < 4", datasize)
 		return
 	}
 
@@ -185,6 +270,7 @@ func (node *Node) onPingRequest(timestamp uint64, dstaddr string, datasize int) 
 func (node *Node) onPingReply(timestamp uint64, dstaddr string, datasize int, hoplimit int) {
 	if datasize < 4 {
 		// if datasize < 4, timestamp is 0, these ping replies are ignored
+		node.logger.Warnf("onPingReply(): ignoring ping reply with datasize=%d < 4", datasize)
 		return
 	}
 	const maxPingDelayUs uint64 = 10 * 1000000
@@ -229,7 +315,7 @@ func (node *Node) CollectJoins() []*JoinResult {
 }
 
 func (node *Node) onStatusPushExtAddr(extaddr uint64) {
-	simplelogger.AssertTrue(extaddr != InvalidExtAddr)
+	logger.AssertTrue(extaddr != InvalidExtAddr)
 	oldExtAddr := node.ExtAddr
 	if oldExtAddr == extaddr {
 		return

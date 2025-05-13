@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2020-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -31,32 +31,32 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path"
+	"runtime"
 	"strconv"
 	"strings"
 	"syscall"
 	"testing"
 	"time"
 
+	"github.com/chzyer/readline"
+	"github.com/stretchr/testify/assert"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
-	visualize_grpc_pb "github.com/openthread/ot-ns/visualize/grpc/pb"
-	"google.golang.org/grpc"
-
+	"github.com/openthread/ot-ns/cli"
 	"github.com/openthread/ot-ns/dispatcher"
-	"github.com/stretchr/testify/assert"
-
-	"github.com/chzyer/readline"
-	"github.com/openthread/ot-ns/cli/runcli"
+	"github.com/openthread/ot-ns/logger"
 	"github.com/openthread/ot-ns/otns_main"
 	"github.com/openthread/ot-ns/progctx"
 	. "github.com/openthread/ot-ns/types"
-	"github.com/openthread/ot-ns/visualize"
-	"github.com/simonlingoogle/go-simplelogger"
+	visualize_grpc_pb "github.com/openthread/ot-ns/visualize/grpc/pb"
 )
 
 var (
-	stdinPipeFile  = "stdin.namedpipe"
-	stdoutPipeFile = "stdout.namedpipe"
+	stdinPipeFile               = "stdin.namedpipe"
+	stdoutPipeFile              = "stdout.namedpipe"
+	otnsTestSingleton *OtnsTest = nil
 )
 
 type OtnsTest struct {
@@ -83,16 +83,23 @@ func (ot *OtnsTest) Join() {
 	<-ot.otnsDone
 }
 
-func (ot *OtnsTest) AddNode(role string) NodeId {
-	cmd := fmt.Sprintf("add %s", role)
+func (ot *OtnsTest) AddNode(role string, x int, y int) NodeId {
+	cmd := fmt.Sprintf("add %s x %d y %d", role, x, y)
+	ot.sendCommand(cmd)
+	return ot.expectCommandResultInt()
+}
+
+// AddNode with radio-range (rr)
+func (ot *OtnsTest) AddNodeRr(role string, x int, y int, rr int) NodeId {
+	cmd := fmt.Sprintf("add %s x %d y %d rr %d", role, x, y, rr)
 	ot.sendCommand(cmd)
 	return ot.expectCommandResultInt()
 }
 
 func (ot *OtnsTest) sendCommand(cmd string) {
-	simplelogger.Infof("> %s", cmd)
+	logger.Infof("> %s", cmd)
 	_, err := ot.stdin.WriteString(cmd + "\n")
-	simplelogger.PanicIfError(err)
+	logger.PanicIfError(err)
 }
 
 func (ot *OtnsTest) sendCommandf(format string, args ...interface{}) {
@@ -101,19 +108,15 @@ func (ot *OtnsTest) sendCommandf(format string, args ...interface{}) {
 }
 
 func (ot *OtnsTest) stdoutReadRoutine() {
-	simplelogger.Infof("OTNS Stdout reader started.")
+	logger.Infof("OTNS Stdout reader started.")
 
 	scanner := bufio.NewScanner(ot.stdout)
 	scanner.Split(bufio.ScanLines)
 
 	for scanner.Scan() {
-		simplelogger.Infof("read stdout: %#v", scanner.Text())
+		logger.Infof("read stdout: %#v", scanner.Text())
 		ot.pendingOutput <- scanner.Text()
 	}
-}
-
-func (ot *OtnsTest) shutdown() {
-
 }
 
 func (ot *OtnsTest) expectDone() {
@@ -128,22 +131,22 @@ loop:
 		if line == "Done" {
 			break loop
 		} else if strings.HasPrefix(line, "Error") {
-			simplelogger.Panicf("%s", line)
+			logger.Panicf("%s", line)
 		} else {
 			output = append(output, line)
 		}
 	}
 
-	simplelogger.Infof("expectCommandResultLines: %#v", output)
+	logger.Infof("expectCommandResultLines: %#v", output)
 	return
 }
 
 func (ot *OtnsTest) expectCommandResultInt() int {
 	lines := ot.expectCommandResultLines()
-	simplelogger.AssertTrue(len(lines) == 1)
+	logger.AssertTrue(len(lines) == 1)
 
 	v, err := strconv.Atoi(lines[0])
-	simplelogger.PanicIfError(err)
+	logger.PanicIfError(err)
 
 	return v
 }
@@ -158,10 +161,16 @@ func (ot *OtnsTest) SetSpeed(speed int) {
 	ot.expectDone()
 }
 
+func (ot *OtnsTest) Start(testFunc string) {
+	ot.Reset()
+	logger.Infof("Go test Start(): %v", testFunc)
+}
+
 func (ot *OtnsTest) Reset() {
 	ot.SetSpeed(dispatcher.MaxSimulateSpeed)
 	ot.SetPacketLossRatio(0)
-	ot.RemoveAllNodes()
+	ot.DeleteAllNodes()
+	ot.Go(time.Second)
 }
 
 func (ot *OtnsTest) SetPacketLossRatio(ratio float32) {
@@ -169,18 +178,11 @@ func (ot *OtnsTest) SetPacketLossRatio(ratio float32) {
 	ot.expectDone()
 }
 
-func (ot *OtnsTest) RemoveAllNodes() {
-	nodes := ot.ListNodes()
-	simplelogger.Infof("Remove all nodes: %+v", nodes)
-	for nodeid := range nodes {
-		ot.DeleteNode(nodeid)
-	}
-}
-
 type NodeInfo struct {
+	Type    string
 	ExtAddr uint64
 	Rloc16  uint16
-	X, Y    int
+	X, Y, Z int
 	Failed  bool
 }
 
@@ -192,18 +194,22 @@ func (ot *OtnsTest) ListNodes() map[NodeId]*NodeInfo {
 	for _, line := range lines {
 		var err error
 		var id NodeId
+		var tp string
 		var extaddr uint64
 		var rloc16 uint16
-		var x, y int
+		var x, y, z int
 		failed := false
+		line = strings.ReplaceAll(line, "\t", " ") // tabs to spaces
 
-		for _, sec := range strings.Split(line, "\t") {
+		for _, sec := range strings.Split(line, " ") {
 			kv := strings.Split(sec, "=")
 
 			switch kv[0] {
 			case "id":
 				id, err = strconv.Atoi(kv[1])
 				ot.ExpectNoError(err)
+			case "type":
+				tp = kv[1]
 			case "extaddr":
 				extaddr, err = strconv.ParseUint(kv[1], 16, 64)
 				ot.ExpectNoError(err)
@@ -218,16 +224,21 @@ func (ot *OtnsTest) ListNodes() map[NodeId]*NodeInfo {
 			case "y":
 				y, err = strconv.Atoi(kv[1])
 				ot.ExpectNoError(err)
+			case "z":
+				z, err = strconv.Atoi(kv[1])
+				ot.ExpectNoError(err)
 			case "failed":
 				ot.ExpectTrue(kv[1] == "false" || kv[1] == "true")
 				failed = kv[1] == "failed"
 			}
 		}
 		nodes[id] = &NodeInfo{
+			Type:    tp,
 			ExtAddr: extaddr,
 			Rloc16:  rloc16,
 			X:       x,
 			Y:       y,
+			Z:       z,
 			Failed:  failed,
 		}
 	}
@@ -236,6 +247,9 @@ func (ot *OtnsTest) ListNodes() map[NodeId]*NodeInfo {
 }
 
 func (ot *OtnsTest) ExpectNoError(err error) {
+	if err != nil {
+		ot.Shutdown()
+	}
 	assert.Nil(ot, err, "unexpected error")
 	if err != nil {
 		ot.FailNow()
@@ -243,9 +257,23 @@ func (ot *OtnsTest) ExpectNoError(err error) {
 }
 
 func (ot *OtnsTest) ExpectTrue(value bool, msgAndArgs ...interface{}) {
+	if !value {
+		ot.Shutdown()
+	}
 	assert.True(ot, value, msgAndArgs...)
 
 	if !value {
+		ot.FailNow()
+	}
+}
+
+func (ot *OtnsTest) ExpectEqual(expected, actual interface{}, msgAndArgs ...interface{}) {
+	if expected != actual {
+		ot.Shutdown()
+	}
+	assert.Equal(ot, expected, actual, msgAndArgs...)
+
+	if expected != actual {
 		ot.FailNow()
 	}
 }
@@ -260,6 +288,10 @@ func (ot *OtnsTest) DeleteNode(ids ...NodeId) {
 		cmd = cmd + fmt.Sprintf(" %d", id)
 	}
 	ot.executeCommand(cmd)
+}
+
+func (ot *OtnsTest) DeleteAllNodes() {
+	ot.executeCommand("del all")
 }
 
 func (ot *OtnsTest) executeCommand(cmd string) []string {
@@ -288,6 +320,10 @@ func (ot *OtnsTest) Commandf(format string, args ...interface{}) []string {
 }
 
 func (ot *OtnsTest) visualizeStreamReadRoutine() {
+	if ot.visualizeStream == nil {
+		logger.Errorf("No ot.visualizeStream was created yet (due to timeout)")
+		return
+	}
 	vctx := ot.visualizeStream.Context()
 
 	for vctx.Err() == nil {
@@ -295,7 +331,7 @@ func (ot *OtnsTest) visualizeStreamReadRoutine() {
 
 		ot.ExpectTrue(err == nil || ot.visualizeStream.Context().Err() != nil)
 		if err == nil {
-			simplelogger.Warnf("Visualize: %+v", evt)
+			logger.Infof("Visualize: %+v", evt)
 			ot.pendingVisualizeEvents <- evt
 		}
 	}
@@ -326,44 +362,67 @@ func (ot *OtnsTest) ExpectVisualizeAddNode(nodeid NodeId, x int, y int, radioRan
 	})
 }
 
+func (ot *OtnsTest) ExpectVisualizeDeleteNode(nodeid NodeId) {
+	ot.ExpectVisualizeEvent(func(evt *visualize_grpc_pb.VisualizeEvent) bool {
+		delNode := evt.GetDeleteNode()
+		if delNode == nil {
+			return false
+		}
+
+		return delNode.NodeId == int32(nodeid)
+	})
+}
+
+func Instance(t *testing.T) *OtnsTest {
+	if otnsTestSingleton == nil {
+		otnsTestSingleton = NewOtnsTest(t)
+	}
+	return otnsTestSingleton
+}
+
 func NewOtnsTest(t *testing.T) *OtnsTest {
+	// ensure test is run from the repo base directory.
+	_, filename, _, _ := runtime.Caller(0)
+	dir := path.Join(path.Dir(filename), "..")
+	err := os.Chdir(dir)
+	if err != nil {
+		panic(err)
+	}
+
 	ot := &OtnsTest{
 		T:                      t,
 		otnsDone:               make(chan struct{}),
 		pendingOutput:          make(chan string, 1000),
-		pendingVisualizeEvents: make(chan *visualize_grpc_pb.VisualizeEvent, 1000),
+		pendingVisualizeEvents: make(chan *visualize_grpc_pb.VisualizeEvent, 100000),
 	}
 
-	os.Args = append(os.Args, "-log", "debug", "-web=false", "-autogo=false")
+	os.Args = append(os.Args, "-log", "debug", "-web=false", "-autogo=false", "-watch", "info")
 
 	_ = os.Remove(stdinPipeFile)
 	_ = os.Remove(stdoutPipeFile)
 
-	err := syscall.Mkfifo(stdinPipeFile, 0644)
-	simplelogger.PanicIfError(err)
+	err = syscall.Mkfifo(stdinPipeFile, 0644)
+	logger.PanicIfError(err)
 
 	ot.stdin, err = os.OpenFile(stdinPipeFile, os.O_RDWR, os.ModeNamedPipe)
-	simplelogger.PanicIfError(err)
+	logger.PanicIfError(err)
 	ot.stdinCloser = readline.NewCancelableStdin(ot.stdin)
 
 	err = syscall.Mkfifo(stdoutPipeFile, 0644)
-	simplelogger.PanicIfError(err)
+	logger.PanicIfError(err)
 
 	ot.stdout, err = os.OpenFile(stdoutPipeFile, os.O_RDWR, os.ModeNamedPipe)
-	simplelogger.PanicIfError(err)
+	logger.PanicIfError(err)
 
 	ot.ctx = progctx.New(context.Background())
 
 	go func() {
 		defer func() {
-			simplelogger.Infof("OTNS exited.")
-			ot.shutdown()
+			logger.Infof("OTNS Main() exit.")
 			close(ot.otnsDone)
 		}()
 
-		otns_main.Main(ot.ctx, func(ctx *progctx.ProgCtx, args *otns_main.MainArgs) visualize.Visualizer {
-			return nil
-		}, &runcli.CliOptions{
+		otns_main.Main(ot.ctx, &cli.CliOptions{
 			EchoInput: false,
 			Stdin:     ot.stdin,
 			Stdout:    ot.stdout,

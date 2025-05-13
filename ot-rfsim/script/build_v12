@@ -1,0 +1,59 @@
+#!/bin/bash
+#
+#  Copyright (c) 2023-2025, The OpenThread Authors.
+#  All rights reserved.
+#
+#  Redistribution and use in source and binary forms, with or without
+#  modification, are permitted provided that the following conditions are met:
+#  1. Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#  2. Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in the
+#     documentation and/or other materials provided with the distribution.
+#  3. Neither the name of the copyright holder nor the
+#     names of its contributors may be used to endorse or promote products
+#     derived from this software without specific prior written permission.
+#
+#  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+#  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+#  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+#  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+#  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+#  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+#  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+#  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+#  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+#  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+#  POSSIBILITY OF SUCH DAMAGE.
+#
+
+set -euxo pipefail
+
+# shellcheck source=/dev/null
+. "$(dirname "$0")"/../../script/utils.sh
+
+OT_OPTIONS=(
+    "-DOT_MLR=ON"
+    "-DOT_THREAD_VERSION=1.2"
+    "-DOT_VENDOR_MODEL=RFSIM-Node-v1.2"
+    "-DOT_PACKAGE_VERSION=1.2-f759d163dc"
+    "-DOT_COMPILE_WARNING_AS_ERROR=OFF"
+)
+readonly OT_OPTIONS
+
+main()
+{
+    local options=()
+    options+=("${OT_OPTIONS[@]}" "$@")
+
+    if [[ ! -f ./openthread-v12/README.md ]]; then
+        get_openthread_commit "f759d163dc4e719bc2dbdf0bc713ea33d51b1819" "./openthread-v12" "../openthread"
+    fi
+
+    OT_DIR="./openthread-v12" OTNS_NODE_TYPE="v12" OT_CMAKE_NINJA_TARGET="ot-cli-ftd ot-cli-mtd" ./script/build "${options[@]}"
+
+    cp ./build/v12/bin/ot-cli-ftd ./ot-versions/ot-cli-ftd_v12
+    cp ./build/v12/bin/ot-cli-mtd ./ot-versions/ot-cli-mtd_v12
+}
+
+main "$@"

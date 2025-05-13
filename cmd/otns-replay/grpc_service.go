@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2020-2023, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -32,10 +32,11 @@ import (
 	"os"
 	"time"
 
-	pb "github.com/openthread/ot-ns/visualize/grpc/pb"
+	"github.com/openthread/ot-ns/logger"
 	"github.com/pkg/errors"
-	"github.com/simonlingoogle/go-simplelogger"
 	"google.golang.org/protobuf/encoding/prototext"
+
+	pb "github.com/openthread/ot-ns/visualize/grpc/pb"
 )
 
 var (
@@ -47,7 +48,7 @@ type grpcService struct {
 }
 
 func (gs *grpcService) Visualize(req *pb.VisualizeRequest, stream pb.VisualizeGrpcService_VisualizeServer) error {
-	defer simplelogger.Infof("Visualize finished.")
+	defer logger.Infof("Visualize finished.")
 
 	heartbeatEvent := &pb.VisualizeEvent{
 		Type: &pb.VisualizeEvent_Heartbeat{Heartbeat: &pb.HeartbeatEvent{}},
@@ -74,6 +75,16 @@ waitloop:
 	return nil
 }
 
+func (gs *grpcService) NodeStats(req *pb.NodeStatsRequest, stream pb.VisualizeGrpcService_NodeStatsServer) error {
+	// TODO
+	return nil
+}
+
+func (gs *grpcService) Energy(req *pb.EnergyRequest, stream pb.VisualizeGrpcService_EnergyServer) error {
+	//TODO: implement energy report for replay, if it fits.
+	return nil
+}
+
 func (gs *grpcService) Command(context.Context, *pb.CommandRequest) (*pb.CommandResponse, error) {
 	// TODO: implement some commands for replay (e.g. speed)
 	return nil, errors.Errorf("can not run command on replay")
@@ -85,12 +96,12 @@ func (gs *grpcService) visualizeStream(stream pb.VisualizeGrpcService_VisualizeS
 
 		err := recover()
 		if err != nil && stream.Context().Err() == nil {
-			simplelogger.Errorf("visualization error: %v", err)
+			logger.Errorf("visualization error: %v", err)
 		}
 	}()
 
 	replay, err := os.Open(gs.replayFile)
-	simplelogger.PanicIfError(err)
+	logger.PanicIfError(err)
 
 	scanner := bufio.NewScanner(bufio.NewReader(replay))
 	scanner.Split(bufio.ScanLines)
@@ -100,16 +111,16 @@ func (gs *grpcService) visualizeStream(stream pb.VisualizeGrpcService_VisualizeS
 	for scanner.Scan() {
 		line := scanner.Text()
 
-		simplelogger.Infof("visualize: %#v", line)
+		logger.Infof("visualize: %#v", line)
 
 		var entry pb.ReplayEntry
 		err = unmarshalOptions.Unmarshal([]byte(line), &entry)
-		simplelogger.PanicIfError(err)
+		logger.PanicIfError(err)
 
 		playTime := startTime.Add(time.Duration(entry.Timestamp) * time.Microsecond)
 		time.Sleep(time.Until(playTime))
 
 		err = stream.Send(entry.Event)
-		simplelogger.PanicIfError(err)
+		logger.PanicIfError(err)
 	}
 }

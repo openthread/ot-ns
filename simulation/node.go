@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2020-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -29,202 +29,330 @@ package simulation
 import (
 	"bufio"
 	"context"
+	"encoding/hex"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
 	"syscall"
 	"time"
 
-	"github.com/openthread/ot-ns/threadconst"
+	"github.com/pkg/errors"
 
-	"github.com/openthread/ot-ns/otoutfilter"
+	"github.com/openthread/ot-ns/dispatcher"
+	"github.com/openthread/ot-ns/event"
+	"github.com/openthread/ot-ns/logger"
 	. "github.com/openthread/ot-ns/types"
-	"github.com/simonlingoogle/go-simplelogger"
 )
 
 const (
 	DefaultCommandTimeout = time.Second * 10
+	NodeExitTimeout       = time.Second * 3
+	SendCoapResourceName  = "t"
+	SendMcastPrefix       = "ff13::deed"
+	SendUdpPort           = 10000
 )
 
-var (
-	DoneOrErrorRegexp = regexp.MustCompile(`(Done|Error \d+: .*)`)
-)
+type Node struct {
+	S      *Simulation
+	Id     int
+	DNode  *dispatcher.Node
+	Logger *logger.NodeLogger
 
-type NodeUartType int
+	cfg           *NodeConfig
+	cmd           *exec.Cmd
+	cmdErr        error // store the last CLI command error; nil if none.
+	version       string
+	threadVersion uint16
+	isSendStarted bool
+	sendGroupIds  map[int]struct{}
 
-const (
-	NodeUartTypeUndefined   NodeUartType = iota
-	NodeUartTypeRealTime    NodeUartType = iota
-	NodeUartTypeVirtualTime NodeUartType = iota
-)
+	pendingLines  chan string       // OT node CLI output lines, pending processing.
+	pendingEvents chan *event.Event // OT node emitted events to be processed.
+	pipeIn        io.WriteCloser
+	pipeOut       io.ReadCloser
+	pipeErr       io.ReadCloser
+	uartReader    chan []byte
+	uartType      NodeUartType
+}
 
-func newNode(s *Simulation, id NodeId, cfg *NodeConfig) (*Node, error) {
+// newNode creates a new simulation node. If unsuccessful, it returns an error != nil and the Node object created
+// so far (if node return != nil), or nil if node object wasn't created yet.
+func newNode(s *Simulation, nodeid NodeId, cfg *NodeConfig, dnode *dispatcher.Node) (*Node, error) {
 	var err error
 
 	if !cfg.Restore {
-		portOffset := (s.cfg.DispatcherPort - threadconst.InitialDispatcherPort) / threadconst.WellKnownNodeId
-		flashFile := fmt.Sprintf("tmp/%d_%d.flash", portOffset, id)
-		if err := os.RemoveAll(flashFile); err != nil {
-			simplelogger.Errorf("Remove flash file %s failed: %+v", flashFile, err)
+		flashFile := fmt.Sprintf("%s/%d_%d.flash", s.cfg.OutputDir, s.cfg.Id, nodeid)
+		if err = os.RemoveAll(flashFile); err != nil {
+			logger.Errorf("Remove flash file %s failed: %+v", flashFile, err)
+			return nil, err
 		}
 	}
 
-	otCliPath := s.cfg.OtCliPath
-	if cfg.ExecutablePath != "" {
-		otCliPath = cfg.ExecutablePath
+	var cmd *exec.Cmd
+	if cfg.RandomSeed == 0 {
+		cmd = exec.CommandContext(context.Background(), cfg.ExecutablePath, strconv.Itoa(nodeid), s.d.GetUnixSocketName())
+	} else {
+		seedParam := fmt.Sprintf("%d", cfg.RandomSeed)
+		cmd = exec.CommandContext(context.Background(), cfg.ExecutablePath, strconv.Itoa(nodeid), s.d.GetUnixSocketName(), seedParam)
 	}
-	simplelogger.Debugf("node exe path: %s", otCliPath)
-	cmd := exec.CommandContext(context.Background(), otCliPath, strconv.Itoa(id))
 
 	node := &Node{
-		S:            s,
-		Id:           id,
-		cfg:          cfg,
-		cmd:          cmd,
-		pendingLines: make(chan string, 100),
-		uartType:     NodeUartTypeUndefined,
+		S:             s,
+		Id:            nodeid,
+		Logger:        logger.GetNodeLogger(s.cfg.OutputDir, s.cfg.Id, cfg),
+		DNode:         dnode,
+		cfg:           cfg,
+		cmd:           cmd,
+		pendingLines:  make(chan string, 10000),
+		pendingEvents: make(chan *event.Event, 100),
+		uartType:      nodeUartTypeUndefined,
+		uartReader:    make(chan []byte, 10000),
+		version:       "",
+		sendGroupIds:  make(map[int]struct{}),
 	}
 
-	node.virtualUartReader, node.virtualUartPipe = io.Pipe()
+	node.Logger.SetFileLevel(s.cfg.LogFileLevel)
+	node.Logger.Debugf("Node config: type=%s IsMtd=%t IsRouter=%t IsBR=%t RxOffWhenIdle=%t", cfg.Type, cfg.IsMtd,
+		cfg.IsRouter, cfg.IsBorderRouter, cfg.RxOffWhenIdle)
+	node.Logger.Debugf("  exe cmd : %v", cmd)
+	node.Logger.Debugf("  position: (%d,%d,%d)", cfg.X, cfg.Y, cfg.Z)
 
 	if node.pipeIn, err = cmd.StdinPipe(); err != nil {
-		return nil, err
+		return node, err
 	}
 
 	if node.pipeOut, err = cmd.StdoutPipe(); err != nil {
-		return nil, err
+		return node, err
 	}
 
-	node.pipeErr, err = cmd.StderrPipe()
-	if err != nil {
-		return nil, err
+	if node.pipeErr, err = cmd.StderrPipe(); err != nil {
+		return node, err
 	}
 
-	err = cmd.Start()
-	if err != nil {
-		return nil, err
+	if err = cmd.Start(); err != nil {
+		return node, err
 	}
 
-	go node.lineReader(node.pipeOut, NodeUartTypeRealTime)
-	go node.lineReader(node.virtualUartReader, NodeUartTypeVirtualTime)
-	return node, nil
-}
+	go node.lineReaderStdErr(node.pipeErr) // reads StdErr output from OT node exe and acts on failures
 
-type Node struct {
-	S   *Simulation
-	Id  int
-	cfg *NodeConfig
-
-	cmd       *exec.Cmd
-	outputErr io.Reader
-
-	pendingLines      chan string
-	pipeIn            io.WriteCloser
-	pipeOut           io.Reader
-	pipeErr           io.ReadCloser
-	virtualUartReader *io.PipeReader
-	virtualUartPipe   *io.PipeWriter
-	uartType          NodeUartType
+	return node, err
 }
 
 func (node *Node) String() string {
-	return fmt.Sprintf("Node<%d>", node.Id)
+	return GetNodeName(node.Id)
 }
 
-func (node *Node) SetupNetworkParameters(sim *Simulation) {
-	node.ConfigActiveDataset(node.S.Channel(), node.S.NetworkKey(), node.S.Panid())
+func (node *Node) error(err error) {
+	if err != nil {
+		node.Logger.Error(err)
+		node.cmdErr = err
+	}
 }
 
-func (node *Node) Start() {
-	node.IfconfigUp()
-	node.ThreadStart()
+func (node *Node) runScript(cfg []string) error {
+	logger.AssertNotNil(cfg)
+	if len(cfg) == 0 {
+		return nil
+	}
 
-	simplelogger.Infof("%v - started, panid=0x%04x, channel=%d, eui64=%#v, extaddr=%#v, state=%s, networkkey=%#v, mode=%v", node,
-		node.GetPanid(), node.GetChannel(), node.GetEui64(), node.GetExtAddr(), node.GetState(),
-		node.GetNetworkKey(), node.GetMode())
+	for _, cmd := range cfg {
+		cmd = strings.TrimSpace(cmd)
+		if len(cmd) == 0 || strings.HasPrefix(cmd, "#") {
+			continue // skip empty lines and comments
+		}
+		if node.CommandResult() != nil {
+			return node.CommandResult()
+		}
+		if node.S.ctx.Err() != nil {
+			return nil
+		}
+		node.Command(cmd)
+	}
+	return node.CommandResult()
 }
 
-func (node *Node) IsFED() bool {
-	return !node.cfg.IsMtd
+func (node *Node) signalExit() error {
+	if node.cmd.Process == nil {
+		return nil
+	}
+	node.Logger.Tracef("Sending SIGTERM to node process PID %d", node.cmd.Process.Pid)
+	return node.cmd.Process.Signal(syscall.SIGTERM)
 }
 
-func (node *Node) Stop() {
-	node.ThreadStop()
-	node.IfconfigDown()
-	simplelogger.Debugf("%v - stopped, state = %s", node, node.GetState())
-}
+func (node *Node) exit() error {
+	_ = node.signalExit()
 
-func (node *Node) Exit() error {
-	node.inputCommand("exit")
-	_ = node.cmd.Process.Signal(syscall.SIGTERM)
-	_ = node.virtualUartReader.Close()
+	// Pipes are closed to allow cmd.Wait() to be successful and not hang.
+	if node.pipeIn != nil {
+		_ = node.pipeIn.Close()
+	}
+	if node.pipeErr != nil {
+		_ = node.pipeErr.Close()
+	}
+	if node.pipeOut != nil {
+		_ = node.pipeOut.Close()
+	}
 
-	err := node.cmd.Wait()
-	node.S.Dispatcher().NotifyExit(node.Id)
+	var err error = nil
+	if node.cmd.Process != nil {
+		processDone := make(chan bool)
+		node.Logger.Tracef("Waiting for process PID %d to exit ...", node.cmd.Process.Pid)
+		timeout := time.After(NodeExitTimeout)
+		go func() {
+			select {
+			case processDone <- true:
+				break
+			case <-timeout:
+				node.Logger.Warn("Node did not exit in time, sending SIGKILL.")
+				_ = node.cmd.Process.Kill()
+				processDone <- true
+			}
+		}()
+		err = node.cmd.Wait() // wait for process end
+		node.Logger.Tracef("Node process exited. Wait().err=%v", err)
+		<-processDone // signal above kill-goroutine to end
+	}
+	node.Logger.Debugf("Node exited.")
 
+	// finalize the log file/printing.
+	node.DisplayPendingLogEntries()
+	node.DisplayPendingLines()
+	node.Logger.Close()
+
+	// typical errors can be nil, or "signal: killed" if SIGKILL was necessary, or "signal: broken pipe", or
+	// any of the "exit: ..." errors listed in code of node.cmd.Wait(). Most errors aren't critical: they
+	// will still stop the node.
 	return err
 }
 
-func (node *Node) AssurePrompt() {
-	node.inputCommand("")
-	if found, _ := node.TryExpectLine("", time.Second); found {
-		return
+func (node *Node) assurePrompt() {
+	err := node.inputCommand("")
+	if err == nil {
+		if _, err := node.expectLine("", time.Second); err == nil {
+			return
+		}
 	}
 
-	node.inputCommand("")
-	if found, _ := node.TryExpectLine("", time.Second); found {
-		return
+	err = node.inputCommand("")
+	if err == nil {
+		if _, err := node.expectLine("", time.Second); err == nil {
+			return
+		}
 	}
 
-	node.inputCommand("")
-	node.expectLine("", DefaultCommandTimeout)
+	err = node.inputCommand("")
+	if err == nil {
+		_, err := node.expectLine("", DefaultCommandTimeout)
+		if err != nil {
+			node.Logger.Error(err)
+		}
+	}
 }
 
-func (node *Node) inputCommand(cmd string) {
-	simplelogger.AssertTrue(node.uartType != NodeUartTypeUndefined)
+func (node *Node) inputCommand(cmd string) error {
+	logger.AssertTrue(node.uartType != nodeUartTypeUndefined)
+	var err error
+	node.cmdErr = nil // reset last command error
 
-	if node.uartType == NodeUartTypeRealTime {
-		_, _ = node.pipeIn.Write([]byte(cmd + "\n"))
+	if node.uartType == nodeUartTypeRealTime {
+		_, err = node.pipeIn.Write([]byte(cmd + "\n"))
 		node.S.Dispatcher().NotifyCommand(node.Id)
 	} else {
-		node.S.Dispatcher().SendToUART(node.Id, []byte(cmd+"\n"))
+		err = node.DNode.SendToUART([]byte(cmd + "\n"))
 	}
+	return err
 }
 
-func (node *Node) CommandExpectNone(cmd string, timeout time.Duration) {
-	node.inputCommand(cmd)
-	node.expectLine(cmd, timeout)
-}
+// CommandNoDone executes the command without expecting 'Done' (e.g. it's a background command).
+// It just reads output lines until the node is asleep.
+func (node *Node) CommandNoDone(cmd string) []string {
+	err := node.inputCommand(cmd)
+	if err != nil {
+		node.error(err)
+		return []string{}
+	}
 
-func (node *Node) Command(cmd string, timeout time.Duration) []string {
-	node.inputCommand(cmd)
-	node.expectLine(cmd, timeout)
-	output := node.expectLine(DoneOrErrorRegexp, timeout)
+	_, err = node.expectLine(cmd, DefaultCommandTimeout)
+	if err != nil {
+		node.error(err)
+		return []string{}
+	}
 
-	var result string
-	output, result = output[:len(output)-1], output[len(output)-1]
-	if result != "Done" {
-		panic(result)
+	var output []string
+	for {
+		line, ok := node.readLine()
+		if !ok {
+			break
+		}
+		if strings.HasPrefix(line, "Error") {
+			node.error(fmt.Errorf(line))
+		} else {
+			output = append(output, line)
+		}
 	}
 	return output
 }
 
-func (node *Node) CommandExpectString(cmd string, timeout time.Duration) string {
-	output := node.Command(cmd, timeout)
-	if len(output) != 1 {
-		simplelogger.Panicf("expected 1 line, but received %d: %#v", len(output), output)
+// Command executes the command and waits for 'Done', or an 'Error', at end of output.
+func (node *Node) Command(cmd string) []string {
+	timeout := DefaultCommandTimeout
+
+	err := node.inputCommand(cmd)
+	if err != nil {
+		node.error(err)
+		return []string{}
 	}
 
+	_, err = node.expectLine(cmd, timeout)
+	if err != nil {
+		node.error(err)
+		return []string{}
+	}
+
+	var output []string
+	output, err = node.expectLine(doneOrErrorRegexp, timeout)
+	if err != nil {
+		node.error(err)
+		return []string{}
+	}
+
+	var result string
+	logger.AssertTrue(len(output) >= 1) // there's always a Done or Error line in output.
+	output, result = output[:len(output)-1], output[len(output)-1]
+	if result != "Done" {
+		node.error(fmt.Errorf(result))
+	}
+	return output
+}
+
+// CommandResult gets the last result of any Command...() call, either nil or an Error.
+func (node *Node) CommandResult() error {
+	return node.cmdErr
+}
+
+// CommandChecked executes a command, does not provide any output lines, but returns error resulting from the cmd.
+func (node *Node) CommandChecked(cmd string) error {
+	node.Command(cmd)
+	return node.CommandResult()
+}
+
+func (node *Node) CommandExpectString(cmd string) string {
+	output := node.Command(cmd)
+	if len(output) != 1 {
+		err := fmt.Errorf("%v - expected 1 line, but received %d: %#v", node, len(output), output)
+		node.Logger.Error(err)
+		return ""
+	}
 	return output[0]
 }
 
-func (node *Node) CommandExpectInt(cmd string, timeout time.Duration) int {
-	s := node.CommandExpectString(cmd, DefaultCommandTimeout)
+func (node *Node) CommandExpectInt(cmd string) int {
+	s := node.CommandExpectString(cmd)
 	var iv int64
 	var err error
 
@@ -235,201 +363,337 @@ func (node *Node) CommandExpectInt(cmd string, timeout time.Duration) int {
 	}
 
 	if err != nil {
-		simplelogger.Panicf("unexpected number: %#v", s)
+		node.Logger.Errorf("parsing unexpected Int number: '%#v'", s)
+		return 0
 	}
 	return int(iv)
 }
 
-func (node *Node) CommandExpectHex(cmd string, timeout time.Duration) int {
-	s := node.CommandExpectString(cmd, DefaultCommandTimeout)
+func (node *Node) CommandExpectHex(cmd string) int {
+	s := node.CommandExpectString(cmd)
 	var iv int64
 	var err error
 
 	iv, err = strconv.ParseInt(s[2:], 16, 0)
 
 	if err != nil {
-		simplelogger.Panicf("unexpected number: %#v", s)
+		node.Logger.Errorf("hex parsing unexpected number: '%#v'", s)
+		return 0
 	}
 	return int(iv)
 }
 
-func (node *Node) SetChannel(ch int) {
-	simplelogger.AssertTrue(11 <= ch && ch <= 26)
-	node.Command(fmt.Sprintf("channel %d", ch), DefaultCommandTimeout)
+func (node *Node) CommandExpectEnabledOrDisabled(cmd string) bool {
+	output := node.CommandExpectString(cmd)
+	if output == "Enabled" {
+		return true
+	} else if output == "Disabled" {
+		return false
+	} else if len(output) == 0 {
+		node.Logger.Errorf("CommandExpectEnabledOrDisabled() did not get data from node")
+		return false
+	} else {
+		node.Logger.Errorf("expect Enabled/Disabled, but read: '%#v'", output)
+	}
+	return false
+}
+
+func (node *Node) SetChannel(ch ChannelId) {
+	node.Command(fmt.Sprintf("channel %d", ch))
+}
+
+func (node *Node) GetRfSimParam(param RfSimParam) RfSimParamValue {
+	switch param {
+	case ParamRxSensitivity,
+		ParamCslUncertainty,
+		ParamTxInterferer,
+		ParamClockDrift,
+		ParamCslAccuracy:
+		return node.getOrSetRfSimParam(false, param, 0)
+	case ParamCcaThreshold:
+		return node.GetCcaThreshold()
+	default:
+		node.error(fmt.Errorf("unknown RfSim parameter: %d", param))
+		return 0
+	}
+}
+
+func (node *Node) SetRfSimParam(param RfSimParam, value RfSimParamValue) {
+	switch param {
+	case ParamRxSensitivity:
+		if value < RssiMin || value > RssiMax {
+			node.error(fmt.Errorf("parameter out of range %d to %d", RssiMin, RssiMax))
+			return
+		}
+		node.getOrSetRfSimParam(true, param, value)
+	case ParamCslAccuracy,
+		ParamCslUncertainty,
+		ParamTxInterferer:
+		if value < 0 || value > 255 {
+			node.error(fmt.Errorf("parameter out of range 0-255"))
+			return
+		}
+		node.getOrSetRfSimParam(true, param, value)
+	case ParamCcaThreshold:
+		node.SetCcaThreshold(value)
+	case ParamClockDrift:
+		if value < -127 || value > 127 {
+			node.error(fmt.Errorf("parameter out of range -127 - +127"))
+			return
+		}
+		node.getOrSetRfSimParam(true, param, value)
+	default:
+		node.error(fmt.Errorf("unknown RfSim parameter: %d", param))
+	}
+}
+
+func (node *Node) GetRxSensitivity() int8 {
+	return int8(node.getOrSetRfSimParam(false, ParamRxSensitivity, RssiInvalid))
+}
+
+func (node *Node) SetRxSensitivity(rxSens int8) {
+	logger.AssertTrue(rxSens >= RssiMin && rxSens <= RssiMax)
+	node.getOrSetRfSimParam(true, ParamRxSensitivity, RfSimParamValue(rxSens))
+}
+
+func (node *Node) GetCslAccuracy() uint8 {
+	return uint8(node.getOrSetRfSimParam(false, ParamCslAccuracy, 255))
+}
+
+func (node *Node) SetCslAccuracy(accPpm uint8) {
+	node.getOrSetRfSimParam(true, ParamCslAccuracy, RfSimParamValue(accPpm))
+}
+
+func (node *Node) GetCslUncertainty() uint8 {
+	return uint8(node.getOrSetRfSimParam(false, ParamCslUncertainty, 255))
+}
+
+func (node *Node) SetCslUncertainty(unc10us uint8) {
+	node.getOrSetRfSimParam(true, ParamCslUncertainty, RfSimParamValue(unc10us))
+}
+
+func (node *Node) getOrSetRfSimParam(isSet bool, param RfSimParam, value RfSimParamValue) RfSimParamValue {
+	node.cmdErr = nil
+	err := node.DNode.SendRfSimEvent(isSet, param, value)
+	if err == nil {
+		// wait for response event
+		for {
+			evt, err := node.expectEvent(event.EventTypeRadioRfSimParamRsp, DefaultCommandTimeout)
+			if err != nil {
+				node.error(err)
+				return value
+			}
+			if evt.NodeId == node.Id && evt.RfSimParamData.Param == param {
+				return RfSimParamValue(evt.RfSimParamData.Value)
+			}
+		}
+	}
+	node.error(err)
+	return value
+}
+
+func (node *Node) GetCcaThreshold() RfSimParamValue {
+	s := node.CommandExpectString("ccathreshold")
+	idx := strings.Index(s, " dBm")
+	iv, err := strconv.ParseInt(s[0:idx], 10, 0)
+	if err != nil {
+		node.error(err)
+		return RssiInvalid
+	}
+	return RfSimParamValue(iv)
+}
+
+func (node *Node) SetCcaThreshold(thresh RfSimParamValue) {
+	if thresh >= RssiMin && thresh <= RssiMax {
+		node.Command(fmt.Sprintf("ccathreshold %d", thresh))
+	} else {
+		node.error(fmt.Errorf("parameter out of range 0-255"))
+	}
 }
 
 func (node *Node) GetChannel() int {
-	return node.CommandExpectInt("channel", DefaultCommandTimeout)
+	return node.CommandExpectInt("channel")
 }
 
 func (node *Node) GetChildList() (childlist []int) {
-	s := node.CommandExpectString("child list", DefaultCommandTimeout)
+	s := node.CommandExpectString("child list")
 	ss := strings.Split(s, " ")
 
 	for _, ids := range ss {
 		id, err := strconv.Atoi(ids)
 		if err != nil {
-			simplelogger.Panicf("unpexpected child list: %#v", s)
+			node.Logger.Errorf("unexpected child list: '%#v'", s)
 		}
 		childlist = append(childlist, id)
 	}
 	return
 }
 
-func (node *Node) GetChildTable() {
-	// todo: not implemented yet
-}
-
 func (node *Node) GetChildTimeout() int {
-	return node.CommandExpectInt("childtimeout", DefaultCommandTimeout)
+	return node.CommandExpectInt("childtimeout")
 }
 
 func (node *Node) SetChildTimeout(timeout int) {
-	node.Command(fmt.Sprintf("childtimeout %d", timeout), DefaultCommandTimeout)
+	node.Command(fmt.Sprintf("childtimeout %d", timeout))
 }
 
 func (node *Node) GetContextReuseDelay() int {
-	return node.CommandExpectInt("contextreusedelay", DefaultCommandTimeout)
+	return node.CommandExpectInt("contextreusedelay")
 }
 
 func (node *Node) SetContextReuseDelay(delay int) {
-	node.Command(fmt.Sprintf("contextreusedelay %d", delay), DefaultCommandTimeout)
+	node.Command(fmt.Sprintf("contextreusedelay %d", delay))
 }
 
 func (node *Node) GetNetworkName() string {
-	return node.CommandExpectString("networkname", DefaultCommandTimeout)
+	return node.CommandExpectString("networkname")
 }
 
 func (node *Node) SetNetworkName(name string) {
-	node.Command(fmt.Sprintf("networkname %s", name), DefaultCommandTimeout)
+	node.Command(fmt.Sprintf("networkname %s", name))
 }
 
 func (node *Node) GetEui64() string {
-	return node.CommandExpectString("eui64", DefaultCommandTimeout)
+	return node.CommandExpectString("eui64")
 }
 
 func (node *Node) SetEui64(eui64 string) {
-	node.Command(fmt.Sprintf("eui64 %s", eui64), DefaultCommandTimeout)
+	node.Command(fmt.Sprintf("eui64 %s", eui64))
 }
 
 func (node *Node) GetExtAddr() uint64 {
-	s := node.CommandExpectString("extaddr", DefaultCommandTimeout)
+	s := node.CommandExpectString("extaddr")
 	v, err := strconv.ParseUint(s, 16, 64)
-	simplelogger.PanicIfError(err)
+	if err != nil {
+		if len(s) > 0 {
+			node.Logger.Errorf("GetExtAddr() unknown address format: %s", s)
+		} else {
+			node.Logger.Errorf("GetExtAddr() address not received")
+		}
+		return InvalidExtAddr
+	}
 	return v
 }
 
 func (node *Node) SetExtAddr(extaddr uint64) {
-	node.Command(fmt.Sprintf("extaddr %016x", extaddr), DefaultCommandTimeout)
+	node.Command(fmt.Sprintf("extaddr %016x", extaddr))
 }
 
 func (node *Node) GetExtPanid() string {
-	return node.CommandExpectString("extpanid", DefaultCommandTimeout)
+	return node.CommandExpectString("extpanid")
 }
 
 func (node *Node) SetExtPanid(extpanid string) {
-	node.Command(fmt.Sprintf("extpanid %s", extpanid), DefaultCommandTimeout)
+	node.Command(fmt.Sprintf("extpanid %s", extpanid))
 }
 
 func (node *Node) GetIfconfig() string {
-	return node.CommandExpectString("ifconfig", DefaultCommandTimeout)
+	return node.CommandExpectString("ifconfig")
 }
 
 func (node *Node) IfconfigUp() {
-	node.Command("ifconfig up", DefaultCommandTimeout)
+	node.Command("ifconfig up")
 }
 
 func (node *Node) IfconfigDown() {
-	node.Command("ifconfig down", DefaultCommandTimeout)
+	node.Command("ifconfig down")
 }
 
 func (node *Node) GetIpAddr() []string {
-	// todo: parse IPv6 addresses
-	addrs := node.Command("ipaddr", DefaultCommandTimeout)
+	addrs := node.Command("ipaddr")
 	return addrs
 }
 
 func (node *Node) GetIpAddrLinkLocal() []string {
-	// todo: parse IPv6 addresses
-	addrs := node.Command("ipaddr linklocal", DefaultCommandTimeout)
+	addrs := node.Command("ipaddr linklocal")
 	return addrs
 }
 
 func (node *Node) GetIpAddrMleid() []string {
-	// todo: parse IPv6 addresses
-	addrs := node.Command("ipaddr mleid", DefaultCommandTimeout)
+	addrs := node.Command("ipaddr mleid")
 	return addrs
 }
 
 func (node *Node) GetIpAddrRloc() []string {
-	addrs := node.Command("ipaddr rloc", DefaultCommandTimeout)
+	addrs := node.Command("ipaddr rloc")
 	return addrs
 }
 
+func (node *Node) GetIpAddrSlaac() []string {
+	addrs := node.Command("ipaddr -v")
+	slaacAddrs := make([]string, 0)
+	for _, addr := range addrs {
+		idx := strings.Index(addr, " origin:slaac ")
+		if idx > 0 {
+			slaacAddrs = append(slaacAddrs, addr[0:idx])
+		}
+	}
+	return slaacAddrs
+}
+
 func (node *Node) GetIpMaddr() []string {
-	// todo: parse IPv6 addresses
-	addrs := node.Command("ipmaddr", DefaultCommandTimeout)
+	addrs := node.Command("ipmaddr")
 	return addrs
 }
 
 func (node *Node) GetIpMaddrPromiscuous() bool {
-	return node.CommandExpectEnabledOrDisabled("ipmaddr promiscuous", DefaultCommandTimeout)
+	return node.CommandExpectEnabledOrDisabled("ipmaddr promiscuous")
 }
 
 func (node *Node) IpMaddrPromiscuousEnable() {
-	node.Command("ipmaddr promiscuous enable", DefaultCommandTimeout)
+	node.Command("ipmaddr promiscuous enable")
 }
 
 func (node *Node) IpMaddrPromiscuousDisable() {
-	node.Command("ipmaddr promiscuous disable", DefaultCommandTimeout)
+	node.Command("ipmaddr promiscuous disable")
 }
 
 func (node *Node) GetPromiscuous() bool {
-	return node.CommandExpectEnabledOrDisabled("promiscuous", DefaultCommandTimeout)
+	return node.CommandExpectEnabledOrDisabled("promiscuous")
 }
 
 func (node *Node) PromiscuousEnable() {
-	node.Command("promiscuous enable", DefaultCommandTimeout)
+	node.Command("promiscuous enable")
 }
 
 func (node *Node) PromiscuousDisable() {
-	node.Command("promiscuous disable", DefaultCommandTimeout)
+	node.Command("promiscuous disable")
 }
 
 func (node *Node) GetRouterEligible() bool {
-	return node.CommandExpectEnabledOrDisabled("routereligible", DefaultCommandTimeout)
+	return node.CommandExpectEnabledOrDisabled("routereligible")
 }
 
 func (node *Node) RouterEligibleEnable() {
-	node.Command("routereligible enable", DefaultCommandTimeout)
+	node.Command("routereligible enable")
 }
 
 func (node *Node) RouterEligibleDisable() {
-	node.Command("routereligible disable", DefaultCommandTimeout)
+	node.Command("routereligible disable")
 }
 
 func (node *Node) GetJoinerPort() int {
-	return node.CommandExpectInt("joinerport", DefaultCommandTimeout)
+	return node.CommandExpectInt("joinerport")
 }
 
 func (node *Node) SetJoinerPort(port int) {
-	node.Command(fmt.Sprintf("joinerport %d", port), DefaultCommandTimeout)
+	node.Command(fmt.Sprintf("joinerport %d", port))
 }
 
 func (node *Node) GetKeySequenceCounter() int {
-	return node.CommandExpectInt("keysequence counter", DefaultCommandTimeout)
+	return node.CommandExpectInt("keysequence counter")
 }
 
 func (node *Node) SetKeySequenceCounter(counter int) {
-	node.Command(fmt.Sprintf("keysequence counter %d", counter), DefaultCommandTimeout)
+	node.Command(fmt.Sprintf("keysequence counter %d", counter))
 }
 
 func (node *Node) GetKeySequenceGuardTime() int {
-	return node.CommandExpectInt("keysequence guardtime", DefaultCommandTimeout)
+	return node.CommandExpectInt("keysequence guardtime")
 }
 
 func (node *Node) SetKeySequenceGuardTime(guardtime int) {
-	node.Command(fmt.Sprintf("keysequence guardtime %d", guardtime), DefaultCommandTimeout)
+	node.Command(fmt.Sprintf("keysequence guardtime %d", guardtime))
 }
 
 type LeaderData struct {
@@ -442,249 +706,467 @@ type LeaderData struct {
 
 func (node *Node) GetLeaderData() (leaderData LeaderData) {
 	var err error
-	output := node.Command("leaderdata", DefaultCommandTimeout)
+	output := node.Command("leaderdata")
 	for _, line := range output {
 		if strings.HasPrefix(line, "Partition ID:") {
 			leaderData.PartitionID, err = strconv.Atoi(line[14:])
-			simplelogger.PanicIfError(err)
+			node.Logger.Error(err)
 		}
 
 		if strings.HasPrefix(line, "Weighting:") {
 			leaderData.Weighting, err = strconv.Atoi(line[11:])
-			simplelogger.PanicIfError(err)
+			node.Logger.Error(err)
 		}
 
 		if strings.HasPrefix(line, "Data Version:") {
 			leaderData.DataVersion, err = strconv.Atoi(line[14:])
-			simplelogger.PanicIfError(err)
+			node.Logger.Error(err)
 		}
 
 		if strings.HasPrefix(line, "Stable Data Version:") {
 			leaderData.StableDataVersion, err = strconv.Atoi(line[21:])
-			simplelogger.PanicIfError(err)
+			node.Logger.Error(err)
 		}
 
 		if strings.HasPrefix(line, "Leader Router ID:") {
 			leaderData.LeaderRouterID, err = strconv.Atoi(line[18:])
-			simplelogger.PanicIfError(err)
+			node.Logger.Error(err)
 		}
 	}
 	return
 }
 
-func (node *Node) GetLeaderPartitionId() int {
-	return node.CommandExpectInt("leaderpartitionid", DefaultCommandTimeout)
-}
-
-func (node *Node) SetLeaderPartitionId(partitionid int) {
-	node.Command(fmt.Sprintf("leaderpartitionid 0x%x", partitionid), DefaultCommandTimeout)
-}
-
 func (node *Node) GetLeaderWeight() int {
-	return node.CommandExpectInt("leaderweight", DefaultCommandTimeout)
+	return node.CommandExpectInt("leaderweight")
 }
 
 func (node *Node) SetLeaderWeight(weight int) {
-	node.Command(fmt.Sprintf("leaderweight 0x%x", weight), DefaultCommandTimeout)
+	node.Command(fmt.Sprintf("leaderweight %d", weight))
 }
 
 func (node *Node) FactoryReset() {
-	simplelogger.Warnf("%v - factoryreset", node)
-	node.inputCommand("factoryreset")
-	node.AssurePrompt()
-	simplelogger.Debugf("%v - ready", node)
+	node.Logger.Warn("node factoryreset")
+	err := node.inputCommand("factoryreset")
+	if err != nil {
+		node.error(err)
+		return
+	}
+	node.assurePrompt()
+	node.Logger.Info("factoryreset complete")
 }
 
 func (node *Node) Reset() {
-	simplelogger.Warnf("%v - reset", node)
-	node.inputCommand("reset")
-	node.AssurePrompt()
-	simplelogger.Debugf("%v - ready", node)
-}
-
-func (node *Node) GetNetworkKey() string {
-	return node.CommandExpectString("networkkey", DefaultCommandTimeout)
-}
-
-func (node *Node) SetNetworkKey(key string) {
-	node.Command(fmt.Sprintf("networkkey %s", key), DefaultCommandTimeout)
-}
-
-func (node *Node) GetMode() string {
-	// todo: return Mode type rather than just string
-	return node.CommandExpectString("mode", DefaultCommandTimeout)
-}
-
-func (node *Node) SetMode(mode string) {
-	node.Command(fmt.Sprintf("mode %s", mode), DefaultCommandTimeout)
-}
-
-func (node *Node) GetPanid() uint16 {
-	// todo: return Mode type rather than just string
-	return uint16(node.CommandExpectInt("panid", DefaultCommandTimeout))
-}
-
-func (node *Node) SetPanid(panid uint16) {
-	node.Command(fmt.Sprintf("panid 0x%x", panid), DefaultCommandTimeout)
-}
-
-func (node *Node) GetRloc16() uint16 {
-	return uint16(node.CommandExpectHex("rloc16", DefaultCommandTimeout))
-}
-
-func (node *Node) GetRouterSelectionJitter() int {
-	return node.CommandExpectInt("routerselectionjitter", DefaultCommandTimeout)
-}
-
-func (node *Node) SetRouterSelectionJitter(timeout int) {
-	node.Command(fmt.Sprintf("routerselectionjitter %d", timeout), DefaultCommandTimeout)
-}
-
-func (node *Node) GetRouterUpgradeThreshold() int {
-	return node.CommandExpectInt("routerupgradethreshold", DefaultCommandTimeout)
-}
-
-func (node *Node) SetRouterUpgradeThreshold(timeout int) {
-	node.Command(fmt.Sprintf("routerupgradethreshold %d", timeout), DefaultCommandTimeout)
-}
-
-func (node *Node) GetRouterDowngradeThreshold() int {
-	return node.CommandExpectInt("routerdowngradethreshold", DefaultCommandTimeout)
-}
-
-func (node *Node) SetRouterDowngradeThreshold(timeout int) {
-	node.Command(fmt.Sprintf("routerdowngradethreshold %d", timeout), DefaultCommandTimeout)
-}
-
-func (node *Node) GetState() string {
-	return node.CommandExpectString("state", DefaultCommandTimeout)
-}
-
-func (node *Node) ThreadStart() {
-	node.Command("thread start", DefaultCommandTimeout)
-}
-func (node *Node) ThreadStop() {
-	node.Command("thread stop", DefaultCommandTimeout)
-}
-
-func (node *Node) GetVersion() string {
-	return node.CommandExpectString("version", DefaultCommandTimeout)
-}
-
-func (node *Node) GetSingleton() bool {
-	s := node.CommandExpectString("singleton", DefaultCommandTimeout)
-	if s == "true" {
-		return true
-	} else if s == "false" {
-		return false
-	} else {
-		simplelogger.Panicf("expect true/false, but read: %#v", s)
-		return false
+	node.Logger.Warn("node reset")
+	err := node.inputCommand("reset")
+	if err != nil {
+		node.error(err)
+		return
 	}
-}
-
-func (node *Node) ConfigActiveDataset(channel int, networkkey string, panid uint16) {
-	node.Command("dataset init new", DefaultCommandTimeout)
-	node.Command(fmt.Sprintf("dataset channel %d", channel), DefaultCommandTimeout)
-	node.Command(fmt.Sprintf("dataset extpanid %s", DefaultExtPanid), DefaultCommandTimeout)
-	node.Command(fmt.Sprintf("dataset meshlocalprefix %s", DefaultMeshLocalPrefix), DefaultCommandTimeout)
-	node.Command(fmt.Sprintf("dataset networkkey %s", networkkey), DefaultCommandTimeout)
-	node.Command(fmt.Sprintf("dataset networkname %s", DefaultNetworkName), DefaultCommandTimeout)
-	node.Command(fmt.Sprintf("dataset panid 0x%04x", panid), DefaultCommandTimeout)
-	node.Command(fmt.Sprintf("dataset pskc %s", DefaultPskc), DefaultCommandTimeout)
-	node.Command("dataset commit active", DefaultCommandTimeout)
-}
-
-func (node *Node) lineReader(reader io.Reader, uartType NodeUartType) {
-	// close the line channel after line reader routine exit
-	scanner := bufio.NewScanner(otoutfilter.NewOTOutFilter(bufio.NewReader(reader), node.String()))
-	scanner.Split(bufio.ScanLines)
-
-	for scanner.Scan() {
-		line := scanner.Text()
-
-		if node.uartType == NodeUartTypeUndefined {
-			simplelogger.Debugf("%v's UART type is %v", node, uartType)
-			node.uartType = uartType
-		}
-
-		select {
-		case node.pendingLines <- line:
-			break
-		default:
-			// if we failed to append line, we just read one line to get more space
-			select {
-			case <-node.pendingLines:
-			default:
-			}
-
-			node.pendingLines <- line // won't block here
-			break
-		}
-	}
-}
-
-func (node *Node) TryExpectLine(line interface{}, timeout time.Duration) (bool, []string) {
-	var outputLines []string
-
-	deadline := time.After(timeout)
-
-	for {
-		select {
-		case <-deadline:
-			return false, outputLines
-		case readLine, ok := <-node.pendingLines:
-			if !ok {
-				errmsg, _ := ioutil.ReadAll(node.outputErr)
-				simplelogger.Panicf("%s EOF: %s", node, string(errmsg))
-				return false, outputLines
-			}
-
-			simplelogger.Debugf("%v - %s", node, readLine)
-
-			outputLines = append(outputLines, readLine)
-			if node.isLineMatch(readLine, line) {
-				// found the exact line
-				return true, outputLines
-			} else {
-				// hack: output scan result here, should have better implementation
-				//| J | Network Name     | Extended PAN     | PAN  | MAC Address      | Ch | dBm | LQI |
-				if strings.HasPrefix(readLine, "|") || strings.HasPrefix(readLine, "+") {
-					fmt.Printf("%s\n", readLine)
-				}
-			}
-		default:
-			node.S.Dispatcher().RecvEvents()
-		}
-	}
-}
-
-func (node *Node) expectLine(line interface{}, timeout time.Duration) []string {
-	found, output := node.TryExpectLine(line, timeout)
-	if !found {
-		simplelogger.Panicf("expect line timeout: %#v", line)
-	}
-
-	return output
-}
-
-func (node *Node) CommandExpectEnabledOrDisabled(cmd string, timeout time.Duration) bool {
-	output := node.CommandExpectString(cmd, timeout)
-	if output == "Enabled" {
-		return true
-	} else if output == "Disabled" {
-		return false
-	} else {
-		simplelogger.Panicf("expect Enabled/Disabled, but read: %#v", output)
-	}
-	return false
+	node.assurePrompt()
+	node.Logger.Warn("reset complete")
 }
 
 func (node *Node) Ping(addr string, payloadSize int, count int, interval int, hopLimit int) {
 	cmd := fmt.Sprintf("ping async %s %d %d %d %d", addr, payloadSize, count, interval, hopLimit)
-	node.inputCommand(cmd)
-	node.expectLine(cmd, DefaultCommandTimeout)
-	node.AssurePrompt()
+	err := node.inputCommand(cmd)
+	if err != nil {
+		node.error(err)
+		return
+	}
+	_, err = node.expectLine(cmd, DefaultCommandTimeout)
+	node.Logger.Error(err)
+	node.assurePrompt()
+}
+
+func (node *Node) GetNetworkKey() string {
+	return node.CommandExpectString("networkkey")
+}
+
+func (node *Node) SetNetworkKey(key string) {
+	node.Command(fmt.Sprintf("networkkey %s", key))
+}
+
+func (node *Node) GetMode() string {
+	// TODO: return Mode type rather than just string
+	return node.CommandExpectString("mode")
+}
+
+func (node *Node) SetMode(mode string) {
+	node.Command(fmt.Sprintf("mode %s", mode))
+}
+
+func (node *Node) GetPanid() uint16 {
+	return uint16(node.CommandExpectInt("panid"))
+}
+
+func (node *Node) SetPanid(panid uint16) {
+	node.Command(fmt.Sprintf("panid 0x%x", panid))
+}
+
+func (node *Node) GetRloc16() uint16 {
+	return uint16(node.CommandExpectHex("rloc16"))
+}
+
+func (node *Node) GetRouterSelectionJitter() int {
+	return node.CommandExpectInt("routerselectionjitter")
+}
+
+func (node *Node) SetRouterSelectionJitter(timeout int) {
+	node.Command(fmt.Sprintf("routerselectionjitter %d", timeout))
+}
+
+func (node *Node) GetRouterUpgradeThreshold() int {
+	return node.CommandExpectInt("routerupgradethreshold")
+}
+
+func (node *Node) SetRouterUpgradeThreshold(timeout int) {
+	node.Command(fmt.Sprintf("routerupgradethreshold %d", timeout))
+}
+
+func (node *Node) GetRouterDowngradeThreshold() int {
+	return node.CommandExpectInt("routerdowngradethreshold")
+}
+
+func (node *Node) SetRouterDowngradeThreshold(timeout int) {
+	node.Command(fmt.Sprintf("routerdowngradethreshold %d", timeout))
+}
+
+func (node *Node) GetState() string {
+	return node.CommandExpectString("state")
+}
+
+func (node *Node) ThreadStart() error {
+	return node.CommandChecked("thread start")
+}
+
+func (node *Node) ThreadStop() error {
+	return node.CommandChecked("thread stop")
+}
+
+// SendInit inits the node to participate in OTNS 'send' command sending or receiving.
+func (node *Node) SendInit() error {
+	if node.isSendStarted {
+		return nil
+	}
+	if err := node.CommandChecked("udp open"); err != nil {
+		return err
+	}
+	if err := node.UdpBindAny(SendUdpPort); err != nil {
+		return err
+	}
+	if err := node.CommandChecked("coap start"); err != nil {
+		return err
+	}
+	if err := node.CommandChecked(fmt.Sprintf("coap resource %s", SendCoapResourceName)); err != nil {
+		return err
+	}
+	node.isSendStarted = true
+	return nil
+}
+
+// SendReset resets the node after, or before, using a series of OTNS 'send' commands.
+func (node *Node) SendReset() error {
+	if !node.isSendStarted {
+		return nil
+	}
+	if err := node.CommandChecked("coap stop"); err != nil {
+		return err
+	}
+	if err := node.CommandChecked("udp close"); err != nil {
+		return err
+	}
+	// clear any mcast group memberships
+	for gid := range node.sendGroupIds {
+		if err := node.SendGroupMembership(gid, false); err != nil {
+			return err
+		}
+	}
+	node.isSendStarted = false
+
+	return nil
+}
+
+// SendGroupMembership modifies multicast group membership for the groups used by the OTNS 'send' command.
+func (node *Node) SendGroupMembership(groupId int, isMember bool) error {
+	addOrDel := "del"
+	if isMember {
+		addOrDel = "add"
+	}
+	addr := fmt.Sprintf("%s:%x", SendMcastPrefix, groupId)
+	cmd := fmt.Sprintf("ipmaddr %s %s", addOrDel, addr)
+	err := node.CommandChecked(cmd)
+	if err != nil {
+		if !isMember && strings.HasPrefix(err.Error(), "Error 23") {
+			return nil // OT err address not found - no problem: already a non-member.
+		}
+		return err
+	}
+	if isMember {
+		node.sendGroupIds[groupId] = struct{}{}
+	} else {
+		delete(node.sendGroupIds, groupId)
+	}
+	return err
+}
+
+func (node *Node) UdpSend(addr string, port int, data []byte) error {
+	cmd := fmt.Sprintf("udp send %s %d -x %s", addr, port, hex.EncodeToString(data))
+	return node.CommandChecked(cmd)
+}
+
+func (node *Node) UdpSendTestData(addr string, port int, dataSize int) error {
+	cmd := fmt.Sprintf("udp send %s %d -s %d", addr, port, dataSize)
+	return node.CommandChecked(cmd)
+}
+
+func (node *Node) UdpBindAny(port int) error {
+	cmd := fmt.Sprintf("udp bind :: %d", port)
+	return node.CommandChecked(cmd)
+}
+
+func (node *Node) CoapPostTestData(addr string, uri string, confirmable bool, dataSize int) error {
+	payloadStr := randomString(dataSize)
+	conNonStr := "non"
+	if confirmable {
+		conNonStr = "con"
+	}
+	cmd := fmt.Sprintf("coap post %s %s %s %s", addr, uri, conNonStr, payloadStr)
+	return node.CommandChecked(cmd)
+}
+
+// GetThreadVersion gets the Thread version integer of the OpenThread node.
+func (node *Node) GetThreadVersion() uint16 {
+	if node.threadVersion == 0 { // lazy init
+		node.threadVersion = uint16(node.CommandExpectInt("thread version"))
+	}
+	return node.threadVersion
+}
+
+// GetVersion gets the version string of the OpenThread node.
+func (node *Node) GetVersion() string {
+	if node.version == "" { // lazy init
+		node.version = node.CommandExpectString("version")
+	}
+	return node.version
+}
+
+func (node *Node) GetExecutablePath() string {
+	return node.cfg.ExecutablePath
+}
+
+func (node *Node) GetExecutableName() string {
+	return filepath.Base(node.cfg.ExecutablePath)
+}
+
+func (node *Node) GetSingleton() bool {
+	s := node.CommandExpectString("singleton")
+	if s == "true" {
+		return true
+	} else if s == "false" {
+		return false
+	} else if len(s) == 0 {
+		node.Logger.Errorf("GetSingleton(): no data received")
+		return false
+	} else {
+		node.Logger.Errorf("expected true/false, but read: '%#v'", s)
+		return false
+	}
+}
+
+func (node *Node) GetCounters(counterType string, keyPrefix string) NodeCounters {
+	lines := node.Command("counters " + counterType)
+	res := make(NodeCounters)
+	for _, line := range lines {
+		kv := strings.Split(line, ": ")
+		if len(kv) != 2 {
+			node.Logger.Errorf("GetCounters(): unexpected data '%v'", line)
+			return nil
+		}
+		val, err := strconv.ParseUint(kv[1], 10, 64)
+		if err != nil {
+			node.Logger.Errorf("GetCounters(): unexpected value string '%v' (not int)", kv[1])
+			return nil
+		}
+		key := strings.ReplaceAll(kv[0], " ", "")
+		res[keyPrefix+key] = val
+	}
+	return res
+}
+
+func (node *Node) processUartData() {
+	var deadline <-chan time.Time
+	done := node.S.ctx.Done()
+
+loop:
+	for {
+		select {
+		case <-done:
+			break loop
+		case data := <-node.uartReader:
+			line := string(data)
+			if line == "> " { // filter out the prompt.
+				continue
+			}
+			idxNewLine := strings.IndexByte(line, '\n')
+			lineTrim := strings.TrimSpace(line)
+			if idxNewLine == -1 { // if no newline, get more items until a line can be formed.
+				deadline = time.After(dispatcher.DefaultReadTimeout)
+
+			loop2:
+				for {
+					select {
+					case nextData := <-node.uartReader:
+						nextPart := string(nextData)
+						idxNewLinePart := strings.IndexByte(nextPart, '\n')
+						line += nextPart
+						if idxNewLinePart >= 0 {
+							node.pendingLines <- strings.TrimSpace(line)
+							break loop2
+						}
+					case <-done:
+						break loop
+					case <-deadline:
+						line = strings.TrimSpace(line)
+						node.Logger.Panicf("processUart deadline: line=%s", line)
+						break loop2
+					}
+				}
+			} else {
+				node.pendingLines <- lineTrim
+			}
+
+		default:
+			break loop
+		}
+	}
+}
+
+func (node *Node) onStart() {
+	if node.Logger.IsLevelVisible(logger.InfoLevel) {
+		node.Logger.Infof("started, panid=0x%04x, chan=%d, eui64=%#v, extaddr=%#v, state=%s, key=%#v, mode=%v",
+			node.GetPanid(), node.GetChannel(), node.GetEui64(), node.GetExtAddr(), node.GetState(),
+			node.GetNetworkKey(), node.GetMode())
+		node.Logger.Infof("         version=%s", node.GetVersion())
+	}
+	if node.cfg.Type == WIFI {
+		node.SetRfSimParam(ParamTxInterferer, defaultWiFiTxInterfererPercentage)
+	}
+}
+
+func (node *Node) onProcessFailure() {
+	node.Logger.Errorf("Node process exited after an error occurred.")
+	node.S.Dispatcher().NotifyNodeProcessFailure(node.Id)
+	node.S.PostAsync(func() {
+		_, nodeExists := node.S.nodes[node.Id]
+		if node.S.ctx.Err() == nil && nodeExists {
+			logger.Warnf("Deleting node %v due to process failure.", node.Id)
+			_ = node.S.DeleteNode(node.Id)
+		}
+	})
+}
+
+func (node *Node) lineReaderStdErr(reader io.Reader) {
+	scanner := bufio.NewScanner(bufio.NewReader(reader)) // no filter applied.
+	scanner.Split(bufio.ScanLines)
+
+	var errProc error = nil
+	for scanner.Scan() {
+		line := scanner.Text()
+		stderrLine := fmt.Sprintf("StdErr: %s", line)
+
+		// mark the first error output line of the node
+		if errProc == nil {
+			errProc = errors.New(stderrLine)
+		}
+		node.Logger.Error(errProc)
+	}
+
+	// when the stderr of the node closes and any error was raised, inform simulation of node's failure.
+	if errProc != nil {
+		node.onProcessFailure()
+	}
+}
+
+func (node *Node) expectEvent(evtType event.EventType, timeout time.Duration) (*event.Event, error) {
+	done := node.S.ctx.Done()
+	deadline := time.After(timeout)
+
+	for {
+		select {
+		case <-done:
+			return nil, CommandInterruptedError
+		case <-deadline:
+			err := fmt.Errorf("expectEvent timeout: expected type %d", evtType)
+			return nil, err
+		case evt := <-node.pendingEvents:
+			node.Logger.Tracef("expectEvent() received: %v", evt)
+			return evt, nil
+		default:
+			if !node.S.Dispatcher().IsAlive(node.Id) {
+				time.Sleep(time.Millisecond * 10) // in case of node connection error, this becomes busy-loop.
+			}
+			node.S.Dispatcher().RecvEvents() // keep virtual-UART events coming.
+		}
+	}
+}
+
+// readLine attempts to read a line from the node. Returns false when the node is asleep and
+// therefore cannot return any more lines at the moment.
+func (node *Node) readLine() (string, bool) {
+	done := node.S.ctx.Done()
+	pendingLinesReceived := false
+
+	for {
+		select {
+		case <-done:
+			return "", false
+		case readLine := <-node.pendingLines:
+			if len(readLine) > 0 {
+				node.Logger.Tracef("UART: %s", readLine)
+			}
+			return readLine, true
+		default:
+			node.S.Dispatcher().RecvEvents() // keep virtual-UART events coming.
+			node.processUartData()           // forge data from UART-events into lines (fills up node.pendingLines)
+			if pendingLinesReceived && !node.S.Dispatcher().IsAlive(node.Id) {
+				return "", false
+			}
+			pendingLinesReceived = true
+		}
+	}
+}
+
+func (node *Node) expectLine(line interface{}, timeout time.Duration) ([]string, error) {
+	var outputLines []string
+	done := node.S.ctx.Done()
+	deadline := time.After(timeout)
+
+	for {
+		select {
+		case <-done:
+			return []string{}, CommandInterruptedError
+		case <-deadline:
+			//_ = pprof.Lookup("goroutine").WriteTo(os.Stdout, 2) // @DEBUG: useful log info when node stuck
+			err := fmt.Errorf("expectLine timeout: expected %v", line)
+			return outputLines, err
+		case readLine := <-node.pendingLines:
+			if len(readLine) > 0 {
+				node.Logger.Tracef("UART: %s", readLine)
+			}
+
+			outputLines = append(outputLines, readLine)
+			if node.isLineMatch(readLine, line) { // found the exact line
+				node.S.Dispatcher().RecvEvents() // this blocks until node is asleep.
+				return outputLines, nil
+			}
+		default:
+			if !node.S.Dispatcher().IsAlive(node.Id) {
+				time.Sleep(time.Millisecond * 10) // in case of node connection error, this becomes busy-loop.
+			}
+			node.S.Dispatcher().RecvEvents() // keep virtual-UART events coming.
+			node.processUartData()           // forge data from UART-events into lines (fills up node.pendingLines)
+		}
+	}
 }
 
 func (node *Node) isLineMatch(line string, _expectedLine interface{}) bool {
@@ -700,7 +1182,7 @@ func (node *Node) isLineMatch(line string, _expectedLine interface{}) bool {
 			}
 		}
 	default:
-		simplelogger.Panic("unknown expected string")
+		node.Logger.Panicf("unknown data type %v, expected string, Regexp or []string", expectedLine)
 	}
 	return false
 }
@@ -712,12 +1194,12 @@ func (node *Node) DumpStat() string {
 func (node *Node) setupMode() {
 	if node.cfg.IsRouter {
 		// routers should be full functional and rx always on
-		simplelogger.AssertFalse(node.cfg.IsMtd)
-		simplelogger.AssertFalse(node.cfg.RxOffWhenIdle)
+		logger.AssertFalse(node.cfg.IsMtd)
+		logger.AssertFalse(node.cfg.RxOffWhenIdle)
 	}
 
 	// only MED can use RxOffWhenIdle
-	simplelogger.AssertTrue(!node.cfg.RxOffWhenIdle || node.cfg.IsMtd)
+	logger.AssertTrue(!node.cfg.RxOffWhenIdle || node.cfg.IsMtd)
 
 	mode := ""
 	if !node.cfg.RxOffWhenIdle {
@@ -730,23 +1212,27 @@ func (node *Node) setupMode() {
 
 	node.SetMode(mode)
 
-	if !node.cfg.IsRouter {
+	if !node.cfg.IsRouter && !node.cfg.IsMtd {
 		node.RouterEligibleDisable()
-	} else {
-		node.SetRouterSelectionJitter(1)
 	}
 }
 
-func (node *Node) onUartWrite(data []byte) {
-	_, _ = node.virtualUartPipe.Write(data)
+func (node *Node) DisplayPendingLines() {
+	prefix := ""
+loop:
+	for {
+		select {
+		case line := <-node.pendingLines:
+			if len(prefix) == 0 && node.S.cmdRunner.GetNodeContext() != node.Id {
+				prefix = node.String() // lazy init of node-specific prefix
+			}
+			logger.Println(prefix + line)
+		default:
+			break loop
+		}
+	}
 }
 
-func (node *Node) detectVirtualTimeUART() {
-	// Input newline to both Virtual Time UART and stdin and check where node outputs newline
-	node.S.Dispatcher().SendToUART(node.Id, []byte("\n"))
-	_, _ = node.pipeIn.Write([]byte("\n"))
-
-	node.expectLine("", DefaultCommandTimeout)
-	// UART type should have been correctly set when the new line is received from node
-	simplelogger.AssertTrue(node.uartType != NodeUartTypeUndefined)
+func (node *Node) DisplayPendingLogEntries() {
+	node.Logger.DisplayPendingLogEntries(node.S.Dispatcher().CurTime)
 }

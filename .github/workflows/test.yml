@@ -1,4 +1,4 @@
-# Copyright (c) 2020, The OTNS Authors.
+# Copyright (c) 2020-2025, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -34,100 +34,79 @@ on:
     branches:
       - 'main'
 
-jobs:
-  cancel-previous-runs:
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: rokroskar/workflow-run-cleanup-action@master
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        if: "github.ref != 'refs/heads/main'"
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
+jobs:
   go-tests:
-    name: Go Tests on ${{ matrix.os }}
+    name: Go Tests (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, macos-12]
+        os: [ubuntu-22.04, macos-13]
     env:
       HOMEBREW_NO_AUTO_UPDATE: 1
     steps:
-      - uses: actions/setup-go@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
         with:
-          go-version: "1.20"
-      - uses: actions/checkout@v3
+          go-version: '1.18'
       - name: Test
         run: |
           ./script/test go-tests
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@v4
 
   py-unittests:
     name: Unittests (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.9"]
-        os: [ubuntu-22.04, macos-12]
+        python-version: ['3.10']
+        os: [ubuntu-22.04, macos-13]
     env:
       HOMEBREW_NO_AUTO_UPDATE: 1
     steps:
-      - uses: actions/setup-go@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
         with:
-          go-version: "1.20"
+          go-version: '1.22'
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      - uses: actions/checkout@v3
-      - name: Test
+      - name: Test latest OT-version
         run: |
           ./script/test py-unittests
+      - name: Test multiple OT-versions
+        run: |
+          ./script/test py-ver-unittests
 
   py-examples:
     name: Examples (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.9"]
-        os: [ubuntu-22.04, macos-12]
+        python-version: ['3.9']
+        os: [ubuntu-22.04, macos-13]
     env:
       HOMEBREW_NO_AUTO_UPDATE: 1
     steps:
-      - uses: actions/setup-go@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
         with:
-          go-version: "1.20"
+          go-version: '1.22'
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      - uses: actions/checkout@v3
       - name: Run Examples
         run: |
           ./script/test py-examples
-
-  signals:
-    name: Signals (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ["3.9"]
-        os: [ubuntu-22.04, macos-12]
-    env:
-      HOMEBREW_NO_AUTO_UPDATE: 1
-    steps:
-      - uses: actions/setup-go@v3
-        with:
-          go-version: "1.20"
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python-version }}
-      - uses: actions/checkout@v3
-      - name: Test
-        run: |
-          ./script/test signals

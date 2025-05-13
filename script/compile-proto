@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright (c) 2020, The OTNS Authors.
+# Copyright (c) 2020-2025, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -24,8 +24,8 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-#
-# This script packs web related files into go binary data using [go-bindata](https://github.com/jteeuwen/go-bindata)
+
+# Compiles all Protocol Buffers files and gRPC interfaces
 
 # shellcheck source=script/common.sh
 . "$(dirname "$0")"/common.sh
@@ -33,7 +33,7 @@
 compile_proto()
 {
     cd "$OTNSDIR"/visualize/grpc/pb || return 1
-    protoc -I=. visualize_grpc.proto --go_out=plugins=grpc:.
+    protoc -I=. visualize_grpc.proto --go_opt=paths=source_relative --go_out=plugins=grpc:.
     mkdir -p ../../../web/site/js/proto/
     protoc -I=. visualize_grpc.proto \
         --js_out=import_style=commonjs:../../../web/site/js/proto/ \

@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2020-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -30,15 +30,14 @@ import (
 	"context"
 	"os"
 
+	"github.com/openthread/ot-ns/logger"
 	"github.com/openthread/ot-ns/otns_main"
 	"github.com/openthread/ot-ns/progctx"
-	"github.com/openthread/ot-ns/visualize"
 )
 
 func main() {
 	ctx := progctx.New(context.Background())
-	otns_main.Main(ctx, func(ctx *progctx.ProgCtx, args *otns_main.MainArgs) visualize.Visualizer {
-		return nil
-	}, nil)
+	otns_main.Main(ctx, nil)
+	logger.Debugf("OTNS Main() exit.")
 	os.Exit(0)
 }

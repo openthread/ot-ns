@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2020, The OTNS Authors.
+# Copyright (c) 2020-2025, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,6 +27,7 @@
 
 import os
 import random
+import time
 from typing import List, Dict, Tuple
 
 from BaseStressTest import BaseStressTest
@@ -34,11 +35,10 @@ from otns.cli.errors import OTNSCliError
 
 XGAP = 100
 YGAP = 100
-RADIO_RANGE = 150
 
 PASSWORD = "TEST123"
 
-REPEAT = int(os.getenv("STRESS_LEVEL", 1)) * 10
+REPEAT = int(os.getenv("STRESS_LEVEL", 1)) * 5
 N = 5
 
 
@@ -52,7 +52,7 @@ class CommissioningStressTest(BaseStressTest):
         self._join_time_accum = 0
         self._join_count = 0
         self._join_fail_count = 0
-        self.ns.packet_loss_ratio = 0.2
+        self.ns.packet_loss_ratio = 0.05
 
     def run(self):
         for _ in range(REPEAT):
@@ -60,12 +60,11 @@ class CommissioningStressTest(BaseStressTest):
 
         expected_join_count = REPEAT * (N * N - 1)
         total_join_count = self._join_count + self._join_fail_count
-        self.result.fail_if(self._join_count < expected_join_count * 0.99,
-                            "Join Count (%d) < %d * 99%%" % (self._join_count, expected_join_count))
+        self.result.fail_if(self._join_count < expected_join_count,
+                            "Join Count (%d) < %d" % (self._join_count, expected_join_count))
         join_ok_percent = self._join_count * 100 // total_join_count
         avg_join_time = self._join_time_accum / self._join_count if self._join_count else float('inf')
-        self.result.append_row(total_join_count, '%d%%' % join_ok_percent,
-                               '%.0fs' % avg_join_time)
+        self.result.append_row(total_join_count, '%d%%' % join_ok_percent, '%.0fs' % avg_join_time)
         self.result.fail_if(join_ok_percent < 90, "Success Percent (%d%%) < 90%%" % join_ok_percent)
         self.result.fail_if(avg_join_time > 20, "Average Join Time (%.0f) > 20s" % avg_join_time)
 
@@ -73,6 +72,7 @@ class CommissioningStressTest(BaseStressTest):
         self.reset()
 
         ns = self.ns
+
         G: List[List[int]] = [[-1] * C for _ in range(R)]
         RC: Dict[int, Tuple[int, int]] = {}
 
@@ -80,12 +80,9 @@ class CommissioningStressTest(BaseStressTest):
             for c in range(C):
                 device_role = 'router'
                 if R >= 3 and C >= 3 and (r in (0, R - 1) or c in (0, C - 1)):
-                    device_role = random.choice(['fed'])
-                G[r][c] = ns.add(device_role, x=c * XGAP + XGAP, y=YGAP + r * YGAP, radio_range=RADIO_RANGE)
+                    device_role = random.choice(['fed', 'med', 'sed'])
+                G[r][c] = ns.add(device_role, x=c * XGAP + XGAP, y=YGAP + r * YGAP)
                 RC[G[r][c]] = (r, c)
-                if device_role == 'router':
-                    ns.set_router_upgrade_threshold(G[r][c], 32)
-                    ns.set_router_downgrade_threshold(G[r][c], 33)
 
         joined: List[List[bool]] = [[False] * C for _ in range(R)]
         started: List[List[bool]] = [[False] * C for _ in range(R)]
@@ -147,6 +144,9 @@ class CommissioningStressTest(BaseStressTest):
                 ns.joiner_start(G[r][c], PASSWORD)
                 joining[r, c] = 0
 
+                ns.go(0.1)  # small delay to avoid lockstep sync'ed behavior of new started joiner nodes.
+                now += 0.1
+
             # make sure the joining nodes are joining
             for (r, c), ts in joining.items():
                 if ts == 0 or ts + 10 < now:
@@ -158,8 +158,8 @@ class CommissioningStressTest(BaseStressTest):
 
                     joining[(r, c)] = now
 
-            ns.go(20)
-            now += 20
+            ns.go(1)
+            now += 1
 
             joins = ns.joins()
             for nodeid, join_time, session_time in joins:
@@ -172,6 +172,10 @@ class CommissioningStressTest(BaseStressTest):
                     self._join_time_accum += join_time
                 else:
                     self._join_fail_count += 1
+
+        # (typically) all nodes are now joined and started. Simulate some time to see the full partition form.
+        ns.go(200)
+        time.sleep(2)  # in GUI case, allow display to catch up before exiting.
 
 
 if __name__ == '__main__':

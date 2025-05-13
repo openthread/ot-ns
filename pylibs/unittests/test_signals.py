@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Copyright (c) 2020, The OTNS Authors.
+# Copyright (c) 2020-2023, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -29,6 +29,7 @@
 import os
 import logging
 import os
+import random
 import signal
 import threading
 import time
@@ -38,7 +39,7 @@ from subprocess import TimeoutExpired
 from OTNSTestCase import OTNSTestCase
 from otns.cli.errors import OTNSExitedError
 
-WAIT_OTNS_TIMEOUT = 3
+WAIT_OTNS_TIMEOUT = 5  # seconds, max wait time for OTNS to exit fully. Includes 3 sec max node exit time.
 
 
 class SignalsTest(OTNSTestCase):
@@ -52,11 +53,11 @@ class SignalsTest(OTNSTestCase):
     def testSIGTERM(self):
         self._test_signal_exit(signal.SIGTERM)
 
-    def testSIGTERMx1000(self):
-        N = 1000
+    def testSIGTERMx200(self):
+        N = 200
         for i in range(N):
             logging.info("round %d", i + 1)
-            self._test_signal_exit(signal.SIGTERM, 0)
+            self._test_signal_exit(signal.SIGTERM, 0.1 * random.random())
 
             self.tearDown()
             self.setUp()
@@ -75,22 +76,36 @@ class SignalsTest(OTNSTestCase):
 
     def testCommandHandleSignalOkx100(self):
         for i in range(100):
-            self._testCommandHandleSignalOk()
+            logging.debug(f"testCommandHandleSignalOkx100 round {i}")
+            self._testCommandHandleSignalOk(duration=(random.random() * 0.120 + 0.010))
 
             self.tearDown()
             self.setUp()
 
-    def _testCommandHandleSignalOk(self):
-        t = threading.Thread(target=self._send_signal, args=(0.01, signal.SIGTERM))
+    def _testCommandHandleSignalOk(self, duration: float = 1):
+        t = threading.Thread(target=self._send_signal, args=(duration, signal.SIGTERM))
         t.start()
         try:
             self.ns.speed = float('inf')
             while True:
                 self.ns.add("router")
         except OTNSExitedError as ex:
-            self.assertEqual(0, ex.exit_code)
+            # Python subprocess may return the negative signal value as exit code
+            # when the process is still starting up.
+            # Normally, after some longer time running, 0 is returned.
+            self.assertTrue(ex.exit_code == 0 or ex.exit_code == -signal.SIGTERM)
 
         t.join()
+        exit_code = 9999
+        try:
+            exit_code = self.ns._otns.wait(timeout=WAIT_OTNS_TIMEOUT)
+        except TimeoutExpired:
+            logging.error('OTNS exit-signal handling took too long. Debug info follows below.')
+            logging.error('OTNS error code: %s', self.ns._otns.returncode)
+            os.system(f"curl http://localhost:8997/debug/pprof/goroutine?debug=2")
+            raise
+
+        self.assertTrue(exit_code == 0 or exit_code == -signal.SIGTERM)
 
     def _test_signal_ignore(self, sig: int):
         t = threading.Thread(target=self._send_signal, args=(1, sig))
@@ -116,6 +131,7 @@ class SignalsTest(OTNSTestCase):
         try:
             exit_code = self.ns._otns.wait(timeout=WAIT_OTNS_TIMEOUT)
         except TimeoutExpired:
+            logging.error('OTNS exit-signal handling took too long. Debug info follows below.')
             logging.error('OTNS error code: %s', self.ns._otns.returncode)
             os.system(f"curl http://localhost:8997/debug/pprof/goroutine?debug=2")
             raise
@@ -142,9 +158,9 @@ class SignalsTest(OTNSTestCase):
             return
 
     def _send_signal(self, delay: float, sig: int):
-        logging.info(f"sleep {delay} ...")
+        logging.debug(f"sleep {delay} ...")
         time.sleep(delay)
-        logging.info(f'sending signal {sig}')
+        logging.debug(f'sending signal {sig}')
         self.ns._otns.send_signal(sig)
 
 

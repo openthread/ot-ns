@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2020-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -27,23 +27,24 @@
 package visualize_grpc
 
 import (
+	"github.com/openthread/ot-ns/logger"
 	. "github.com/openthread/ot-ns/types"
 	"github.com/openthread/ot-ns/visualize"
-	"github.com/simonlingoogle/go-simplelogger"
 )
 
 type grpcField struct {
-	nodes       map[NodeId]*grpcNode
-	curTime     uint64
-	curSpeed    float64
-	speed       float64
-	titleInfo   visualize.TitleInfo
-	networkInfo visualize.NetworkInfo
+	nodes         map[NodeId]*grpcNode
+	curTime       uint64
+	curSpeed      float64
+	speed         float64
+	titleInfo     visualize.TitleInfo
+	networkInfo   visualize.NetworkInfo
+	nodeStatsInfo visualize.NodeStatsInfo
 }
 
-func (f *grpcField) addNode(id NodeId, x int, y int, radioRange int) *grpcNode {
-	simplelogger.AssertNil(f.nodes[id])
-	gn := newGprcNode(id, x, y, radioRange)
+func (f *grpcField) addNode(id NodeId, cfg *NodeConfig) *grpcNode {
+	logger.AssertNil(f.nodes[id])
+	gn := newGprcNode(id, cfg)
 	f.nodes[id] = gn
 	return gn
 }
@@ -64,9 +65,23 @@ func (f *grpcField) setNodePartitionId(id NodeId, parid uint32) {
 	f.nodes[id].partitionId = parid
 }
 
-func (f *grpcField) advanceTime(ts uint64, speed float64) {
+func (f *grpcField) setNodeVersion(id NodeId, version string) {
+	f.nodes[id].version = version
+}
+
+func (f *grpcField) setNodeCommit(id NodeId, commit string) {
+	f.nodes[id].commit = commit
+}
+
+func (f *grpcField) setNodeThreadVersion(id NodeId, version uint16) {
+	f.nodes[id].threadVersion = version
+}
+
+func (f *grpcField) advanceTime(ts uint64, speed float64) bool {
+	hasChanged := f.curTime != ts || f.curSpeed != speed
 	f.curTime = ts
 	f.curSpeed = speed
+	return hasChanged
 }
 
 func (f *grpcField) onNodeFail(nodeid NodeId) {
@@ -77,10 +92,11 @@ func (f *grpcField) onNodeRecover(id NodeId) {
 	f.nodes[id].failed = false
 }
 
-func (f *grpcField) setNodePos(id NodeId, x int, y int) {
+func (f *grpcField) setNodePos(id NodeId, x, y, z int) {
 	node := f.nodes[id]
 	node.x = x
 	node.y = y
+	node.z = z
 }
 
 func (f *grpcField) deleteNode(id NodeId) {
@@ -119,12 +135,17 @@ func (f *grpcField) setTitleInfo(info visualize.TitleInfo) {
 	f.titleInfo = info
 }
 
+func (f *grpcField) setNodeStatsInfo(info visualize.NodeStatsInfo) {
+	f.nodeStatsInfo = info
+}
+
 func newGrpcField() *grpcField {
 	gf := &grpcField{
-		nodes:       map[NodeId]*grpcNode{},
-		curSpeed:    1,
-		speed:       1,
-		networkInfo: visualize.DefaultNetworkInfo(),
+		nodes:         map[NodeId]*grpcNode{},
+		curSpeed:      1,
+		speed:         1,
+		networkInfo:   visualize.DefaultNetworkInfo(),
+		nodeStatsInfo: visualize.DefaultNodeStatsInfo(),
 	}
 	return gf
 }

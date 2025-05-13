@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2022-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -24,26 +24,53 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+// OT-NS related and general-use types and definitions.
+
 package types
 
 import (
+	"fmt"
 	"math"
-
-	"github.com/simonlingoogle/go-simplelogger"
 )
 
 type NodeId = int
+type ChannelId = uint8
 
 const (
-	MaxNodeId       NodeId = 0xffff
-	InvalidNodeId   NodeId = 0
-	BroadcastNodeId NodeId = -1
-)
+	InvalidNodeId         NodeId = 0
+	BroadcastNodeId       NodeId = -1
+	InitialDispatcherPort        = 9000
 
-const (
 	// InvalidExtAddr defines the invalid extended address for nodes.
-	InvalidExtAddr uint64 = math.MaxUint64
+	InvalidExtAddr       uint64 = math.MaxUint64
+	InvalidThreadVersion uint16 = 0
+
+	InvalidChannel ChannelId = 0xff
 )
+
+// Node types and roles
+const (
+	FED    = "fed"
+	MED    = "med"
+	SED    = "sed"
+	SSED   = "ssed"
+	ROUTER = "router"
+	REED   = "reed"
+	BR     = "br"
+	MTD    = "mtd"
+	FTD    = "ftd"
+	WIFI   = "wifi" // Wi-Fi interferer node
+)
+
+func GetNodeName(id NodeId) string {
+	spacing := "  "
+	if id >= 100 {
+		spacing = ""
+	} else if id >= 10 {
+		spacing = " "
+	}
+	return fmt.Sprintf("Node<%d>%s", id, spacing)
+}
 
 type NodeMode struct {
 	RxOnWhenIdle     bool
@@ -79,33 +106,35 @@ const (
 	AddrTypeAny       AddrType = "any"
 	AddrTypeMleid     AddrType = "mleid"
 	AddrTypeRloc      AddrType = "rloc"
+	AddrTypeAloc      AddrType = "aloc"
 	AddrTypeLinkLocal AddrType = "linklocal"
+	AddrTypeSlaac     AddrType = "slaac"
 )
 
-type OtDeviceRole int
+type NodeStats struct {
+	NumNodes      int
+	NumLeaders    int
+	NumPartitions int
+	NumRouters    int
+	NumEndDevices int
+	NumDetached   int
+	NumDisabled   int
+	NumSleepy     int
+	NumFailed     int
+}
 
-const (
-	OtDeviceRoleDisabled OtDeviceRole = 0 ///< The Thread stack is disabled.
-	OtDeviceRoleDetached OtDeviceRole = 1 ///< Not currently participating in a Thread network/partition.
-	OtDeviceRoleChild    OtDeviceRole = 2 ///< The Thread Child role.
-	OtDeviceRoleRouter   OtDeviceRole = 3 ///< The Thread Router role.
-	OtDeviceRoleLeader   OtDeviceRole = 4 ///< The Thread Leader role.
-)
+// PhyStats contains PHY statistics and usage data for a node.
+type PhyStats struct {
+	TxBytes         uint64 // Tx bytes done and initiated so far (may include a not-yet-complete transmission)
+	TxTimeUs        uint64 // Tx time duration in microsec
+	ChanSampleCount uint64 // includes CCAs, Energy Detects (EDs), or other sample types.
+}
 
-func (r OtDeviceRole) String() string {
-	switch r {
-	case OtDeviceRoleDisabled:
-		return "disabled"
-	case OtDeviceRoleDetached:
-		return "detached"
-	case OtDeviceRoleChild:
-		return "child"
-	case OtDeviceRoleRouter:
-		return "router"
-	case OtDeviceRoleLeader:
-		return "leader"
-	default:
-		simplelogger.Panicf("invalid device role: %v", r)
-		return "invalid"
+// Minus returns the difference (delta) between this PhyStats and another.
+func (ps *PhyStats) Minus(other PhyStats) PhyStats {
+	return PhyStats{
+		TxBytes:         ps.TxBytes - other.TxBytes,
+		TxTimeUs:        ps.TxTimeUs - other.TxTimeUs,
+		ChanSampleCount: ps.ChanSampleCount - other.ChanSampleCount,
 	}
 }

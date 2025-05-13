@@ -1,4 +1,4 @@
-# Copyright (c) 2020, The OTNS Authors.
+# Copyright (c) 2020-2025, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -34,40 +34,53 @@ on:
     branches:
       - 'main'
 
-jobs:
-  cancel-previous-runs:
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: rokroskar/workflow-run-cleanup-action@master
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        if: "github.ref != 'refs/heads/main'"
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
+jobs:
   develop:
-    name: Develop (Go${{ matrix.go }},${{ matrix.os }})
+    name: Develop (Go${{ matrix.go }}, Python${{ matrix.python-version }}, ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     env:
       HOMEBREW_NO_AUTO_UPDATE: 1
     strategy:
       fail-fast: false
       matrix:
-        go: ["1.17", "1.20"]
-        python-version: ["3.9"]
+        go: ['1.22']
+        python-version: ['3.10']
         os: [ubuntu-22.04]
     steps:
-      - uses: actions/setup-go@v3
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go }}
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      - uses: actions/checkout@v3
-      - name: Build
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Buildx Docker 'environment'
         run: |
-          docker build -t otns-env -f etc/docker/environment/Dockerfile .
-          docker run -t -v$PWD:/otns otns-env -c "./script/pack-web"
+          ./script/docker-build environment
+      - name: Build OTNS Web
+        run: |
+          ./script/install-deps
+          ./script/run-docker-pack-web
           if ! git diff --quiet; then
             echo "script/pack-web was not properly executed:"
             git diff
             exit 1
           fi
+          ./script/install
+      - name: Build custom OT node
+        # FIXME: OT_CMAKE_NINJA_TARGET used to exclude tests, because test_platform.cpp is missing otPlatAssertFail()
+        run: |
+          cd ot-rfsim
+          OT_CMAKE_NINJA_TARGET="ot-cli-ftd ot-cli-mtd" ./script/build -DOT_HISTORY_TRACKER=ON
+          # ./script/build -DOT_HISTORY_TRACKER=ON # this should be the command above (after the OT fix)
+      - name: Setup dev environment
+        run: |
+          ./script/setup-dev

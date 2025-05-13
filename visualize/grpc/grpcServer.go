@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2020-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -31,11 +31,17 @@ import (
 	"net"
 	"time"
 
-	"github.com/simonlingoogle/go-simplelogger"
-
-	pb "github.com/openthread/ot-ns/visualize/grpc/pb"
-
 	"google.golang.org/grpc"
+
+	"github.com/openthread/ot-ns/logger"
+	"github.com/openthread/ot-ns/visualize/grpc/pb"
+)
+
+type visualizeStreamType int
+
+const (
+	meshTopologyVizType visualizeStreamType = 1
+	nodeStatsVizType    visualizeStreamType = 2
 )
 
 type grpcServer struct {
@@ -43,9 +49,20 @@ type grpcServer struct {
 	server             *grpc.Server
 	address            string
 	visualizingStreams map[*grpcStream]struct{}
+	energyStreams      map[*grpcEnergyStream]struct{}
+	grpcClientAdded    chan string
 }
 
 func (gs *grpcServer) Visualize(req *pb.VisualizeRequest, stream pb.VisualizeGrpcService_VisualizeServer) error {
+	return gs.runVisualizeStream(meshTopologyVizType, stream, req.String())
+}
+
+func (gs *grpcServer) NodeStats(req *pb.NodeStatsRequest, stream pb.VisualizeGrpcService_NodeStatsServer) error {
+	return gs.runVisualizeStream(nodeStatsVizType, stream, req.String())
+}
+
+func (gs *grpcServer) runVisualizeStream(vizType visualizeStreamType, stream pb.VisualizeGrpcService_VisualizeServer,
+	reqId string) error {
 	var err error
 	contextDone := stream.Context().Done()
 	heartbeatEvent := &pb.VisualizeEvent{
@@ -53,8 +70,8 @@ func (gs *grpcServer) Visualize(req *pb.VisualizeRequest, stream pb.VisualizeGrp
 	}
 	var heartbeatTicker *time.Ticker
 
-	gstream := newGrpcStream(stream)
-	simplelogger.Debugf("New visualize request got.")
+	gstream := newGrpcStream(vizType, stream)
+	logger.Debugf("New gRPC visualize request (type %d) received.", vizType)
 
 	gs.vis.Lock()
 	err = gs.prepareStream(gstream)
@@ -64,6 +81,13 @@ func (gs *grpcServer) Visualize(req *pb.VisualizeRequest, stream pb.VisualizeGrp
 	}
 
 	gs.visualizingStreams[gstream] = struct{}{}
+	// if web.OpenWeb goroutine is waiting for a new client, then notify it.
+	select {
+	case gs.grpcClientAdded <- reqId:
+		break
+	default:
+		break
+	}
 	gs.vis.Unlock()
 
 	defer gs.disposeStream(gstream)
@@ -85,7 +109,33 @@ func (gs *grpcServer) Visualize(req *pb.VisualizeRequest, stream pb.VisualizeGrp
 	}
 
 exit:
-	simplelogger.Infof("Visualize stream exit: %v", err)
+	logger.Debugf("Visualize stream exit: %v", err)
+	return err
+}
+
+func (gs *grpcServer) Energy(req *pb.EnergyRequest, stream pb.VisualizeGrpcService_EnergyServer) error {
+	var err error
+	contextDone := stream.Context().Done()
+
+	//TODO: do we need a heartbeat and a idle checker here too?
+
+	gstream := newGrpcEnergyStream(stream)
+	logger.Debugf("New energy report request got.")
+
+	gs.energyStreams[gstream] = struct{}{}
+	defer gs.disposeEnergyStream(gstream)
+
+	energyHist := gs.vis.energyAnalyser.GetNetworkEnergyHistory()
+	energyHistByNodes := gs.vis.energyAnalyser.GetEnergyHistoryByNodes()
+	for i := 0; i < len(energyHistByNodes); i++ {
+		gs.vis.UpdateNodesEnergy(energyHistByNodes[i], energyHist[i].Timestamp, (i+1) == len(energyHistByNodes))
+	}
+
+	//Wait for the first event
+	<-contextDone
+	err = stream.Context().Err()
+
+	logger.Debugf("energy report stream exit: %v", err)
 	return err
 }
 
@@ -98,24 +148,31 @@ func (gs *grpcServer) Command(ctx context.Context, req *pb.CommandRequest) (*pb.
 
 func (gs *grpcServer) Run() error {
 	lis, err := net.Listen("tcp", gs.address)
-	simplelogger.PanicIfError(err)
-	simplelogger.Infof("gRPC visualizer serving on %s ...", lis.Addr())
+	if err != nil {
+		return err
+	}
+	logger.Infof("gRPC visualizer server serving on %s ...", lis.Addr())
 	return gs.server.Serve(lis)
 }
 
-func (gs *grpcServer) SendEvent(event *pb.VisualizeEvent, trivial bool) {
+func (gs *grpcServer) SendEvent(event *pb.VisualizeEvent) {
 	for stream := range gs.visualizingStreams {
+		if stream.acceptsEvent(event) {
+			_ = stream.Send(event)
+		}
+	}
+}
+
+func (gs *grpcServer) SendEnergyEvent(event *pb.EnergyEvent) {
+	for stream := range gs.energyStreams {
 		_ = stream.Send(event)
 	}
 }
 
 func (gs *grpcServer) stop() {
-	gs.vis.Lock()
 	for stream := range gs.visualizingStreams {
 		stream.close()
 	}
-	gs.vis.Unlock()
-
 	gs.server.Stop()
 }
 
@@ -126,17 +183,26 @@ func (gs *grpcServer) disposeStream(stream *grpcStream) {
 	stream.close()
 }
 
+func (gs *grpcServer) disposeEnergyStream(stream *grpcEnergyStream) {
+	gs.vis.Lock()
+	delete(gs.energyStreams, stream)
+	gs.vis.Unlock()
+	stream.close()
+}
+
 func (gs *grpcServer) prepareStream(stream *grpcStream) error {
 	return gs.vis.prepareStream(stream)
 }
 
-func newGrpcServer(vis *grpcVisualizer, address string) *grpcServer {
+func newGrpcServer(vis *grpcVisualizer, address string, chanNewClientNotifier chan string) *grpcServer {
 	server := grpc.NewServer(grpc.ReadBufferSize(1024*8), grpc.WriteBufferSize(1024*1024*1))
 	gs := &grpcServer{
 		vis:                vis,
 		server:             server,
 		address:            address,
 		visualizingStreams: map[*grpcStream]struct{}{},
+		energyStreams:      map[*grpcEnergyStream]struct{}{},
+		grpcClientAdded:    chanNewClientNotifier,
 	}
 	pb.RegisterVisualizeGrpcServiceServer(server, gs)
 	return gs

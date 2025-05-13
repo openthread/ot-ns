@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2020-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -27,18 +27,13 @@
 package dispatcher
 
 import (
-	"math/rand"
-
-	"github.com/simonlingoogle/go-simplelogger"
+	"github.com/openthread/ot-ns/logger"
+	"github.com/openthread/ot-ns/prng"
 )
 
 type FailTime struct {
-	FailDuration uint64
-	FailInterval uint64
-}
-
-func (ft FailTime) CanFail() bool {
-	return ft.FailDuration > 0
+	FailDuration uint64 // unit: us
+	FailInterval uint64 // unit: us
 }
 
 var (
@@ -46,64 +41,86 @@ var (
 )
 
 type FailureCtrl struct {
-	owner            *Node
-	failTime         FailTime
-	recoverTs        uint64
-	elapsedTimeAccum uint64
+	owner           *Node
+	failTime        FailTime
+	recoverTs       uint64 // unit: us; timestamp when recovery from failure starts (valid if currently failed)
+	failTs          uint64 // unit: us; timestamp when failure starts (valid if currently not failed)
+	remainTm        uint64 // unit: us; time that remains in this fail cycle after failure has ended.
+	prevOpTimestamp uint64 // unit: us; time of previous reported next-operation timestamp.
 }
 
 func newFailureCtrl(owner *Node, failTime FailTime) *FailureCtrl {
-	return &FailureCtrl{
+	fc := &FailureCtrl{
 		owner:    owner,
 		failTime: failTime,
 	}
+	return fc
+}
+
+func (ft FailTime) CanFail() bool {
+	return ft.FailDuration > 0
 }
 
 func (fc *FailureCtrl) SetFailTime(failTime FailTime) {
 	fc.failTime = failTime
+
+	fc.recoverTs = 0
+	fc.failTs = 0
+	fc.remainTm = 0
 	if !failTime.CanFail() && fc.owner.IsFailed() {
-		fc.recoverTs = 0
 		fc.owner.Recover()
 	}
+	fc.calcNextFailTimestamp()
 }
 
-func (fc *FailureCtrl) OnTimeAdvanced(oldTime uint64) {
+// OnTimeAdvanced must be called when the node's time advances. It performs fail/recover operations as
+// needed, and returns the timestamp of a next expected fail/recover operation as well as a flag
+// that is set to 'true' if the next-operation timestamp moved further into the future.
+func (fc *FailureCtrl) OnTimeAdvanced(oldTime uint64) (uint64, bool) {
+	isUpdated := false
+	if !fc.failTime.CanFail() {
+		return Ever, isUpdated
+	}
+
+	logger.AssertTrue(fc.owner.CurTime > oldTime)
+
+	// if node is failed currently
+	if fc.owner.IsFailed() {
+		logger.AssertTrue(fc.failTs == 0)
+		if fc.owner.CurTime >= fc.recoverTs {
+			fc.recoverTs = 0
+			fc.calcNextFailTimestamp()
+			fc.owner.Recover()
+			fc.prevOpTimestamp = fc.failTs
+			return fc.failTs, true
+		}
+		isUpdated = fc.recoverTs > fc.prevOpTimestamp
+		fc.prevOpTimestamp = fc.recoverTs
+		return fc.recoverTs, isUpdated
+	}
+
+	// if node is not failed currently
+	logger.AssertTrue(fc.recoverTs == 0)
+	if fc.owner.CurTime >= fc.failTs {
+		fc.recoverTs = fc.owner.CurTime + fc.failTime.FailDuration
+		fc.failTs = 0
+		fc.owner.Fail()
+		fc.prevOpTimestamp = fc.recoverTs
+		return fc.recoverTs, true
+	}
+	isUpdated = fc.failTs > fc.prevOpTimestamp
+	fc.prevOpTimestamp = fc.failTs
+	return fc.failTs, isUpdated
+}
+
+func (fc *FailureCtrl) calcNextFailTimestamp() {
 	if !fc.failTime.CanFail() {
 		return
 	}
-
-	if fc.owner.IsFailed() {
-		simplelogger.AssertTrue(fc.recoverTs > 0 && fc.elapsedTimeAccum == 0)
-		fc.tryRecoverNode()
-		return
-	}
-
-	simplelogger.AssertTrue(fc.recoverTs == 0)
-
-	periodTime := fc.failTime.FailInterval
-	fc.elapsedTimeAccum += fc.owner.CurTime - oldTime
-	for !fc.owner.IsFailed() && fc.elapsedTimeAccum >= periodTime/100 {
-		fc.elapsedTimeAccum -= periodTime / 100
-		if rand.Float32() < 0.01 {
-			// make the node fail
-			fc.failNode()
-		}
-	}
-}
-
-func (fc *FailureCtrl) tryRecoverNode() {
-	simplelogger.AssertTrue(fc.owner.IsFailed())
-	if fc.owner.CurTime >= fc.recoverTs {
-		fc.recoverTs = 0
-		fc.owner.Recover()
-	}
-}
-
-func (fc *FailureCtrl) failNode() {
-	simplelogger.AssertTrue(!fc.owner.IsFailed())
-
-	fc.recoverTs = fc.owner.CurTime + fc.failTime.FailDuration
-	fc.elapsedTimeAccum = 0
-
-	fc.owner.Fail()
+	logger.AssertTrue(fc.failTime.FailDuration > 0 && fc.failTime.FailInterval > fc.failTime.FailDuration)
+	failStartTimeMax := int(fc.failTime.FailInterval - fc.failTime.FailDuration)
+	failTsRel := prng.NewFailTime(failStartTimeMax)
+	fc.failTs = failTsRel + fc.owner.CurTime + fc.remainTm
+	fc.remainTm = fc.failTime.FailInterval - fc.failTime.FailDuration - failTsRel
+	logger.AssertTrue(fc.remainTm < fc.failTime.FailInterval)
 }

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Copyright (c) 2020, The OTNS Authors.
+# Copyright (c) 2020-2023, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -32,15 +32,16 @@ import sys
 import time
 import traceback
 from functools import wraps
-from otns.cli import OTNS
-from otns.cli.errors import UnexpectedError
 from typing import Collection
 
+from otns.cli import OTNS
+from otns.cli.errors import UnexpectedError
 from StressTestResult import StressTestResult
-from errors import UnexpectedNodeAddr
+from errors import UnexpectedNodeAddr, UnexpectedNodeState
 
 
 class StressTestMetaclass(type):
+
     def __new__(cls, name, bases, dct):
         assert 'run' in dct, f'run method is not defined in {name}'
 
@@ -66,14 +67,18 @@ class StressTestMetaclass(type):
 
 
 class BaseStressTest(object, metaclass=StressTestMetaclass):
-    def __init__(self, name, headers, raw=False):
+
+    def __init__(self, name, headers, web=True, raw=False, rand_seed=0):
         self.name = name
-        self._otns_args = []
+        self._otns_args = ['-log', 'info', '-logfile', 'none', '-seed',
+                           str(rand_seed)]  # use ['-log', 'debug'] for more debug messages
         if raw:
-            self._otns_args.append('-raw')
+            self._otns_args.append('-ot-script')
+            self._otns_args.append('none')
         self.ns = OTNS(otns_args=self._otns_args)
         self.ns.speed = float('inf')
-        self.ns.web()
+        if web:
+            self.ns.web()
 
         self.result = StressTestResult(name=name, headers=headers)
         self.result.start()
@@ -85,6 +90,8 @@ class BaseStressTest(object, metaclass=StressTestMetaclass):
         nodes = self.ns.nodes()
         if nodes:
             self.ns.delete(*nodes.keys())
+        self.ns.speed = float('inf')
+        self.ns.go(1)
 
     def stop(self):
         self.result.stop()

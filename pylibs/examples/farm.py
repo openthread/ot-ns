@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2020, The OTNS Authors.
+# Copyright (c) 2020-2024, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -36,33 +36,49 @@
 #
 # Inspired by https://www.threadgroup.org/Farm-Jenny
 
-import random
+import logging
 import math
+import random
 
 from otns.cli import OTNS
 from otns.cli.errors import OTNSExitedError
 
-R = 6
-RECEIVER_RADIO_RANGE = 300 * R
-HORSE_RADIO_RANGE = 80 * R
+R = 3  # screen-pixels per meter
+RECEIVER_TX_POWER = 10  # dBm, integer - router
+HORSE_TX_POWER = -20  #dBm, integer - sensor
 HORSE_NUM = 10
-FARM_RECT = [10 * R, 10 * R, 210 * R, 110 * R]
+HORSE_MAX_SPEED_MPS = 3  # horse max speed in m/sec
+FARM_RECT = [20 * R, 20 * R, 440 * R, 260 * R]  # number in meters
 
 
 def main():
-    ns = OTNS(otns_args=['-log', 'info'])
-    ns.speed = 1
+    ns = OTNS(otns_args=['-logfile', 'none'])
+
+    if False:  # Optional forcing of random-seed for OTNS and Python. This gives exact reproducable simulation.
+        # The pcap parameter is to select another PCAP type that includes channel info.
+        random_seed = 2142142
+        ns = OTNS(otns_args=['-seed', f'{random_seed}', '-pcap', 'wpan-tap'])
+        random.seed(random_seed)
+
+    ns.loglevel = 'info'
+    ns.watch_default('note')
+    ns.logconfig(logging.INFO)
+    ns.speed = 4
+    ns.radiomodel = 'Outdoor'
+    ns.set_radioparam('MeterPerUnit', 1 / R)
+    ns.set_radioparam('ShadowFadingSigmaDb', 0.0)
+    ns.set_radioparam('TimeFadingSigmaMaxDb', 0.0)
+
     ns.set_title("Farm Example")
-    ns.set_network_info(version="Latest", commit="main", real=False)
     ns.config_visualization(broadcast_message=False)
     ns.web()
 
-    gateway = ns.add("router", FARM_RECT[0], FARM_RECT[1], radio_range=RECEIVER_RADIO_RANGE)
-    ns.add("router", FARM_RECT[0], FARM_RECT[3], radio_range=RECEIVER_RADIO_RANGE)
-    ns.add("router", FARM_RECT[2], FARM_RECT[1], radio_range=RECEIVER_RADIO_RANGE)
-    ns.add("router", FARM_RECT[2], FARM_RECT[3], radio_range=RECEIVER_RADIO_RANGE)
-    ns.add("router", (FARM_RECT[0] + FARM_RECT[2]) // 2, FARM_RECT[1], radio_range=RECEIVER_RADIO_RANGE)
-    ns.add("router", (FARM_RECT[0] + FARM_RECT[2]) // 2, FARM_RECT[3], radio_range=RECEIVER_RADIO_RANGE)
+    gateway = ns.add("router", FARM_RECT[0], FARM_RECT[1])
+    ns.add("router", FARM_RECT[0], FARM_RECT[3], txpower=RECEIVER_TX_POWER)
+    ns.add("router", FARM_RECT[2], FARM_RECT[1], txpower=RECEIVER_TX_POWER)
+    ns.add("router", FARM_RECT[2], FARM_RECT[3], txpower=RECEIVER_TX_POWER)
+    ns.add("router", (FARM_RECT[0] + FARM_RECT[2]) // 2, FARM_RECT[1], txpower=RECEIVER_TX_POWER)
+    ns.add("router", (FARM_RECT[0] + FARM_RECT[2]) // 2, FARM_RECT[3], txpower=RECEIVER_TX_POWER)
 
     horse_pos = {}
     horse_move_dir = {}
@@ -70,7 +86,7 @@ def main():
     for i in range(HORSE_NUM):
         rx = random.randint(FARM_RECT[0] + 20, FARM_RECT[2] - 20)
         ry = random.randint(FARM_RECT[1] + 20, FARM_RECT[3] - 20)
-        sid = ns.add("sed", rx, ry, radio_range=HORSE_RADIO_RANGE)
+        sid = ns.add("ssed", rx, ry, txpower=HORSE_TX_POWER)
         horse_pos[sid] = (rx, ry)
         horse_move_dir[sid] = random.uniform(0, math.pi * 2)
 
@@ -82,13 +98,17 @@ def main():
             if oid == sid:
                 continue
 
-            dist2 = (x - ox) ** 2 + (y - oy) ** 2
+            dist2 = (x - ox)**2 + (y - oy)**2
             if dist2 <= 1600:
                 return True
 
         return False
 
+    ns.interactive_cli_threaded()
+
     time_accum = 0
+    sid_last_ping = 0
+
     while True:
         dt = 1
         ns.go(dt)
@@ -97,7 +117,7 @@ def main():
         for sid, (sx, sy) in horse_pos.items():
 
             for i in range(10):
-                mdist = random.uniform(0, 2 * R * dt)
+                mdist = random.uniform(0, HORSE_MAX_SPEED_MPS * R * dt)
 
                 sx = int(sx + mdist * math.cos(horse_move_dir[sid]))
                 sy = int(sy + mdist * math.sin(horse_move_dir[sid]))
@@ -113,10 +133,20 @@ def main():
                 horse_pos[sid] = (sx, sy)
                 break
 
-        if time_accum >= 10:
+        if time_accum >= HORSE_NUM + 1:
+            ns.print_pings(ns.pings())
+            found = False
             for sid in horse_pos:
-                ns.ping(sid, gateway)
-            time_accum -= 10
+                if sid > sid_last_ping:
+                    ns.ping(sid, gateway)
+                    sid_last_ping = sid
+                    found = True
+                    break
+            if not found:
+                sid_last_ping = 0
+                time_accum = 0
+
+    ns.web_display()
 
 
 if __name__ == '__main__':

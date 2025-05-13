@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2020-2024, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -29,33 +29,33 @@ package dispatcher
 import (
 	"container/heap"
 
+	. "github.com/openthread/ot-ns/event"
 	. "github.com/openthread/ot-ns/types"
 )
 
-type sendItem struct {
-	Timestamp uint64
-	NodeId    NodeId
-	Data      []byte
-}
-
 type sendQueue struct {
-	q []*sendItem
+	q []*Event
 }
 
-func (sq sendQueue) Len() int {
+func (sq *sendQueue) Len() int {
 	return len(sq.q)
 }
 
-func (sq sendQueue) Less(i, j int) bool {
-	return sq.q[i].Timestamp < sq.q[j].Timestamp
+func (sq *sendQueue) Less(i, j int) bool {
+	ti := sq.q[i].Timestamp
+	tj := sq.q[j].Timestamp
+	if ti == tj {
+		return sq.q[i].NodeId < sq.q[j].NodeId
+	}
+	return ti < tj
 }
 
-func (sq sendQueue) Swap(i, j int) {
+func (sq *sendQueue) Swap(i, j int) {
 	sq.q[i], sq.q[j] = sq.q[j], sq.q[i]
 }
 
 func (sq *sendQueue) Push(x interface{}) {
-	sq.q = append(sq.q, x.(*sendItem))
+	sq.q = append(sq.q, x.(*Event))
 }
 
 func (sq *sendQueue) Pop() (elem interface{}) {
@@ -65,7 +65,7 @@ func (sq *sendQueue) Pop() (elem interface{}) {
 	return
 }
 
-func (sq sendQueue) NextTimestamp() uint64 {
+func (sq *sendQueue) NextTimestamp() uint64 {
 	if len(sq.q) > 0 {
 		return sq.q[0].Timestamp
 	} else {
@@ -73,21 +73,35 @@ func (sq sendQueue) NextTimestamp() uint64 {
 	}
 }
 
-func (sq *sendQueue) Add(timestamp uint64, id NodeId, data []byte) {
-	heap.Push(sq, &sendItem{
-		Timestamp: timestamp,
-		NodeId:    id,
-		Data:      data,
-	})
+func (sq *sendQueue) NextEvent() *Event {
+	if len(sq.q) > 0 {
+		return sq.q[0]
+	} else {
+		return nil
+	}
 }
 
-func (sq *sendQueue) PopNext() *sendItem {
-	return heap.Pop(sq).(*sendItem)
+func (sq *sendQueue) Add(evt *Event) {
+	heap.Push(sq, evt)
+}
+
+// DisableEventsForNode diables all events to/from a particular nodeid from the queue.
+// This is done by setting a NodeId of '0' for these events.
+func (sq *sendQueue) DisableEventsForNode(nodeid NodeId) {
+	for _, evt := range sq.q {
+		if evt.NodeId == nodeid {
+			evt.NodeId = 0 // make the event invalid.
+		}
+	}
+}
+
+func (sq *sendQueue) PopNext() *Event {
+	return heap.Pop(sq).(*Event)
 }
 
 func newSendQueue() *sendQueue {
 	sq := &sendQueue{
-		q: []*sendItem{},
+		q: []*Event{},
 	}
 	heap.Init(sq)
 	return sq
