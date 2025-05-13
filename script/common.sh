@@ -31,11 +31,11 @@
 set -euox pipefail
 
 if [[ "$(uname)" == "Darwin" ]]; then
-    export readonly Darwin=1
-    export readonly Linux=0
+    declare -rx Darwin=1
+    declare -rx Linux=0
 elif [[ "$(uname)" == "Linux" ]]; then
-    export readonly Darwin=0
-    export readonly Linux=1
+    declare -rx Darwin=0
+    declare -rx Linux=1
 else
     die "Unsupported OS: $(uname)"
 fi
@@ -44,29 +44,29 @@ fi
 . "$(dirname "$0")"/utils.sh
 
 SCRIPTDIR=$(realpathf "$(dirname "$0")")
-export readonly SCRIPTDIR
+declare -rx SCRIPTDIR
 
 OTNSDIR=$(realpathf "${SCRIPTDIR}"/..)
-export readonly OTNSDIR
+declare -rx OTNSDIR
 
 OT_DIR=${OT_DIR:-./openthread}
 OT_DIR=$(realpathf "${OT_DIR}")
-export readonly OT_DIR
+declare -rx OT_DIR
 
 GOPATH=$(go env GOPATH)
-export readonly GOPATH
+declare -rx GOPATH
 export PATH=$PATH:"$GOPATH"/bin
 mkdir -p "$GOPATH"/bin
 
 GOLINT_ARGS=(-E goimports -E whitespace -E goconst -E exportloopref -E unconvert)
-export readonly GOLINT_ARGS
+declare -rx GOLINT_ARGS
 
 OTNS_BUILD_JOBS=$(getconf _NPROCESSORS_ONLN)
-export readonly OTNS_BUILD_JOBS
+declare -rx OTNS_BUILD_JOBS
 
 # excluded dirs for make-pretty or similar operations
 OTNS_EXCLUDE_DIRS=(ot-rfsim/build/ web/site/node_modules/ pylibs/build/ pylibs/otns/proto/ openthread/ openthread-v11/ openthread-v12/ openthread-v13/ openthread-ccm/)
-export readonly OTNS_EXCLUDE_DIRS
+declare -rx OTNS_EXCLUDE_DIRS
 
 go_install()
 {
