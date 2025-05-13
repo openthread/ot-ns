@@ -38,6 +38,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   stress-tests:
     name: "Test Suite ${{ matrix.suite }}"

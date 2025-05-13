@@ -38,6 +38,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   go-lint:
     name: Go/Shell/Python/C/Markdown Lint
