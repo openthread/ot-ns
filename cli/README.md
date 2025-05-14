@@ -771,6 +771,7 @@ The following parameters are supported:
 - `cslacc` - 802.15.4 Coordinated Sampled Listening (CSL) accuracy in ppm, range 0-255.
 - `cslunc` - 802.15.4 CSL uncertainty in units of 10 microsec, range 0-255.
 - `txintf` - for the `wifi` node type, sets the percentage of Wi-Fi traffic, range 0 to 100. Must not be >0 on other node types.
+- `clkdrift` - clock drift of the node's timers in ppm, in the range -127 to 127.
 
 NOTE: To change global radio model parameters for all nodes, use the [radioparam](#radioparam) command.
 
@@ -781,6 +782,7 @@ ccath                -75 (dBm)
 cslacc               20 (PPM)
 cslunc               10 (10-us)
 txintf               0 (%)
+clkdrift             0 (PPM)
 Done
 > rfsim 1 cslacc 45
 Done
@@ -793,6 +795,7 @@ ccath                -75 (dBm)
 cslacc               45 (PPM)
 cslunc               10 (10-us)
 txintf               0 (%)
+clkdrift             0 (PPM)
 Done
 >
 ```
