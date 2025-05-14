@@ -54,6 +54,12 @@ if [[ $Linux == 1 ]]; then
     install_package xdg-open --apt xdg-utils || true
 fi
 
+# Install Git if needed
+install_package git --apt git --brew git || true
+
+# Get (first time) or update (after a 'git pull') all submodules.
+git submodule update --init
+
 # Install Go if needed
 install_package go --apt golang --brew golang || true
 
