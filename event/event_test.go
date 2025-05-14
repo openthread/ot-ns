@@ -39,7 +39,7 @@ func TestDeserializeAlarmEvent(t *testing.T) {
 	data, _ := hex.DecodeString("12120000000000000021222300000000000000")
 	var ev Event
 	n := ev.Deserialize(data)
-	assert.True(t, 4626 == ev.Delay)
+	assert.True(t, ev.Delay == 4626)
 	assert.Equal(t, EventTypeAlarmFired, ev.Type)
 	assert.Equal(t, uint64(2302497), ev.MsgId)
 	assert.Equal(t, len(data), n)
@@ -57,13 +57,13 @@ func TestDeserializeRadioCommEvent(t *testing.T) {
 	data, _ := hex.DecodeString("040302010000000006040000000000000011000cf6112a000000000000000c1020304050")
 	var ev Event
 	n := ev.Deserialize(data)
-	assert.True(t, 16909060 == ev.Delay)
+	assert.True(t, ev.Delay == 16909060)
 	assert.Equal(t, EventTypeRadioCommStart, ev.Type)
 	assert.Equal(t, uint64(4), ev.MsgId)
-	assert.True(t, 12 == ev.RadioCommData.Channel)
-	assert.True(t, -10 == ev.RadioCommData.PowerDbm)
+	assert.True(t, ev.RadioCommData.Channel == 12)
+	assert.True(t, ev.RadioCommData.PowerDbm == -10)
 	assert.True(t, types.OT_ERROR_FCS == ev.RadioCommData.Error)
-	assert.True(t, 42 == ev.RadioCommData.Duration)
+	assert.True(t, ev.RadioCommData.Duration == 42)
 	assert.Equal(t, []byte{12, 0x10, 0x20, 0x30, 0x40, 0x50}, ev.Data)
 	assert.Equal(t, len(data), n)
 }
@@ -176,7 +176,7 @@ func TestDeserializeNodeInfoEvent(t *testing.T) {
 	data, _ := hex.DecodeString("00000000000000000c00000000000000fe040020000000")
 	var ev Event
 	n := ev.Deserialize(data)
-	assert.True(t, 0 == ev.Delay)
+	assert.True(t, ev.Delay == 0)
 	assert.Equal(t, EventTypeNodeInfo, ev.Type)
 	assert.Equal(t, uint64(18302628885633695744), ev.MsgId)
 	assert.Equal(t, 32, ev.NodeInfoData.NodeId)
@@ -184,7 +184,7 @@ func TestDeserializeNodeInfoEvent(t *testing.T) {
 
 	data, _ = hex.DecodeString("00000000000000000cfe00000000000000040081800a00")
 	n = ev.Deserialize(data)
-	assert.True(t, 0 == ev.Delay)
+	assert.True(t, ev.Delay == 0)
 	assert.Equal(t, EventTypeNodeInfo, ev.Type)
 	assert.Equal(t, uint64(254), ev.MsgId)
 	assert.Equal(t, 688257, ev.NodeInfoData.NodeId)
@@ -227,7 +227,7 @@ func TestDeserializeRfSimRspEvent(t *testing.T) {
 	data, _ := hex.DecodeString("0403020100000000120400000000000000050002d2040000")
 	var ev Event
 	ev.Deserialize(data)
-	assert.True(t, 16909060 == ev.Delay)
+	assert.True(t, ev.Delay == 16909060)
 	assert.Equal(t, EventTypeRadioRfSimParamRsp, ev.Type)
 	assert.Equal(t, uint64(4), ev.MsgId)
 	assert.Equal(t, types.ParamCslAccuracy, ev.RfSimParamData.Param)
@@ -240,7 +240,7 @@ func TestDeserializeMsgToHostEvents(t *testing.T) {
 	testIp6Addr2, _ := hex.DecodeString("fe80000000000000000000000000beef")
 	var ev Event
 	ev.Deserialize(data)
-	assert.True(t, 0 == ev.Delay)
+	assert.True(t, ev.Delay == 0)
 	assert.Equal(t, EventTypeUdpToHost, ev.Type)
 	assert.Equal(t, uint64(4), ev.MsgId)
 	assert.Equal(t, uint16(48879), ev.MsgToHostData.SrcPort)
@@ -251,7 +251,7 @@ func TestDeserializeMsgToHostEvents(t *testing.T) {
 	// try other event type with same payload structure
 	data[8] = EventTypeIp6ToHost
 	ev.Deserialize(data)
-	assert.True(t, 0 == ev.Delay)
+	assert.True(t, ev.Delay == 0)
 	assert.Equal(t, EventTypeIp6ToHost, ev.Type)
 	assert.Equal(t, uint64(4), ev.MsgId)
 	assert.Equal(t, uint16(48879), ev.MsgToHostData.SrcPort)

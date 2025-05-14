@@ -162,11 +162,12 @@ func (f *MacFrame) String() string {
 
 	var dstAddrS string
 	dstAddrMode := f.FrameControl.DestAddrMode()
-	if dstAddrMode == AddrModeShort {
+	switch dstAddrMode {
+	case AddrModeShort:
 		dstAddrS = fmt.Sprintf("%04x", f.DstAddrShort)
-	} else if dstAddrMode == AddrModeExtended {
+	case AddrModeExtended:
 		dstAddrS = fmt.Sprintf("%016x", f.DstAddrExtended)
-	} else {
+	default:
 		dstAddrS = "-"
 	}
 

@@ -964,19 +964,20 @@ func (d *Dispatcher) handleStatusPush(node *Node, data string) {
 		if len(sp) != 2 {
 			continue
 		}
-		if sp[0] == "transmit" {
+		switch sp[0] {
+		case "transmit":
 			// 'transmit' status is currently not visualized: This is already done by OTNS based on
 			// radio frames transmitted.
-		} else if sp[0] == "role" {
+		case "role":
 			role, err := strconv.Atoi(sp[1])
 			logger.PanicIfError(err)
 			d.setNodeRole(node, OtDeviceRole(role))
 			d.Counters.TopologyChanges++
-		} else if sp[0] == "rloc16" {
+		case "rloc16":
 			rloc16, err := strconv.Atoi(sp[1])
 			logger.PanicIfError(err)
 			d.setNodeRloc16(srcid, uint16(rloc16))
-		} else if sp[0] == "ping_request" {
+		case "ping_request":
 			// e.x. ping_request=fdde:ad00:beef:0:556:90c8:ffaf:b7a3$0$4026600960
 			args := strings.Split(sp[1], ",")
 			dstaddr := args[0]
@@ -985,7 +986,7 @@ func (d *Dispatcher) handleStatusPush(node *Node, data string) {
 			timestamp, err := strconv.ParseUint(args[2], 10, 64)
 			logger.PanicIfError(err)
 			node.onPingRequest(d.convertNodeMilliTime(node, uint32(timestamp)), dstaddr, datasize)
-		} else if sp[0] == "ping_reply" {
+		case "ping_reply":
 			//e.x.ping_reply=fdde:ad00:beef:0:556:90c8:ffaf:b7a3$0$0$64
 			args := strings.Split(sp[1], ",")
 			dstaddr := args[0]
@@ -996,62 +997,62 @@ func (d *Dispatcher) handleStatusPush(node *Node, data string) {
 			hoplimit, err := strconv.Atoi(args[3])
 			logger.PanicIfError(err)
 			node.onPingReply(d.convertNodeMilliTime(node, uint32(timestamp)), dstaddr, datasize, hoplimit)
-		} else if sp[0] == "coap" {
+		case "coap":
 			d.handleCoapEvent(node, sp[1])
-		} else if sp[0] == "parid" {
+		case "parid":
 			// set partition id
 			parid, err := strconv.ParseUint(sp[1], 16, 32)
 			logger.PanicIfError(err)
 			node.PartitionId = uint32(parid)
 			d.vis.SetNodePartitionId(srcid, uint32(parid))
 			d.Counters.TopologyChanges++
-		} else if sp[0] == "router_added" {
+		case "router_added":
 			extaddr, err := strconv.ParseUint(sp[1], 16, 64)
 			logger.PanicIfError(err)
 			if d.visOptions.RouterTable {
 				d.vis.AddRouterTable(srcid, extaddr)
 			}
 			d.Counters.TopologyChanges++
-		} else if sp[0] == "router_removed" {
+		case "router_removed":
 			extaddr, err := strconv.ParseUint(sp[1], 16, 64)
 			logger.PanicIfError(err)
 			if d.visOptions.RouterTable {
 				d.vis.RemoveRouterTable(srcid, extaddr)
 			}
 			d.Counters.TopologyChanges++
-		} else if sp[0] == "child_added" {
+		case "child_added":
 			extaddr, err := strconv.ParseUint(sp[1], 16, 64)
 			logger.PanicIfError(err)
 			if d.visOptions.ChildTable {
 				d.vis.AddChildTable(srcid, extaddr)
 			}
 			d.Counters.TopologyChanges++
-		} else if sp[0] == "child_removed" {
+		case "child_removed":
 			extaddr, err := strconv.ParseUint(sp[1], 16, 64)
 			logger.PanicIfError(err)
 			if d.visOptions.ChildTable {
 				d.vis.RemoveChildTable(srcid, extaddr)
 			}
 			d.Counters.TopologyChanges++
-		} else if sp[0] == "parent" {
+		case "parent":
 			extaddr, err := strconv.ParseUint(sp[1], 16, 64)
 			logger.PanicIfError(err)
 			d.vis.SetParent(srcid, extaddr)
 			d.Counters.TopologyChanges++
-		} else if sp[0] == "joiner_state" {
+		case "joiner_state":
 			joinerState, err := strconv.Atoi(sp[1])
 			logger.PanicIfError(err)
 			node.onJoinerState(OtJoinerState(joinerState))
-		} else if sp[0] == "extaddr" {
+		case "extaddr":
 			extaddr, err := strconv.ParseUint(sp[1], 16, 64)
 			logger.PanicIfError(err)
 			node.onStatusPushExtAddr(extaddr)
-		} else if sp[0] == "mode" {
+		case "mode":
 			mode := ParseNodeMode(sp[1])
 			node.Mode = mode
 			d.vis.SetNodeMode(srcid, mode)
 			d.Counters.TopologyChanges++
-		} else {
+		default:
 			logger.Errorf("received unknown status push: %s=%s", sp[0], sp[1])
 		}
 	}
@@ -1434,11 +1435,12 @@ func (d *Dispatcher) handleCoapEvent(node *Node, argsStr string) {
 		port, err = strconv.Atoi(args[6])
 		logger.PanicIfError(err)
 
-		if action == "send" {
+		switch action {
+		case "send":
 			d.coaps.OnSend(d.CurTime, node.Id, messageId, CoapType(coapType), CoapCode(coapCode), uri, ip, port)
-		} else if action == "recv" {
+		case "recv":
 			d.coaps.OnRecv(d.CurTime, node.Id, messageId, CoapType(coapType), CoapCode(coapCode), uri, ip, port)
-		} else {
+		default:
 			logger.AssertTrue(len(args) >= 7)
 			threadError := args[6]
 
