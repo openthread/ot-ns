@@ -1,3 +1,23 @@
-issues:
-  exclude-files:
-    - "web/site/bindata.go"
+version: "2"
+linters:
+  enable:
+    - goconst
+    - unconvert
+    - whitespace
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - web/site/bindata.go
+  settings:
+    staticcheck:
+      checks: ["all", "-ST1001", "-ST1003", "-ST1012"]
+formatters:
+  enable:
+    - goimports
+  exclusions:
+    generated: lax

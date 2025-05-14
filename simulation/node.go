@@ -290,7 +290,7 @@ func (node *Node) CommandNoDone(cmd string) []string {
 			break
 		}
 		if strings.HasPrefix(line, "Error") {
-			node.error(fmt.Errorf(line))
+			node.error(errors.New(line))
 		} else {
 			output = append(output, line)
 		}
@@ -325,7 +325,7 @@ func (node *Node) Command(cmd string) []string {
 	logger.AssertTrue(len(output) >= 1) // there's always a Done or Error line in output.
 	output, result = output[:len(output)-1], output[len(output)-1]
 	if result != "Done" {
-		node.error(fmt.Errorf(result))
+		node.error(errors.New(result))
 	}
 	return output
 }

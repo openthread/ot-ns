@@ -111,9 +111,8 @@ install_package()
 
 function install_pretty_tools()
 {
-    # FIXME Known bug: version v1.59.0 won't work with Go 1.23 or higher. Requires version <= 1.22
     if ! installed golangci-lint; then
-        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b "$(go env GOPATH)"/bin v1.59.0
+        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b "$(go env GOPATH)"/bin v2.1.6
     fi
 
     install_package shfmt --apt shfmt --brew shfmt

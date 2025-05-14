@@ -58,7 +58,7 @@ declare -rx GOPATH
 export PATH=$PATH:"$GOPATH"/bin
 mkdir -p "$GOPATH"/bin
 
-GOLINT_ARGS=(-E goimports -E whitespace -E goconst -E exportloopref -E unconvert)
+GOLINT_ARGS=()
 declare -rx GOLINT_ARGS
 
 OTNS_BUILD_JOBS=$(getconf _NPROCESSORS_ONLN)

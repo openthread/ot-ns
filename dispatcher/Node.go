@@ -333,14 +333,15 @@ func (node *Node) onJoinerState(state OtJoinerState) {
 	}
 
 	node.joinerState = state
-	if state == OtJoinerStateDiscover || state == OtJoinerStateConnect {
+	switch state {
+	case OtJoinerStateDiscover, OtJoinerStateConnect:
 		// new joiner session started
 		node.startNewJoinerSession()
-	} else if state == OtJoinerStateJoined {
+	case OtJoinerStateJoined:
 		if node.joinerSession != nil {
 			node.joinerSession.JoinedTime = node.CurTime
 		}
-	} else if state == OtJoinerStateIdle {
+	case OtJoinerStateIdle:
 		node.closeJoinerSession()
 	}
 }
