@@ -42,14 +42,13 @@ var unitRandGenerator *rand.Rand
 // seed (if rootSeed == 0).
 func Init(rootSeed int64) {
 	if rootSeed == 0 {
-		rootSeed = time.Now().UnixNano() // TODO: from go 1.20 onwards, this is not needed and deprecated.
+		rootSeed = time.Now().UnixNano()
 	}
-	rand.Seed(rootSeed)
 
-	newNodeRandSeedGenerator = rand.New(rand.NewSource(rootSeed + int64(rand.Intn(1e10)))) // TODO check which range is possible
-	newRadioModelRandSeedGenerator = rand.New(rand.NewSource(rootSeed + int64(rand.Intn(1e10))))
-	failTimeRandGenerator = rand.New(rand.NewSource(rootSeed + int64(rand.Intn(1e10))))
-	unitRandGenerator = rand.New(rand.NewSource(rootSeed + int64(rand.Intn(1e10))))
+	newNodeRandSeedGenerator = rand.New(rand.NewSource(rootSeed))
+	newRadioModelRandSeedGenerator = rand.New(rand.NewSource(rootSeed + 1))
+	failTimeRandGenerator = rand.New(rand.NewSource(rootSeed + 2))
+	unitRandGenerator = rand.New(rand.NewSource(rootSeed + 3))
 }
 
 // NewNodeRandomSeed generates unique random-seeds for newly created nodes.

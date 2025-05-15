@@ -41,6 +41,7 @@ const (
 
 type fadingModel struct {
 	rndSeed          prng.RandomSeed
+	rng              *rand.Rand
 	ts               uint64
 	shFadeMap        map[int64]DbValue
 	tvFadeMap        map[int64]DbValue
@@ -87,26 +88,26 @@ func (sf *fadingModel) computeFading(src *RadioNode, dst *RadioNode, params *Rad
 		vTVF = sf.tvFadeMap[seed]
 		if sf.ts > sf.changeTvfTimeMap[seed] { // TVF dB may require occassional regeneration (randomly)
 			sigmaTVF := sf.tvFadeSigmaMap[seed]
-			vTVF = rand.NormFloat64() * sigmaTVF // new random TV fade-value, based on existing sigma
+			vTVF = sf.rng.NormFloat64() * sigmaTVF // new random TV fade-value, based on existing sigma
 			sf.tvFadeMap[seed] = vTVF
-			nextChangeDeltaSec := rand.ExpFloat64() * params.MeanTimeFadingChange
+			nextChangeDeltaSec := sf.rng.ExpFloat64() * params.MeanTimeFadingChange
 			sf.changeTvfTimeMap[seed] = sf.ts + uint64(nextChangeDeltaSec*1e6) // pick next change time.
 		}
 	} else { // if not, compute the values
 		rndSource := rand.NewSource(seed)
-		rnd := rand.New(rndSource)
+		sf.rng = rand.New(rndSource)
 
 		// draw a single (reproducible) random number based on the link's unique seed, and store it.
-		vSF = rnd.NormFloat64() * params.ShadowFadingSigmaDb
+		vSF = sf.rng.NormFloat64() * params.ShadowFadingSigmaDb
 		sf.shFadeMap[seed] = vSF
 
 		// draw a second number (reproducible) for sigma and store it.
-		sigmaTVF := rnd.Float64() * params.TimeFadingSigmaMaxDb
+		sigmaTVF := sf.rng.Float64() * params.TimeFadingSigmaMaxDb
 		sf.tvFadeSigmaMap[seed] = sigmaTVF
 
-		vTVF = rand.NormFloat64() * sigmaTVF // compute TVF amount (random over time);
-		sf.tvFadeMap[seed] = vTVF            // and store it.
-		nextChangeDeltaSec := rand.ExpFloat64() * params.MeanTimeFadingChange
+		vTVF = sf.rng.NormFloat64() * sigmaTVF // compute TVF amount (random over time);
+		sf.tvFadeMap[seed] = vTVF              // and store it.
+		nextChangeDeltaSec := sf.rng.ExpFloat64() * params.MeanTimeFadingChange
 		sf.changeTvfTimeMap[seed] = sf.ts + uint64(nextChangeDeltaSec*1e6) // pick next change time.
 	}
 
