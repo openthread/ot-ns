@@ -1,4 +1,4 @@
-// Copyright (c) 2022-2024, The OTNS Authors.
+// Copyright (c) 2022-2025, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -28,7 +28,9 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
+	"fmt"
 	"net"
 	"net/http"
 	"os"
@@ -46,6 +48,10 @@ var args struct {
 }
 
 func parseArgs() {
+	flag.Usage = func() {
+		fmt.Fprintf(os.Stderr, "Usage: %s <otns_replay_file.replay>\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "  Replays a prior simulation in the Web GUI based on a .replay file.\n")
+	}
 	flag.Parse()
 
 	if len(flag.Args()) != 1 {
@@ -64,7 +70,10 @@ func main() {
 	ctx := progctx.New(context.Background())
 
 	server := grpc.NewServer(grpc.ReadBufferSize(1024*8), grpc.WriteBufferSize(1024*1024*1))
-	gs := &grpcService{replayFile: args.ReplayFile}
+	gs := &grpcService{
+		replayFile:  args.ReplayFile,
+		serviceDone: make(chan struct{}),
+	}
 	pb.RegisterVisualizeGrpcServiceServer(server, gs)
 
 	lis, err := net.Listen("tcp", ":8999")
@@ -73,7 +82,7 @@ func main() {
 	go func() {
 		siteAddr := ":8997"
 		err := webSite.Serve(siteAddr)
-		if err != http.ErrServerClosed {
+		if !errors.Is(err, http.ErrServerClosed) {
 			logger.PanicIfError(err)
 		}
 	}()
@@ -83,8 +92,15 @@ func main() {
 		_ = web.OpenWeb(ctx, web.MainTab)
 	}()
 
+	go func() {
+		<-gs.serviceDone
+		server.GracefulStop()
+	}()
+
 	err = server.Serve(lis)
-	logger.Errorf("server quit: %v", err)
+	if err != nil {
+		logger.Errorf("server quit: %v", err)
+	}
 }
 
 func checkReplayFile(filename string) {
