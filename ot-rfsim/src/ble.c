@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2023, The OpenThread Authors.
+ *  Copyright (c) 2023-2025, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -37,6 +37,7 @@
 #define OT_BLE_CHANNEL 37
 #define OT_BLE_TX_POWER_DBM 0
 #define OT_BLE_RX_SENSITIVITY_DBM -76
+#define OT_BLE_DEFAULT_ATT_MTU 23
 
 static bool     sEnabled;
 static bool     sAdvertising;
@@ -85,6 +86,16 @@ otError otPlatBleGapAdvStart(otInstance *aInstance, uint16_t aInterval)
     return OT_ERROR_NONE;
 }
 
+// TODO: use advertisement data length to adapt the length (bytes) of the transmitted BLE packet
+otError otPlatBleGapAdvUpdateData(otInstance *aInstance, uint8_t *aAdvertisementData, uint16_t aAdvertisementLen)
+{
+    OT_UNUSED_VARIABLE(aInstance);
+    OT_UNUSED_VARIABLE(aAdvertisementData);
+    OT_UNUSED_VARIABLE(aAdvertisementLen);
+
+    return OT_ERROR_NONE;
+}
+
 // see https://www.bluetooth.com/blog/periodic-advertising-sync-transfer/
 void selectAdvertisementDelay(bool addAdvPeriod)
 {
@@ -117,14 +128,14 @@ otError otPlatBleGapAdvStop(otInstance *aInstance)
 otError otPlatBleGapDisconnect(otInstance *aInstance)
 {
     OT_UNUSED_VARIABLE(aInstance);
-    return OT_ERROR_NOT_IMPLEMENTED;
+    return OT_ERROR_NONE;
 }
 
 otError otPlatBleGattMtuGet(otInstance *aInstance, uint16_t *aMtu)
 {
     OT_UNUSED_VARIABLE(aInstance);
-    OT_UNUSED_VARIABLE(aMtu);
-    return OT_ERROR_NOT_IMPLEMENTED;
+    *aMtu = OT_BLE_DEFAULT_ATT_MTU;
+    return OT_ERROR_NONE;
 }
 
 otError otPlatBleGattServerIndicate(otInstance *aInstance, uint16_t aHandle, const otBleRadioPacket *aPacket)
@@ -132,7 +143,7 @@ otError otPlatBleGattServerIndicate(otInstance *aInstance, uint16_t aHandle, con
     OT_UNUSED_VARIABLE(aInstance);
     OT_UNUSED_VARIABLE(aHandle);
     OT_UNUSED_VARIABLE(aPacket);
-    return OT_ERROR_NOT_IMPLEMENTED;
+    return OT_ERROR_NONE;
 }
 
 void sendBleAdvertisement()
@@ -184,16 +195,17 @@ void otPlatBleGetLinkCapabilities(otInstance *aInstance, otBleLinkCapabilities *
 
 otError otPlatBleGapAdvSetData(otInstance *aInstance, uint8_t *aAdvertisementData, uint16_t aAdvertisementLen)
 {
+    // FIXME: save the advertisement data locally, and use it to send out on BLE channel
     OT_UNUSED_VARIABLE(aInstance);
     OT_UNUSED_VARIABLE(aAdvertisementData);
     OT_UNUSED_VARIABLE(aAdvertisementLen);
-    return OT_ERROR_NOT_IMPLEMENTED;
+    return OT_ERROR_NONE;
 }
 
 bool otPlatBleSupportsMultiRadio(otInstance *aInstance)
 {
     OT_UNUSED_VARIABLE(aInstance);
-    return false; // TODO check
+    return true; // Support both Thread and BLE at the same time
 }
 
 #endif
