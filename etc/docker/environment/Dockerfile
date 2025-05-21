@@ -30,7 +30,7 @@
 # An older OS is used to avoid breaking the web build which heavily relies
 # on specific versions of tools/libraries.
 
-FROM golang:1.18
+FROM golang:1.23
 
 RUN apt-get update && apt-get install -y python3 python3-pip sudo unzip nodejs npm git && rm -rf /var/lib/apt/lists/*
 COPY . /otns

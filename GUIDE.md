@@ -6,15 +6,15 @@ This guide covers the installation of OTNS, installation of OpenThread nodes use
 
 OTNS supports Linux and MacOS. Windows is supported only through the Windows Subsystem for Linux (WSL2) running Ubuntu 22.04, though this is tested less frequently. If Ubuntu Linux is used, the minimum version and tested version is 22.04. For MacOS, currently version 13 is best supported. Version 14 is supported but currently without the Thread legacy node versions (Thread 1.1, 1.2, 1.3). MacOS also requires the Homebrew package manager (`brew` command) already installed.
 
-OTNS requires Go 1.18 or higher and Python 3.9 or higher. These will be installed (if needed) by following the rest of this guide. Also Git is required to get the code and for building OpenThread nodes. If not already available, this needs to be installed using e.g. a package manager (`sudo apt install git`).
+OTNS requires Go 1.23 or higher and Python 3.9 or higher. These will be installed (if needed) by following the rest of this guide. Also Git is required to get the code and for building OpenThread nodes. If not already available, this needs to be installed using e.g. a package manager (`sudo apt install git`).
 
 ## Install Go
 
-OTNS requires [Go 1.18 or higher](https://golang.org/dl/) to build. You can check your installed Go version using the `go version` command. If Go is not found, it needs to be installed in one of these ways:
+OTNS requires [Go 1.23 or higher](https://golang.org/dl/) to build. You can check your installed Go version using the `go version` command. If Go is not found, it needs to be installed in one of these ways:
 
 1.  Install Go from https://golang.org/dl/ and select your version or
 2.  Install Go via a package manager (in this case check the Go version is high enough).
-3.  Install Go automatically (uses APT or Brew package manager) by the installation script called later in this guide. In Ubuntu 22.04, this approach should work to get Go 1.18.
+3.  Install Go automatically (uses APT or Brew package manager) by the installation script called later in this guide.
 
 After installation, manually check that the directory `$(go env GOPATH)/bin` (normally `$HOME/go/bin`) is in the user's `$PATH`. This directory is where the `otns` binary will be installed into. If needed, add this directory to the user's `$PATH` by configuring the user's `~/.bashrc` file.
 

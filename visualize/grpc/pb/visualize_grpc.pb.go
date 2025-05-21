@@ -225,6 +225,7 @@ type VisualizeEvent struct {
 	unknownFields protoimpl.UnknownFields
 
 	// Types that are assignable to Type:
+	//
 	//	*VisualizeEvent_AddNode
 	//	*VisualizeEvent_DeleteNode
 	//	*VisualizeEvent_SetNodeRloc16

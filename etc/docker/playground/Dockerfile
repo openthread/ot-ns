@@ -28,7 +28,7 @@
 # The .dockerignore file from the repo root is used during build.
 
 # Stage 0: build OTNS, OT nodes, and any dependencies
-FROM golang:1.22
+FROM golang:1.23
 
 RUN apt-get update && apt-get install -y python3 python3-pip sudo unzip
 COPY . /otns
