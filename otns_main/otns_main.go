@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2024, The OTNS Authors.
+// Copyright (c) 2020-2025, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -141,7 +141,7 @@ func Main(ctx *progctx.ProgCtx, cliOptions *cli.CliOptions) {
 	simId, err := parseListenAddr()
 	logger.FatalIfError(err)
 
-	prng.Init(args.RandomSeed)
+	rootSeed := prng.Init(args.RandomSeed)
 	sim, err := createSimulation(simId, ctx)
 	logger.FatalIfError(err)
 
@@ -186,6 +186,8 @@ func Main(ctx *progctx.ProgCtx, cliOptions *cli.CliOptions) {
 	}()
 	<-cli.Cli.Started
 	logger.SetStdoutCallback(cli.Cli)
+
+	logger.Infof("PRNG root seed: %d", rootSeed)
 
 	ctx.WaitAdd("simulation", 1)
 	go func() {
