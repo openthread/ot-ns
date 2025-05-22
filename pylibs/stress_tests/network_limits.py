@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Copyright (c) 2022-2024, The OTNS Authors.
+# Copyright (c) 2022-2025, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,6 +26,9 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+# Test that all Children attach to the single Parent within the time limit.
+# Different Parent and Child types are tested.
+
 import logging
 import math
 import random
@@ -36,7 +39,8 @@ PARENT_X = 500
 PARENT_Y = 500
 MAX_DISTANCE = 200
 CHILDREN_N = 10
-CHILDREN_N_BR = 32
+CHILDREN_N_BR = 32  # The BR supports a higher number of Children.
+PRNG_SEED = 0x782EAD
 
 
 class StressTest(BaseStressTest):
@@ -60,7 +64,10 @@ class StressTest(BaseStressTest):
     }
 
     def __init__(self):
-        super(StressTest, self).__init__("Parent with max Children count", [])
+        # Use a fixed root PRNG seed for simulation, to avoid random RF coverage white spots
+        # in the radio model.
+        super(StressTest, self).__init__("Parent with max Children count", [], rand_seed=PRNG_SEED)
+        self.ns.log = 'debug'
 
     def run(self):
         self.ns.speed = 30  # speed is lowered to see the visualization, when run locally.
@@ -77,8 +84,6 @@ class StressTest(BaseStressTest):
 
     def test(self, child_type: str, parent_type: str, n_children_max: int = CHILDREN_N):
         self.reset()
-        self.ns.log = 'debug'
-        #self.ns.watch_default('trace') # can enable trace level to see radio state details
         self.ns.add(parent_type, PARENT_X, PARENT_Y)
         self.ns.go(7)
 

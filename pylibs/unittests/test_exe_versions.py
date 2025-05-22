@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2023-2024, The OTNS Authors.
+# Copyright (c) 2023-2025, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -25,6 +25,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+
 import unittest
 
 from OTNSTestCase import OTNSTestCase
@@ -39,6 +40,7 @@ class ExeVersionTests(OTNSTestCase):
 
     def testAddNodeWrongExecutable(self):
         ns: OTNS = self.ns
+
         ns.add('router')
         ns.go(5)
         self.assertEqual(1, len(ns.nodes()))
@@ -50,6 +52,7 @@ class ExeVersionTests(OTNSTestCase):
 
     def testExe(self):
         ns: OTNS = self.ns
+
         nid = ns.add('router')
         self.assertTrue(ns.get_thread_version(nid) >= 4)
         ns.go(10)
@@ -95,6 +98,7 @@ class ExeVersionTests(OTNSTestCase):
 
     def testAddVersionNodes(self):
         ns: OTNS = self.ns
+
         ns.add('router', x=250, y=250)
         ns.go(10)
         nid = ns.add('router', version='v14')
@@ -113,7 +117,7 @@ class ExeVersionTests(OTNSTestCase):
         self.assertEqual(1, len(ns.partitions()))
 
     def testSsedVersions(self):
-        ns = self.ns
+        ns: OTNS = self.ns
 
         ns.add("router", 100, 100)
         ns.go(10)
@@ -138,12 +142,16 @@ class ExeVersionTests(OTNSTestCase):
 
     def testWifiInterferers(self):
         ns: OTNS = self.ns
+
         ns.add('router')
         ns.add('router')
         ns.add('router')
         ns.add('wifi')
-        ns.go(50)
-        # the wifi node stays on partition 0 (Thread is disabled)
+        ns.cmd('rfsim 4 txintf 90')  # interfering signal 90% of the time
+        ns.go(150)
+
+        # Thread nodes form a Partition.
+        # The wifi node stays on partition 0 (Thread is disabled)
         self.assertEqual(2, len(ns.partitions()))
 
 

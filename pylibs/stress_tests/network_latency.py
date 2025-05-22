@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Copyright (c) 2020-2023, The OTNS Authors.
+# Copyright (c) 2020-2025, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -34,9 +34,10 @@
 # Fault Injections:
 #   None
 # Pass Criteria:
-#   Max ping latency < (3 * datasize + 500 * (datasize>=128)) ms
+#   Max ping latency <= (3 * datasize + 500 * (datasize>=128)) ms
 #   (for fragmented ping messages there's an added 500 ms to cater for fragment losses, MAC retries, hidden node
 #    situations, etc.)
+
 import logging
 import math
 
@@ -57,11 +58,13 @@ class StressTest(BaseStressTest):
 
     def __init__(self):
         super(StressTest, self).__init__("Ping Latency Test",
-                                         ["Data Size", "Hop x1 Latency", "Hop x2 Latency", "Hop x3 Latency"])
+                                         ["Data Size", "Hop x1 Latency", "Hop x2 Latency", "Hop x3 Latency"],
+                                         rand_seed=0xF0B0)
 
         self._ping_latencys_by_datasize = {}
         self.ns.loglevel = 'warn'
         self.ns.radiomodel = 'MIDisc'
+        self.ns.config_visualization(broadcast_message=False)
         self.ns.set_title("Network (Ping) Latency test - setup phase")
 
     def add_6_nodes(self, x, y, start_angle):
