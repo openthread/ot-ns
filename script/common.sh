@@ -64,13 +64,14 @@ declare -rx GOLINT_ARGS
 OTNS_BUILD_JOBS=$(getconf _NPROCESSORS_ONLN)
 declare -rx OTNS_BUILD_JOBS
 
-# excluded dirs for make-pretty or similar operations
-OTNS_EXCLUDE_DIRS=(ot-rfsim/build/ web/site/node_modules/ pylibs/build/ pylibs/otns/proto/ openthread/ openthread-v11/ openthread-v12/ openthread-v13/ openthread-ccm/)
+# Excluded directories for make-pretty or similar operations
+OTNS_EXCLUDE_DIRS=(ot-rfsim/build/ web/site/node_modules/ pylibs/build/ pylibs/otns/proto/ openthread/
+    ot-rfsim/openthread-v11/ ot-rfsim/openthread-v12/ ot-rfsim/openthread-v13/)
 declare -rx OTNS_EXCLUDE_DIRS
 
 go_install()
 {
-    local pkg=$1
+    local pkg="$1"
     go install "${pkg}" || go get "${pkg}"
 }
 

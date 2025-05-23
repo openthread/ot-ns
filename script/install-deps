@@ -44,8 +44,8 @@ install_packages()
     install_package wget --apt wget --brew wget || true
     install_package unzip --apt unzip --brew unzip || true
     install_package python3 --apt python3 --brew python3 || true
-    # On Mac, this brew package doesn't exist - not needed.
-    install_package virtualenv --apt python3-venv || true
+    # On MacOS (Darwin), no venv brew package exists - not needed. Use dummy name.
+    install_package virtualenv --apt python3-venv --brew python3 || true
 }
 
 install_grpcwebproxy()

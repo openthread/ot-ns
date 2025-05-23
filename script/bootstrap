@@ -31,6 +31,11 @@
 
 set -euxo pipefail
 
+OTNS_GO_VERSION_MIN=23
+OTNS_PYTHON3_VERSION_MIN=9
+GOLANG_APT_PKG="golang-go"
+GOLANG_BREW_PKG="golang"
+
 if [[ "$(uname)" == "Darwin" ]]; then
     declare -rx Darwin=1
     declare -rx Linux=0
@@ -44,6 +49,22 @@ fi
 
 # shellcheck source=script/utils.sh
 . "$(dirname "$0")"/utils.sh
+
+# Check if Go is installed and version is high enough. Auto-install if possible.
+if installed go; then
+    if ! check_minimum_go_version "${OTNS_GO_VERSION_MIN}"; then
+        die "Please install Go 1.${OTNS_GO_VERSION_MIN} or higher manually from https://go.dev/dl/ , and retry."
+    fi
+else
+    install_golang "${OTNS_GO_VERSION_MIN}" "${GOLANG_APT_PKG}" "${GOLANG_BREW_PKG}"
+fi
+
+# Check if Python is installed and version is high enough. Auto-install later on, if needed.
+if installed python3; then
+    if ! check_minimum_python3_version "${OTNS_PYTHON3_VERSION_MIN}"; then
+        die "Please install Python 3.${OTNS_PYTHON3_VERSION_MIN} or higher, and retry."
+    fi
+fi
 
 # Some basic items are missing on Ubuntu Docker; they're assumed present on MacOS.
 if [[ $Linux == 1 ]]; then
@@ -59,9 +80,6 @@ install_package git --apt git --brew git || true
 
 # Get (first time) or update (after a 'git pull') all submodules.
 git submodule update --init
-
-# Install Go if needed
-install_package go --apt golang --brew golang || true
 
 # Do the rest via the test script, automatically
 ./script/test py-ver-unittests || die "OTNS Installation/tests failed!"
