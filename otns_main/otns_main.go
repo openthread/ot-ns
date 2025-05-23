@@ -141,7 +141,7 @@ func Main(ctx *progctx.ProgCtx, cliOptions *cli.CliOptions) {
 	simId, err := parseListenAddr()
 	logger.FatalIfError(err)
 
-	rootSeed := prng.Init(args.RandomSeed)
+	prng.Init(args.RandomSeed)
 	sim, err := createSimulation(simId, ctx)
 	logger.FatalIfError(err)
 
@@ -187,7 +187,7 @@ func Main(ctx *progctx.ProgCtx, cliOptions *cli.CliOptions) {
 	<-cli.Cli.Started
 	logger.SetStdoutCallback(cli.Cli)
 
-	logger.Infof("PRNG root seed: %d", rootSeed)
+	logger.Infof("PRNG root seed: %d", prng.GetRootSeed())
 
 	ctx.WaitAdd("simulation", 1)
 	go func() {
@@ -294,7 +294,7 @@ func createSimulation(simId int, ctx *progctx.ProgCtx) (*simulation.Simulation, 
 			}
 		}
 	}
-	simcfg.RandomSeed = prng.RandomSeed(args.RandomSeed)
+	simcfg.RandomSeed = prng.GetRootSeed()
 
 	dispatcherCfg := dispatcher.DefaultConfig()
 	dispatcherCfg.SimulationId = simcfg.Id
