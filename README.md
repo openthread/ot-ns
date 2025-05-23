@@ -19,7 +19,7 @@ Note: this is version 2.x of OTNS. It offers additional features compared to ver
 - Run-time tunable radio parameters on each individual OT node. For example, CSL parameters or Rx sensitivity.
 - Control of logging display from OT-node, using `log` and `watch` CLI commands. Logging to file per OT-node. The logging output can include any enabled OT-node log items.
 - Detailed logging options for RF operations (at log-level 'trace') performed in the simulated radio, at 1 us resolution.
-- Reproducable simulations by selection of a seed value for all pseudo-random number generators.
+- Reproducible simulations by selection of a seed value for all pseudo-random number generators.
 - See packets in flight: animations in the GUI with a duration scaled to the actual time duration of a packet in flight (works at low simulation speed only).
 - Support for easily adding various Thread node types (1.1, 1.2, 1.3, 1.4, 1.4 Border Router).
 - New graphical displays for overall node type statistics, and energy usage (beta - contribution by [Vinggui](https://github.com/Vinggui)).
