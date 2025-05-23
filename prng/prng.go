@@ -37,20 +37,27 @@ var newNodeRandSeedGenerator *rand.Rand
 var newRadioModelRandSeedGenerator *rand.Rand
 var failTimeRandGenerator *rand.Rand
 var unitRandGenerator *rand.Rand
+var rootSeed int64
 
-// Init initializes the prng package, either with a fixed PRNG seed (rootSeed != 0) or a 'random' time-based PRNG
-// seed (if rootSeed == 0). It returns the rootSeed value as used for initializing all PRNGs.
-func Init(rootSeed int64) int64 {
-	if rootSeed == 0 {
+// Init initializes the prng package, either with a supplied PRNG seed (rootSeedInit != 0)
+// or a generated time-based PRNG seed (if rootSeedInit == 0).
+// The generated root seed can be retrieved with GetRootSeed().
+func Init(rootSeedInit int64) {
+	if rootSeedInit == 0 {
 		rootSeed = time.Now().UnixNano()
+	} else {
+		rootSeed = rootSeedInit
 	}
 
 	newNodeRandSeedGenerator = rand.New(rand.NewSource(rootSeed))
 	newRadioModelRandSeedGenerator = rand.New(rand.NewSource(rootSeed + 1))
 	failTimeRandGenerator = rand.New(rand.NewSource(rootSeed + 2))
 	unitRandGenerator = rand.New(rand.NewSource(rootSeed + 3))
+}
 
-	return rootSeed
+// GetRootSeed returns the root seed created in the last call to Init().
+func GetRootSeed() RandomSeed {
+	return RandomSeed(rootSeed)
 }
 
 // NewNodeRandomSeed generates unique random-seeds for newly created nodes.
