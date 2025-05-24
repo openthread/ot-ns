@@ -2,6 +2,8 @@
 
 This guide covers the installation of OTNS, installation of OpenThread nodes used in simulations, use of the OTNS Web UI and the OTNS CLI.
 
+The [OpenThread Network Simulator Codelab](https://openthread.io/codelabs/openthread-network-simulator) is a more detailed guide and is recommended as the starting point for those who are new to OTNS. It covers all the above topics.
+
 ## Prerequisites / OS
 
 OTNS supports Linux and MacOS. Windows is supported only through the Windows Subsystem for Linux (WSL2) running Ubuntu 22.04, though this is tested less frequently. If Ubuntu Linux is used, the minimum version and tested version is 22.04. For MacOS, currently version 13 is best supported. Version 14 is supported but currently without the Thread legacy node versions (Thread 1.1, 1.2, 1.3). MacOS also requires the Homebrew package manager (`brew` command) already installed.
@@ -95,8 +97,6 @@ Use a web browser to manage the simulated Thread network:
 - Open a graph showing node type/status statistics over time
 - See some logged events
 - See nodes' energy usage (Beta feature - pending validation)
-
-A detailed CodeLab guide for this is still under development.
 
 ## Use OTNS CLI
 
