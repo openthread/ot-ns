@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2023-2024, The OTNS Authors.
+# Copyright (c) 2023-2025, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -25,6 +25,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+
 import unittest
 
 from OTNSTestCase import OTNSTestCase
@@ -137,13 +138,17 @@ class ExeVersionTests(OTNSTestCase):
         self.assertPings(ns.pings(), 4, max_delay=3000, max_fails=1)
 
     def testWifiInterferers(self):
-        ns: OTNS = self.ns
+        ns = self.ns
+
         ns.add('router')
         ns.add('router')
         ns.add('router')
         ns.add('wifi')
-        ns.go(50)
-        # the wifi node stays on partition 0 (Thread is disabled)
+        ns.cmd('rfsim 4 txintf 90')  # interfering signal 90% of the time
+        ns.go(150)
+
+        # Thread nodes form a Partition.
+        # The wifi node stays on partition 0 (Thread is disabled)
         self.assertEqual(2, len(ns.partitions()))
 
 
