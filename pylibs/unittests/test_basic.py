@@ -896,6 +896,39 @@ class BasicTests(OTNSTestCase):
             for a in addrs:
                 self.assertFalse(a.startswith("ff13"))  # see Go simulation.SendMcastPrefix
 
+    def testUdpTcp(self):
+        ns: OTNS = self.ns
+
+        n1 = ns.add('router')
+        n2 = ns.add('router')
+        ns.go(10)
+        n1_ipaddr = ns.get_ipaddrs(n1, 'mleid')[0]
+
+        ns.node_cmd(n1, 'udp open')
+        ns.node_cmd(n1, 'udp bind :: 12345')
+        ns.node_cmd(n2, 'udp open')
+        ns.node_cmd(n2, f'udp send {n1_ipaddr} 12345 hello_udp')
+        ns.go(1)
+        ns.node_cmd(n2, 'udp close')
+        ns.node_cmd(n1, 'udp close')
+        ns.go(1)
+
+        ns.node_cmd(n1, 'tcp init')
+        ns.node_cmd(n1, 'tcp listen :: 12345')
+        ns.node_cmd(n2, 'tcp init')
+        ns.node_cmd(n2, f'tcp connect {n1_ipaddr} 12345')
+        ns.go(1)
+        ns.node_cmd(n2, 'tcp send hello_tcp')
+        ns.go(1)
+        ns.node_cmd(n2, 'tcp benchmark run')
+        ns.go(10)
+        ns.node_cmd(n2, 'tcp abort')
+        ns.node_cmd(n1, 'tcp abort')
+        ns.go(1)
+        ns.node_cmd(n2, 'tcp deinit')
+        ns.node_cmd(n1, 'tcp deinit')
+        ns.go(1)
+
     def testLoadOtScript(self):
         self.ns.close()
 
