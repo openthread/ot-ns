@@ -27,10 +27,10 @@
 
 # Collection of utility functions for scripts in this directory or elsewhere.
 
-function die()
+die()
 {
-    echo "fatal: $1"
-    false
+    echo >&2 "ERROR: $*"
+    exit 1
 }
 
 function realpathf()
@@ -42,6 +42,88 @@ function realpathf()
 function installed()
 {
     command -v "$1" >/dev/null 2>&1
+}
+
+# checks if a Golang package install would give us at least the minimum version
+function check_go_version_installable()
+{
+    local min_ver="$1"
+    local go_ver
+    local golang_apt_pkg="$2"
+    local golang_brew_pkg="$3"
+    local pkg_info
+
+    #shellcheck disable=SC2154
+    if [[ $Darwin == 1 ]]; then
+        pkg_info=$(brew info "${golang_brew_pkg}" 2>/dev/null)
+    else
+        pkg_info=$(apt show "${golang_apt_pkg}" 2>/dev/null | grep '^Version:')
+    fi
+    if [[ ${pkg_info} =~ 1\.([0-9]+)[^0-9] ]]; then
+        go_ver=${BASH_REMATCH[1]}
+    else
+        die "unexpected output from package manager: ${pkg_info}"
+    fi
+    if [[ ${go_ver} -ge ${min_ver} ]]; then
+        echo "Golang ('go') version 1.${go_ver} can be installed from package '${golang_apt_pkg}'"
+        return 0
+    fi
+    echo "Golang ('go') version >= 1.${min_ver} cannot be installed from package '${golang_apt_pkg}', which has 1.${go_ver}"
+    return 1
+}
+
+# install 'go' from default package while checking for minimum version
+install_golang()
+{
+    local min_ver="$1"
+    local golang_apt_pkg="$2"
+    local golang_brew_pkg="$3"
+
+    if ! check_go_version_installable "${min_ver}" "${golang_apt_pkg}" "${golang_brew_pkg}"; then
+        die "Please install Go 1.${min_ver} or higher manually from: https://go.dev/dl/"
+    fi
+    install_package go --apt "${golang_apt_pkg}" --brew "${golang_brew_pkg}"
+    if ! installed go; then
+        die "Golang was installed but 'go' not found in PATH - please fix this manually, then retry."
+    fi
+}
+
+# check if go version 1.N or higher is installed
+function check_minimum_go_version()
+{
+    local go_min_ver="$1"
+    local go_ver
+
+    go_ver="$(go version)"
+    if [[ $go_ver =~ go1\.([0-9]+)[^0-9] ]]; then
+        go_ver="${BASH_REMATCH[1]}"
+        if [[ ${go_ver} -lt ${go_min_ver} ]]; then
+            echo "OTNS2 requires Golang ('go') version >= 1.${go_min_ver}; Your version: 1.${go_ver}"
+            return 1
+        fi
+        return 0
+    else
+        die "unexpected output from 'go' command"
+    fi
+}
+
+# check if python3 version 3.N or higher is installed
+function check_minimum_python3_version()
+{
+    local py_min_ver="$1"
+    local py_ver
+
+    py_ver="$(python3 --version)"
+    if [[ ${py_ver} =~ Python\ 3\.([0-9]+)[^0-9] ]]; then
+        py_ver="${BASH_REMATCH[1]}"
+        if [[ ${py_ver} -lt ${py_min_ver} ]]; then
+            echo "OTNS2 requires Python ('python3') version >= 3.${py_min_ver}; Your version: 3.${py_ver}"
+            return 1
+        fi
+        return 0
+    else
+        die "unexpected output from 'python3' command"
+    fi
 }
 
 function repeat()
@@ -106,10 +188,10 @@ install_package()
         esac
     done
 
-    die "Failed to install $cmd. Please install it manually."
+    die "Failed to install '$cmd'. Please install it manually."
 }
 
-function install_pretty_tools()
+install_pretty_tools()
 {
     if ! installed golangci-lint; then
         curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b "$(go env GOPATH)"/bin v2.1.6
