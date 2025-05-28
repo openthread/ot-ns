@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Copyright (c) 2020-2023, The OTNS Authors.
+# Copyright (c) 2020-2025, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,8 +26,11 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+# Base class for all stress-tests.
+
 import ipaddress
 import os
+import random
 import sys
 import time
 import traceback
@@ -68,13 +71,19 @@ class StressTestMetaclass(type):
 
 class BaseStressTest(object, metaclass=StressTestMetaclass):
 
-    def __init__(self, name, headers, web=True, raw=False, rand_seed=0):
+    def __init__(self, name, headers, web=True, raw=False, rand_seed=None):
         self.name = name
-        self._otns_args = ['-log', 'info', '-logfile', 'none', '-seed',
-                           str(rand_seed)]  # use ['-log', 'debug'] for more debug messages
+        self._otns_args = ['-log', 'info', '-logfile', 'none']  # change to ['-log', 'debug'] for more messages
+
         if raw:
             self._otns_args.append('-ot-script')
             self._otns_args.append('none')
+
+        if rand_seed is not None:
+            random.seed(rand_seed)  # if PRNG seed given, use same seed for Python script
+            self._otns_args.append('-seed')
+            self._otns_args.append(str(rand_seed))
+
         self.ns = OTNS(otns_args=self._otns_args)
         self.ns.speed = float('inf')
         if web:
