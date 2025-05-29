@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2023, The OpenThread Authors.
+ *  Copyright (c) 2023-2025, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -82,6 +82,16 @@ otError otPlatBleGapAdvStart(otInstance *aInstance, uint16_t aInterval)
     sAdvertising = true;
     sAdvPeriodUs = aInterval * OT_BLE_ADV_INTERVAL_UNIT;
     selectAdvertisementDelay(false);
+    return OT_ERROR_NONE;
+}
+
+// TODO: use advertisement data length to adapt length (bytes) of transmitted BLE packet
+otError otPlatBleGapAdvUpdateData(otInstance *aInstance, uint8_t *aAdvertisementData, uint16_t aAdvertisementLen)
+{
+    OT_UNUSED_VARIABLE(aInstance);
+    OT_UNUSED_VARIABLE(aAdvertisementData);
+    OT_UNUSED_VARIABLE(aAdvertisementLen);
+
     return OT_ERROR_NONE;
 }
 
