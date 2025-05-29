@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2023, The OTNS Authors.
+// Copyright (c) 2020-2025, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -44,11 +44,15 @@ var (
 )
 
 type grpcService struct {
-	replayFile string
+	replayFile  string
+	serviceDone chan struct{}
 }
 
 func (gs *grpcService) Visualize(req *pb.VisualizeRequest, stream pb.VisualizeGrpcService_VisualizeServer) error {
-	defer logger.Infof("Visualize finished.")
+	defer func() {
+		logger.Infof("Visualize finished.")
+		close(gs.serviceDone)
+	}()
 
 	heartbeatEvent := &pb.VisualizeEvent{
 		Type: &pb.VisualizeEvent_Heartbeat{Heartbeat: &pb.HeartbeatEvent{}},

@@ -102,6 +102,15 @@ Use a web browser to manage the simulated Thread network:
 
 See [OTNS CLI Reference](cli/README.md).
 
+## Replay OTNS Simulations
+
+By default, an OTNS simulation generates a Replay file named `otns_0.replay`. The tool `otns-replay` (installed together with `otns`) can use this file to replay the simulation events again in the Web GUI.
+
+```bash
+$ otns-replay ./otns_0.replay
+...
+```
+
 ## Running OTNS Tests
 
 The command `./script/test` can be used to run selected test suites.
