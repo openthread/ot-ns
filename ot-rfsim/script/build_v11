@@ -46,7 +46,7 @@ main()
     options+=("${OT_OPTIONS[@]}" "$@")
 
     if [[ ! -f ./openthread-v11/README.md ]]; then
-        get_openthread_commit "0a5152b4fa9f9cbff57da89d9aa33d409e915241" "./openthread-v11" "../openthread"
+        get_openthread_commit "0a5152b4fa9f9cbff57da89d9aa33d409e915241" "./openthread-v11" "../openthread" "v11"
     fi
 
     OT_DIR="./openthread-v11" OTNS_NODE_TYPE="v11" OT_CMAKE_NINJA_TARGET="ot-cli-ftd ot-cli-mtd" ./script/build "${options[@]}"
