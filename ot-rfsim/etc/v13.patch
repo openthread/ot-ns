@@ -1,0 +1,29 @@
+# Subject: [PATCH] [OTNS] remove -Werror build flag in [mbedtls] to enable
+# building legacy code on newer (Apple Clang) compilers.
+# Also sets the minimum CMake version for mbedtls from 2.8.12 to 3.5.1, so
+# that a newer CMake (4.x) can still build the library.
+# This patch was made for commit c6179c24ed75a11c14dc4b1fffcde58be0bda785 (v13).
+
+
+diff --git a/third_party/mbedtls/repo/CMakeLists.txt b/third_party/mbedtls/repo/CMakeLists.txt
+index 14ca7b696..7c90dedcb 100644
+--- a/third_party/mbedtls/repo/CMakeLists.txt
++++ b/third_party/mbedtls/repo/CMakeLists.txt
+@@ -20,7 +20,7 @@
+ #   mbedtls, mbedx509, mbedcrypto and apidoc targets.
+ #
+ 
+-cmake_minimum_required(VERSION 2.8.12)
++cmake_minimum_required(VERSION 3.5.1)
+ 
+ # https://cmake.org/cmake/help/latest/policy/CMP0011.html
+ # Setting this policy is required in CMake >= 3.18.0, otherwise a warning is generated. The OLD
+@@ -236,7 +236,7 @@ if(MBEDTLS_FATAL_WARNINGS)
+     endif(CMAKE_COMPILER_IS_MSVC)
+ 
+     if(CMAKE_COMPILER_IS_CLANG OR CMAKE_COMPILER_IS_GNU)
+-        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror")
++        # set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror")
+         if(UNSAFE_BUILD)
+             set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error=cpp")
+             set(CMAKE_C_FLAGS_ASAN "${CMAKE_C_FLAGS_ASAN} -Wno-error=cpp")

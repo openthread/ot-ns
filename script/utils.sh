@@ -206,6 +206,8 @@ get_openthread_commit()
     local commit="${1}"
     local ot_commit_dir="${2}"
     local ot_dir="${3}"
+    local patch_id="${4}"
+
     ot_commit_dir=$(realpathf "${ot_commit_dir}")
     ot_dir=$(realpathf "${ot_dir}")
     mkdir -p "${ot_commit_dir}"
@@ -213,6 +215,6 @@ get_openthread_commit()
         cd "${ot_dir}" || die "OpenThread directory not found: ${ot_dir}"
         git archive --format=tar "${commit}" | tar -x -C "${ot_commit_dir}"
         cd "${ot_commit_dir}" || die "OpenThread target directory for commit not found: ${ot_commit_dir}"
-        patch -p1 <../etc/ot-mbedtls-settings.patch
+        patch -p1 <../etc/"${patch_id}".patch
     )
 }
