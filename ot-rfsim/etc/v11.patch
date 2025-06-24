@@ -1,17 +1,23 @@
-From 5b77e200f648c36787109eebf4bb97380cc06960 Mon Sep 17 00:00:00 2001
-From: Esko Dijk <esko.dijk@iotconsultancy.nl>
-Date: Fri, 5 Jul 2024 10:51:51 +0200
-Subject: [PATCH] [OTNS] remove -Werror build flag in [mbedtls] to enable
- building legacy code on newer (Apple Clang) compilers.
+# Subject: [PATCH] [OTNS] remove -Werror build flag in [mbedtls] to enable
+# building legacy code on newer (Apple Clang) compilers.
+# Also sets the minimum CMake version for mbedtls from 2.8.12 to 3.5.1, so
+# that a newer CMake (4.x) can still build the library.
+# This patch was made for commit 0a5152b4fa9f9cbff57da89d9aa33d409e915241 (v11)
 
----
- third_party/mbedtls/repo/CMakeLists.txt | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/third_party/mbedtls/repo/CMakeLists.txt b/third_party/mbedtls/repo/CMakeLists.txt
-index ac24bf41b..eef0a9260 100644
+index ac24bf41b..508bbfba7 100644
 --- a/third_party/mbedtls/repo/CMakeLists.txt
 +++ b/third_party/mbedtls/repo/CMakeLists.txt
+@@ -20,7 +20,7 @@
+ #   mbedtls, mbedx509, mbedcrypto and apidoc targets.
+ #
+
+-cmake_minimum_required(VERSION 2.8.12)
++cmake_minimum_required(VERSION 3.5.1)
+ if(TEST_CPP)
+     project("mbed TLS" C CXX)
+ else()
 @@ -218,7 +218,7 @@ if(MBEDTLS_FATAL_WARNINGS)
      endif(CMAKE_COMPILER_IS_MSVC)
 
@@ -21,5 +27,3 @@ index ac24bf41b..eef0a9260 100644
          if(UNSAFE_BUILD)
              set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error=cpp")
              set(CMAKE_C_FLAGS_ASAN "${CMAKE_C_FLAGS_ASAN} -Wno-error=cpp")
---
-2.34.1
