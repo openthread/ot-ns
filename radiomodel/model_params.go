@@ -38,7 +38,7 @@ const (
 	defaultMeterPerUnit        float64 = 0.10  // Default distance equivalent in meters of one grid/pixel distance unit.
 )
 
-// RadioModelParams stores model parameters for the radio model.
+// RadioModelParams stores model parameters for a radio model.
 type RadioModelParams struct {
 	MeterPerUnit         float64 // the distance in meters, equivalent to a single distance unit(pixel)
 	IsDiscLimit          bool    // If true, RF signal Tx range is limited to the RadioRange set for each node
@@ -52,7 +52,7 @@ type RadioModelParams struct {
 	SnrMinThresholdDb    DbValue // the minimal value an SNR/SINR should be, to have a non-zero frame success probability.
 	ShadowFadingSigmaDb  DbValue // sigma (stddev) parameter for Shadow Fading (SF), in dB
 	TimeFadingSigmaMaxDb DbValue // max sigma (stddev) parameter for time-variant fading, in dB
-	MeanTimeFadingChange float64 // mean time in sec, when TV fading value changes (mean of exponential distrib times).
+	MeanTimeFadingChange float64 // mean time (sec) when time-variant fading changes (mean of exponential distribution), 0.0 = No change
 }
 
 // newRadioModelParams gets a new set of parameters with default values, as a basis to configure further.
@@ -62,15 +62,15 @@ func newRadioModelParams() *RadioModelParams {
 		IsDiscLimit:          false,
 		RssiMinDbm:           RssiMin,
 		RssiMaxDbm:           RssiMax,
-		ExponentDb:           UndefinedDbValue,
-		FixedLossDb:          UndefinedDbValue,
-		NlosExponentDb:       UndefinedDbValue,
-		NlosFixedLossDb:      UndefinedDbValue,
-		NoiseFloorDbm:        UndefinedDbValue,
-		SnrMinThresholdDb:    UndefinedDbValue,
-		ShadowFadingSigmaDb:  UndefinedDbValue,
-		TimeFadingSigmaMaxDb: UndefinedDbValue,
-		MeanTimeFadingChange: 0.0,
+		ExponentDb:           UndefinedValue,
+		FixedLossDb:          UndefinedValue,
+		NlosExponentDb:       UndefinedValue,
+		NlosFixedLossDb:      UndefinedValue,
+		NoiseFloorDbm:        UndefinedValue,
+		SnrMinThresholdDb:    UndefinedValue,
+		ShadowFadingSigmaDb:  UndefinedValue,
+		TimeFadingSigmaMaxDb: UndefinedValue,
+		MeanTimeFadingChange: UndefinedValue,
 	}
 }
 

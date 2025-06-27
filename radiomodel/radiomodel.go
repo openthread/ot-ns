@@ -36,7 +36,7 @@ import (
 
 type DbValue = float64
 
-const UndefinedDbValue DbValue = math.MaxFloat64
+const UndefinedValue float64 = math.MaxFloat64
 
 // EventQueue is the abstraction of the queue where the radio model sends its outgoing (new) events to.
 type EventQueue interface {

@@ -846,7 +846,7 @@ func (rt *CmdRunner) executeRadioModel(cc *CommandContext, cmd *RadioModelCmd) {
 func displayRadioParam(val *reflect.Value) (string, bool) {
 	if val.CanFloat() {
 		f := val.Float()
-		if f == radiomodel.UndefinedDbValue {
+		if f == radiomodel.UndefinedValue {
 			return "undefined", false
 		}
 		return strconv.FormatFloat(f, 'f', -1, 64), true
