@@ -86,7 +86,8 @@ func (sf *fadingModel) computeFading(src *RadioNode, dst *RadioNode, params *Rad
 	if v, ok := sf.shFadeMap[seed]; ok { // look up if that seed (radio link) was already precomputed.
 		vSF = v
 		vTVF = sf.tvFadeMap[seed]
-		if sf.ts > sf.changeTvfTimeMap[seed] { // TVF dB may require occassional regeneration (randomly)
+		// TVF dB may require occasional regeneration (randomly)
+		if params.MeanTimeFadingChange > 0 && sf.ts > sf.changeTvfTimeMap[seed] {
 			sigmaTVF := sf.tvFadeSigmaMap[seed]
 			vTVF = sf.rng.NormFloat64() * sigmaTVF // new random TV fade-value, based on existing sigma
 			sf.tvFadeMap[seed] = vTVF
