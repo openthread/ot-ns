@@ -44,7 +44,7 @@
 
 // specify up to which syslog log level message will still be handled. Normally we rely on log messages being sent
 // in events to the simulator; so we don't need everything to go to syslog.
-//#define SYSLOG_LEVEL LOG_DEBUG
+// #define SYSLOG_LEVEL LOG_DEBUG
 #define SYSLOG_LEVEL LOG_WARNING
 
 static int convertOtLogLevelToSyslogLevel(otLogLevel otLevel);
