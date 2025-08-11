@@ -55,7 +55,7 @@ jobs:
       - name: Bootstrap
         run: |
           sudo apt-get update
-          sudo apt-get --no-install-recommends install -y clang-format-14 clang-tidy-14
+          sudo apt-get --no-install-recommends install -y clang-format-19 clang-tidy-19
       - name: Check pretty
         run: |
           ./script/install-deps
