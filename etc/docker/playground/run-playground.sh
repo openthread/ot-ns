@@ -1,4 +1,5 @@
-# Copyright (c) 2020-2025, The OTNS Authors.
+#!/bin/bash
+# Copyright (c) 2025, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -24,25 +25,13 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-# Builds the OTNS2 playground Docker, for easily trying out OTNS2.
-# The .dockerignore file from the repo root is used during build.
+# Script called by the 'playground' Docker to run OTNS with the TCP ports
+# exposed to the host, and show a clickable link to open the web GUI.
 
-# Stage 0: build OTNS, OT nodes, and any dependencies
-FROM golang:1.23
-
-RUN apt-get update && apt-get install -y python3 python3-pip sudo unzip
-COPY . /otns
-WORKDIR /otns
-RUN ./script/bootstrap
-# /go/bin is the default location for "FROM golang:*" Dockers.
-RUN strip /go/bin/grpcwebproxy /go/bin/otns
-
-# Stage 1: build the final image
-FROM ubuntu:24.04
-
-RUN apt-get update && apt-get install -y xdg-utils
-# Copy over the produced binaries (including all built node types) from stage 0
-COPY --from=0 /go/bin/grpcwebproxy /go/bin/otns /otns/ot-rfsim/ot-versions/ot-* /otns/etc/docker/playground/run-playground.sh /usr/bin/
-EXPOSE 8997 8998 8999 9000
-
-ENTRYPOINT [ "run-playground.sh" ]
+echo "OTNS playground - use this Docker for a first try of the OpenThread Network Simulator (OTNS)."
+echo
+echo "Open below link in a browser for the GUI, e.g. right-click & select 'Open Link':"
+echo "   http://localhost:8997/visualize?addr=localhost:8998"
+echo
+echo "OTNS CLI prompt - type 'help' for a command overview."
+otns "-listen" "0.0.0.0:9000" "$@"
