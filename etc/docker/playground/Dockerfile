@@ -30,12 +30,27 @@
 # Stage 0: build OTNS, OT nodes, and any dependencies
 FROM golang:1.23
 
-RUN apt-get update && apt-get install -y python3 python3-pip sudo unzip
-COPY . /otns
+ARG GITHUB_REPO="openthread/ot-ns"
+ARG GIT_COMMIT="HEAD"
+
 WORKDIR /otns
-RUN ./script/bootstrap
-# /go/bin is the default location for "FROM golang:*" Dockers.
-RUN strip /go/bin/grpcwebproxy /go/bin/otns
+
+RUN set -x \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
+           git \
+           python3 \
+           python3-pip \
+           sudo \
+           unzip \
+    \
+    && git clone --depth 1 -b main https://github.com/"${GITHUB_REPO}".git . \
+    && git fetch origin "${GIT_COMMIT}" \
+    && git checkout "${GIT_COMMIT}" \
+    && git submodule update --init \
+    \
+    && ./script/bootstrap \
+    && strip /go/bin/grpcwebproxy /go/bin/otns # /go/bin is the default location for "FROM golang:*" Dockers.
 
 # Stage 1: build the final image
 FROM ubuntu:24.04
