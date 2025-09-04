@@ -48,7 +48,7 @@ See [OTNS CLI Reference](cli/README.md) for the OTNS CLI commands.
 To do a quick try-out of OTNS without installing any software locally, you can fetch and run the playground Docker image:
 
 ```bash
-docker run -it -p 8997-9000:8997-9000 openthread/otns2:playground
+docker run -it -p 8997-9000:8997-9000 openthread/otns-playground
 ```
 
 # Contributing
