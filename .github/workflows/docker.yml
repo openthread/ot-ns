@@ -71,7 +71,7 @@ jobs:
         uses: docker/metadata-action@c1e51972afc2121e065aed6d45c65596fe445f3f # v5.8.0
         with:
           images: |
-            otns-${{ matrix.image }}
+            openthread/otns-${{ matrix.image }}
 
       - name: Login to Docker Hub
         if: success() && github.repository == 'openthread/ot-ns' && github.event_name != 'pull_request'
@@ -94,7 +94,7 @@ jobs:
               GIT_COMMIT=${{ github.sha }}
           platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
-          outputs: type=image,"name=otns-${{ matrix.image }}",push-by-digest=true,name-canonical=true
+          outputs: type=image,"name=openthread/otns-${{ matrix.image }}",push-by-digest=true,name-canonical=true
           push: ${{ github.repository == 'openthread/ot-ns' && github.event_name != 'pull_request' }}
 
       - name: Export digest
@@ -148,7 +148,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            otns-${{ matrix.image }}
+            openthread/otns-${{ matrix.image }}
           tags: |
             type=ref,event=branch
             type=raw,value=latest,enable={{is_default_branch}}
@@ -157,8 +157,8 @@ jobs:
         working-directory: ${{ runner.temp }}/digests
         run: |
           docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
-            $(printf 'otns-${{ matrix.image }}@sha256:%s ' *)
+            $(printf 'openthread/otns-${{ matrix.image }}@sha256:%s ' *)
 
       - name: Inspect image
         run: |
-          docker buildx imagetools inspect otns-${{ matrix.image }}:${{ steps.meta.outputs.version }}
+          docker buildx imagetools inspect openthread/otns-${{ matrix.image }}:${{ steps.meta.outputs.version }}
