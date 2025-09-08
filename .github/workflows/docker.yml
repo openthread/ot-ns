@@ -1,4 +1,4 @@
-# Copyright (c) 2020-2025, The OTNS Authors.
+# Copyright (c) 2025, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -42,53 +42,123 @@ permissions:
   contents: read
 
 jobs:
-  buildx:
-    name: buildx-${{ matrix.version }}
-    runs-on: ubuntu-24.04
+  build:
     strategy:
       fail-fast: false
       matrix:
-        version:
-          - "environment"
-          - "playground"
+        image:
+          - environment
+          - playground
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-24.04
+
+    runs-on: ${{ matrix.runner }}
+
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           submodules: recursive
           fetch-depth: 0
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+
       - name: Prepare
-        id: prepare
         run: |
-          DOCKER_IMAGE=openthread/otns2
-          DOCKER_FILE=etc/docker/${{ matrix.version }}/Dockerfile
-          DOCKER_PLATFORMS=linux/amd64
-          VERSION=${{ matrix.version }}
+          platform=${{ matrix.platform }}
+          echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
 
-          TAGS="--tag ${DOCKER_IMAGE}:${VERSION}"
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@c1e51972afc2121e065aed6d45c65596fe445f3f # v5.8.0
+        with:
+          images: |
+            otns-${{ matrix.image }}
 
-          echo ::set-output name=docker_image::${DOCKER_IMAGE}
-          echo ::set-output name=version::${VERSION}
-          echo ::set-output name=buildx_args::--platform ${DOCKER_PLATFORMS} \
-            --build-arg VERSION=${VERSION} \
-            --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
-            --build-arg VCS_REF=${GITHUB_SHA::8} \
-            ${TAGS} --file ${DOCKER_FILE} .
-
-      - name: Docker Buildx (build)
-        run: |
-          docker buildx build --output "type=image,push=false" ${{ steps.prepare.outputs.buildx_args }}
-
-      - name: Docker Login
+      - name: Login to Docker Hub
         if: success() && github.repository == 'openthread/ot-ns' && github.event_name != 'pull_request'
-        env:
-          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-        run: |
-          echo "${DOCKER_PASSWORD}" | docker login --username "${DOCKER_USERNAME}" --password-stdin
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Docker Buildx (push)
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3.10.0
+
+      - name: Build and push by digest
+        if: success()
+        id: build
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        with:
+          file: etc/docker/${{ matrix.image }}/Dockerfile
+          build-args: |
+              GITHUB_REPO=${{ github.repository }}
+              GIT_COMMIT=${{ github.sha }}
+          platforms: ${{ matrix.platform }}
+          labels: ${{ steps.meta.outputs.labels }}
+          outputs: type=image,"name=otns-${{ matrix.image }}",push-by-digest=true,name-canonical=true
+          push: ${{ github.repository == 'openthread/ot-ns' && github.event_name != 'pull_request' }}
+
+      - name: Export digest
         if: success() && github.repository == 'openthread/ot-ns' && github.event_name != 'pull_request'
         run: |
-          docker buildx build --output "type=image,push=true" ${{ steps.prepare.outputs.buildx_args }}
+          mkdir -p ${{ runner.temp }}/digests
+          digest="${{ steps.build.outputs.digest }}"
+          touch "${{ runner.temp }}/digests/${digest#sha256:}"
+
+      - name: Upload digest
+        if: success() && github.repository == 'openthread/ot-ns' && github.event_name != 'pull_request'
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        with:
+          name: digests-${{ env.PLATFORM_PAIR }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    if: success() && github.repository == 'openthread/ot-ns' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+
+    needs:
+      - build
+
+    strategy:
+      matrix:
+        image:
+          - environment
+          - playground
+
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@v5
+        with:
+          path: ${{ runner.temp }}/digests
+          pattern: digests-*
+          merge-multiple: true
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3.10.0
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            otns-${{ matrix.image }}
+          tags: |
+            type=ref,event=branch
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Create manifest list and push
+        working-directory: ${{ runner.temp }}/digests
+        run: |
+          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf 'otns-${{ matrix.image }}@sha256:%s ' *)
+
+      - name: Inspect image
+        run: |
+          docker buildx imagetools inspect otns-${{ matrix.image }}:${{ steps.meta.outputs.version }}
