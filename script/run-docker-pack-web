@@ -32,4 +32,4 @@
 
 set -euxo pipefail
 
-docker run -t -v"$PWD":/otns openthread/otns2:environment -c "./script/pack-web"
+docker run -t -v"$PWD":/otns openthread/otns-environment -c "./script/pack-web"
