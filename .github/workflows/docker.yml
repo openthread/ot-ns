@@ -100,16 +100,16 @@ jobs:
       - name: Export digest
         if: success() && github.repository == 'openthread/ot-ns' && github.event_name != 'pull_request'
         run: |
-          mkdir -p ${{ runner.temp }}/digests/${{ matrix.image }}
+          mkdir -p ${{ runner.temp }}/digests
           digest="${{ steps.build.outputs.digest }}"
-          touch "${{ runner.temp }}/digests/${{ matrix.image }}/${digest#sha256:}"
+          touch "${{ runner.temp }}/digests/${digest#sha256:}"
 
       - name: Upload digest
         if: success() && github.repository == 'openthread/ot-ns' && github.event_name != 'pull_request'
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
         with:
           name: digests-${{ env.PLATFORM_PAIR }}
-          path: ${{ runner.temp }}/digests/${{ matrix.image }}/*
+          path: ${{ runner.temp }}/digests/*
           if-no-files-found: error
           retention-days: 1
 
@@ -130,7 +130,7 @@ jobs:
       - name: Download digests
         uses: actions/download-artifact@v5
         with:
-          path: ${{ runner.temp }}/digests/${{ matrix.image }}
+          path: ${{ runner.temp }}/digests
           pattern: digests-*
           merge-multiple: true
 
@@ -154,7 +154,7 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Create manifest list and push
-        working-directory: ${{ runner.temp }}/digests/${{ matrix.image }}
+        working-directory: ${{ runner.temp }}/digests
         run: |
           docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
             $(printf 'openthread/otns-${{ matrix.image }}@sha256:%s ' *)
