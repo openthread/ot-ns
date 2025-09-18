@@ -579,9 +579,9 @@ class OTNS(object):
              srcid: int,
              dst: Union[int, str, ipaddress.IPv6Address],
              addrtype: str = 'any',
-             datasize: int = 4,
+             datasize: int = 8,
              count: int = 1,
-             interval: float = 10) -> None:
+             interval: float = 1.0) -> None:
         """
         Ping from source node to destination node.
 
@@ -590,7 +590,7 @@ class OTNS(object):
         :param addrtype: address type for the destination node (only useful for destination node ID)
         :param datasize: ping data size; WARNING - data size < 4 is ignored by OTNS.
         :param count: ping count
-        :param interval: ping interval (in seconds), also the max acceptable ping RTT before giving up.
+        :param interval: ping interval (in seconds)
 
         Use pings() to get ping results.
         """
