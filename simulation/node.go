@@ -766,8 +766,8 @@ func (node *Node) Reset() {
 	node.Logger.Warn("reset complete")
 }
 
-func (node *Node) Ping(addr string, payloadSize int, count int, interval int, hopLimit int) {
-	cmd := fmt.Sprintf("ping async %s %d %d %d %d", addr, payloadSize, count, interval, hopLimit)
+func (node *Node) Ping(addr string, payloadSize int, count int, interval float64, hopLimit int) {
+	cmd := fmt.Sprintf("ping async %s %d %d %f %d", addr, payloadSize, count, interval, hopLimit)
 	err := node.inputCommand(cmd)
 	if err != nil {
 		node.error(err)

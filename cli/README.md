@@ -596,14 +596,23 @@ NOTE: Sleepy End Devices (SEDs) typically don't respond to a ping request, while
 ```bash
 > ping 1 2
 Done
+Node<1>  16 bytes from fdde:ad00:beef:0:d17a:df54:589b:767a: icmp_seq=1 hlim=64 time=22ms
+Node<1>  1 packets transmitted, 1 packets received. Packet loss = 0.0%. Round-trip min/avg/max = 22/22.000/22 ms.
 > ping 1 2 rloc
+(...)
 Done
 > ping 1 2 mleid
+(...)
 Done
 > ping 1 "fdde:ad00:beef:0:31d6:8873:f685:9c40"
 Done
-> ping 1 2 datasize 10 count 3 interval 1 hoplimit 10
+Node<1>  1 packets transmitted, 0 packets received. Packet loss = 100.0%.
+> ping 1 2 datasize 10 count 3 interval 1.5 hoplimit 10
 Done
+Node<1>  18 bytes from fdde:ad00:beef:0:d17a:df54:589b:767a: icmp_seq=5 hlim=64 time=6ms
+Node<1>  18 bytes from fdde:ad00:beef:0:d17a:df54:589b:767a: icmp_seq=6 hlim=64 time=6ms
+Node<1>  18 bytes from fdde:ad00:beef:0:d17a:df54:589b:767a: icmp_seq=7 hlim=64 time=13ms
+Node<1>  3 packets transmitted, 3 packets received. Packet loss = 0.0%. Round-trip min/avg/max = 6/8.333/13 ms.
 ```
 
 ### pings
@@ -612,11 +621,12 @@ Display finished ping sessions.
 
 ```bash
 > ping 1 2 count 3
+(...)
 Done
 > pings
-node=1    dst=fdde:ad00:beef:0:31d6:8873:f685:9c40     datasize=4   delay=0.322ms
-node=1    dst=fdde:ad00:beef:0:31d6:8873:f685:9c40     datasize=4   delay=2.242ms
-node=1    dst=fdde:ad00:beef:0:31d6:8873:f685:9c40     datasize=4   delay=1.282ms
+node=1    dst=fdde:ad00:beef:0:d17a:df54:589b:767a     datasize=8   delay=8.884ms
+node=1    dst=fdde:ad00:beef:0:d17a:df54:589b:767a     datasize=8   delay=4.944ms
+node=1    dst=fdde:ad00:beef:0:d17a:df54:589b:767a     datasize=8   delay=9.424ms
 Done
 ```
 

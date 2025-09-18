@@ -173,7 +173,7 @@ type DataSizeFlag struct {
 
 // noinspection GoVetStructTag
 type IntervalFlag struct {
-	Val int `("interval"|"itv") @Int` //nolint
+	Val float64 `("interval"|"itv") (@Int|@Float)` //nolint
 }
 
 // noinspection GoVetStructTag
