@@ -512,10 +512,10 @@ func (rt *CmdRunner) executePing(cc *CommandContext, cmd *PingCmd) {
 			dstaddr = cmd.DstAddr.Addr
 		}
 
-		datasize := 4 // Note: must be at least 4 otherwise OTNS will ignore ping req/resp for stats.
+		datasize := 8 // Note: must be at least 4 otherwise OTNS will ignore ping req/resp for stats.
 		count := 1
-		interval := 10
-		hopLimit := 64
+		interval := 1.0 // seconds
+		hopLimit := 64  // default IPv6 ping hop limit
 
 		if cmd.DataSize != nil {
 			datasize = cmd.DataSize.Val
