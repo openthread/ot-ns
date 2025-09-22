@@ -1,4 +1,7 @@
-[![Build Status][build-actions-svg]][build-actions] [![Lint Status][lint-actions-svg]][lint-actions] [![Test Status][test-actions-svg]][test-actions] [![codecov][codecov-svg]][codecov-url]
+[![Ask DeepWiki][deepwiki-svg]][deepwiki]
+
+[deepwiki]: https://deepwiki.com/openthread/ot-ns
+[deepwiki-svg]: https://deepwiki.com/badge.svg
 
 ---
 
