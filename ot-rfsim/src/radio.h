@@ -36,6 +36,7 @@
 
 // platform-specific OT_ERROR status code to indicate an interference Tx
 #define OT_TX_TYPE_INTF 192
+#define OT_TX_TYPE_BLE_ADV 193
 
 // IEEE 802.15.4 related parameters. See radio-parameters.h for radio-model-specific parameters.
 enum

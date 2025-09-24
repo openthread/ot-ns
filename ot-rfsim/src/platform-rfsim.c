@@ -115,7 +115,8 @@ void platformReceiveEvent(otInstance *aInstance)
     switch (event.mEvent)
     {
     case OT_SIM_EVENT_ALARM_FIRED:
-        // Alarm events may be used to wake the node again when some simulated time has passed.
+    case OT_SIM_EVENT_SCHEDULE_NODE:
+        // Alarm or schedule-node events may be used to wake the node again when some simulated time has passed.
         break;
 
     case OT_SIM_EVENT_UART_WRITE:
