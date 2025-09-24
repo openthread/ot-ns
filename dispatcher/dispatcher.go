@@ -410,6 +410,12 @@ func (d *Dispatcher) handleRecvEvent(evt *Event) {
 			d.setSleeping(node.Id)
 		}
 		d.alarmMgr.SetTimestamp(nodeid, d.CurTime+delay) // schedule future wake-up of node
+	case EventTypeScheduleNode:
+		d.Counters.AlarmEvents += 1
+		if delay > 0 && delay < Ever {
+			evt.Timestamp = d.CurTime + delay
+			d.eventQueue.Add(evt) // schedule the node in future time
+		}
 	case EventTypeRadioCommStart,
 		EventTypeRadioState,
 		EventTypeRadioChannelSample:
@@ -566,16 +572,20 @@ func (d *Dispatcher) processNextEvent(simSpeed float64) bool {
 				// execute event - either a msg to be dispatched, or handled internally.
 				if !evt.MustDispatch {
 					switch evt.Type {
-					case EventTypeAlarmFired:
+					case EventTypeScheduleNode:
 						d.advanceNodeTime(node, evt.Timestamp, false)
 					case EventTypeRadioLog:
 						node.logger.Tracef("%s", string(evt.Data))
 					case EventTypeRadioCommStart:
-						if evt.RadioCommData.Error == OT_TX_TYPE_INTF {
-							// for interference transmissions, visualized here.
+						if evt.RadioCommData.Error == OT_TX_TYPE_INTF ||
+							evt.RadioCommData.Error == OT_TX_TYPE_BLE_ADV {
+							// for BLE/interference transmissions, visualized here.
 							d.visSendInterference(evt.NodeId, BroadcastNodeId, evt.RadioCommData)
 						}
-						d.radioModel.HandleEvent(node.RadioNode, d.eventQueue, evt)
+						// BLE transmissions are fully separated from the 802.15.4 radio.
+						if evt.RadioCommData.Error != OT_TX_TYPE_BLE_ADV {
+							d.radioModel.HandleEvent(node.RadioNode, d.eventQueue, evt)
+						}
 					case EventTypeRadioState:
 						d.handleRadioState(node, evt)
 						d.radioModel.HandleEvent(node.RadioNode, d.eventQueue, evt)
@@ -1505,7 +1515,7 @@ func (d *Dispatcher) handleRadioState(node *Node, evt *Event) {
 	// This is independent from any alarm-time set by the node which is the OT's stack next-operation time.
 	if evt.Delay > 0 {
 		d.eventQueue.Add(&Event{
-			Type:      EventTypeAlarmFired,
+			Type:      EventTypeScheduleNode,
 			NodeId:    node.Id,
 			Timestamp: d.CurTime + evt.Delay,
 		})
