@@ -190,7 +190,7 @@ func (node *Node) sendEvent(evt *Event) {
 		reEvaluateTime, isUpdated := node.failureCtrl.OnTimeAdvanced(oldTime)
 		if isUpdated {
 			wakeEvt := &Event{
-				Type:      EventTypeAlarmFired,
+				Type:      EventTypeScheduleNode,
 				NodeId:    node.Id,
 				Timestamp: reEvaluateTime,
 			}
