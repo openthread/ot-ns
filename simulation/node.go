@@ -1100,6 +1100,10 @@ func (node *Node) expectEvent(evtType event.EventType, timeout time.Duration) (*
 			return nil, err
 		case evt := <-node.pendingEvents:
 			node.Logger.Tracef("expectEvent() received: %v", evt)
+			if evt.Type != evtType {
+				err := fmt.Errorf("expectEvent: expected type %d, but got %d", evtType, evt.Type)
+				return nil, err
+			}
 			return evt, nil
 		default:
 			if !node.S.Dispatcher().IsAlive(node.Id) {
