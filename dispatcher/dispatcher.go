@@ -462,6 +462,7 @@ func (d *Dispatcher) handleRecvEvent(evt *Event) {
 func (d *Dispatcher) RecvEvents() int {
 	done := d.ctx.Done()
 	count := 0
+	countOnLastTimeout := 0
 	isExiting := false
 	blockTimeout := time.After(DefaultReadTimeout)
 
@@ -474,6 +475,11 @@ loop:
 				count += 1
 				d.handleRecvEvent(evt)
 			case <-blockTimeout: // timeout
+				if !isExiting && count > countOnLastTimeout { // if we received something recently, extend timeout
+					blockTimeout = time.After(DefaultReadTimeout)
+					countOnLastTimeout = count
+					break
+				}
 				break loop
 			case <-done:
 				if !isExiting {
