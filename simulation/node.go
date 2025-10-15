@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2024, The OTNS Authors.
+// Copyright (c) 2020-2025, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -40,6 +40,7 @@ import (
 	"strings"
 	"syscall"
 	"time"
+	"unicode"
 
 	"github.com/pkg/errors"
 
@@ -1008,7 +1009,6 @@ loop:
 				continue
 			}
 			idxNewLine := strings.IndexByte(line, '\n')
-			lineTrim := strings.TrimSpace(line)
 			if idxNewLine == -1 { // if no newline, get more items until a line can be formed.
 				deadline = time.After(dispatcher.DefaultReadTimeout)
 
@@ -1020,18 +1020,19 @@ loop:
 						idxNewLinePart := strings.IndexByte(nextPart, '\n')
 						line += nextPart
 						if idxNewLinePart >= 0 {
-							node.pendingLines <- strings.TrimSpace(line)
+							lineTrim := strings.TrimRightFunc(line, unicode.IsSpace)
+							node.pendingLines <- lineTrim
 							break loop2
 						}
 					case <-done:
 						break loop
 					case <-deadline:
-						line = strings.TrimSpace(line)
-						node.Logger.Panicf("processUart deadline: line=%s", line)
+						node.Logger.Panicf("processUart deadline: line='%s'", strings.TrimSpace(line))
 						break loop2
 					}
 				}
 			} else {
+				lineTrim := strings.TrimRightFunc(line, unicode.IsSpace)
 				node.pendingLines <- lineTrim
 			}
 
