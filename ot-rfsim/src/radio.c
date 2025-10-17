@@ -526,7 +526,8 @@ void radioSendMessage(otInstance *aInstance)
     if (sTransmitFrame.mInfo.mTxInfo.mIeInfo->mTimeIeOffset != 0)
     {
         uint8_t *timeIe = sTransmitFrame.mPsdu + sTransmitFrame.mInfo.mTxInfo.mIeInfo->mTimeIeOffset;
-        uint64_t time = (uint64_t)((int64_t)otPlatTimeGet() + sTransmitFrame.mInfo.mTxInfo.mIeInfo->mNetworkTimeOffset);
+        uint64_t time =
+            (uint64_t)((int64_t)platformAlarmGetNow() + sTransmitFrame.mInfo.mTxInfo.mIeInfo->mNetworkTimeOffset);
 
         *timeIe = sTransmitFrame.mInfo.mTxInfo.mIeInfo->mTimeSyncSeq;
 
@@ -877,7 +878,7 @@ uint64_t otPlatRadioGetNow(otInstance *aInstance)
 {
     OT_UNUSED_VARIABLE(aInstance);
 
-    return otPlatTimeGet();
+    return platformAlarmGetNow();
 }
 
 #if OPENTHREAD_CONFIG_MAC_CSL_RECEIVER_ENABLE
@@ -1112,20 +1113,21 @@ void platformRadioReportStateToSimulator(bool aForce)
             energyState = OT_RADIO_STATE_RECEIVE;
         }
 
+        const uint64_t now         = platformAlarmGetNow();
         stateReport.mChannel       = sOngoingOperationChannel;
         stateReport.mEnergyState   = energyState;
         stateReport.mSubState      = sSubState;
         stateReport.mTxPower       = sTxPower;
         stateReport.mRxSensitivity = sRxSensitivity;
         stateReport.mState         = sState; // also include the OT radio state.
-        stateReport.mRadioTime     = otPlatTimeGet();
+        stateReport.mRadioTime     = now;
 
-        // determine next radio-event time, so that simulator can guarantee this node will
-        // execute again at that time.
-        uint64_t delayUntilNextRadioState = 0;
-        if (sNextRadioEventTime > otPlatTimeGet())
+        // determine next radio-event time, so that simulator can schedule this node
+        // again at that time.
+        uint64_t delayUntilNextRadioState = UNDEFINED_TIME_US;
+        if (sNextRadioEventTime > now)
         {
-            delayUntilNextRadioState = sNextRadioEventTime - otPlatTimeGet();
+            delayUntilNextRadioState = sNextRadioEventTime - now;
         }
         otSimSendRadioStateEvent(&stateReport, delayUntilNextRadioState);
     }
@@ -1165,7 +1167,7 @@ static void setRadioSubState(RadioSubState aState, uint64_t timeToRemainInState)
     }
     else
     {
-        sNextRadioEventTime = otPlatTimeGet() + timeToRemainInState;
+        sNextRadioEventTime = platformAlarmGetNow() + timeToRemainInState;
     }
     sSubState = aState;
 }
@@ -1212,7 +1214,7 @@ void platformRadioRxStart(otInstance *aInstance, struct RadioCommEventData *aRxP
 
     // Record SFD end-of-last-symbol timestamp. The simulator signals start of first symbol of
     // preamble is "now" so we need to adapt to "when SFD was received" (end of last symbol of SFD = start of PHY hdr)
-    sReceiveTimestamp = otPlatTimeGet() + OT_RADIO_SHR_DURATION_US;
+    sReceiveTimestamp = platformAlarmGetNow() + OT_RADIO_SHR_DURATION_US;
 
 exit:
     return;
@@ -1409,7 +1411,7 @@ void platformRadioProcess(otInstance *aInstance)
 
     // Tx/Rx state machine. Execute time and data based state transitions for substate.
     // Event based transitions are in functions called by platform-sim.c receiveEvent().
-    if (otPlatTimeGet() >= sNextRadioEventTime)
+    if (platformAlarmGetNow() >= sNextRadioEventTime)
     {
         uint64_t ifsTime =
             (sTransmitFrame.mLength > OT_RADIO_aMaxSifsFrameSize) ? OT_RADIO_LIFS_TIME_US : OT_RADIO_SIFS_TIME_US;
@@ -1529,7 +1531,7 @@ void platformRadioInterfererProcess(otInstance *aInstance)
         return;
 
     // Tx state machine. Execute time and data based state transitions for substate.
-    if (otPlatTimeGet() >= sNextRadioEventTime)
+    if (platformAlarmGetNow() >= sNextRadioEventTime)
     {
         switch (sSubState)
         {
