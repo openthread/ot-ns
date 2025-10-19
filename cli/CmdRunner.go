@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2024, The OTNS Authors.
+// Copyright (c) 2020-2025, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -918,22 +918,52 @@ func (rt *CmdRunner) executeRadioParam(cc *CommandContext, cmd *RadioParamCmd) {
 
 func (rt *CmdRunner) executeRfSim(cc *CommandContext, cmd *RfSimCmd) {
 	rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
-		node, _ := rt.getNode(cmd.Id)
-		if node == nil {
-			cc.errorf("node not found")
-			return
+		var node *simulation.Node
+		var params *map[RfSimParam]RfSimParamValue
+		var value RfSimParamValue
+		var ok bool
+
+		if cmd.Id == nil {
+			if cmd.Default == nil {
+				if len(cmd.Param) > 0 {
+					cc.errorf("missing <node-id> or 'default' argument")
+					return
+				}
+				// variant: rfsim
+				// list all parameters as a help for configuring the defaults
+				for i := 0; i < len(RfSimParamsList); i++ {
+					unit := RfSimParamUnitsList[i]
+					cc.outputf("%-20s (%s)\n", RfSimParamNamesList[i], unit)
+				}
+				return
+			}
+			// variant: rfsim default [<param>] [<value>]
+			params = &rt.sim.GetConfig().NewNodeConfig.RfSimParams
+		} else {
+			// variant: rfsim <node-id> [<param>] [<value>]
+			node, _ = rt.getNode(*cmd.Id)
+			if node == nil {
+				cc.errorf("node not found")
+				return
+			}
+			defer node.DisplayPendingLogEntries()
 		}
 
-		defer node.DisplayPendingLogEntries()
-
-		// variant: rfsim <nodeid>
+		// variant: rfsim <nodeid>|default
 		if len(cmd.Param) == 0 {
 			for i := 0; i < len(RfSimParamsList); i++ {
-				value := node.GetRfSimParam(RfSimParamsList[i])
 				unit := RfSimParamUnitsList[i]
-				if node.CommandResult() != nil {
-					cc.error(node.CommandResult())
-					return
+
+				if node != nil {
+					value = node.GetRfSimParam(RfSimParamsList[i])
+					if node.CommandResult() != nil {
+						cc.error(node.CommandResult())
+						return
+					}
+				} else {
+					if value, ok = (*params)[RfSimParamsList[i]]; !ok {
+						continue
+					}
 				}
 				cc.outputf("%-20s %d (%s)\n", RfSimParamNamesList[i], value, unit)
 			}
@@ -946,22 +976,33 @@ func (rt *CmdRunner) executeRfSim(cc *CommandContext, cmd *RfSimCmd) {
 			return
 		}
 
-		// variant: rfsim <nodeid> <param>
+		// variant: rfsim <nodeid>|default <param>
 		if cmd.Val == nil {
-			value := node.GetRfSimParam(param)
+			if node != nil {
+				value = node.GetRfSimParam(param)
+			} else {
+				if value, ok = (*params)[param]; !ok {
+					cc.errorf("parameter '%s' was not set yet with a default value", cmd.Param)
+					return
+				}
+			}
 			cc.outputf("%d\n", value)
 			return
 		}
 
-		// variant: rfsim <nodeid> <param> <new-value>
+		// variant: rfsim <nodeid>|default <param> <new-value>
 		newVal := *cmd.Val
 		if cmd.Sign == "-" {
 			newVal = -newVal
 		}
 
-		node.SetRfSimParam(param, RfSimParamValue(newVal))
-		if node.CommandResult() != nil {
-			cc.error(node.CommandResult())
+		if node != nil {
+			node.SetRfSimParam(param, RfSimParamValue(newVal))
+			if node.CommandResult() != nil {
+				cc.error(node.CommandResult())
+			}
+		} else {
+			(*params)[param] = RfSimParamValue(newVal)
 		}
 	})
 }

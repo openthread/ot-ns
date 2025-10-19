@@ -47,10 +47,11 @@ enum
     OT_RADIO_AIFS_TIME_US           = 12 * OT_RADIO_SYMBOL_TIME, // From 802.15.4 spec, AIFS
     OT_RADIO_CCA_TIME_US            = 8 * OT_RADIO_SYMBOL_TIME,  // From 802.15.4 spec, CCA duration
     OT_RADIO_SHR_DURATION_US        = 5 * OT_RADIO_SYMBOLS_PER_OCTET * OT_RADIO_SYMBOL_TIME, // sync header (SHR)
-    OT_RADIO_SHR_PHR_DURATION_US    = 6 * OT_RADIO_SYMBOLS_PER_OCTET * OT_RADIO_SYMBOL_TIME, // SHR + PHY header (PHR)
-    OT_RADIO_MAX_TURNAROUND_TIME_US = 12 * OT_RADIO_SYMBOL_TIME, // specified max turnaround time.
+    OT_RADIO_SHR_PHR_LENGTH_BYTES   = 6, // SHR + PHY header (PHR) length in bytes
+    OT_RADIO_SHR_PHR_DURATION_US    = OT_RADIO_SHR_PHR_LENGTH_BYTES * OT_RADIO_SYMBOLS_PER_OCTET * OT_RADIO_SYMBOL_TIME,
+    OT_RADIO_MAX_TURNAROUND_TIME_US = 12 * OT_RADIO_SYMBOL_TIME, // specified max turnaround time
     OT_RADIO_MAX_ACK_WAIT_US        = (OT_RADIO_AIFS_TIME_US + (10 * OT_RADIO_SYMBOL_TIME)),
-    OT_RADIO_aMaxSifsFrameSize      = 18, // From 802.15.4 spec - frame size considered 'short'
+    OT_RADIO_aMaxSifsFrameSize      = 18, // From 802.15.4 spec - max frame size considered 'short'
 };
 
 // Wi-Fi 802.11n related parameters. See radio-parameters.h for radio-model-specific Wi-Fi parameters.
@@ -78,6 +79,7 @@ typedef enum
     RFSIM_PARAM_CSL_UNCERTAINTY,
     RFSIM_PARAM_TX_INTERFERER,
     RFSIM_PARAM_CLOCK_DRIFT,
+    RFSIM_PARAM_PHY_BITRATE,
     RFSIM_PARAM_UNKNOWN = 255,
 } RfSimParam;
 
