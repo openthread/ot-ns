@@ -32,6 +32,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -409,7 +410,8 @@ func (node *Node) GetRfSimParam(param RfSimParam) RfSimParamValue {
 		ParamCslUncertainty,
 		ParamTxInterferer,
 		ParamClockDrift,
-		ParamCslAccuracy:
+		ParamCslAccuracy,
+		ParamPhyBitrate:
 		return node.getOrSetRfSimParam(false, param, 0)
 	case ParamCcaThreshold:
 		return node.GetCcaThreshold()
@@ -423,7 +425,7 @@ func (node *Node) SetRfSimParam(param RfSimParam, value RfSimParamValue) {
 	switch param {
 	case ParamRxSensitivity:
 		if value < RssiMin || value > RssiMax {
-			node.error(fmt.Errorf("parameter out of range %d to %d", RssiMin, RssiMax))
+			node.error(fmt.Errorf("parameter out of range %d - %d", RssiMin, RssiMax))
 			return
 		}
 		node.getOrSetRfSimParam(true, param, value)
@@ -438,8 +440,14 @@ func (node *Node) SetRfSimParam(param RfSimParam, value RfSimParamValue) {
 	case ParamCcaThreshold:
 		node.SetCcaThreshold(value)
 	case ParamClockDrift:
-		if value < -127 || value > 127 {
-			node.error(fmt.Errorf("parameter out of range -127 - +127"))
+		if value < math.MinInt16 || value > math.MaxInt16 {
+			node.error(fmt.Errorf("parameter out of range %d - %d", math.MinInt16, math.MaxInt16))
+			return
+		}
+		node.getOrSetRfSimParam(true, param, value)
+	case ParamPhyBitrate:
+		if value < 1 || value > RfSimValueMax {
+			node.error(fmt.Errorf("parameter out of range 1 - %d", RfSimValueMax))
 			return
 		}
 		node.getOrSetRfSimParam(true, param, value)
