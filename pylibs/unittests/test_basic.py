@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2020-2024, The OTNS Authors.
+# Copyright (c) 2020-2025, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -29,6 +29,7 @@
 import filecmp
 import logging
 import os.path
+import re
 import time
 import unittest
 from typing import Dict
@@ -643,6 +644,23 @@ class BasicTests(OTNSTestCase):
         ns.cmd('rfsim 2 rxsens 23')
         self.assertEqual(['23'], ns.cmd('rfsim 2 rxsens'))
 
+    def testBitrate(self):
+        ns: OTNS = self.ns
+        ns.add('router')
+        ns.add('router')
+        self.assertEqual(['250000'], ns.cmd('rfsim 1 bitrate'))
+        self.assertEqual(['250000'], ns.cmd('rfsim 2 bitrate'))
+
+        ns.cmd('rfsim 1 bitrate 100000')
+        self.assertEqual(['100000'], ns.cmd('rfsim 1 bitrate'))
+        self.assertEqual(['250000'], ns.cmd('rfsim 2 bitrate'))
+
+        ns.cmd('rfsim 2 bitrate 100000')
+        self.assertEqual(['100000'], ns.cmd('rfsim 2 bitrate'))
+
+        ns.go(20)
+        self.assertFormPartitions(1)
+
     def testCcaThreshold(self):
         ns: OTNS = self.ns
         ns.add('router')
@@ -660,6 +678,27 @@ class BasicTests(OTNSTestCase):
         self.assertEqual(['42 dBm'], ns.node_cmd(1, 'ccathreshold'))
         self.assertEqual(['-80 dBm'], ns.node_cmd(2, 'ccathreshold'))
         self.assertEqual(['42'], ns.cmd('rfsim 1 ccath'))
+
+    def testRfsimDefault(self):
+        ns: OTNS = self.ns
+
+        self.assertGreaterEqual(7, len(ns.cmd('rfsim')))
+        self.assertEqual([], ns.cmd('rfsim default'))  # no default items initially
+        self.assertEqual([], ns.cmd('rfsim default rxsens -80'))
+        self.assertEqual([], ns.cmd('rfsim default bitrate 123000'))
+
+        # new Routers will use default parameters
+        ns.add('router')
+        ns.add('router')
+        self.assertEqual(['123000'], ns.cmd('rfsim 1 bitrate'))
+        self.assertEqual(['123000'], ns.cmd('rfsim 2 bitrate'))
+        self.assertEqual(['-80'], ns.cmd('rfsim 1 rxsens'))
+        self.assertEqual(['-80'], ns.cmd('rfsim 2 rxsens'))
+
+        # commands to list the defaults that were set - test output that they are there
+        default_items = ns.cmd('rfsim default')
+        default_items = [re.sub(r"\s+", "", item) for item in default_items]
+        self.assertEqual({'rxsens-80(dBm)', 'bitrate123000(bps)'}, set(default_items))
 
     def testCmdCommand(self):
         ns: OTNS = self.ns

@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2024, The OTNS Authors.
+// Copyright (c) 2020-2025, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -173,7 +173,7 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 	logger.AssertFalse(s.d.IsAlive(nodeid))
 
 	// run setup and script(s) for the node
-	node.Logger.Debugf("start setup of node (version/commit, mode, init script)")
+	node.Logger.Debugf("start setup of node (version/commit, rfsim params, mode, init script)")
 	ver := node.GetVersion()
 	if err = node.CommandResult(); err != nil {
 		return nil, err
@@ -190,6 +190,13 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 		ThreadVersion: threadVer,
 	}
 	s.vis.SetNetworkInfo(nodeInfo)
+
+	for rfSimParam, rfSimParamValue := range cfg.RfSimParams {
+		node.SetRfSimParam(rfSimParam, rfSimParamValue)
+		if err = node.CommandResult(); err != nil {
+			return nil, err
+		}
+	}
 
 	if !cfg.IsRaw {
 		node.setupMode()

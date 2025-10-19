@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2024, The OTNS Authors.
+// Copyright (c) 2020-2025, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -517,11 +517,12 @@ type RadioParamCmd struct {
 
 // noinspection GoVetStructTag
 type RfSimCmd struct {
-	Cmd   struct{}     `"rfsim"`      //nolint
-	Id    NodeSelector `@@`           //nolint
-	Param string       `[@Ident]`     //nolint
-	Sign  string       `[@("-"|"+")]` //nolint
-	Val   *int         `[ @Int ]`     //nolint
+	Cmd     struct{}      `"rfsim"`      //nolint
+	Default *DefaultFlag  `[@@|`         //nolint
+	Id      *NodeSelector `@@]`          //nolint
+	Param   string        `[@Ident]`     //nolint
+	Sign    string        `[@("-"|"+")]` //nolint
+	Val     *int          `[ @Int ]`     //nolint
 }
 
 // noinspection GoVetStructTag

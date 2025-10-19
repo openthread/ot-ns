@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2024, The OTNS Authors.
+// Copyright (c) 2020-2025, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -45,6 +45,7 @@ type NodeConfig struct {
 	Restore        bool
 	InitScript     []string // a sequence of CLI commands executed at first startup of node
 	RandomSeed     int32
+	RfSimParams    map[RfSimParam]RfSimParamValue // optional modified RF simulation parameters
 }
 
 // UpdateNodeConfigFromType sets NodeConfig flags correctly, based on chosen node type cfg.Type
