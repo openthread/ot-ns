@@ -32,6 +32,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -47,6 +48,7 @@ import (
 	"github.com/openthread/ot-ns/dispatcher"
 	"github.com/openthread/ot-ns/event"
 	"github.com/openthread/ot-ns/logger"
+	"github.com/openthread/ot-ns/otoutfilter"
 	. "github.com/openthread/ot-ns/types"
 )
 
@@ -95,11 +97,56 @@ func newNode(s *Simulation, nodeid NodeId, cfg *NodeConfig, dnode *dispatcher.No
 	}
 
 	var cmd *exec.Cmd
-	if cfg.RandomSeed == 0 {
-		cmd = exec.CommandContext(context.Background(), cfg.ExecutablePath, strconv.Itoa(nodeid), s.d.GetUnixSocketName())
+	if !cfg.IsOTBR {
+		if cfg.RandomSeed == 0 {
+			cmd = exec.CommandContext(context.Background(), cfg.ExecutablePath, strconv.Itoa(nodeid), s.d.GetUnixSocketName())
+		} else {
+			seedParam := fmt.Sprintf("%d", cfg.RandomSeed)
+			cmd = exec.CommandContext(context.Background(), cfg.ExecutablePath, strconv.Itoa(nodeid), s.d.GetUnixSocketName(), seedParam)
+		}
 	} else {
-		seedParam := fmt.Sprintf("%d", cfg.RandomSeed)
-		cmd = exec.CommandContext(context.Background(), cfg.ExecutablePath, strconv.Itoa(nodeid), s.d.GetUnixSocketName(), seedParam)
+		otbrProgramPath, err := exec.LookPath("otbr-agent")
+		if err != nil {
+			logger.Errorf("could not find ot-rcp-simulated executable: %s", err)
+			return nil, err
+		}
+
+		// provide the three args: node-id, socket name and random seed, through the
+		// URL's forkpty-arg query parameter, that can be repeated
+		spinelUrl := fmt.Sprintf("spinel+hdlc+forkpty://%s?forkpty-arg=%d&forkpty-arg=%s&forkpty-arg=%d",
+								 cfg.ExecutablePath, nodeid, s.d.GetUnixSocketName(), cfg.RandomSeed)
+		args := []string{"-d", "6", "-v"}
+		ifaces, err := net.Interfaces()
+		if err != nil {
+			logger.Errorf("could not get interfaces list: %s", err)
+			return nil, err
+		}
+	
+		for _, i := range ifaces {
+			args = append(args, "-B")
+			args = append(args, i.Name)
+		}
+		args = append(args, spinelUrl)
+		cmd = exec.CommandContext(context.Background(), otbrProgramPath, args...)
+		stdout, err := os.Create("/tmp/otbr-agent-out")
+		if err != nil {
+			logger.Errorf("could not create otbr-agent stdout file: %s", err)
+			return nil, err
+		}
+		stderr, err := os.Create("/tmp/otbr-agent-err")
+		if err != nil {
+			logger.Errorf("could not create otbr-agent stderr file: %s", err)
+			return nil, err
+		}
+		cmd.Stdout = stdout
+		cmd.Stderr = stderr
+		err = cmd.Start()
+		if err != nil {
+			logger.Errorf("could not start otbr-agent: %s", err)
+			return nil, err
+		}
+		time.Sleep(300 * time.Millisecond)
+		cmd = exec.CommandContext(context.Background(), "ot-ctl")
 	}
 
 	node := &Node{
@@ -139,7 +186,13 @@ func newNode(s *Simulation, nodeid NodeId, cfg *NodeConfig, dnode *dispatcher.No
 		return node, err
 	}
 
+	if node.IsOTBR() {
+		go node.lineReaderStdOut(node.pipeOut)
+	}
+	// there's a pipeErr only for non OTBR nodes
 	go node.lineReaderStdErr(node.pipeErr) // reads StdErr output from OT node exe and acts on failures
+
+	go node.runUartDataProcessor()
 
 	return node, err
 }
@@ -188,6 +241,9 @@ func (node *Node) signalExit() error {
 func (node *Node) exit() error {
 	_ = node.signalExit()
 
+	if node.uartType != nodeUartTypeUndefined {
+		node.inputCommand("exit")
+	}
 	// Pipes are closed to allow cmd.Wait() to be successful and not hang.
 	if node.pipeIn != nil {
 		_ = node.pipeIn.Close()
@@ -266,6 +322,20 @@ func (node *Node) inputCommand(cmd string) error {
 	} else {
 		err = node.DNode.SendToUART([]byte(cmd + "\n"))
 	}
+
+	if node.IsOTBR() {
+		// the OTBR node runs otbr-agent + ot-ctl and otbr-agent runs an RCP in a separate process.
+		// running the config scripts when adding a node may not always wake the RCP and that could put
+		// it out of sync with OTNS since OTNS considers the RCP as "alive" whenever it inputs a command to it
+		// and considers it as "sleeping" when the node sends a sleep event on the Unix socket.
+		// Some commands submitted to ot-ctl won't go to the RCP so the RCP won't go to an "alive" state and therefore
+		// won't schedule a sleep event. That means that OTNS will consider it as alive and wait for its sleep event
+		// while it is actually currently sleeping, which causes blocking when starting an OTBR node.
+		// This line simply wakes up the node so that it sleep event will be scheduled.
+		// This will be run for every command for the sake of completeness, but we generally expect commands to be run
+		// at precise points in time.
+		node.S.Dispatcher().SyncNode(node.Id)
+	}
 	return err
 }
 
@@ -325,8 +395,8 @@ func (node *Node) Command(cmd string) []string {
 	var result string
 	logger.AssertTrue(len(output) >= 1) // there's always a Done or Error line in output.
 	output, result = output[:len(output)-1], output[len(output)-1]
-	if result != "Done" {
-		node.error(errors.New(result))
+	if !strings.Contains(result, "Done") {
+		node.error(fmt.Errorf(result))
 	}
 	return output
 }
@@ -1036,8 +1106,16 @@ loop:
 				node.pendingLines <- lineTrim
 			}
 
-		default:
-			break loop
+		}
+	}
+}
+
+func (node *Node) runUartDataProcessor() {
+	for {
+		node.processUartData()
+		if node.S.ctx.Err() != nil {
+			logger.Debugf("context closed for node %d, stop processing uart", node.Id)
+			return
 		}
 	}
 }
@@ -1088,6 +1166,23 @@ func (node *Node) lineReaderStdErr(reader io.Reader) {
 	}
 }
 
+func (node *Node) lineReaderStdOut(reader io.Reader) {
+	// close the line channel after line reader routine exit
+	scanner := bufio.NewScanner(otoutfilter.NewOTOutFilter(bufio.NewReader(reader), node.String()))
+	scanner.Split(bufio.ScanLines)
+
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		node.S.Dispatcher().PostEventAsync(&event.Event{
+			Delay: 0,
+			Type: event.EventTypeUartWrite,
+			Data: []byte(line + "\n"),
+			NodeId: node.Id,
+		})
+	}
+}
+
 func (node *Node) expectEvent(evtType event.EventType, timeout time.Duration) (*event.Event, error) {
 	done := node.S.ctx.Done()
 	deadline := time.After(timeout)
@@ -1126,9 +1221,8 @@ func (node *Node) readLine() (string, bool) {
 				node.Logger.Tracef("UART: %s", readLine)
 			}
 			return readLine, true
-		default:
-			node.S.Dispatcher().RecvEvents() // keep virtual-UART events coming.
-			node.processUartData()           // forge data from UART-events into lines (fills up node.pendingLines)
+		case ev := <-node.S.Dispatcher().EventChan():
+			node.S.Dispatcher().RecvEvent(ev)
 			if pendingLinesReceived && !node.S.Dispatcher().IsAlive(node.Id) {
 				return "", false
 			}
@@ -1157,15 +1251,10 @@ func (node *Node) expectLine(line interface{}, timeout time.Duration) ([]string,
 
 			outputLines = append(outputLines, readLine)
 			if node.isLineMatch(readLine, line) { // found the exact line
-				node.S.Dispatcher().RecvEvents() // this blocks until node is asleep.
 				return outputLines, nil
 			}
-		default:
-			if !node.S.Dispatcher().IsAlive(node.Id) {
-				time.Sleep(time.Millisecond * 10) // in case of node connection error, this becomes busy-loop.
-			}
-			node.S.Dispatcher().RecvEvents() // keep virtual-UART events coming.
-			node.processUartData()           // forge data from UART-events into lines (fills up node.pendingLines)
+		case ev := <-node.S.Dispatcher().EventChan():
+			node.S.Dispatcher().RecvEvent(ev)
 		}
 	}
 }
@@ -1236,4 +1325,8 @@ loop:
 
 func (node *Node) DisplayPendingLogEntries() {
 	node.Logger.DisplayPendingLogEntries(node.S.Dispatcher().CurTime)
+}
+
+func (node *Node) IsOTBR() bool {
+	return node.cfg.IsOTBR
 }

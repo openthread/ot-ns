@@ -122,6 +122,7 @@ type ExecutableConfig struct {
 	Ftd         string
 	Mtd         string
 	Br          string
+	Rcp         string
 	SearchPaths []string
 }
 
@@ -140,6 +141,7 @@ var DefaultExecutableConfig ExecutableConfig = ExecutableConfig{
 	Ftd:         "ot-cli-ftd",
 	Mtd:         "ot-cli-mtd",
 	Br:          "ot-cli-ftd_br",
+	Rcp:         "ot-rcp",
 	SearchPaths: []string{".", "./ot-rfsim/ot-versions", "./build/bin"},
 }
 
@@ -156,6 +158,7 @@ func DefaultNodeConfig() NodeConfig {
 		IsRouter:       true,
 		IsMtd:          false,
 		IsBorderRouter: false,
+		IsOTBR: false,
 		RxOffWhenIdle:  false,
 		NodeLogFile:    true,
 		RadioRange:     defaultRadioRange,
@@ -244,6 +247,7 @@ func (cfg *ExecutableConfig) SetVersion(version string, defaultConfig *Executabl
 		cfg.Mtd = defaultConfig.Mtd + "_" + version
 	}
 	cfg.Br = defaultConfig.Br // BR is currently not adapted to versions.
+	cfg.Rcp = defaultConfig.Rcp // RCP is currently not adapted to versions.
 	cfg.Version = version
 }
 
@@ -284,6 +288,9 @@ func (cfg *ExecutableConfig) FindExecutableBasedOnConfig(nodeCfg *NodeConfig) st
 	}
 	if nodeCfg.IsBorderRouter {
 		exeName = cfg.Br
+	}
+	if nodeCfg.IsOTBR {
+		exeName = cfg.Rcp
 	}
 
 	if len(nodeCfg.Version) > 0 && nodeCfg.Version != versionLatestTag {

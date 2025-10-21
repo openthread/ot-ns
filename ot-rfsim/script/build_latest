@@ -53,15 +53,24 @@ OT_OPTIONS=(
 )
 readonly OT_OPTIONS
 
+OT_RCP_OPTIONS=(
+    # The RCP is controlled by another real process that is not aware of OpenThread simulation
+    "-DOT_SIMULATION_VIRTUAL_TIME_UART=OFF"
+)
+
 main()
 {
     local options=()
     options+=("${OT_OPTIONS[@]}" "$@")
 
     OTNS_NODE_TYPE="latest" OT_CMAKE_NINJA_TARGET="ot-cli-ftd ot-cli-mtd" ./script/build "${options[@]}"
+    
+    options+=("${OT_RCP_OPTIONS[@]}")
+    OTNS_NODE_TYPE="latest" OT_CMAKE_NINJA_TARGET="ot-rcp" ./script/build "${options[@]}"
 
     cp ./build/latest/bin/ot-cli-ftd ./ot-versions/
     cp ./build/latest/bin/ot-cli-mtd ./ot-versions/
+    cp ./build/latest/bin/ot-rcp ./ot-versions/
 }
 
 main "$@"

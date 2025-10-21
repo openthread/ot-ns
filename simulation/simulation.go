@@ -157,7 +157,12 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 	s.nodes[nodeid] = node
 
 	// init of the sim/dispatcher nodes
-	node.uartType = nodeUartTypeVirtualTime
+	if cfg.IsOTBR {
+		node.uartType = nodeUartTypeRealTime
+	} else {
+		node.uartType = nodeUartTypeVirtualTime
+	}
+
 	logger.AssertTrue(s.d.IsAlive(nodeid))
 	evtCnt := s.d.RecvEvents() // allow new node to connect, and to receive its startup events.
 
@@ -192,6 +197,10 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 	s.vis.SetNetworkInfo(nodeInfo)
 
 	if !cfg.IsRaw {
+		if node.IsOTBR() {
+			// first stop thread network to avoid issues when setting the parameters while the network is running
+			node.ThreadStop()
+		}
 		node.setupMode()
 		if err = node.CommandResult(); err != nil {
 			return nil, err
@@ -378,7 +387,6 @@ func (s *Simulation) OnLogWrite(nodeid NodeId, data []byte) {
 func (s *Simulation) OnNextEventTime(nextTs uint64) {
 	// display the pending log messages of nodes. Nodes are sorted by id.
 	s.VisitNodesInOrder(func(node *Node) {
-		node.processUartData()
 		node.DisplayPendingLogEntries()
 		node.DisplayPendingLines()
 	})

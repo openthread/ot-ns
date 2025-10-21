@@ -60,11 +60,25 @@ extern int gSockFd;
 uint64_t     gLastMsgId = 0;
 struct Event gLastRecvEvent;
 
+#if !OPENTHREAD_FTD && !OPENTHREAD_MTD
+    otError setUnspecifiedAddress(otIp6Address *out) {
+        out->mFields.m32[0] = 0;
+        out->mFields.m32[1] = 0;
+        out->mFields.m32[2] = 0;
+        out->mFields.m32[3] = 0;
+        return OT_ERROR_NONE;
+    }
+#endif
+
 static otIp6Address unspecifiedIp6Address;
 
 void platformRfsimInit(void)
 {
+#if !OPENTHREAD_FTD && !OPENTHREAD_MTD
+    if (setUnspecifiedAddress(&unspecifiedIp6Address) != OT_ERROR_NONE)
+#else
     if (otIp6AddressFromString("::", &unspecifiedIp6Address) != OT_ERROR_NONE)
+#endif
     {
         platformExit(EXIT_FAILURE);
     }
