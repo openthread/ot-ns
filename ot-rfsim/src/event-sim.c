@@ -176,7 +176,7 @@ void otSimSendRfSimParamRespEvent(uint8_t param, int32_t value)
     memcpy(event.mData + 1, &value, sizeof(int32_t));
     event.mEvent      = OT_SIM_EVENT_RFSIM_PARAM_RSP;
     event.mDelay      = 0;
-    event.mDataLength = sizeof(int32_t) + 1;
+    event.mDataLength = sizeof(uint8_t) + sizeof(int32_t);
 
     otSimSendEvent(&event);
 }
