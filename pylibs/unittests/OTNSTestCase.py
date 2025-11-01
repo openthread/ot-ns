@@ -83,3 +83,21 @@ class OTNSTestCase(unittest.TestCase):
             else:
                 self.assertTrue(delay <= max_delay)
         self.assertTrue(n_fails <= max_fails)
+
+    def assertCoapMessageSent(self, src: int, type: int, code: int, dst_port: int = 5683, number_expected: int = 1, coap_msgs: list = None):
+        """
+        Verify that a CoAP message is sent from the given source node.
+        :param src: node id
+        :param type: CoAP type
+        :param code: CoAP code
+        :param dst_port: destination port number (default 5683)
+        :param number_expected: number of messages expected (default 1)
+        :param coap_msgs: optional list of CoAP messages from ns.coaps()
+        """
+        coap_msgs = self.ns.coaps() if coap_msgs == None else coap_msgs
+        number_seen = 0
+        for c in coap_msgs:
+            if c['src'] == src and c['dst_port'] == dst_port and c['code'] == code:
+                self.assertEqual(type, c['type'])
+                number_seen += 1
+        self.assertEqual(number_expected, number_seen, f"Expected number of CoAP messages is not present: src={src} type={type} code={code} dst_port={dst_port}")
