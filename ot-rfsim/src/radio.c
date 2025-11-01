@@ -47,6 +47,8 @@
 #include "utils/mac_frame.h"
 #include "utils/soft_source_match_table.h"
 
+#define US_PER_S 1000000
+
 // declaration of radio functions
 static void setRadioSubState(RadioSubState aState, uint64_t timeToRemainInState);
 static void startCcaForTransmission(otInstance *aInstance, uint64_t ccaDurationUs);
@@ -109,6 +111,7 @@ static uint16_t       sRegionCode        = 0;
 static int8_t         sChannelMaxTransmitPower[kMaxChannel - kMinChannel + 1]; // for 802.15.4 only
 static uint8_t        sCurrentChannel  = kMinChannel;
 static bool           sSrcMatchEnabled = false;
+static uint64_t       sPhyBitrate      = OT_RADIO_BIT_RATE;
 
 #if OPENTHREAD_CONFIG_THREAD_VERSION >= OT_THREAD_VERSION_1_2
 static uint8_t sAckIeData[OT_ACK_IE_MAX_SIZE];
@@ -998,8 +1001,10 @@ exit:
 
 void radioTransmit(struct RadioMessage *aMessage, const struct otRadioFrame *aFrame)
 {
+    OT_ASSERT(sPhyBitrate > 0);
+
     uint64_t frameDurationUs =
-        OT_RADIO_SHR_PHR_DURATION_US + aFrame->mLength * OT_RADIO_SYMBOLS_PER_OCTET * OT_RADIO_SYMBOL_TIME;
+        (OT_RADIO_SHR_PHR_LENGTH_BYTES + (uint64_t)aFrame->mLength) * OT_RADIO_BITS_PER_OCTET * US_PER_S / sPhyBitrate;
     int8_t maxPower = sChannelMaxTransmitPower[aFrame->mChannel - kMinChannel];
 
     sLastTxEventData.mChannel  = aFrame->mChannel;
@@ -1325,8 +1330,8 @@ void platformRadioTxDone(otInstance *aInstance, struct RadioCommEventData *aTxDo
 void platformRadioRfSimParamGet(otInstance *aInstance, struct RfSimParamEventData *params)
 {
     OT_UNUSED_VARIABLE(aInstance);
-    uint32_t value;
-    uint8_t  param = params->mParam;
+    int32_t value;
+    uint8_t param = params->mParam;
 
     switch (param)
     {
@@ -1346,7 +1351,10 @@ void platformRadioRfSimParamGet(otInstance *aInstance, struct RfSimParamEventDat
         value = (int32_t)sTxInterfererLevel;
         break;
     case RFSIM_PARAM_CLOCK_DRIFT:
-        value = platformAlarmGetClockDrift();
+        value = (int32_t)platformAlarmGetClockDrift();
+        break;
+    case RFSIM_PARAM_PHY_BITRATE:
+        value = (int32_t)sPhyBitrate;
         break;
     default:
         param = RFSIM_PARAM_UNKNOWN;
@@ -1383,7 +1391,13 @@ void platformRadioRfSimParamSet(otInstance *aInstance, struct RfSimParamEventDat
             sTurnaroundTimeUs = RFSIM_TURNAROUND_TIME_US;
         break;
     case RFSIM_PARAM_CLOCK_DRIFT:
-        platformAlarmSetClockDrift((int8_t)params->mValue);
+        platformAlarmSetClockDrift((int16_t)params->mValue);
+        break;
+    case RFSIM_PARAM_PHY_BITRATE:
+        if (params->mValue < 1)
+            sPhyBitrate = 1;
+        else
+            sPhyBitrate = (uint64_t)params->mValue;
         break;
     default:
         break;
