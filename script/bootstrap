@@ -79,7 +79,7 @@ fi
 install_package git --apt git --brew git || true
 
 # Get (first time) or update (after a 'git pull') all submodules.
-git submodule update --init
+git submodule update --init --recursive
 
 # Do the rest via the test script, automatically
 ./script/test py-ver-unittests || die "OTNS Installation/tests failed!"
