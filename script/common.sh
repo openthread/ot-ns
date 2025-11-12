@@ -78,7 +78,7 @@ go_install()
 get_openthread()
 {
     if [[ ! -f ./openthread/README.md ]]; then
-        git submodule update --init openthread
+        git submodule update --init --recursive openthread
     fi
 }
 
