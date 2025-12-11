@@ -1,4 +1,4 @@
-// Copyright (c) 2023-2024, The OTNS Authors.
+// Copyright (c) 2023-2025, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -114,6 +114,7 @@ const (
 	ParamCslUncertainty RfSimParam = 3
 	ParamTxInterferer   RfSimParam = 4
 	ParamClockDrift     RfSimParam = 5
+	ParamPhyBitrate     RfSimParam = 6
 	ParamUnknown        RfSimParam = 255
 )
 
@@ -122,12 +123,13 @@ type RfSimParamValue int32
 
 const (
 	RfSimValueInvalid RfSimParamValue = math.MaxInt32
+	RfSimValueMax     RfSimParamValue = RfSimValueInvalid - 1
 )
 
 var RfSimParamsList = []RfSimParam{ParamRxSensitivity, ParamCcaThreshold, ParamCslAccuracy, ParamCslUncertainty,
-	ParamTxInterferer, ParamClockDrift}
-var RfSimParamNamesList = []string{"rxsens", "ccath", "cslacc", "cslunc", "txintf", "clkdrift"}
-var RfSimParamUnitsList = []string{"dBm", "dBm", "PPM", "10-us", "%", "PPM"}
+	ParamTxInterferer, ParamClockDrift, ParamPhyBitrate}
+var RfSimParamNamesList = []string{"rxsens", "ccath", "cslacc", "cslunc", "txintf", "clkdrift", "bitrate"}
+var RfSimParamUnitsList = []string{"dBm", "dBm", "PPM", "10-us", "%", "PPM", "bps"}
 
 func ParseRfSimParam(parName string) RfSimParam {
 	for i := 0; i < len(RfSimParamsList); i++ {

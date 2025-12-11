@@ -765,12 +765,16 @@ Done
 Get or set parameters of a node's (OT-RFSIM node) simulated radio.
 
 ```shell
+rfsim
 rfsim <node-id>
 rfsim <node-id> <param-name>
 rfsim <node-id> <param-name> <new-value>
+rfsim default
+rfsim default <param-name>
+rfsim default <param-name> <new-value>
 ```
 
-Use with the `node-id` argument to get a list of all current OT-RFSIM radio parameters for that node. Add the `param-name` to get only the value of that parameter. If both `param-name` and `new-value` are provided, the parameter value is set to `new-value`. It has to be a numeric value (int).
+Use `rfsim` without arguments to display the current simulated radio parameters that are available for operations. Use with the `node-id` argument to get a list of all current OT-RFSIM radio parameters and their values for that node. Add the `param-name` to get only the value of that parameter. If both `param-name` and `new-value` are provided, the parameter value is set to `new-value`. It has to be a numeric value (int).
 
 In a physical radio platform, most of these parameters are typically fixed. In a simulation, these can be changed to explore different radios or different scenarios.
 
@@ -781,9 +785,12 @@ The following parameters are supported:
 - `cslacc` - 802.15.4 Coordinated Sampled Listening (CSL) accuracy in ppm, range 0-255.
 - `cslunc` - 802.15.4 CSL uncertainty in units of 10 microsec, range 0-255.
 - `txintf` - for the `wifi` node type, sets the percentage of Wi-Fi traffic, range 0 to 100. Must not be >0 on other node types.
-- `clkdrift` - clock drift of the node's timers in ppm, in the range -127 to 127.
+- `clkdrift` - clock drift of the node's timers in ppm, in the range -32768 to +32767.
+- `bitrate` - 802.15.4 PHY bitrate in bps, in the range 1 to 2147483646.
 
 NOTE: To change global radio model parameters for all nodes, use the [radioparam](#radioparam) command.
+
+Use `rfsim default` to display the current default radio model parameters that have been set for any new node that is created. If nothing has been explicitly set, this list is empty. In this case all rfsim parameters are determined automatically by the OT-RFSIM node itself. By using `rfsim default <param-name> <new-value>`, different default parameter settings can be added for new nodes that are created. Existing nodes will not be affected.
 
 ```bash
 > rfsim 1
@@ -793,6 +800,7 @@ cslacc               20 (PPM)
 cslunc               10 (10-us)
 txintf               0 (%)
 clkdrift             0 (PPM)
+bitrate              250000 (bps)
 Done
 > rfsim 1 cslacc 45
 Done
@@ -806,8 +814,19 @@ cslacc               45 (PPM)
 cslunc               10 (10-us)
 txintf               0 (%)
 clkdrift             0 (PPM)
+bitrate              250000 (bps)
 Done
 >
+```
+
+In the below example, the default PHY bitrate is set to 100 kbps for any new nodes that are created afterwards.
+
+```bash
+> rfsim default bitrate 100000
+Done
+> rfsim default
+bitrate               100000 (bps)
+Done
 ```
 
 ### save
