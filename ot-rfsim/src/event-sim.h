@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2020-2024, The OpenThread Authors.
+ *  Copyright (c) 2020-2025, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -48,7 +48,7 @@
 enum
 {
     OT_SIM_EVENT_ALARM_FIRED        = 0,
-    OT_SIM_EVENT_RADIO_RECEIVED     = 1, // legacy
+    OT_SIM_EVENT_SCHEDULE_NODE      = 1,
     OT_SIM_EVENT_UART_WRITE         = 2,
     OT_SIM_EVENT_RADIO_SPINEL_WRITE = 3, // not used?
     OT_SIM_EVENT_POSTCMD            = 4, // not used?
@@ -139,28 +139,41 @@ struct MsgToHostEventData
 void otSimSendEvent(struct Event *aEvent);
 
 /**
- * Send a sleep event to the simulator. The amount of time to sleep
- * for this node is determined by the alarm timer, by calling platformAlarmGetNext().
- *
+ * Send a sleep event to the simulator. The amount of time to request to sleep
+ * for this node is determined by the OT alarm timer, by calling platformAlarmGetNext().
+ * The simulator will use this value to update the AlarmManager that keeps track of alarms set
+ * for all nodes.
  */
 void otSimSendSleepEvent(void);
 
 /**
+ * Send a schedule-node event to the simulator. This signals a future point in time when the node
+ * needs to process again. This function can be called multiple times. The set times
+ * are independent of the next alarm time, which is the time that the OT stack needs to
+ * process again. Schedule events are used for platform-specific things such as state transitions
+ * of the simulated radio chip that are not under OT control.
+ *
+ * @param[in]  aDelayUs    A delay in us indicating when, counted from current time,
+ *                         the node needs to process again.
+ */
+void otSimSendScheduleNodeEvent(uint64_t aDelayUs);
+
+/**
  * Sends a RadioComm (Tx) simulation event to the simulator.
  *
- * @param[in]       aEventData A pointer to specific data for RadioComm event.
- * @param[in]       aPayload     A pointer to the data payload (radio frame) to send.
- * @param[in]       aLenPayload  Length of aPayload data.
+ * @param[in]  aEventData   A pointer to specific data for RadioComm event.
+ * @param[in]  aPayload     A pointer to the data payload (radio frame) to send.
+ * @param[in]  aLenPayload  Length of aPayload data.
  */
-void otSimSendRadioCommEvent(struct RadioCommEventData *aEventData, const uint8_t *aPayload, size_t aLenPayload);
+void otSimSendRadioCommEvent(const struct RadioCommEventData *aEventData, const uint8_t *aPayload, size_t aLenPayload);
 
 /**
  * Sends a RadioComm (Tx) simulation event to the simulator for transmitting non-802.15.4
  * interference signals.
  *
- * @param[in] aEventData A pointer to specific data for the event.
+ * @param[in]  aEventData   A pointer to specific data for the event.
  */
-void otSimSendRadioCommInterferenceEvent(struct RadioCommEventData *aEventData);
+void otSimSendRadioCommInterferenceEvent(const struct RadioCommEventData *aEventData);
 
 /**
  * Send a Radio State simulation event to the simulator. It reports radio state
@@ -169,7 +182,7 @@ void otSimSendRadioCommInterferenceEvent(struct RadioCommEventData *aEventData);
  * @param[in]  aStateData                 A pointer to specific data for Radio State event.
  * @param[in]  aDeltaUntilNextRadioState  Time (us) until next radio-state change event, or UNDEFINED_TIME_US.
  */
-void otSimSendRadioStateEvent(struct RadioStateEventData *aStateData, uint64_t aDeltaUntilNextRadioState);
+void otSimSendRadioStateEvent(const struct RadioStateEventData *aStateData, uint64_t aDeltaUntilNextRadioState);
 
 /**
  * Send a channel sample simulation event to the simulator. It is used both
@@ -177,7 +190,7 @@ void otSimSendRadioStateEvent(struct RadioStateEventData *aStateData, uint64_t a
  *
  * @param[in]  aChanData    A pointer to channel-sample data instructing what to sample.
  */
-void otSimSendRadioChanSampleEvent(struct RadioCommEventData *aChanData);
+void otSimSendRadioChanSampleEvent(const struct RadioCommEventData *aChanData);
 
 /**
  * Send a UART data event to the simulator.
@@ -233,6 +246,9 @@ void otSimSendRfSimParamRespEvent(uint8_t param, int32_t value);
  * @param aMsgBytes  the bytes of the message itself (e.g. UDP packet bytes or IPv6 datagram bytes)
  * @param aMsgLen    the length of the message
  */
-void otSimSendMsgToHostEvent(uint8_t evType, struct MsgToHostEventData *aEventData, uint8_t *aMsgBytes, size_t aMsgLen);
+void otSimSendMsgToHostEvent(uint8_t                          evType,
+                             const struct MsgToHostEventData *aEventData,
+                             const uint8_t                   *aMsgBytes,
+                             size_t                           aMsgLen);
 
 #endif // PLATFORM_RFSIM_EVENT_SIM_H
