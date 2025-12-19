@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2024, The OTNS Authors.
+// Copyright (c) 2020-2025, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -29,11 +29,27 @@ package cli
 import (
 	"regexp"
 	"sort"
+	"strings"
 )
 
 var (
+	backgroundCommands = []string{
+		"detach",
+		"discover",
+		"dns",
+		"linkmetrics",
+		`mdns\s+register`,
+		"meshdiag",
+		"mlr",
+		"networkdiagnostic",
+		"p2p",
+		"ping",
+		"scan",
+		"sntp",
+	}
+
+	backgroundCommandsPat  = regexp.MustCompile(`(` + strings.Join(backgroundCommands, "|") + `)\b`)
 	contextLessCommandsPat = regexp.MustCompile(`(exit|node|!.+)\b`)
-	backgroundCommandsPat  = regexp.MustCompile(`(discover|dns resolve|dns resolve4|dns browse|dns service|dns servicehost|scan|networkdiagnostic get|networkdiagnostic reset|meshdiag)\b`)
 )
 
 func isContextlessCommand(line string) bool {
@@ -42,6 +58,7 @@ func isContextlessCommand(line string) bool {
 
 func isBackgroundCommand(cmd *Command) bool {
 	if cmd.Node != nil && cmd.Node.Command != nil {
+		// check if the OT-node command is a potential background command (not guaranteed).
 		return backgroundCommandsPat.MatchString(*cmd.Node.Command)
 	}
 	if cmd.Scan != nil {

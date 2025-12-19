@@ -625,9 +625,12 @@ func (rt *CmdRunner) executeNode(cc *CommandContext, cmd *NodeCmd) {
 
 		if cmd.Command != nil {
 			var output []string
+			var cmdHasDoneStringOutput bool
 
 			if cc.isBackgroundCmd {
-				output = node.CommandNoDone(*cmd.Command)
+				output, cmdHasDoneStringOutput = node.CommandNoDone(*cmd.Command)
+				// If the command did generate 'Done', then mark it again as a non-background command.
+				cc.isBackgroundCmd = !cmdHasDoneStringOutput
 			} else {
 				output = node.Command(*cmd.Command)
 			}
@@ -1123,7 +1126,7 @@ func (rt *CmdRunner) executeScan(cc *CommandContext, cmd *ScanCmd) {
 			cc.errorf("node %d not found", cmd.Node.Id)
 			return
 		}
-		output := node.CommandNoDone("scan")
+		output, _ := node.CommandNoDone("scan")
 		err := node.CommandResult()
 		cc.error(err)
 		if err == nil {

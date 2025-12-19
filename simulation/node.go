@@ -270,19 +270,22 @@ func (node *Node) inputCommand(cmd string) error {
 	return err
 }
 
-// CommandNoDone executes the command without expecting 'Done' (e.g. it's a background command).
-// It just reads output lines until the node is asleep.
-func (node *Node) CommandNoDone(cmd string) []string {
+// CommandNoDone executes the command without necessarily expecting 'Done' (e.g. it's a background command).
+// It just reads output lines until the node is asleep. If nevertheless 'Done' is received,
+// it returns the flag hasDoneOutput = true.
+func (node *Node) CommandNoDone(cmd string) ([]string, bool) {
+	hasDoneOutput := false
+
 	err := node.inputCommand(cmd)
 	if err != nil {
 		node.error(err)
-		return []string{}
+		return []string{}, false
 	}
 
 	_, err = node.expectLine(cmd, DefaultCommandTimeout)
 	if err != nil {
 		node.error(err)
-		return []string{}
+		return []string{}, false
 	}
 
 	var output []string
@@ -293,11 +296,15 @@ func (node *Node) CommandNoDone(cmd string) []string {
 		}
 		if strings.HasPrefix(line, "Error") {
 			node.error(errors.New(line))
+		} else if strings.TrimSpace(line) == "Done" {
+			// potential background commands that return a 'Done' CLI output at the end are flagged here.
+			hasDoneOutput = true
 		} else {
 			output = append(output, line)
+			hasDoneOutput = false
 		}
 	}
-	return output
+	return output, hasDoneOutput
 }
 
 // Command executes the command and waits for 'Done', or an 'Error', at end of output.
