@@ -26,7 +26,17 @@
 
 import VObject from "./VObject";
 import * as PIXI from "pixi.js-legacy";
-import {Resources} from "./resources";
+import {
+    LINKSTATS_FONT_FAMILY, LINKSTATS_FONT_SIZE, LINKSTATS_FONT_COLOR
+} from "./consts";
+
+const LINKSTATS_TEXT_STYLE = {
+    fill: LINKSTATS_FONT_COLOR,
+    fontFamily: LINKSTATS_FONT_FAMILY,
+    fontSize: LINKSTATS_FONT_SIZE,
+};
+
+const LABEL_DIST_FROM_NODE = 32;
 
 export default class LinkStats extends VObject {
     constructor(node, peer) {
@@ -36,20 +46,19 @@ export default class LinkStats extends VObject {
         this._peer = peer;
 
         // compute point
-        if (peer) {
-            let s = new PIXI.Sprite(Resources().FailedNodeMark.texture);
+        if (node && peer) {
+            let s = new PIXI.Text(Math.floor(Math.random()*4).toString(), LINKSTATS_TEXT_STYLE);
             s.anchor.set(0.5, 0.5);
-            s.scale.set(0.1, 0.1);
             s.visible = true;
             this.addChild(s);
-            this.position.copyFrom(calcVector(this._node.position, this._peer.position, 32));
+            this.position.copyFrom(calcVector(this._node.position, this._peer.position, LABEL_DIST_FROM_NODE));
         }
     }
 
     onPositionChange() {
         console.log("onPositionChange() for LinkStats node=" + this._node.id + " peer="+ this._peer.id);
         if (this._node && this._peer && !this._peer.destroyed) {
-            this.position.copyFrom(calcVector(this._node.position, this._peer.position, 32));
+            this.position.copyFrom(calcVector(this._node.position, this._peer.position, LABEL_DIST_FROM_NODE));
             console.log(" - LinkStats position set to: " + this.position.x + "," + this.position.y);
             this._peer.onPeerPositionChange(this._node.extAddr);
         }
@@ -58,7 +67,7 @@ export default class LinkStats extends VObject {
     onPeerPositionChange() {
         console.log("onPeerPositionChange() for LinkStats node=" + this._node.id + " peer="+ this._peer.id);
         if (this._node && this._peer && !this._peer.destroyed) {
-            this.position.copyFrom(calcVector(this._node.position, this._peer.position, 32));
+            this.position.copyFrom(calcVector(this._node.position, this._peer.position, LABEL_DIST_FROM_NODE));
             console.log(" - LinkStats position set to: " + this.position.x + "," + this.position.y);
         }
     }

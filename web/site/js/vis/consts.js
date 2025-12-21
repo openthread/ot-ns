@@ -50,3 +50,7 @@ export const STATUS_MSG_FONT_SIZE = 13;
 export const LOG_WINDOW_FONT_FAMILY = 'verdana, helvetica, sans-serif';
 export const LOG_WINDOW_FONT_SIZE = 11.5;
 export const LOG_WINDOW_FONT_COLOR = "Blue";
+
+export const LINKSTATS_FONT_FAMILY = 'consolas, monaco, monospace';
+export const LINKSTATS_FONT_SIZE = 12;
+export const LINKSTATS_FONT_COLOR = "Red";
