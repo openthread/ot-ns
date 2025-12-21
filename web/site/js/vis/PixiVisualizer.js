@@ -114,7 +114,7 @@ export default class PixiVisualizer extends VObject {
 
         this.nodeWindow = new NodeWindow();
         this.addChild(this.nodeWindow);
-        this._selectedNodeId = 0;
+        this._selectedNodeId = NODE_ID_INVALID;
         this._selectAddedNode = false;
 
         this.otVersion = "";
@@ -197,13 +197,12 @@ export default class PixiVisualizer extends VObject {
     _resetIdleCheckTimer() {
         if (this._idleCheckTimer) {
             this.cancelCallback(this._idleCheckTimer);
-            delete this._idleCheckTimer
         }
 
         this._idleCheckTimer = this.addCallback(10, () => {
             console.error("idle timer fired, reloading ...");
             location.reload()
-        })
+        });
     }
 
     visAdvanceTime(ts, speed) {
@@ -220,7 +219,7 @@ export default class PixiVisualizer extends VObject {
     stopIdleCheckTimer() {
         if (this._idleCheckTimer) {
             this.cancelCallback(this._idleCheckTimer);
-            delete this._idleCheckTimer
+            this._idleCheckTimer = null;
         }
     }
 
@@ -330,7 +329,7 @@ export default class PixiVisualizer extends VObject {
         let node = this.nodes[nodeId];
         let oldRloc16 = node.rloc16;
         node.setRloc16(rloc16);
-        if (oldRloc16 != rloc16) {
+        if (oldRloc16 !== rloc16) {
             this.logNode(nodeId, `RLOC16 changed from ${fmt.formatRloc16(oldRloc16)} to ${fmt.formatRloc16(rloc16)}`)
             this.onNodeUpdate(nodeId);
         }
@@ -339,8 +338,16 @@ export default class PixiVisualizer extends VObject {
     visSetNodeRole(nodeId, role) {
         let oldRole = this.nodes[nodeId].role;
         this.nodes[nodeId].setRole(role);
-        if (oldRole != role) {
+        if (oldRole !== role) {
             this.logNode(nodeId, `Role changed from ${fmt.roleToString(oldRole)} to ${fmt.roleToString(role)}`)
+
+            // if there's a role change to Router, then consider the former-parent as a new Router neighbor.
+            // OT does not send an event in this case (FIXME: to let OT send this and also send the 'new parent'
+            // event.)
+            if (role == OtDeviceRole.OT_DEVICE_ROLE_ROUTER) {
+                this.nodes[nodeId].setFormerParentAsRouter();
+            }
+
             this.onNodeUpdate(nodeId);
         }
     }
@@ -374,10 +381,11 @@ export default class PixiVisualizer extends VObject {
     visDeleteNode(nodeId) {
         let node = this.nodes[nodeId];
         delete this.nodes[nodeId];
-        node.destroy();
         if (nodeId === this._selectedNodeId) {
-            this.setSelectedNode(0);
+            this.setSelectedNode(NODE_ID_INVALID);
         }
+        node.onPeerPositionChange();
+        if (node) node.destroy();
         this.logNode(nodeId, "Deleted")
         this.onNodeUpdate(nodeId);
     }
@@ -422,19 +430,13 @@ export default class PixiVisualizer extends VObject {
     }
 
     visSetParent(nodeId, extAddr) {
-        let parent = this.findNodeByExtAddr(extAddr);
-        this.nodes[nodeId].parent = extAddr;
-        if (parent) {
-            this.nodes[nodeId].parentId = parent.id;
-        }else {
-            this.nodes[nodeId].parentId = NODE_ID_INVALID;
-        }
+        this.nodes[nodeId].setParent(extAddr);
         this.logNode(nodeId, `Parent set to ${this.formatExtAddrPretty(extAddr)}`)
         this.onNodeUpdate(nodeId);
     }
 
     visSetTitle(title, x, y, fontSize) {
-        let oldTitleText = this.titleText.text;
+        const oldTitleText = this.titleText.text;
         this.titleText.text = title;
         this.titleText.x = x;
         this.titleText.y = y;
@@ -619,29 +621,26 @@ export default class PixiVisualizer extends VObject {
     }
 
     _drawNodeLinks() {
-        let linkLineWidth = 1;
-        // this._bgStage.removeChildAt(0)
+        const linkLineWidth = 1;
         this._bgStage.removeChildren().forEach(child => child.destroy());
 
         const graphics = new PIXI.Graphics();
         graphics.beginFill(0x8bc34a);
 
-        for (let nodeid in this.nodes) {
-            let node = this.nodes[nodeid];
-            if (node.parent) {
-                let parent = this.findNodeByExtAddr(node.parent);
-                if (parent !== null) {
-                    graphics.moveTo(node.position.x, node.position.y);
-                    graphics.lineTo(parent.position.x, parent.position.y)
-                }
+        for (const nodeid in this.nodes) {
+            const node = this.nodes[nodeid];
+            const parent = this.findNodeByExtAddr(node.parent);
+            if (parent) {
+                graphics.moveTo(node.position.x, node.position.y);
+                graphics.lineTo(parent.position.x, parent.position.y);
             }
-            for (let extaddr in node._children) {
-                let child = this.findNodeByExtAddr(extaddr);
+            for (const extaddr in node._children) {
+                const child = this.findNodeByExtAddr(extaddr);
                 if (child) {
                     graphics.lineStyle(nodeid == this._selectedNodeId || child.id == this._selectedNodeId ? linkLineWidth * 3 : linkLineWidth, 0x8bc34a, 1);
 
                     graphics.moveTo(node.position.x, node.position.y);
-                    graphics.lineTo(child.position.x, child.position.y)
+                    graphics.lineTo(child.position.x, child.position.y);
                 }
             }
         }
@@ -650,9 +649,9 @@ export default class PixiVisualizer extends VObject {
         graphics.beginFill(0x1976d2);
 
         for (let nodeid in this.nodes) {
+            let node = this.nodes[nodeid];
             graphics.lineStyle(nodeid == this._selectedNodeId ? linkLineWidth * 3 : linkLineWidth, 0x1976d2, 1);
 
-            let node = this.nodes[nodeid];
             for (let extaddr in node._neighbors) {
                 let neighbor = this.findNodeByExtAddr(extaddr);
                 if (neighbor) {
@@ -696,7 +695,7 @@ export default class PixiVisualizer extends VObject {
         this.nodes[nodeId].addChildTable(extaddr);
         this.logNode(nodeId, `Child table added: ${this.formatExtAddrPretty(extaddr)}`)
         let child = this.findNodeByExtAddr(extaddr);
-        if (child && this.nodes[child.id]) {
+        if (child) {
             let extAddrParent = this.nodes[nodeId].extAddr;
             this.visSetParent(child.id,extAddrParent); // call from here because 'parent' push event is not emitted by OT.
         }
@@ -720,7 +719,7 @@ export default class PixiVisualizer extends VObject {
     }
 
     onNodeUpdate(nodeId) {
-        if(this._selectedNodeId==nodeId && nodeId > 0){
+        if(this._selectedNodeId===nodeId){
             this.nodeWindow.showNode(this.nodes[nodeId])
         }
     }
@@ -782,7 +781,7 @@ export default class PixiVisualizer extends VObject {
 
     deleteMessage(msg) {
         delete this._messages[msg.id];
-        msg._root.destroy()
+        msg.destroy()
     }
 
     createBroadcastMessage(src, mvInfo) {

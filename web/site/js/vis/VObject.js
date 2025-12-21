@@ -32,6 +32,7 @@ export default class VObject {
 
     constructor() {
         this._root = null;
+        this.destroyed = false;
         this._timerMgr = new TimerMgr(this);
         this.vis = Visualizer();
     }
@@ -109,6 +110,7 @@ export default class VObject {
     }
 
     destroy() {
+        this.destroyed = true;
         this._root.destroy()
     }
 
@@ -168,7 +170,6 @@ export default class VObject {
             delete this._draggingMouseDownPos
         })
     }
-
 
     isDragging() {
         return typeof this._draggingOffset !== 'undefined'

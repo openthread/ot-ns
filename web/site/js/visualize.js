@@ -74,7 +74,7 @@ function getDesiredFieldSize() {
 window.addEventListener("resize", function () {
     let [w, h] = getDesiredFieldSize();
     app.renderer.resize(w, h);
-    if (vis !== null) {
+    if (vis) {
         vis.onResize(w, h)
     }
 });
