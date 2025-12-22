@@ -142,6 +142,10 @@ function loadOk() {
                 // TODO - currently OT does not emit this event. Workaround is used to call visSetParent().
                 vis.visSetParent(e.getNodeId(), e.getExtAddr());
                 break;
+            case VisualizeEvent.TypeCase.ADD_LINK_STATS:
+                e = resp.getAddLinkStats();
+                vis.visAddLinkStats(e.getNodeId(), e.getLinkStatsList());
+                break;
             case VisualizeEvent.TypeCase.SET_NODE_PARTITION_ID:
                 e = resp.getSetNodePartitionId();
                 vis.visSetNodePartitionId(e.getNodeId(), e.getPartitionId());

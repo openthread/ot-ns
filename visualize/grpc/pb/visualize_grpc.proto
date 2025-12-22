@@ -65,6 +65,7 @@ message VisualizeEvent {
         SetNodeModeEvent set_node_mode = 22;
         SetNetworkInfoEvent set_network_info = 23;
         NodeStatsInfoEvent node_stats_info = 24;
+        AddLinkStatsEvent add_link_stats = 25;
     }
 }
 
@@ -95,13 +96,25 @@ message RemoveRouterTableEvent {
     int32 node_id = 1;
     uint64 ext_addr = 2;
 }
+
 message AddChildTableEvent {
     int32 node_id = 1;
     uint64 ext_addr = 2;
 }
+
 message RemoveChildTableEvent {
     int32 node_id = 1;
     uint64 ext_addr = 2;
+}
+
+message LinkStatInfo {
+    int32 peer_node_id = 1;
+    string textLabel = 2;
+}
+
+message AddLinkStatsEvent {
+    int32 node_id = 1;
+    repeated LinkStatInfo link_stats = 2;
 }
 
 message SetSpeedEvent {

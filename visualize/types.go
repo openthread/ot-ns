@@ -56,6 +56,7 @@ type Visualizer interface {
 	RemoveRouterTable(id NodeId, extaddr uint64)
 	AddChildTable(id NodeId, extaddr uint64)
 	RemoveChildTable(id NodeId, extaddr uint64)
+	AddLinkStats(id NodeId, linkStats []LinkStatInfo)
 	ShowDemoLegend(x int, y int, title string)
 	CountDown(duration time.Duration, text string)
 	SetParent(id NodeId, extaddr uint64)
@@ -131,4 +132,9 @@ type TimeWindowStatsInfo struct {
 	PhyTxBytes      map[NodeId]uint64
 	ChanSampleCount map[NodeId]uint64
 	NodePhyStats    map[NodeId]PhyStats
+}
+
+type LinkStatInfo struct {
+	PeerNodeId NodeId
+	TextLabel  string
 }

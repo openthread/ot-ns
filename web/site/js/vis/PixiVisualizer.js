@@ -379,12 +379,11 @@ export default class PixiVisualizer extends VObject {
     }
 
     visDeleteNode(nodeId) {
-        let node = this.nodes[nodeId];
+        const node = this.nodes[nodeId];
         delete this.nodes[nodeId];
         if (nodeId === this._selectedNodeId) {
             this.setSelectedNode(NODE_ID_INVALID);
         }
-        node.onPeerPositionChange();
         if (node) node.destroy();
         this.logNode(nodeId, "Deleted")
         this.onNodeUpdate(nodeId);
@@ -433,6 +432,11 @@ export default class PixiVisualizer extends VObject {
         this.nodes[nodeId].setParent(extAddr);
         this.logNode(nodeId, `Parent set to ${this.formatExtAddrPretty(extAddr)}`)
         this.onNodeUpdate(nodeId);
+    }
+
+    visAddLinkStats(nodeId, linkStatsList) {
+        this.nodes[nodeId].addLinkStats(linkStatsList);
+        // no this.onNodeUpdate() call, since no node properties changed apart from link stats.
     }
 
     visSetTitle(title, x, y, fontSize) {

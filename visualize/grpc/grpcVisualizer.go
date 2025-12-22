@@ -331,6 +331,28 @@ func (gv *grpcVisualizer) RemoveChildTable(id NodeId, extaddr uint64) {
 	}}})
 }
 
+func (gv *grpcVisualizer) AddLinkStats(nodeid NodeId, peerLinkStats []visualize.LinkStatInfo) {
+	gv.Lock()
+	defer gv.Unlock()
+
+	// convert to protobuf data structure
+	peerLinkStatsProto := make([]*pb.LinkStatInfo, len(peerLinkStats))
+	for i, peerLinkStat := range peerLinkStats {
+		peerLinkStatsProto[i] = &pb.LinkStatInfo{
+			PeerNodeId: int32(peerLinkStat.PeerNodeId),
+			TextLabel:  peerLinkStat.TextLabel,
+		}
+	}
+
+	// TODO: may send the new state to local gv.f also, so that a new web visualizer bootstraps with
+	// the correct link stats already drawn.
+	// gv.f.addLinkStats(nodeid, peerLinkStats)
+	gv.addVisualizeEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_AddLinkStats{AddLinkStats: &pb.AddLinkStatsEvent{
+		NodeId:    int32(nodeid),
+		LinkStats: peerLinkStatsProto,
+	}}})
+}
+
 func (gv *grpcVisualizer) ShowDemoLegend(x int, y int, title string) {
 	gv.Lock()
 	defer gv.Unlock()

@@ -68,10 +68,10 @@ export default class Node extends VObject {
         this.otCommit = "";
         this._failed = false;
         this._parent = EXT_ADDR_INVALID;
-        this._parentLinkStat = null;
         this._partition = 0;
         this._children = {};
         this._neighbors = {};
+        this._linkStats = {};
         this._selected = false;
 
         this._root = new PIXI.Container();
@@ -298,60 +298,64 @@ export default class Node extends VObject {
     }
 
     addRouterTable(extaddr) {
-        const neighbor = this.vis.findNodeByExtAddr(extaddr)
-        const linkStats = new LinkStats(this, neighbor);
-        this._neighbors[extaddr] = linkStats;
-        this.addChild(linkStats);
+        this._neighbors[extaddr] = 1;
+    }
+
+    _removeLinkStatsFor(extaddr) {
+        const linkStats = this._linkStats[extaddr];
+        if (linkStats) {
+            linkStats.destroy();
+            delete this._linkStats[extaddr];
+        }
     }
 
     removeRouterTable(extaddr) {
-        const linkStats = this._neighbors[extaddr];
-        this.removeChild(linkStats);
+        this._removeLinkStatsFor(extaddr);
         delete this._neighbors[extaddr];
     }
 
     addChildTable(extaddr) {
-        const child = this.vis.findNodeByExtAddr(extaddr)
-        const linkStats = new LinkStats(this, child);
-        this._children[extaddr] = linkStats;
-        this.addChild(linkStats);
+        this._children[extaddr] = 1;
     }
 
     removeChildTable(extaddr) {
-        const linkStats = this._children[extaddr];
-        this.removeChild(linkStats);
+        this._removeLinkStatsFor(extaddr);
         delete this._children[extaddr]
     }
 
     setParent(extAddr) {
         this._removeParent();
-        const parent = this.vis.findNodeByExtAddr(extAddr);
+        const parentNode = this.vis.findNodeByExtAddr(extAddr);
         this.parent = extAddr;
-        if (parent) {
-            const linkStats = new LinkStats(this, parent);
-            this._parentLinkStat = linkStats;
-            this.parentId = parent.id;
-            this.addChild(linkStats);
+        if (parentNode) {
+            this.parentId = parentNode.id;
         }
     }
 
     _removeParent() {
-        if (this._parentLinkStat) {
-            this.removeChild(this._parentLinkStat);
-        }
-        this._parentLinkStat = null;
+        this._removeLinkStatsFor(this.parent);
         this._parent = EXT_ADDR_INVALID;
         this.parentId = NODE_ID_INVALID;
+    }
+
+    addLinkStats(linkStatsList) {
+        for (const linkStatInfo of linkStatsList) {
+            const peer = this.vis.findNodeByExtAddr(linkStatInfo.extAddr);
+            const existingLinkStat = this._linkStats[linkStatInfo.extAddr];
+            if (existingLinkStat) {
+                existingLinkStat.destroy();
+            }
+            if (peer) {
+                const linkStat = new LinkStats(this, peer, linkStatInfo.textLabel);
+                this._linkStats[linkStatInfo.extAddr] = linkStat;
+            }
+        }
     }
 
     setFormerParentAsRouter() {
         console.log("setFormerParentAsRouter - this.parent = ", this.parent);
         if (this.parent !== EXT_ADDR_INVALID) {
-            const parentNode = this.vis.findNodeByExtAddr(this.parent)
-            console.log("Former parentNode found: " , parentNode.id);
-            const linkStats = new LinkStats(this, parentNode);
-            this._neighbors[this.parent] = linkStats;
-            this.addChild(linkStats);
+            this._neighbors[this.parent] = 1;
         }
         this._removeParent();
     }
@@ -373,31 +377,16 @@ export default class Node extends VObject {
 
     onPositionChange() {
         console.log("onPositionChange() for node " + this.id + " ", this.extAddr);
-        if (this._parentLinkStat) {
-            this._parentLinkStat.onPositionChange();
-        }
-        for(const linkStats of Object.values(this._children)) {
-            linkStats.onPositionChange();
-        }
-        for(const linkStats of Object.values(this._neighbors)) {
+        for(const linkStats of Object.values(this._linkStats)) {
             linkStats.onPositionChange();
         }
     }
 
     onPeerPositionChange(extAddr) {
         console.log("onPeerPositionChange() for extAddr=", extAddr);
-        const childLinkStats = this._children[extAddr];
-        const neighLinkStats = this._neighbors[extAddr];
-        if (this.parent === extAddr && this._parentLinkStat) {
-            this._parentLinkStat.onPeerPositionChange();
-        }
-        if (childLinkStats) {
-            console.log(" - found child element: " , childLinkStats);
-            childLinkStats.onPeerPositionChange();
-        }
-        if (neighLinkStats) {
-            console.log(" - found neigh element: " , neighLinkStats);
-            neighLinkStats.onPeerPositionChange();
+        const linkStats = this._linkStats[extAddr];
+        if (linkStats) {
+            linkStats.onPeerPositionChange();
         }
     }
 

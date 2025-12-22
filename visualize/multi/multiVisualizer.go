@@ -180,6 +180,12 @@ func (mv *MultiVisualizer) RemoveChildTable(id NodeId, extaddr uint64) {
 	}
 }
 
+func (mv *MultiVisualizer) AddLinkStats(nodeid NodeId, peerLinkStats []visualize.LinkStatInfo) {
+	for _, v := range mv.vs {
+		v.AddLinkStats(nodeid, peerLinkStats)
+	}
+}
+
 func (mv *MultiVisualizer) ShowDemoLegend(x int, y int, title string) {
 	for _, v := range mv.vs {
 		v.ShowDemoLegend(x, y, title)

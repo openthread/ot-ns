@@ -24,8 +24,9 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-import VObject from "./VObject";
 import * as PIXI from "pixi.js-legacy";
+
+import VObject from "./VObject";
 import {
     LINKSTATS_FONT_FAMILY, LINKSTATS_FONT_SIZE, LINKSTATS_FONT_COLOR
 } from "./consts";
@@ -34,31 +35,35 @@ const LINKSTATS_TEXT_STYLE = {
     fill: LINKSTATS_FONT_COLOR,
     fontFamily: LINKSTATS_FONT_FAMILY,
     fontSize: LINKSTATS_FONT_SIZE,
+    distFromNode: 32,
 };
 
-const LABEL_DIST_FROM_NODE = 32;
-
 export default class LinkStats extends VObject {
-    constructor(node, peer) {
+    constructor(node, peer, textLabel = "", textStyle = LINKSTATS_TEXT_STYLE) {
         super();
         this._root = new PIXI.Container();
         this._node = node;
         this._peer = peer;
+        this._text = null;
+        this._distFromNode = textStyle.distFromNode;
 
-        // compute point
         if (node && peer) {
-            let s = new PIXI.Text(Math.floor(Math.random()*4).toString(), LINKSTATS_TEXT_STYLE);
-            s.anchor.set(0.5, 0.5);
-            s.visible = true;
-            this.addChild(s);
-            this.position.copyFrom(calcVector(this._node.position, this._peer.position, LABEL_DIST_FROM_NODE));
+            this._text = new PIXI.Text(textLabel, textStyle);
+            this._text.anchor.set(0.5, 0.5);
+            this.visible = true;
+            this.addChild(this._text);
+            this.position.copyFrom(calcVector(this._node.position, this._peer.position, this._distFromNode));
         }
+    }
+
+    setTextLabel(textLabel) {
+        this._text.text = textLabel;
     }
 
     onPositionChange() {
         console.log("onPositionChange() for LinkStats node=" + this._node.id + " peer="+ this._peer.id);
         if (this._node && this._peer && !this._peer.destroyed) {
-            this.position.copyFrom(calcVector(this._node.position, this._peer.position, LABEL_DIST_FROM_NODE));
+            this.position.copyFrom(calcVector(this._node.position, this._peer.position, this._distFromNode));
             console.log(" - LinkStats position set to: " + this.position.x + "," + this.position.y);
             this._peer.onPeerPositionChange(this._node.extAddr);
         }
@@ -67,16 +72,13 @@ export default class LinkStats extends VObject {
     onPeerPositionChange() {
         console.log("onPeerPositionChange() for LinkStats node=" + this._node.id + " peer="+ this._peer.id);
         if (this._node && this._peer && !this._peer.destroyed) {
-            this.position.copyFrom(calcVector(this._node.position, this._peer.position, LABEL_DIST_FROM_NODE));
+            this.position.copyFrom(calcVector(this._node.position, this._peer.position, this._distFromNode));
             console.log(" - LinkStats position set to: " + this.position.x + "," + this.position.y);
         }
     }
 
     update(dt) {
         super.update(dt);
-        if (!this._peer || !this._node || this._peer.destroyed || this._node.destroyed) {
-            this.destroy();
-        }
     }
 
 }
