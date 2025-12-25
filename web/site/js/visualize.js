@@ -146,6 +146,9 @@ function loadOk() {
                 e = resp.getAddLinkStats();
                 vis.visAddLinkStats(e.getNodeId(), e.getLinkStatsList());
                 break;
+            case VisualizeEvent.TypeCase.REMOVE_LINK_STATS:
+                e = resp.getRemoveLinkStats();
+                vis.visRemoveLinkStats(e.getNodeId(), e.getRemoveForAllPeers(), e.getPeerNodeIdsList());
             case VisualizeEvent.TypeCase.SET_NODE_PARTITION_ID:
                 e = resp.getSetNodePartitionId();
                 vis.visSetNodePartitionId(e.getNodeId(), e.getPartitionId());

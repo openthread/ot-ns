@@ -57,6 +57,7 @@ type Visualizer interface {
 	AddChildTable(id NodeId, extaddr uint64)
 	RemoveChildTable(id NodeId, extaddr uint64)
 	AddLinkStats(id NodeId, linkStats []LinkStatInfo)
+	RemoveLinkStats(id NodeId, removeForAllPeers bool, peerNodeIds []NodeId)
 	ShowDemoLegend(x int, y int, title string)
 	CountDown(duration time.Duration, text string)
 	SetParent(id NodeId, extaddr uint64)

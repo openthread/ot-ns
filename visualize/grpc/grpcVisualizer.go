@@ -331,7 +331,7 @@ func (gv *grpcVisualizer) RemoveChildTable(id NodeId, extaddr uint64) {
 	}}})
 }
 
-func (gv *grpcVisualizer) AddLinkStats(nodeid NodeId, peerLinkStats []visualize.LinkStatInfo) {
+func (gv *grpcVisualizer) AddLinkStats(id NodeId, peerLinkStats []visualize.LinkStatInfo) {
 	gv.Lock()
 	defer gv.Unlock()
 
@@ -348,8 +348,25 @@ func (gv *grpcVisualizer) AddLinkStats(nodeid NodeId, peerLinkStats []visualize.
 	// the correct link stats already drawn.
 	// gv.f.addLinkStats(nodeid, peerLinkStats)
 	gv.addVisualizeEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_AddLinkStats{AddLinkStats: &pb.AddLinkStatsEvent{
-		NodeId:    int32(nodeid),
+		NodeId:    int32(id),
 		LinkStats: peerLinkStatsProto,
+	}}})
+}
+
+func (gv *grpcVisualizer) RemoveLinkStats(id NodeId, removeForAllPeers bool, peerNodeIds []NodeId) {
+	gv.Lock()
+	defer gv.Unlock()
+
+	// convert to protobuf data structure
+	nodeIdsProto := make([]int32, len(peerNodeIds))
+	for i, nodeId := range peerNodeIds {
+		nodeIdsProto[i] = int32(nodeId)
+	}
+
+	// TODO consider gv.f update also
+	gv.addVisualizeEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_RemoveLinkStats{RemoveLinkStats: &pb.RemoveLinkStatsEvent{
+		RemoveForAllPeers: removeForAllPeers,
+		PeerNodeIds:       nodeIdsProto,
 	}}})
 }
 

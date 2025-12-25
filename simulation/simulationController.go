@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2020-2025, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -29,6 +29,8 @@ package simulation
 import (
 	"strings"
 
+	"github.com/openthread/ot-ns/logger"
+	"github.com/openthread/ot-ns/types"
 	"github.com/openthread/ot-ns/visualize"
 	"github.com/pkg/errors"
 )
@@ -52,6 +54,19 @@ func (sc *simulationController) Command(cmd string) ([]string, error) {
 	return output, nil
 }
 
+func (sc *simulationController) SelectNode(id types.NodeId) error {
+	sim := sc.sim
+	sim.PostAsync(func() {
+		node, nodeExists := sim.nodes[id]
+		if nodeExists {
+			logger.Debugf("Selected node: %v", node.Id)
+			// TODO: call simulator 'on select node'. What it does depends on viz mode.
+			// Default to test could be: show RF link dB link margins.
+		}
+	})
+	return nil
+}
+
 type readonlySimulationController struct {
 	sim *Simulation
 }
@@ -60,6 +75,10 @@ var readonlySimulationError = errors.Errorf("simulation is readonly")
 
 func (rc *readonlySimulationController) Command(cmd string) (output []string, err error) {
 	return nil, readonlySimulationError
+}
+
+func (rc *readonlySimulationController) SelectNode(id types.NodeId) error {
+	return readonlySimulationError
 }
 
 func NewSimulationController(sim *Simulation) visualize.SimulationController {

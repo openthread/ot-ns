@@ -36,8 +36,8 @@ import {
     PAUSE_SPEED,
     STATUS_MSG_FONT_FAMILY,
     STATUS_MSG_FONT_SIZE,
-    NODE_ID_INVALID,
-    NODE_LABEL_FONT_FAMILY
+    NODE_ID_UNSELECTED,
+    NODE_LABEL_FONT_FAMILY, LOG_WINDOW_ERROR_FONT_COLOR
 } from "./consts";
 import Node from "./Node"
 import {AckMessage, BroadcastMessage, UnicastMessage} from "./message";
@@ -46,7 +46,7 @@ import * as fmt from "./format_text"
 import NodeWindow from "./NodeWindow";
 
 const {
-    OtDeviceRole, CommandRequest
+    OtDeviceRole, CommandRequest, SelectNodeRequest,
 } = require('../proto/visualize_grpc_pb.js');
 
 var vis = null;
@@ -71,7 +71,6 @@ export default class PixiVisualizer extends VObject {
         this.newNodePos = null;
 
         this.root = new PIXI.Container();
-        // this.root.width =
         this.root.position.set(0, 20);
         this.root.interactive = true;
         this.root.hitArea = new PIXI.Rectangle(0, 0, 3000, 3000);
@@ -114,7 +113,7 @@ export default class PixiVisualizer extends VObject {
 
         this.nodeWindow = new NodeWindow();
         this.addChild(this.nodeWindow);
-        this._selectedNodeId = NODE_ID_INVALID;
+        this._selectedNodeId = NODE_ID_UNSELECTED;
         this._selectAddedNode = false;
 
         this.otVersion = "";
@@ -304,7 +303,14 @@ export default class PixiVisualizer extends VObject {
     log(text, color = LOG_WINDOW_FONT_COLOR) {
         console.log(text);
         if (this.logWindow) {
-            this.logWindow.addLog(text, color)
+            this.logWindow.addLog(text, color);
+        }
+    }
+
+    logError(text) {
+        console.error("Error: ", text);
+        if (this.logWindow) {
+            this.logWindow.addLog("Error: " + text, LOG_WINDOW_ERROR_FONT_COLOR);
         }
     }
 
@@ -373,7 +379,7 @@ export default class PixiVisualizer extends VObject {
                 this.displayOTVersion(version, commit);
                 this.onNodeUpdate(nodeId);
             }else{
-                this.log(`visSetNetworkInfo(): node ${nodeId} not found`);
+                this.logError(`visSetNetworkInfo(): node ${nodeId} not found`);
             }
         }
     }
@@ -382,7 +388,7 @@ export default class PixiVisualizer extends VObject {
         const node = this.nodes[nodeId];
         delete this.nodes[nodeId];
         if (nodeId === this._selectedNodeId) {
-            this.setSelectedNode(NODE_ID_INVALID);
+            this.setSelectedNode(NODE_ID_UNSELECTED);
         }
         if (node) node.destroy();
         this.logNode(nodeId, "Deleted")
@@ -434,8 +440,13 @@ export default class PixiVisualizer extends VObject {
         this.onNodeUpdate(nodeId);
     }
 
-    visAddLinkStats(nodeId, linkStatsList) {
-        this.nodes[nodeId].addLinkStats(linkStatsList);
+    visAddLinkStats(id, linkStatsList) {
+        this.nodes[id].addLinkStats(linkStatsList);
+        // no this.onNodeUpdate() call, since no node properties changed apart from link stats.
+    }
+
+    visRemoveLinkStats(id, removeForAllPeers, peerNodeIdsList) {
+        this.nodes[id].removeLinkStats(removeForAllPeers, peerNodeIdsList);
         // no this.onNodeUpdate() call, since no node properties changed apart from link stats.
     }
 
@@ -532,8 +543,7 @@ export default class PixiVisualizer extends VObject {
 
         this.grpcServiceClient.command(req, {}, (err, resp) => {
                 if (err !== null) {
-                    this.log("Error: " + err.toLocaleString());
-                    console.error("Error: " + err.toLocaleString());
+                    this.logError(err.toLocaleString());
                     if (callback) {
                         callback(err, [])
                     }
@@ -574,7 +584,7 @@ export default class PixiVisualizer extends VObject {
         if (old_sel) {
             old_sel.onUnselected();
         }
-        this._selectedNodeId = 0; // unselect
+        this._selectedNodeId = NODE_ID_UNSELECTED;
 
         let new_sel = this.nodes[id];
         if (new_sel) {
@@ -587,6 +597,14 @@ export default class PixiVisualizer extends VObject {
 
         this.nodeWindow.showNode(new_sel);
         this.actionBar.setContext(new_sel || "any");
+
+        let req = new SelectNodeRequest();
+        req.setNodeId(this._selectedNodeId);
+        this.grpcServiceClient.selectNode(req, {}, (err, resp) => {
+            if (err) {
+                this.logError(err.toLocaleString());
+            }
+        });
     }
 
     setSpeed(speed) {
@@ -652,12 +670,12 @@ export default class PixiVisualizer extends VObject {
 
         graphics.beginFill(0x1976d2);
 
-        for (let nodeid in this.nodes) {
-            let node = this.nodes[nodeid];
+        for (const nodeid in this.nodes) {
+            const node = this.nodes[nodeid];
             graphics.lineStyle(nodeid == this._selectedNodeId ? linkLineWidth * 3 : linkLineWidth, 0x1976d2, 1);
 
-            for (let extaddr in node._neighbors) {
-                let neighbor = this.findNodeByExtAddr(extaddr);
+            for (const extaddr in node._neighbors) {
+                const neighbor = this.findNodeByExtAddr(extaddr);
                 if (neighbor) {
                     graphics.moveTo(node.position.x, node.position.y);
                     graphics.lineTo(neighbor.position.x, neighbor.position.y)
@@ -674,8 +692,8 @@ export default class PixiVisualizer extends VObject {
      * @returns Node
      */
     findNodeByExtAddr(extaddr) {
-        for (let nodeid in this.nodes) {
-            let node = this.nodes[nodeid];
+        for (const nodeid in this.nodes) {
+            const node = this.nodes[nodeid];
             if (node.extAddr == extaddr) {
                 return node
             }
@@ -698,10 +716,10 @@ export default class PixiVisualizer extends VObject {
     visAddChildTable(nodeId, extaddr) {
         this.nodes[nodeId].addChildTable(extaddr);
         this.logNode(nodeId, `Child table added: ${this.formatExtAddrPretty(extaddr)}`)
-        let child = this.findNodeByExtAddr(extaddr);
+        const child = this.findNodeByExtAddr(extaddr);
         if (child) {
-            let extAddrParent = this.nodes[nodeId].extAddr;
-            this.visSetParent(child.id,extAddrParent); // call from here because 'parent' push event is not emitted by OT.
+            const extAddrParent = this.nodes[nodeId].extAddr;
+            this.visSetParent(child.id, extAddrParent); // call from here because 'parent' push event is not emitted by OT.
         }
         this.onNodeUpdate(nodeId);
     }
@@ -729,13 +747,13 @@ export default class PixiVisualizer extends VObject {
     }
 
     randomColor() {
-        let hue = Math.floor(Math.random() * 360);
-        let color = `hsl(${hue}deg, 92%, 23%)`;
+        const hue = Math.floor(Math.random() * 360);
+        const color = `hsl(${hue}deg, 92%, 23%)`;
         return color;
     }
 
     formatExtAddrPretty(extAddr) {
-        let node = this.findNodeByExtAddr(extAddr);
+        const node = this.findNodeByExtAddr(extAddr);
         if (node) {
             return `Node ${node.id}(${fmt.formatExtAddr(extAddr)})`
         } else {

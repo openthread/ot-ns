@@ -72,7 +72,10 @@ func (nv *NopVisualizer) AddChildTable(id NodeId, extaddr uint64) {
 func (nv *NopVisualizer) RemoveChildTable(id NodeId, extaddr uint64) {
 }
 
-func (nv *NopVisualizer) AddLinkStats(nodeid NodeId, peerLinkStats []LinkStatInfo) {
+func (nv *NopVisualizer) AddLinkStats(id NodeId, peerLinkStats []LinkStatInfo) {
+}
+
+func (nv *NopVisualizer) RemoveLinkStats(id NodeId, removeForAllPeers bool, peerNodeIds []NodeId) {
 }
 
 func (nv *NopVisualizer) DeleteNode(id NodeId) {

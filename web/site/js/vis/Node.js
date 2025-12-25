@@ -69,9 +69,9 @@ export default class Node extends VObject {
         this._failed = false;
         this._parent = EXT_ADDR_INVALID;
         this._partition = 0;
-        this._children = {};
-        this._neighbors = {};
-        this._linkStats = {};
+        this._children = {}; // extAddr -> 1
+        this._neighbors = {}; // extAddr -> 1
+        this._linkStats = {}; // nodeId -> LinkStats
         this._selected = false;
 
         this._root = new PIXI.Container();
@@ -301,11 +301,11 @@ export default class Node extends VObject {
         this._neighbors[extaddr] = 1;
     }
 
-    _removeLinkStatsFor(extaddr) {
-        const linkStats = this._linkStats[extaddr];
+    _removeLinkStatsFor(peerNodeId) {
+        const linkStats = this._linkStats[peerNodeId];
         if (linkStats) {
             linkStats.destroy();
-            delete this._linkStats[extaddr];
+            delete this._linkStats[peerNodeId];
         }
     }
 
@@ -340,14 +340,27 @@ export default class Node extends VObject {
 
     addLinkStats(linkStatsList) {
         for (const linkStatInfo of linkStatsList) {
-            const peer = this.vis.findNodeByExtAddr(linkStatInfo.extAddr);
-            const existingLinkStat = this._linkStats[linkStatInfo.extAddr];
+            const peer = this.vis.nodes[linkStatInfo.peerNodeId];
+            const existingLinkStat = this._linkStats[linkStatInfo.peerNodeId];
             if (existingLinkStat) {
                 existingLinkStat.destroy();
             }
             if (peer) {
-                const linkStat = new LinkStats(this, peer, linkStatInfo.textLabel);
-                this._linkStats[linkStatInfo.extAddr] = linkStat;
+                const ls = new LinkStats(this, peer, linkStatInfo.textLabel);
+                this._linkStats[linkStatInfo.peerNodeId] = ls;
+            }
+        }
+    }
+
+    removeLinkStats(removeForAllPeers, peerNodeIdsList) {
+        if (removeForAllPeers) {
+            for (const linkStats of Object.values(this._linkStats)) {
+                linkStats.destroy();
+            }
+            this._linkStats = {};
+        } else {
+            for (const peerNodeId of peerNodeIdsList) {
+                this._removeLinkStatsFor(peerNodeId);
             }
         }
     }

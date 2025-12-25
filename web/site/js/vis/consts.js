@@ -25,6 +25,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 // nodes and numbering
+export const NODE_ID_UNSELECTED = 0;
 export const NODE_ID_INVALID = 0xffff;
 export const EXT_ADDR_INVALID = 0xFFFFFFFFFFFFFFFF;
 
@@ -50,6 +51,7 @@ export const STATUS_MSG_FONT_SIZE = 13;
 export const LOG_WINDOW_FONT_FAMILY = 'verdana, helvetica, sans-serif';
 export const LOG_WINDOW_FONT_SIZE = 11.5;
 export const LOG_WINDOW_FONT_COLOR = "Blue";
+export const LOG_WINDOW_ERROR_FONT_COLOR = "Red";
 
 export const LINKSTATS_FONT_FAMILY = 'consolas, monaco, monospace';
 export const LINKSTATS_FONT_SIZE = 12;

@@ -186,6 +186,12 @@ func (mv *MultiVisualizer) AddLinkStats(nodeid NodeId, peerLinkStats []visualize
 	}
 }
 
+func (mv *MultiVisualizer) RemoveLinkStats(id NodeId, removeForAllPeers bool, peerNodeIds []NodeId) {
+	for _, v := range mv.vs {
+		v.RemoveLinkStats(id, removeForAllPeers, peerNodeIds)
+	}
+}
+
 func (mv *MultiVisualizer) ShowDemoLegend(x int, y int, title string) {
 	for _, v := range mv.vs {
 		v.ShowDemoLegend(x, y, title)

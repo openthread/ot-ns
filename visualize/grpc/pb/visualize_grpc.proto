@@ -66,6 +66,7 @@ message VisualizeEvent {
         SetNetworkInfoEvent set_network_info = 23;
         NodeStatsInfoEvent node_stats_info = 24;
         AddLinkStatsEvent add_link_stats = 25;
+        RemoveLinkStatsEvent remove_link_stats = 26;
     }
 }
 
@@ -109,12 +110,18 @@ message RemoveChildTableEvent {
 
 message LinkStatInfo {
     int32 peer_node_id = 1;
-    string textLabel = 2;
+    string text_label = 2;
 }
 
 message AddLinkStatsEvent {
     int32 node_id = 1;
     repeated LinkStatInfo link_stats = 2;
+}
+
+message RemoveLinkStatsEvent {
+    int32 node_id = 1;
+    bool remove_for_all_peers = 2;
+    repeated int32 peer_node_ids = 3;
 }
 
 message SetSpeedEvent {
@@ -271,11 +278,16 @@ message ReplayEntry {
     VisualizeEvent event = 2;
 }
 
+message SelectNodeRequest {
+    int32 node_id = 1;
+}
+
 service VisualizeGrpcService {
     rpc Visualize (VisualizeRequest) returns (stream VisualizeEvent);
     rpc Command (CommandRequest) returns (CommandResponse);
     rpc Energy (EnergyRequest) returns (stream EnergyEvent);
     rpc NodeStats (NodeStatsRequest) returns (stream VisualizeEvent);
+    rpc SelectNode (SelectNodeRequest) returns (Empty);
 }
 
 message Empty {

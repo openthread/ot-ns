@@ -80,7 +80,7 @@ waitloop:
 }
 
 func (gs *grpcService) NodeStats(req *pb.NodeStatsRequest, stream pb.VisualizeGrpcService_NodeStatsServer) error {
-	// TODO
+	// TODO - not implemented for replay yet
 	return nil
 }
 
@@ -92,6 +92,11 @@ func (gs *grpcService) Energy(req *pb.EnergyRequest, stream pb.VisualizeGrpcServ
 func (gs *grpcService) Command(context.Context, *pb.CommandRequest) (*pb.CommandResponse, error) {
 	// TODO: implement some commands for replay (e.g. speed)
 	return nil, errors.Errorf("can not run command on replay")
+}
+
+func (gs *grpcService) SelectNode(ctx context.Context, req *pb.SelectNodeRequest) (*pb.Empty, error) {
+	// No operation - ignored during replay
+	return &pb.Empty{}, nil
 }
 
 func (gs *grpcService) visualizeStream(stream pb.VisualizeGrpcService_VisualizeServer, visualizeDone chan struct{}) {
