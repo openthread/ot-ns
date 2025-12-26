@@ -29,7 +29,6 @@ package simulation
 import (
 	"strings"
 
-	"github.com/openthread/ot-ns/logger"
 	"github.com/openthread/ot-ns/types"
 	"github.com/openthread/ot-ns/visualize"
 	"github.com/pkg/errors"
@@ -42,8 +41,7 @@ type simulationController struct {
 func (sc *simulationController) Command(cmd string) ([]string, error) {
 	var outputBuilder strings.Builder
 
-	sim := sc.sim
-	err := sim.cmdRunner.RunCommand(cmd, &outputBuilder)
+	err := sc.sim.cmdRunner.RunCommand(cmd, &outputBuilder)
 	if err != nil {
 		return nil, err
 	}
@@ -57,12 +55,7 @@ func (sc *simulationController) Command(cmd string) ([]string, error) {
 func (sc *simulationController) SelectNode(id types.NodeId) error {
 	sim := sc.sim
 	sim.PostAsync(func() {
-		node, nodeExists := sim.nodes[id]
-		if nodeExists {
-			logger.Debugf("Selected node: %v", node.Id)
-			// TODO: call simulator 'on select node'. What it does depends on viz mode.
-			// Default to test could be: show RF link dB link margins.
-		}
+		sim.OnSelectNode(id)
 	})
 	return nil
 }

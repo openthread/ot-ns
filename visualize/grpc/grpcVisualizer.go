@@ -277,61 +277,61 @@ func (gv *grpcVisualizer) SetNodePos(nodeid NodeId, x, y, z int) {
 	}}})
 }
 
-func (gv *grpcVisualizer) DeleteNode(id NodeId) {
+func (gv *grpcVisualizer) DeleteNode(nodeid NodeId) {
 	gv.Lock()
 	defer gv.Unlock()
 
-	gv.f.deleteNode(id)
+	gv.f.deleteNode(nodeid)
 	gv.addVisualizeEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_DeleteNode{DeleteNode: &pb.DeleteNodeEvent{
-		NodeId: int32(id),
+		NodeId: int32(nodeid),
 	}}})
 }
 
-func (gv *grpcVisualizer) AddRouterTable(id NodeId, extaddr uint64) {
+func (gv *grpcVisualizer) AddRouterTable(nodeid NodeId, extaddr uint64) {
 	gv.Lock()
 	defer gv.Unlock()
 
-	gv.f.addRouterTable(id, extaddr)
+	gv.f.addRouterTable(nodeid, extaddr)
 	gv.addVisualizeEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_AddRouterTable{AddRouterTable: &pb.AddRouterTableEvent{
-		NodeId:  int32(id),
+		NodeId:  int32(nodeid),
 		ExtAddr: extaddr,
 	}}})
 }
 
-func (gv *grpcVisualizer) RemoveRouterTable(id NodeId, extaddr uint64) {
+func (gv *grpcVisualizer) RemoveRouterTable(nodeid NodeId, extaddr uint64) {
 	gv.Lock()
 	defer gv.Unlock()
 
-	gv.f.removeRouterTable(id, extaddr)
+	gv.f.removeRouterTable(nodeid, extaddr)
 	gv.addVisualizeEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_RemoveRouterTable{RemoveRouterTable: &pb.RemoveRouterTableEvent{
-		NodeId:  int32(id),
+		NodeId:  int32(nodeid),
 		ExtAddr: extaddr,
 	}}})
 }
 
-func (gv *grpcVisualizer) AddChildTable(id NodeId, extaddr uint64) {
+func (gv *grpcVisualizer) AddChildTable(nodeid NodeId, extaddr uint64) {
 	gv.Lock()
 	defer gv.Unlock()
 
-	gv.f.addChildTable(id, extaddr)
+	gv.f.addChildTable(nodeid, extaddr)
 	gv.addVisualizeEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_AddChildTable{AddChildTable: &pb.AddChildTableEvent{
-		NodeId:  int32(id),
+		NodeId:  int32(nodeid),
 		ExtAddr: extaddr,
 	}}})
 }
 
-func (gv *grpcVisualizer) RemoveChildTable(id NodeId, extaddr uint64) {
+func (gv *grpcVisualizer) RemoveChildTable(nodeid NodeId, extaddr uint64) {
 	gv.Lock()
 	defer gv.Unlock()
 
-	gv.f.removeChildTable(id, extaddr)
+	gv.f.removeChildTable(nodeid, extaddr)
 	gv.addVisualizeEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_RemoveChildTable{RemoveChildTable: &pb.RemoveChildTableEvent{
-		NodeId:  int32(id),
+		NodeId:  int32(nodeid),
 		ExtAddr: extaddr,
 	}}})
 }
 
-func (gv *grpcVisualizer) AddLinkStats(id NodeId, peerLinkStats []visualize.LinkStatInfo) {
+func (gv *grpcVisualizer) AddLinkStats(nodeid NodeId, peerLinkStats []visualize.LinkStatInfo) {
 	gv.Lock()
 	defer gv.Unlock()
 
@@ -348,14 +348,16 @@ func (gv *grpcVisualizer) AddLinkStats(id NodeId, peerLinkStats []visualize.Link
 	// the correct link stats already drawn.
 	// gv.f.addLinkStats(nodeid, peerLinkStats)
 	gv.addVisualizeEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_AddLinkStats{AddLinkStats: &pb.AddLinkStatsEvent{
-		NodeId:    int32(id),
+		NodeId:    int32(nodeid),
 		LinkStats: peerLinkStatsProto,
 	}}})
 }
 
-func (gv *grpcVisualizer) RemoveLinkStats(id NodeId, removeForAllPeers bool, peerNodeIds []NodeId) {
+func (gv *grpcVisualizer) RemoveLinkStats(nodeid NodeId, removeForAllPeers bool, peerNodeIds []NodeId) {
 	gv.Lock()
 	defer gv.Unlock()
+
+	logger.AssertTrue(nodeid != InvalidNodeId, "nodeid must be valid for RemoveLinkStats")
 
 	// convert to protobuf data structure
 	nodeIdsProto := make([]int32, len(peerNodeIds))
@@ -365,6 +367,7 @@ func (gv *grpcVisualizer) RemoveLinkStats(id NodeId, removeForAllPeers bool, pee
 
 	// TODO consider gv.f update also
 	gv.addVisualizeEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_RemoveLinkStats{RemoveLinkStats: &pb.RemoveLinkStatsEvent{
+		NodeId:            int32(nodeid),
 		RemoveForAllPeers: removeForAllPeers,
 		PeerNodeIds:       nodeIdsProto,
 	}}})
@@ -393,13 +396,13 @@ func (gv *grpcVisualizer) CountDown(duration time.Duration, text string) {
 	}}})
 }
 
-func (gv *grpcVisualizer) SetParent(id NodeId, extaddr uint64) {
+func (gv *grpcVisualizer) SetParent(nodeid NodeId, extaddr uint64) {
 	gv.Lock()
 	defer gv.Unlock()
 
-	gv.f.setParent(id, extaddr)
+	gv.f.setParent(nodeid, extaddr)
 	gv.addVisualizeEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_SetParent{SetParent: &pb.SetParentEvent{
-		NodeId:  int32(id),
+		NodeId:  int32(nodeid),
 		ExtAddr: extaddr,
 	}}})
 }

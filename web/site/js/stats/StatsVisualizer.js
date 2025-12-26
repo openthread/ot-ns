@@ -114,7 +114,7 @@ export class StatsVisualizer {
     }
 
     onResize(width, height) {
-        console.log("window resized to " + width + "," + height);
+        console.log("Window resized to " + width + "," + height);
     }
 
 }

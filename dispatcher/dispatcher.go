@@ -1234,8 +1234,8 @@ func (d *Dispatcher) GetWatchingNodes() []NodeId {
 	return watchingNodeIds
 }
 
-func (d *Dispatcher) GetNode(id NodeId) *Node {
-	return d.nodes[id]
+func (d *Dispatcher) GetNode(nodeid NodeId) *Node {
+	return d.nodes[nodeid]
 }
 
 func (d *Dispatcher) GetFailedCount() int {
@@ -1248,24 +1248,24 @@ func (d *Dispatcher) GetFailedCount() int {
 	return failCount
 }
 
-func (d *Dispatcher) SetNodePos(id NodeId, x, y, z int) {
-	node := d.nodes[id]
+func (d *Dispatcher) SetNodePos(nodeid NodeId, x, y, z int) {
+	node := d.nodes[nodeid]
 	logger.AssertNotNil(node)
 
 	node.X, node.Y, node.Z = x, y, z
 	node.RadioNode.SetNodePos(x, y, z)
-	d.vis.SetNodePos(id, x, y, z)
+	d.vis.SetNodePos(nodeid, x, y, z)
 }
 
-func (d *Dispatcher) DeleteNode(id NodeId) {
-	node := d.nodes[id]
+func (d *Dispatcher) DeleteNode(nodeid NodeId) {
+	node := d.nodes[nodeid]
 	logger.AssertNotNil(node)
 
-	delete(d.nodes, id)
+	delete(d.nodes, nodeid)
 	d.reconstructNodesArray()
 	d.Counters.TopologyChanges++
-	delete(d.aliveNodes, id)
-	delete(d.watchingNodes, id)
+	delete(d.aliveNodes, nodeid)
+	delete(d.watchingNodes, nodeid)
 	if node.Rloc16 != InvalidRloc16 {
 		d.rloc16Map.Remove(node.Rloc16, node)
 	}
@@ -1273,19 +1273,19 @@ func (d *Dispatcher) DeleteNode(id NodeId) {
 		logger.AssertTrue(d.extaddrMap[node.ExtAddr] == node)
 		delete(d.extaddrMap, node.ExtAddr)
 	}
-	d.alarmMgr.DeleteNode(id)
-	d.deletedNodes[id] = struct{}{}
-	d.energyAnalyser.DeleteNode(id)
-	d.vis.DeleteNode(id)
-	d.radioModel.DeleteNode(id)
-	d.eventQueue.DisableEventsForNode(id)
+	d.alarmMgr.DeleteNode(nodeid)
+	d.deletedNodes[nodeid] = struct{}{}
+	d.energyAnalyser.DeleteNode(nodeid)
+	d.vis.DeleteNode(nodeid)
+	d.radioModel.DeleteNode(nodeid)
+	d.eventQueue.DisableEventsForNode(nodeid)
 	d.updateNodeStats()
 }
 
 // SetNodeFailed sets the radio of the node to failed (true) or operational (false) state.
 // Setting this will disable the automatic failure control (FailureCtrl).
-func (d *Dispatcher) SetNodeFailed(id NodeId, fail bool) {
-	node := d.nodes[id]
+func (d *Dispatcher) SetNodeFailed(nodeid NodeId, fail bool) {
+	node := d.nodes[nodeid]
 	logger.AssertNotNil(node)
 
 	// if radio is set to on/off explicitly, failureCtrl should not be used anymore
@@ -1376,8 +1376,8 @@ func (d *Dispatcher) NotifyCommand(nodeid NodeId) {
 	d.setAlive(nodeid)
 }
 
-// NotifyNodeFailure is called by other goroutines to notify the dispatcher that a node process has
-// failed. From failed nodes, we don't expect further messages and they can't be alive.
+// NotifyNodeProcessFailure is called by other goroutines to notify the dispatcher that a node process has
+// failed. From failed nodes, we don't expect further messages, and they can't be alive.
 func (d *Dispatcher) NotifyNodeProcessFailure(nodeid NodeId) {
 	d.eventChan <- &Event{
 		Delay:  0,
@@ -1509,5 +1509,27 @@ func (d *Dispatcher) handleRadioState(node *Node, evt *Event) {
 			NodeId:    node.Id,
 			Timestamp: d.CurTime + evt.Delay,
 		})
+	}
+}
+
+func (d *Dispatcher) ClearLinkStats(nodeid NodeId) {
+	d.vis.RemoveLinkStats(nodeid, true, []NodeId{})
+}
+
+func (d *Dispatcher) AddLinkStats(nodeid NodeId) {
+	if d.visOptions.RssiOnSelect && len(d.nodes) > 1 {
+		if _, ok := d.nodes[nodeid]; ok {
+			linkStats := make([]visualize.LinkStatInfo, 0, len(d.nodes)-1)
+			for peerId, _ := range d.nodes {
+				if peerId != nodeid {
+					ls := visualize.LinkStatInfo{
+						PeerNodeId: peerId,
+						TextLabel:  "3",
+					}
+					linkStats = append(linkStats, ls)
+				}
+			}
+			d.vis.AddLinkStats(nodeid, linkStats)
+		}
 	}
 }

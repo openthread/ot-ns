@@ -31,9 +31,9 @@ import "github.com/openthread/ot-ns/types"
 // SimulationController interfaces back to the entity controlling the simulation.
 type SimulationController interface {
 
-	// Command is called when the Visualizer wants to execute a CLI command.
+	// Command is called when the Visualizer wants to execute an OTNS CLI command.
 	Command(cmd string) ([]string, error)
 
-	// SelectNode is called when the Visualizer's user selects or deselects a node.
+	// SelectNode is called when the Visualizer's user selects another node.
 	SelectNode(id types.NodeId) error
 }

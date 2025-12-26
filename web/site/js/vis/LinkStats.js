@@ -51,6 +51,7 @@ export default class LinkStats extends VObject {
             this._text = new PIXI.Text(textLabel, textStyle);
             this._text.anchor.set(0.5, 0.5);
             this.visible = true;
+            this._root.visible = true;
             this.addChild(this._text);
             this.position.copyFrom(calcVector(this._node.position, this._peer.position, this._distFromNode));
         }
@@ -61,19 +62,15 @@ export default class LinkStats extends VObject {
     }
 
     onPositionChange() {
-        console.log("onPositionChange() for LinkStats node=" + this._node.id + " peer="+ this._peer.id);
         if (this._node && this._peer && !this._peer.destroyed) {
             this.position.copyFrom(calcVector(this._node.position, this._peer.position, this._distFromNode));
-            console.log(" - LinkStats position set to: " + this.position.x + "," + this.position.y);
             this._peer.onPeerPositionChange(this._node.extAddr);
         }
     }
 
     onPeerPositionChange() {
-        console.log("onPeerPositionChange() for LinkStats node=" + this._node.id + " peer="+ this._peer.id);
         if (this._node && this._peer && !this._peer.destroyed) {
             this.position.copyFrom(calcVector(this._node.position, this._peer.position, this._distFromNode));
-            console.log(" - LinkStats position set to: " + this.position.x + "," + this.position.y);
         }
     }
 

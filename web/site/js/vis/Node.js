@@ -91,7 +91,7 @@ export default class Node extends VObject {
 
         let node = this;
         this.interactive = true;
-        this._root.hitArea = new PIXI.Circle(0, 0, radius);
+        this.root.hitArea = new PIXI.Circle(0, 0, radius);
         this.setOnTouchStart((e) => {
             this.vis.setSelectedNode(node.id);
             e.stopPropagation();
@@ -340,14 +340,17 @@ export default class Node extends VObject {
 
     addLinkStats(linkStatsList) {
         for (const linkStatInfo of linkStatsList) {
-            const peer = this.vis.nodes[linkStatInfo.peerNodeId];
-            const existingLinkStat = this._linkStats[linkStatInfo.peerNodeId];
+            const peerId = linkStatInfo.getPeerNodeId();
+            const peer = this.vis.nodes[peerId];
+            const existingLinkStat = this._linkStats[peerId];
             if (existingLinkStat) {
                 existingLinkStat.destroy();
             }
             if (peer) {
-                const ls = new LinkStats(this, peer, linkStatInfo.textLabel);
-                this._linkStats[linkStatInfo.peerNodeId] = ls;
+                const textLabel = linkStatInfo.getTextLabel();
+                const ls = new LinkStats(this, peer, textLabel);
+                this._linkStats[peerId] = ls;
+                this.addChild(ls);
             }
         }
     }
@@ -366,7 +369,6 @@ export default class Node extends VObject {
     }
 
     setFormerParentAsRouter() {
-        console.log("setFormerParentAsRouter - this.parent = ", this.parent);
         if (this.parent !== EXT_ADDR_INVALID) {
             this._neighbors[this.parent] = 1;
         }
@@ -389,14 +391,12 @@ export default class Node extends VObject {
     }
 
     onPositionChange() {
-        console.log("onPositionChange() for node " + this.id + " ", this.extAddr);
         for(const linkStats of Object.values(this._linkStats)) {
             linkStats.onPositionChange();
         }
     }
 
     onPeerPositionChange(extAddr) {
-        console.log("onPeerPositionChange() for extAddr=", extAddr);
         const linkStats = this._linkStats[extAddr];
         if (linkStats) {
             linkStats.onPeerPositionChange();
@@ -412,7 +412,7 @@ export default class Node extends VObject {
             selbox.alpha = 0.7;
             selbox.scale.set(selboxsize / NODE_SELECTION_SCALE, selboxsize / NODE_SELECTION_SCALE);
             selbox.anchor.set(0.5, 0.5);
-            this.root.addChildAt(selbox, 0);
+            this.addChildAt(selbox, 0);
             this._selbox = selbox;
 
             const rangeCircleSize = this.radioRange;
@@ -421,7 +421,7 @@ export default class Node extends VObject {
             rangeCircle.lineStyle({width: 1, color: 0x338a3e, alpha: 0.7});
             rangeCircle.drawCircle(0, 0, rangeCircleSize);
             rangeCircle.endFill();
-            this.root.addChildAt(rangeCircle, 0);
+            this.addChildAt(rangeCircle, 0);
             this._rangeCircle = rangeCircle;
         }
     }

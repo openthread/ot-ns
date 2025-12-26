@@ -819,7 +819,7 @@ export default class PixiVisualizer extends VObject {
     }
 
     onResize(width, height) {
-        console.log("window resized to " + width + "," + height);
+        console.log("Window resized to " + width + "," + height);
         this.actionBar.position.set(10, height - this.actionBar.height - 20 - 10);
         this._resetLogWindowPosition(width, height);
     }

@@ -32,6 +32,7 @@ type VisualizationOptions struct {
 	AckMessage       bool
 	RouterTable      bool
 	ChildTable       bool
+	RssiOnSelect     bool
 }
 
 func defaultVisualizationOptions() VisualizationOptions {
@@ -41,5 +42,6 @@ func defaultVisualizationOptions() VisualizationOptions {
 		AckMessage:       false,
 		RouterTable:      true,
 		ChildTable:       true,
+		RssiOnSelect:     true,
 	}
 }

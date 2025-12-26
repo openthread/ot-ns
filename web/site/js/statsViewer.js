@@ -41,7 +41,7 @@ const nodeNumbersChart = new NodeNumbersChart(
 );
 
 function loadOk() {
-    console.log('connecting to server ' + server);
+    console.log('Connecting to server ' + server);
     grpcServiceClient = new VisualizeGrpcServiceClient(server);
 
     vis = new StatsVisualizer();

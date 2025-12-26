@@ -87,7 +87,7 @@ document.getElementById('nodesForPower').onchange = () => {
 
 //Keep same format as the other js files for future use
 function loadOk() {
-    console.log('connecting to server ' + server);
+    console.log('Connecting to server ' + server);
     grpcServiceClient = new VisualizeGrpcServiceClient(server);
 
     
