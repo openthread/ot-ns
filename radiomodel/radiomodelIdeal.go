@@ -85,10 +85,10 @@ func (rm *RadioModelIdeal) OnEventDispatch(src *RadioNode, dst *RadioNode, evt *
 		fallthrough
 	case EventTypeRadioRxDone:
 		// compute the RSSI and store it in the event
-		evt.RadioCommData.PowerDbm = clipRssi(rm.GetTxRssi(src, dst))
+		evt.RadioCommData.PowerDbm = ClipRssi(rm.GetTxRssi(src, dst))
 	case EventTypeRadioChannelSample:
 		// store the final sampled RSSI in the event
-		evt.RadioCommData.PowerDbm = clipRssi(src.rssiSampleMax)
+		evt.RadioCommData.PowerDbm = ClipRssi(src.rssiSampleMax)
 	}
 	return true
 }

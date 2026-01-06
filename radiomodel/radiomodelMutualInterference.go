@@ -104,13 +104,13 @@ func (rm *RadioModelMutualInterference) OnEventDispatch(src *RadioNode, dst *Rad
 	switch evt.Type {
 	case EventTypeRadioCommStart:
 		// compute the RSSI and store in the event.
-		evt.RadioCommData.PowerDbm = clipRssi(rm.GetTxRssi(src, dst))
+		evt.RadioCommData.PowerDbm = ClipRssi(rm.GetTxRssi(src, dst))
 
 	case EventTypeRadioRxDone:
 		// compute the RSSI and store in the event
-		evt.RadioCommData.PowerDbm = clipRssi(rm.GetTxRssi(src, dst))
+		evt.RadioCommData.PowerDbm = ClipRssi(rm.GetTxRssi(src, dst))
 
-		// check for interference by other signals and apply to event.
+		// check for interference by other signals and apply to event: may result in FCS error.
 		rm.applyInterference(src, dst, evt)
 
 	case EventTypeRadioChannelSample:
@@ -121,7 +121,7 @@ func (rm *RadioModelMutualInterference) OnEventDispatch(src *RadioNode, dst *Rad
 				src.rssiSampleMax = r
 			}
 			// store the final sampled RSSI in the event
-			evt.RadioCommData.PowerDbm = clipRssi(src.rssiSampleMax)
+			evt.RadioCommData.PowerDbm = ClipRssi(src.rssiSampleMax)
 		} else {
 			evt.RadioCommData.PowerDbm = int8(RssiInvalid)
 		}

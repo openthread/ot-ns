@@ -31,6 +31,18 @@ import (
 	"github.com/openthread/ot-ns/visualize"
 )
 
+// FIXME - support deletion of stale ExtAddrs.
+
+type TxStats struct {
+	DurationUs uint64
+	TxPowerDbm int8
+	RxRssiDbm  int8
+}
+
+type NodeLinkStats struct {
+	LastTx TxStats
+}
+
 // updateNodeStats calculates fresh node statistics and sends it to the Visualizers.
 func (d *Dispatcher) updateNodeStats() {
 	s := d.calcStats()

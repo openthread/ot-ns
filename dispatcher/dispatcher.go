@@ -116,6 +116,7 @@ type Dispatcher struct {
 	nodesArray            []*Node
 	deletedNodes          map[NodeId]struct{}
 	aliveNodes            map[NodeId]struct{}
+	selectedNodeId        NodeId
 	pcap                  pcap.File
 	pcapFrameChan         chan pcap.Frame
 	vis                   visualize.Visualizer
@@ -157,6 +158,7 @@ func NewDispatcher(ctx *progctx.ProgCtx, cfg *Config, cbHandler CallbackHandler)
 		nodesArray:         make([]*Node, 0),
 		deletedNodes:       map[NodeId]struct{}{},
 		aliveNodes:         make(map[NodeId]struct{}),
+		selectedNodeId:     InvalidNodeId,
 		extaddrMap:         map[uint64]*Node{},
 		rloc16Map:          rloc16Map{},
 		pcapFrameChan:      make(chan pcap.Frame, 100000),
@@ -863,6 +865,9 @@ func (d *Dispatcher) sendOneRadioFrame(evt *Event, srcnode *Node, dstnode *Node)
 	if d.radioModel.OnEventDispatch(srcnode.RadioNode, dstnode.RadioNode, &evt2) {
 		// send the event plus time keeping - moves dstnode's time to the current send-event's time.
 		dstnode.sendEvent(&evt2)
+
+		// for every successful radio frame dispatch, keep link statistics.
+		srcnode.onRadioFrameDispatch(dstnode, &evt2.RadioCommData)
 	}
 }
 
@@ -1512,24 +1517,32 @@ func (d *Dispatcher) handleRadioState(node *Node, evt *Event) {
 	}
 }
 
-func (d *Dispatcher) ClearLinkStats(nodeid NodeId) {
-	d.vis.RemoveLinkStats(nodeid, true, []NodeId{})
-}
-
-func (d *Dispatcher) AddLinkStats(nodeid NodeId) {
-	if d.visOptions.RssiOnSelect && len(d.nodes) > 1 {
-		if _, ok := d.nodes[nodeid]; ok {
-			linkStats := make([]visualize.LinkStatInfo, 0, len(d.nodes)-1)
-			for peerId, _ := range d.nodes {
-				if peerId != nodeid {
-					ls := visualize.LinkStatInfo{
-						PeerNodeId: peerId,
-						TextLabel:  "3",
+func (d *Dispatcher) ShowLinkStatsForNode(nodeid NodeId) {
+	if nodeid != d.selectedNodeId {
+		if d.selectedNodeId != InvalidNodeId {
+			d.vis.RemoveLinkStats(d.selectedNodeId, true, []NodeId{})
+		}
+		if node, ok := d.nodes[nodeid]; ok {
+			d.selectedNodeId = nodeid
+			if d.visOptions.TxRxPower && len(d.nodes) > 1 {
+				if _, ok := d.nodes[nodeid]; ok {
+					linkStats := make([]visualize.LinkStatInfo, 0, len(d.nodes)-1)
+					for peerId, peerNode := range d.nodes {
+						if peerId != nodeid {
+							if peerLinkStats, ok := node.linkStats[peerNode.ExtAddr]; ok {
+								ls := visualize.LinkStatInfo{
+									PeerNodeId: peerId,
+									TextLabel:  fmt.Sprintf("%d", peerLinkStats.LastTx.RxRssiDbm),
+								}
+								linkStats = append(linkStats, ls)
+							}
+						}
 					}
-					linkStats = append(linkStats, ls)
+					d.vis.AddLinkStats(nodeid, linkStats)
 				}
 			}
-			d.vis.AddLinkStats(nodeid, linkStats)
+		} else {
+			d.selectedNodeId = InvalidNodeId // node unselected
 		}
 	}
 }

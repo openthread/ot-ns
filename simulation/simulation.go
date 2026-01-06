@@ -53,7 +53,6 @@ type Simulation struct {
 	stopped        bool
 	cfg            *Config
 	nodes          map[NodeId]*Node
-	selectedNodeId NodeId
 	d              *dispatcher.Dispatcher
 	vis            visualize.Visualizer
 	cmdRunner      CmdRunner
@@ -68,18 +67,17 @@ type Simulation struct {
 
 func NewSimulation(ctx *progctx.ProgCtx, cfg *Config, dispatcherCfg *dispatcher.Config) (*Simulation, error) {
 	s := &Simulation{
-		Started:        make(chan struct{}),
-		Exited:         make(chan struct{}),
-		ctx:            ctx,
-		cfg:            cfg,
-		nodes:          map[NodeId]*Node{},
-		selectedNodeId: InvalidNodeId,
-		autoGo:         cfg.AutoGo || cfg.Realtime,
-		autoGoChange:   make(chan bool, 1),
-		networkInfo:    visualize.DefaultNetworkInfo(),
-		nodePlacer:     NewNodeAutoPlacer(),
-		kpiMgr:         NewKpiManager(),
-		simHosts:       NewSimHosts(),
+		Started:      make(chan struct{}),
+		Exited:       make(chan struct{}),
+		ctx:          ctx,
+		cfg:          cfg,
+		nodes:        map[NodeId]*Node{},
+		autoGo:       cfg.AutoGo || cfg.Realtime,
+		autoGoChange: make(chan bool, 1),
+		networkInfo:  visualize.DefaultNetworkInfo(),
+		nodePlacer:   NewNodeAutoPlacer(),
+		kpiMgr:       NewKpiManager(),
+		simHosts:     NewSimHosts(),
 	}
 	s.SetLogLevel(cfg.LogLevel)
 	s.networkInfo.Real = cfg.Realtime
@@ -420,21 +418,6 @@ func (s *Simulation) OnMsgToHost(nodeid NodeId, evt *event.Event) {
 		s.simHosts.handleUdpFromNode(node, &evt.MsgToHostData, evt.Data)
 	default:
 		logger.Panicf("Event type not implemented: %d", evt.Type)
-	}
-}
-
-// OnSelectNode notifies the simulation that a node has been selected in the visualizer.
-func (s *Simulation) OnSelectNode(nodeid NodeId) {
-	if nodeid != s.selectedNodeId {
-		if s.selectedNodeId != InvalidNodeId {
-			s.d.ClearLinkStats(s.selectedNodeId)
-		}
-		if _, ok := s.nodes[nodeid]; ok {
-			s.selectedNodeId = nodeid
-			s.d.AddLinkStats(s.selectedNodeId)
-		} else {
-			s.selectedNodeId = InvalidNodeId // node unselected
-		}
 	}
 }
 
