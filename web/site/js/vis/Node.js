@@ -31,10 +31,11 @@ import {Visualizer} from "./PixiVisualizer";
 import {Resources} from "./resources";
 import LinkStats from "./LinkStats";
 import {
-    EXT_ADDR_INVALID,
+    EXT_ADDR_INVALID, LINKSTATS_FONT_COLOR,
     NODE_ID_INVALID,
     NODE_LABEL_FONT_FAMILY,
     NODE_LABEL_FONT_SIZE,
+    LINKSTATS_DEFAULT_TEXT_STYLE,
     POWER_DBM_INVALID
 } from "./consts";
 
@@ -338,7 +339,17 @@ export default class Node extends VObject {
         this.parentId = NODE_ID_INVALID;
     }
 
-    addLinkStats(linkStatsList) {
+    addLinkStats(linkStatsList, labelFormatReq) {
+        let labelFormat = { ...LINKSTATS_DEFAULT_TEXT_STYLE };
+
+        if (labelFormatReq) {
+            // Copy only attributes that are NOT the protobuf "default" values
+            labelFormat.fontSize = labelFormatReq.fontSize || labelFormat.fontSize;
+            labelFormat.fontColor = labelFormatReq.fontColor || labelFormat.fontColor;
+            labelFormat.isFontBold = labelFormatReq.isFontBold || labelFormat.isFontBold;
+            labelFormat.distanceFromNode = labelFormatReq.distanceFromNode || labelFormat.distanceFromNode;
+        }
+
         for (const linkStatInfo of linkStatsList) {
             const peerId = linkStatInfo.getPeerNodeId();
             const peer = this.vis.nodes[peerId];
@@ -348,7 +359,7 @@ export default class Node extends VObject {
             }
             if (peer) {
                 const textLabel = linkStatInfo.getTextLabel();
-                const ls = new LinkStats(this, peer, textLabel);
+                const ls = new LinkStats(this, peer, textLabel, labelFormat);
                 this._linkStats[peerId] = ls;
                 this.addChild(ls);
             }

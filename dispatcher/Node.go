@@ -89,7 +89,7 @@ type Node struct {
 	joinerSession *joinerSession
 	joinResults   []*JoinResult
 	logger        *logger.NodeLogger
-	linkStats     map[uint64]NodeLinkStats // link stats indexed by neighbor's Node.ExtAddr
+	linkStats     map[uint64]NodeLinkStats // link stats for any Rx neighbor, indexed by neighbor's Node.ExtAddr
 }
 
 func newNode(d *Dispatcher, nodeid NodeId, cfg *NodeConfig) *Node {
@@ -345,19 +345,6 @@ func (node *Node) onJoinerState(state OtJoinerState) {
 		}
 	case OtJoinerStateIdle:
 		node.closeJoinerSession()
-	}
-}
-
-// onRadioFrameDispatch is called by the Dispatcher when a radio frame is dispatched from the node to
-// the destination Node dst.
-func (node *Node) onRadioFrameDispatch(dst *Node, radioCommData *RadioCommEventData) {
-	// record stats of packet transmissions
-	node.linkStats[dst.ExtAddr] = NodeLinkStats{
-		LastTx: TxStats{
-			DurationUs: radioCommData.Duration,
-			TxPowerDbm: radiomodel.ClipRssi(node.RadioNode.TxPower),
-			RxRssiDbm:  radioCommData.PowerDbm,
-		},
 	}
 }
 

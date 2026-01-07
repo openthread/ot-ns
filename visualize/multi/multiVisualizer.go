@@ -32,6 +32,7 @@ import (
 	"github.com/openthread/ot-ns/energy"
 	. "github.com/openthread/ot-ns/types"
 	"github.com/openthread/ot-ns/visualize"
+	"github.com/openthread/ot-ns/event"
 )
 
 type MultiVisualizer struct {
@@ -56,6 +57,12 @@ func (mv *MultiVisualizer) SetNetworkInfo(networkInfo visualize.NetworkInfo) {
 func (mv *MultiVisualizer) OnExtAddrChange(id NodeId, extaddr uint64) {
 	for _, v := range mv.vs {
 		v.OnExtAddrChange(id, extaddr)
+	}
+}
+
+func (mv *MultiVisualizer) OnRadioFrameDispatch(srcid NodeId, dstid NodeId, data event.RadioCommEventData) {
+	for _, v := range mv.vs {
+		v.OnRadioFrameDispatch(srcid, dstid, data)
 	}
 }
 
@@ -180,15 +187,9 @@ func (mv *MultiVisualizer) RemoveChildTable(id NodeId, extaddr uint64) {
 	}
 }
 
-func (mv *MultiVisualizer) AddLinkStats(nodeid NodeId, peerLinkStats []visualize.LinkStatInfo) {
+func (mv *MultiVisualizer) SetLinkStats(nodeid NodeId, opt visualize.LinkStatsOptions) {
 	for _, v := range mv.vs {
-		v.AddLinkStats(nodeid, peerLinkStats)
-	}
-}
-
-func (mv *MultiVisualizer) RemoveLinkStats(id NodeId, removeForAllPeers bool, peerNodeIds []NodeId) {
-	for _, v := range mv.vs {
-		v.RemoveLinkStats(id, removeForAllPeers, peerNodeIds)
+		v.SetLinkStats(nodeid, opt)
 	}
 }
 

@@ -27,25 +27,15 @@
 import * as PIXI from "pixi.js-legacy";
 
 import VObject from "./VObject";
-import {
-    LINKSTATS_FONT_FAMILY, LINKSTATS_FONT_SIZE, LINKSTATS_FONT_COLOR
-} from "./consts";
-
-const LINKSTATS_TEXT_STYLE = {
-    fill: LINKSTATS_FONT_COLOR,
-    fontFamily: LINKSTATS_FONT_FAMILY,
-    fontSize: LINKSTATS_FONT_SIZE,
-    distFromNode: 32,
-};
 
 export default class LinkStats extends VObject {
-    constructor(node, peer, textLabel = "", textStyle = LINKSTATS_TEXT_STYLE) {
+    constructor(node, peer, textLabel, textStyle) {
         super();
         this._root = new PIXI.Container();
         this._node = node;
         this._peer = peer;
         this._text = null;
-        this._distFromNode = textStyle.distFromNode;
+        this._distFromNode = textStyle.distanceFromNode;
 
         if (node && peer) {
             this._text = new PIXI.Text(textLabel, textStyle);

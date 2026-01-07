@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2024, The OTNS Authors.
+// Copyright (c) 2020-2026, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -27,13 +27,18 @@
 package visualize_grpc
 
 import (
+	"github.com/openthread/ot-ns/event"
 	"github.com/openthread/ot-ns/logger"
 	. "github.com/openthread/ot-ns/types"
 	"github.com/openthread/ot-ns/visualize"
 )
 
+// grpcField locally tracks simulation topology and properties. This information is used to recreate the GUI
+// after a reload event, or to selectively render GUI elements based on user interaction where the rendering
+// logic runs on the server (Go) side.
 type grpcField struct {
 	nodes         map[NodeId]*grpcNode
+	extAddrMap    map[uint64]NodeId
 	curTime       uint64
 	curSpeed      float64
 	speed         float64
@@ -45,7 +50,10 @@ type grpcField struct {
 func (f *grpcField) addNode(id NodeId, cfg *NodeConfig) *grpcNode {
 	logger.AssertNil(f.nodes[id])
 	gn := newGprcNode(id, cfg)
+	logger.AssertNotNil(gn.extaddr)
+	logger.AssertTrue(gn.extaddr > 0)
 	f.nodes[id] = gn
+	f.extAddrMap[gn.extaddr] = id
 	return gn
 }
 
@@ -100,6 +108,7 @@ func (f *grpcField) setNodePos(id NodeId, x, y, z int) {
 }
 
 func (f *grpcField) deleteNode(id NodeId) {
+	delete(f.extAddrMap, f.nodes[id].extaddr)
 	delete(f.nodes, id)
 }
 
@@ -123,12 +132,80 @@ func (f *grpcField) removeChildTable(id NodeId, extaddr uint64) {
 	delete(f.nodes[id].childTable, extaddr)
 }
 
+func (f *grpcField) setLinkStats(id NodeId, opt visualize.LinkStatsOptions) {
+	f.nodes[id].linkStats = opt
+}
+
+func (f *grpcField) isNodeLinkedPeer(id NodeId, peerId NodeId) bool {
+	node := f.nodes[id]
+	peer := f.nodes[peerId]
+	peerExtAddr := peer.extaddr
+	if _, ok := node.routerTable[peerExtAddr]; ok {
+		return true
+	}
+	if _, ok := node.childTable[peerExtAddr]; ok {
+		return true
+	}
+	if node.parent == peerExtAddr {
+		return true
+	}
+
+	nodeExtAddr := node.extaddr
+	if _, ok := peer.routerTable[nodeExtAddr]; ok {
+		return true
+	}
+	if _, ok := peer.childTable[nodeExtAddr]; ok {
+		return true
+	}
+	if peer.parent == nodeExtAddr {
+		return true
+	}
+
+	return false
+}
+
+func (f *grpcField) getNodeLinkedPeers(id NodeId) []NodeId {
+	node := f.nodes[id]
+	maxArraySize := len(node.routerTable) + len(node.childTable) + 1
+	peerIds := make([]NodeId, 0, maxArraySize)
+	for extAddr, _ := range node.routerTable {
+		if extAddr != InvalidExtAddr {
+			peerIds = append(peerIds, f.extAddrMap[extAddr])
+		}
+	}
+	for extAddr, _ := range node.childTable {
+		if extAddr != InvalidExtAddr {
+			peerIds = append(peerIds, f.extAddrMap[extAddr])
+		}
+	}
+	if node.parent != InvalidExtAddr {
+		peerIds = append(peerIds, f.extAddrMap[node.parent])
+	}
+	return peerIds
+}
+
 func (f *grpcField) setSpeed(speed float64) {
 	f.speed = speed
 }
 
 func (f *grpcField) onExtAddrChange(id NodeId, extaddr uint64) {
+	delete(f.extAddrMap, f.nodes[id].extaddr)
 	f.nodes[id].extaddr = extaddr
+	f.extAddrMap[extaddr] = id
+}
+
+// TODO document return type
+func (f *grpcField) onRadioFrameDispatch(srcid NodeId, dstid NodeId, data event.RadioCommEventData) (bool, bool) {
+	src := f.nodes[srcid]
+
+	// keep track of Tx power of successfully dispatched frames (unicast/broadcast/...)
+	txPow, ok := src.lastTxPower[dstid]
+	if !ok || txPow != data.PowerDbm {
+		src.lastTxPower[dstid] = data.PowerDbm
+		return f.isNodeLinkedPeer(srcid, dstid), false
+	}
+
+	return false, false
 }
 
 func (f *grpcField) setTitleInfo(info visualize.TitleInfo) {
@@ -142,6 +219,7 @@ func (f *grpcField) setNodeStatsInfo(info visualize.NodeStatsInfo) {
 func newGrpcField() *grpcField {
 	gf := &grpcField{
 		nodes:         map[NodeId]*grpcNode{},
+		extAddrMap:    map[uint64]NodeId{},
 		curSpeed:      1,
 		speed:         1,
 		networkInfo:   visualize.DefaultNetworkInfo(),

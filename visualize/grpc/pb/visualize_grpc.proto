@@ -113,15 +113,23 @@ message LinkStatInfo {
     string text_label = 2;
 }
 
+message LinkStatLabelFormat {
+  uint32 font_size = 1;
+  uint32 font_color = 2; // RGB bytes, range 0x000000 (black) to 0xFFFFFF (white)
+  bool is_font_bold = 3;
+  uint32 distance_from_node = 4; // pixels - 0 means in center of node
+}
+
 message AddLinkStatsEvent {
     int32 node_id = 1;
     repeated LinkStatInfo link_stats = 2;
+    LinkStatLabelFormat label_format = 3; // optionally included i.e. nullable
 }
 
 message RemoveLinkStatsEvent {
     int32 node_id = 1;
     bool remove_for_all_peers = 2;
-    repeated int32 peer_node_ids = 3;
+    repeated int32 peer_node_ids = 3; // if remove_for_all_peers is false, this specifies for which peers to remove
 }
 
 message SetSpeedEvent {

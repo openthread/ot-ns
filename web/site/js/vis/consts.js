@@ -25,6 +25,9 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 // nodes and numbering
+import VObject from "./VObject";
+import PIXI from "pixi.js-legacy";
+
 export const NODE_ID_UNSELECTED = 0;
 export const NODE_ID_INVALID = 0xffff;
 export const EXT_ADDR_INVALID = 0xFFFFFFFFFFFFFFFF;
@@ -55,4 +58,13 @@ export const LOG_WINDOW_ERROR_FONT_COLOR = "Red";
 
 export const LINKSTATS_FONT_FAMILY = 'consolas, monaco, monospace';
 export const LINKSTATS_FONT_SIZE = 12;
-export const LINKSTATS_FONT_COLOR = "Red";
+export const LINKSTATS_FONT_COLOR = 0xFF0000;
+export const LINKSTATS_DEFAULT_TEXT_STYLE = {
+    fontColor: LINKSTATS_FONT_COLOR,
+    fontFamily: LINKSTATS_FONT_FAMILY,
+    isFontBold: false,
+    fontSize: LINKSTATS_FONT_SIZE,
+    distanceFromNode: 32,
+};
+
+

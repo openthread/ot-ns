@@ -139,12 +139,13 @@ function loadOk() {
                 break;
             case VisualizeEvent.TypeCase.SET_PARENT:
                 e = resp.getSetParent();
-                // TODO - currently OT does not emit this event. Workaround is used to call visSetParent().
                 vis.visSetParent(e.getNodeId(), e.getExtAddr());
                 break;
             case VisualizeEvent.TypeCase.ADD_LINK_STATS:
                 e = resp.getAddLinkStats();
-                vis.visAddLinkStats(e.getNodeId(), e.getLinkStatsList());
+                const labelFormatPb = e.getLabelFormat();
+                const labelFormat = labelFormatPb ? labelFormatPb.toObject() : null;
+                vis.visAddLinkStats(e.getNodeId(), e.getLinkStatsList(), labelFormat);
                 break;
             case VisualizeEvent.TypeCase.REMOVE_LINK_STATS:
                 e = resp.getRemoveLinkStats();

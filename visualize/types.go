@@ -1,4 +1,4 @@
-// Copyright (c) 2022-2024, The OTNS Authors.
+// Copyright (c) 2022-2026, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -32,6 +32,7 @@ import (
 	"github.com/openthread/ot-ns/dissectpkt/wpan"
 	"github.com/openthread/ot-ns/energy"
 	. "github.com/openthread/ot-ns/types"
+	"github.com/openthread/ot-ns/event"
 )
 
 type Visualizer interface {
@@ -56,12 +57,12 @@ type Visualizer interface {
 	RemoveRouterTable(id NodeId, extaddr uint64)
 	AddChildTable(id NodeId, extaddr uint64)
 	RemoveChildTable(id NodeId, extaddr uint64)
-	AddLinkStats(id NodeId, linkStats []LinkStatInfo)
-	RemoveLinkStats(id NodeId, removeForAllPeers bool, peerNodeIds []NodeId)
+	SetLinkStats(id NodeId, linkStatsOpt LinkStatsOptions)
 	ShowDemoLegend(x int, y int, title string)
 	CountDown(duration time.Duration, text string)
 	SetParent(id NodeId, extaddr uint64)
 	OnExtAddrChange(id NodeId, extaddr uint64)
+	OnRadioFrameDispatch(srcid NodeId, dstid NodeId, data event.RadioCommEventData)
 	SetTitle(titleInfo TitleInfo)
 	SetNetworkInfo(networkInfo NetworkInfo)
 	UpdateNodesEnergy(node []*energy.NodeEnergy, timestamp uint64, updateView bool)
@@ -135,7 +136,16 @@ type TimeWindowStatsInfo struct {
 	NodePhyStats    map[NodeId]PhyStats
 }
 
-type LinkStatInfo struct {
-	PeerNodeId NodeId
-	TextLabel  string
+type LinkStatsOptions struct {
+	Visible bool
+	TxPower bool
+	RxRssi  bool
+}
+
+func DefaultLinkStatsOptions() LinkStatsOptions {
+	return LinkStatsOptions{
+		Visible: true,
+		TxPower: true,
+		RxRssi:  false,
+	}
 }

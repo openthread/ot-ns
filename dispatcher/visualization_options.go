@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2020-2026, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -26,13 +26,18 @@
 
 package dispatcher
 
+import (
+	"github.com/openthread/ot-ns/visualize"
+)
+
 type VisualizationOptions struct {
 	BroadcastMessage bool
 	UnicastMessage   bool
 	AckMessage       bool
 	RouterTable      bool
 	ChildTable       bool
-	TxRxPower        bool
+	LinkStats        bool
+	LinkStatsOpt     visualize.LinkStatsOptions
 }
 
 func defaultVisualizationOptions() VisualizationOptions {
@@ -42,6 +47,7 @@ func defaultVisualizationOptions() VisualizationOptions {
 		AckMessage:       false,
 		RouterTable:      true,
 		ChildTable:       true,
-		TxRxPower:        true,
+		LinkStats:        true,
+		LinkStatsOpt:     visualize.DefaultLinkStatsOptions(),
 	}
 }

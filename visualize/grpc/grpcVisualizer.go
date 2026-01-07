@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2024, The OTNS Authors.
+// Copyright (c) 2020-2026, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -27,12 +27,14 @@
 package visualize_grpc
 
 import (
+	"fmt"
 	"math"
 	"net"
 	"sync"
 	"time"
 
 	"github.com/openthread/ot-ns/energy"
+	"github.com/openthread/ot-ns/event"
 	"github.com/openthread/ot-ns/logger"
 	. "github.com/openthread/ot-ns/types"
 	"github.com/openthread/ot-ns/visualize"
@@ -144,6 +146,28 @@ func (gv *grpcVisualizer) OnExtAddrChange(nodeid NodeId, extaddr uint64) {
 		NodeId:  int32(nodeid),
 		ExtAddr: extaddr,
 	}}})
+}
+
+func (gv *grpcVisualizer) OnRadioFrameDispatch(srcid NodeId, dstid NodeId, data event.RadioCommEventData) {
+	isSrcChange, _ /* isDstChange*/ := gv.f.onRadioFrameDispatch(srcid, dstid, data)
+
+	if isSrcChange {
+		ls := make([]*pb.LinkStatInfo, 1)
+		ls[0] = &pb.LinkStatInfo{
+			PeerNodeId: int32(dstid),
+			TextLabel:  fmt.Sprintf("%d dBm", gv.f.nodes[srcid].lastTxPower[dstid]),
+		}
+		e := &pb.VisualizeEvent{Type: &pb.VisualizeEvent_AddLinkStats{AddLinkStats: &pb.AddLinkStatsEvent{
+			NodeId:    int32(srcid),
+			LinkStats: ls,
+			LabelFormat: &pb.LinkStatLabelFormat{
+				FontSize:         13,
+				DistanceFromNode: 40,
+			},
+		}}}
+
+		gv.addVisualizeEvent(e)
+	}
 }
 
 func (gv *grpcVisualizer) SetNodeRloc16(nodeid NodeId, rloc16 uint16) {
@@ -331,46 +355,43 @@ func (gv *grpcVisualizer) RemoveChildTable(nodeid NodeId, extaddr uint64) {
 	}}})
 }
 
-func (gv *grpcVisualizer) AddLinkStats(nodeid NodeId, peerLinkStats []visualize.LinkStatInfo) {
+func (gv *grpcVisualizer) SetLinkStats(nodeid NodeId, opt visualize.LinkStatsOptions) {
 	gv.Lock()
 	defer gv.Unlock()
 
-	// convert to protobuf data structure
-	peerLinkStatsProto := make([]*pb.LinkStatInfo, len(peerLinkStats))
-	for i, peerLinkStat := range peerLinkStats {
-		peerLinkStatsProto[i] = &pb.LinkStatInfo{
-			PeerNodeId: int32(peerLinkStat.PeerNodeId),
-			TextLabel:  peerLinkStat.TextLabel,
+	var e *pb.VisualizeEvent
+	if opt.Visible {
+		// identify current peers of the node, that will have a link line drawn to them.
+		peerNodeIds := gv.f.getNodeLinkedPeers(nodeid)
+
+		// for each peer, generate a label
+		peerLinkStatsProto := make([]*pb.LinkStatInfo, 0, len(peerNodeIds))
+		for _, peerId := range peerNodeIds {
+			if txPow, ok := gv.f.nodes[nodeid].lastTxPower[peerId]; ok {
+				peerLinkStatsProto = append(peerLinkStatsProto, &pb.LinkStatInfo{
+					PeerNodeId: int32(peerId),
+					TextLabel:  fmt.Sprintf("%d", txPow),
+				})
+			}
 		}
+
+		e = &pb.VisualizeEvent{Type: &pb.VisualizeEvent_AddLinkStats{AddLinkStats: &pb.AddLinkStatsEvent{
+			NodeId:    int32(nodeid),
+			LinkStats: peerLinkStatsProto,
+			LabelFormat: &pb.LinkStatLabelFormat{
+				FontSize:         13,
+				DistanceFromNode: 40,
+			},
+		}}}
+	} else {
+		e = &pb.VisualizeEvent{Type: &pb.VisualizeEvent_RemoveLinkStats{RemoveLinkStats: &pb.RemoveLinkStatsEvent{
+			NodeId:            int32(nodeid),
+			RemoveForAllPeers: true,
+		}}}
 	}
 
-	// TODO: may send the new state to local gv.f also, so that a new web visualizer bootstraps with
-	// the correct link stats already drawn.
-	// gv.f.addLinkStats(nodeid, peerLinkStats)
-	gv.addVisualizeEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_AddLinkStats{AddLinkStats: &pb.AddLinkStatsEvent{
-		NodeId:    int32(nodeid),
-		LinkStats: peerLinkStatsProto,
-	}}})
-}
-
-func (gv *grpcVisualizer) RemoveLinkStats(nodeid NodeId, removeForAllPeers bool, peerNodeIds []NodeId) {
-	gv.Lock()
-	defer gv.Unlock()
-
-	logger.AssertTrue(nodeid != InvalidNodeId, "nodeid must be valid for RemoveLinkStats")
-
-	// convert to protobuf data structure
-	nodeIdsProto := make([]int32, len(peerNodeIds))
-	for i, nodeId := range peerNodeIds {
-		nodeIdsProto[i] = int32(nodeId)
-	}
-
-	// TODO consider gv.f update also
-	gv.addVisualizeEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_RemoveLinkStats{RemoveLinkStats: &pb.RemoveLinkStatsEvent{
-		NodeId:            int32(nodeid),
-		RemoveForAllPeers: removeForAllPeers,
-		PeerNodeIds:       nodeIdsProto,
-	}}})
+	gv.f.setLinkStats(nodeid, opt)
+	gv.addVisualizeEvent(e)
 }
 
 func (gv *grpcVisualizer) ShowDemoLegend(x int, y int, title string) {

@@ -440,8 +440,8 @@ export default class PixiVisualizer extends VObject {
         this.onNodeUpdate(nodeId);
     }
 
-    visAddLinkStats(id, linkStatsList) {
-        this.nodes[id].addLinkStats(linkStatsList);
+    visAddLinkStats(id, linkStatsList, labelFormat) {
+        this.nodes[id].addLinkStats(linkStatsList, labelFormat);
         // no this.onNodeUpdate() call, since no node properties changed apart from link stats.
     }
 
@@ -576,10 +576,6 @@ export default class PixiVisualizer extends VObject {
     }
 
     setSelectedNode(id) {
-        if (id === this._selectedNodeId) {
-            return;
-        }
-
         let old_sel = this.nodes[this._selectedNodeId];
         if (old_sel) {
             old_sel.onUnselected();
@@ -639,7 +635,7 @@ export default class PixiVisualizer extends VObject {
     }
 
     onTapedStage() {
-        this.setSelectedNode(0)
+        this.setSelectedNode(NODE_ID_UNSELECTED)
     }
 
     _drawNodeLinks() {
@@ -716,11 +712,6 @@ export default class PixiVisualizer extends VObject {
     visAddChildTable(nodeId, extaddr) {
         this.nodes[nodeId].addChildTable(extaddr);
         this.logNode(nodeId, `Child table added: ${this.formatExtAddrPretty(extaddr)}`)
-        const child = this.findNodeByExtAddr(extaddr);
-        if (child) {
-            const extAddrParent = this.nodes[nodeId].extAddr;
-            this.visSetParent(child.id, extAddrParent); // call from here because 'parent' push event is not emitted by OT.
-        }
         this.onNodeUpdate(nodeId);
     }
 

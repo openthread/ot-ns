@@ -1085,19 +1085,91 @@ func (x *LinkStatInfo) GetTextLabel() string {
 	return ""
 }
 
+type LinkStatLabelFormat struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	FontSize         uint32 `protobuf:"varint,1,opt,name=font_size,json=fontSize,proto3" json:"font_size,omitempty"`
+	FontColor        uint32 `protobuf:"varint,2,opt,name=font_color,json=fontColor,proto3" json:"font_color,omitempty"` // RGB bytes, range 0x000000 (black) to 0xFFFFFF (white)
+	IsFontBold       bool   `protobuf:"varint,3,opt,name=is_font_bold,json=isFontBold,proto3" json:"is_font_bold,omitempty"`
+	DistanceFromNode uint32 `protobuf:"varint,4,opt,name=distance_from_node,json=distanceFromNode,proto3" json:"distance_from_node,omitempty"` // pixels - 0 means in center of node
+}
+
+func (x *LinkStatLabelFormat) Reset() {
+	*x = LinkStatLabelFormat{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_visualize_grpc_proto_msgTypes[11]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *LinkStatLabelFormat) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LinkStatLabelFormat) ProtoMessage() {}
+
+func (x *LinkStatLabelFormat) ProtoReflect() protoreflect.Message {
+	mi := &file_visualize_grpc_proto_msgTypes[11]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LinkStatLabelFormat.ProtoReflect.Descriptor instead.
+func (*LinkStatLabelFormat) Descriptor() ([]byte, []int) {
+	return file_visualize_grpc_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *LinkStatLabelFormat) GetFontSize() uint32 {
+	if x != nil {
+		return x.FontSize
+	}
+	return 0
+}
+
+func (x *LinkStatLabelFormat) GetFontColor() uint32 {
+	if x != nil {
+		return x.FontColor
+	}
+	return 0
+}
+
+func (x *LinkStatLabelFormat) GetIsFontBold() bool {
+	if x != nil {
+		return x.IsFontBold
+	}
+	return false
+}
+
+func (x *LinkStatLabelFormat) GetDistanceFromNode() uint32 {
+	if x != nil {
+		return x.DistanceFromNode
+	}
+	return 0
+}
+
 type AddLinkStatsEvent struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	NodeId    int32           `protobuf:"varint,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
-	LinkStats []*LinkStatInfo `protobuf:"bytes,2,rep,name=link_stats,json=linkStats,proto3" json:"link_stats,omitempty"`
+	NodeId      int32                `protobuf:"varint,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	LinkStats   []*LinkStatInfo      `protobuf:"bytes,2,rep,name=link_stats,json=linkStats,proto3" json:"link_stats,omitempty"`
+	LabelFormat *LinkStatLabelFormat `protobuf:"bytes,3,opt,name=label_format,json=labelFormat,proto3" json:"label_format,omitempty"` // optionally included i.e. nullable
 }
 
 func (x *AddLinkStatsEvent) Reset() {
 	*x = AddLinkStatsEvent{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_visualize_grpc_proto_msgTypes[11]
+		mi := &file_visualize_grpc_proto_msgTypes[12]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1110,7 +1182,7 @@ func (x *AddLinkStatsEvent) String() string {
 func (*AddLinkStatsEvent) ProtoMessage() {}
 
 func (x *AddLinkStatsEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_visualize_grpc_proto_msgTypes[11]
+	mi := &file_visualize_grpc_proto_msgTypes[12]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1123,7 +1195,7 @@ func (x *AddLinkStatsEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddLinkStatsEvent.ProtoReflect.Descriptor instead.
 func (*AddLinkStatsEvent) Descriptor() ([]byte, []int) {
-	return file_visualize_grpc_proto_rawDescGZIP(), []int{11}
+	return file_visualize_grpc_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *AddLinkStatsEvent) GetNodeId() int32 {
@@ -1140,6 +1212,13 @@ func (x *AddLinkStatsEvent) GetLinkStats() []*LinkStatInfo {
 	return nil
 }
 
+func (x *AddLinkStatsEvent) GetLabelFormat() *LinkStatLabelFormat {
+	if x != nil {
+		return x.LabelFormat
+	}
+	return nil
+}
+
 type RemoveLinkStatsEvent struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -1147,13 +1226,13 @@ type RemoveLinkStatsEvent struct {
 
 	NodeId            int32   `protobuf:"varint,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
 	RemoveForAllPeers bool    `protobuf:"varint,2,opt,name=remove_for_all_peers,json=removeForAllPeers,proto3" json:"remove_for_all_peers,omitempty"`
-	PeerNodeIds       []int32 `protobuf:"varint,3,rep,packed,name=peer_node_ids,json=peerNodeIds,proto3" json:"peer_node_ids,omitempty"`
+	PeerNodeIds       []int32 `protobuf:"varint,3,rep,packed,name=peer_node_ids,json=peerNodeIds,proto3" json:"peer_node_ids,omitempty"` // if remove_for_all_peers is false, this specifies for which peers to remove
 }
 
 func (x *RemoveLinkStatsEvent) Reset() {
 	*x = RemoveLinkStatsEvent{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_visualize_grpc_proto_msgTypes[12]
+		mi := &file_visualize_grpc_proto_msgTypes[13]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1166,7 +1245,7 @@ func (x *RemoveLinkStatsEvent) String() string {
 func (*RemoveLinkStatsEvent) ProtoMessage() {}
 
 func (x *RemoveLinkStatsEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_visualize_grpc_proto_msgTypes[12]
+	mi := &file_visualize_grpc_proto_msgTypes[13]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1179,7 +1258,7 @@ func (x *RemoveLinkStatsEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveLinkStatsEvent.ProtoReflect.Descriptor instead.
 func (*RemoveLinkStatsEvent) Descriptor() ([]byte, []int) {
-	return file_visualize_grpc_proto_rawDescGZIP(), []int{12}
+	return file_visualize_grpc_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *RemoveLinkStatsEvent) GetNodeId() int32 {
@@ -1214,7 +1293,7 @@ type SetSpeedEvent struct {
 func (x *SetSpeedEvent) Reset() {
 	*x = SetSpeedEvent{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_visualize_grpc_proto_msgTypes[13]
+		mi := &file_visualize_grpc_proto_msgTypes[14]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1227,7 +1306,7 @@ func (x *SetSpeedEvent) String() string {
 func (*SetSpeedEvent) ProtoMessage() {}
 
 func (x *SetSpeedEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_visualize_grpc_proto_msgTypes[13]
+	mi := &file_visualize_grpc_proto_msgTypes[14]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1240,7 +1319,7 @@ func (x *SetSpeedEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetSpeedEvent.ProtoReflect.Descriptor instead.
 func (*SetSpeedEvent) Descriptor() ([]byte, []int) {
-	return file_visualize_grpc_proto_rawDescGZIP(), []int{13}
+	return file_visualize_grpc_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *SetSpeedEvent) GetSpeed() float64 {
@@ -1259,7 +1338,7 @@ type HeartbeatEvent struct {
 func (x *HeartbeatEvent) Reset() {
 	*x = HeartbeatEvent{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_visualize_grpc_proto_msgTypes[14]
+		mi := &file_visualize_grpc_proto_msgTypes[15]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1272,7 +1351,7 @@ func (x *HeartbeatEvent) String() string {
 func (*HeartbeatEvent) ProtoMessage() {}
 
 func (x *HeartbeatEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_visualize_grpc_proto_msgTypes[14]
+	mi := &file_visualize_grpc_proto_msgTypes[15]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1285,7 +1364,7 @@ func (x *HeartbeatEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HeartbeatEvent.ProtoReflect.Descriptor instead.
 func (*HeartbeatEvent) Descriptor() ([]byte, []int) {
-	return file_visualize_grpc_proto_rawDescGZIP(), []int{14}
+	return file_visualize_grpc_proto_rawDescGZIP(), []int{15}
 }
 
 type AdvanceTimeEvent struct {
@@ -1300,7 +1379,7 @@ type AdvanceTimeEvent struct {
 func (x *AdvanceTimeEvent) Reset() {
 	*x = AdvanceTimeEvent{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_visualize_grpc_proto_msgTypes[15]
+		mi := &file_visualize_grpc_proto_msgTypes[16]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1313,7 +1392,7 @@ func (x *AdvanceTimeEvent) String() string {
 func (*AdvanceTimeEvent) ProtoMessage() {}
 
 func (x *AdvanceTimeEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_visualize_grpc_proto_msgTypes[15]
+	mi := &file_visualize_grpc_proto_msgTypes[16]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1326,7 +1405,7 @@ func (x *AdvanceTimeEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AdvanceTimeEvent.ProtoReflect.Descriptor instead.
 func (*AdvanceTimeEvent) Descriptor() ([]byte, []int) {
-	return file_visualize_grpc_proto_rawDescGZIP(), []int{15}
+	return file_visualize_grpc_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *AdvanceTimeEvent) GetTimestamp() uint64 {
@@ -1355,7 +1434,7 @@ type SetParentEvent struct {
 func (x *SetParentEvent) Reset() {
 	*x = SetParentEvent{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_visualize_grpc_proto_msgTypes[16]
+		mi := &file_visualize_grpc_proto_msgTypes[17]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1368,7 +1447,7 @@ func (x *SetParentEvent) String() string {
 func (*SetParentEvent) ProtoMessage() {}
 
 func (x *SetParentEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_visualize_grpc_proto_msgTypes[16]
+	mi := &file_visualize_grpc_proto_msgTypes[17]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1381,7 +1460,7 @@ func (x *SetParentEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetParentEvent.ProtoReflect.Descriptor instead.
 func (*SetParentEvent) Descriptor() ([]byte, []int) {
-	return file_visualize_grpc_proto_rawDescGZIP(), []int{16}
+	return file_visualize_grpc_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *SetParentEvent) GetNodeId() int32 {
@@ -1410,7 +1489,7 @@ type CountDownEvent struct {
 func (x *CountDownEvent) Reset() {
 	*x = CountDownEvent{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_visualize_grpc_proto_msgTypes[17]
+		mi := &file_visualize_grpc_proto_msgTypes[18]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1423,7 +1502,7 @@ func (x *CountDownEvent) String() string {
 func (*CountDownEvent) ProtoMessage() {}
 
 func (x *CountDownEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_visualize_grpc_proto_msgTypes[17]
+	mi := &file_visualize_grpc_proto_msgTypes[18]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1436,7 +1515,7 @@ func (x *CountDownEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CountDownEvent.ProtoReflect.Descriptor instead.
 func (*CountDownEvent) Descriptor() ([]byte, []int) {
-	return file_visualize_grpc_proto_rawDescGZIP(), []int{17}
+	return file_visualize_grpc_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *CountDownEvent) GetDurationMs() int64 {
@@ -1466,7 +1545,7 @@ type ShowDemoLegendEvent struct {
 func (x *ShowDemoLegendEvent) Reset() {
 	*x = ShowDemoLegendEvent{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_visualize_grpc_proto_msgTypes[18]
+		mi := &file_visualize_grpc_proto_msgTypes[19]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1479,7 +1558,7 @@ func (x *ShowDemoLegendEvent) String() string {
 func (*ShowDemoLegendEvent) ProtoMessage() {}
 
 func (x *ShowDemoLegendEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_visualize_grpc_proto_msgTypes[18]
+	mi := &file_visualize_grpc_proto_msgTypes[19]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1492,7 +1571,7 @@ func (x *ShowDemoLegendEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ShowDemoLegendEvent.ProtoReflect.Descriptor instead.
 func (*ShowDemoLegendEvent) Descriptor() ([]byte, []int) {
-	return file_visualize_grpc_proto_rawDescGZIP(), []int{18}
+	return file_visualize_grpc_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *ShowDemoLegendEvent) GetX() int32 {
@@ -1530,7 +1609,7 @@ type SetNodePosEvent struct {
 func (x *SetNodePosEvent) Reset() {
 	*x = SetNodePosEvent{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_visualize_grpc_proto_msgTypes[19]
+		mi := &file_visualize_grpc_proto_msgTypes[20]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1543,7 +1622,7 @@ func (x *SetNodePosEvent) String() string {
 func (*SetNodePosEvent) ProtoMessage() {}
 
 func (x *SetNodePosEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_visualize_grpc_proto_msgTypes[19]
+	mi := &file_visualize_grpc_proto_msgTypes[20]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1556,7 +1635,7 @@ func (x *SetNodePosEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetNodePosEvent.ProtoReflect.Descriptor instead.
 func (*SetNodePosEvent) Descriptor() ([]byte, []int) {
-	return file_visualize_grpc_proto_rawDescGZIP(), []int{19}
+	return file_visualize_grpc_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *SetNodePosEvent) GetNodeId() int32 {
@@ -1599,7 +1678,7 @@ type SetNodeRoleEvent struct {
 func (x *SetNodeRoleEvent) Reset() {
 	*x = SetNodeRoleEvent{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_visualize_grpc_proto_msgTypes[20]
+		mi := &file_visualize_grpc_proto_msgTypes[21]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1612,7 +1691,7 @@ func (x *SetNodeRoleEvent) String() string {
 func (*SetNodeRoleEvent) ProtoMessage() {}
 
 func (x *SetNodeRoleEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_visualize_grpc_proto_msgTypes[20]
+	mi := &file_visualize_grpc_proto_msgTypes[21]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1625,7 +1704,7 @@ func (x *SetNodeRoleEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetNodeRoleEvent.ProtoReflect.Descriptor instead.
 func (*SetNodeRoleEvent) Descriptor() ([]byte, []int) {
-	return file_visualize_grpc_proto_rawDescGZIP(), []int{20}
+	return file_visualize_grpc_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *SetNodeRoleEvent) GetNodeId() int32 {
@@ -1654,7 +1733,7 @@ type SetNodePartitionIdEvent struct {
 func (x *SetNodePartitionIdEvent) Reset() {
 	*x = SetNodePartitionIdEvent{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_visualize_grpc_proto_msgTypes[21]
+		mi := &file_visualize_grpc_proto_msgTypes[22]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1667,7 +1746,7 @@ func (x *SetNodePartitionIdEvent) String() string {
 func (*SetNodePartitionIdEvent) ProtoMessage() {}
 
 func (x *SetNodePartitionIdEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_visualize_grpc_proto_msgTypes[21]
+	mi := &file_visualize_grpc_proto_msgTypes[22]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1680,7 +1759,7 @@ func (x *SetNodePartitionIdEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetNodePartitionIdEvent.ProtoReflect.Descriptor instead.
 func (*SetNodePartitionIdEvent) Descriptor() ([]byte, []int) {
-	return file_visualize_grpc_proto_rawDescGZIP(), []int{21}
+	return file_visualize_grpc_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *SetNodePartitionIdEvent) GetNodeId() int32 {
@@ -1708,7 +1787,7 @@ type OnNodeFailEvent struct {
 func (x *OnNodeFailEvent) Reset() {
 	*x = OnNodeFailEvent{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_visualize_grpc_proto_msgTypes[22]
+		mi := &file_visualize_grpc_proto_msgTypes[23]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1721,7 +1800,7 @@ func (x *OnNodeFailEvent) String() string {
 func (*OnNodeFailEvent) ProtoMessage() {}
 
 func (x *OnNodeFailEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_visualize_grpc_proto_msgTypes[22]
+	mi := &file_visualize_grpc_proto_msgTypes[23]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1734,7 +1813,7 @@ func (x *OnNodeFailEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OnNodeFailEvent.ProtoReflect.Descriptor instead.
 func (*OnNodeFailEvent) Descriptor() ([]byte, []int) {
-	return file_visualize_grpc_proto_rawDescGZIP(), []int{22}
+	return file_visualize_grpc_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *OnNodeFailEvent) GetNodeId() int32 {
@@ -1755,7 +1834,7 @@ type OnNodeRecoverEvent struct {
 func (x *OnNodeRecoverEvent) Reset() {
 	*x = OnNodeRecoverEvent{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_visualize_grpc_proto_msgTypes[23]
+		mi := &file_visualize_grpc_proto_msgTypes[24]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1768,7 +1847,7 @@ func (x *OnNodeRecoverEvent) String() string {
 func (*OnNodeRecoverEvent) ProtoMessage() {}
 
 func (x *OnNodeRecoverEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_visualize_grpc_proto_msgTypes[23]
+	mi := &file_visualize_grpc_proto_msgTypes[24]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1781,7 +1860,7 @@ func (x *OnNodeRecoverEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OnNodeRecoverEvent.ProtoReflect.Descriptor instead.
 func (*OnNodeRecoverEvent) Descriptor() ([]byte, []int) {
-	return file_visualize_grpc_proto_rawDescGZIP(), []int{23}
+	return file_visualize_grpc_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *OnNodeRecoverEvent) GetNodeId() int32 {
@@ -1802,7 +1881,7 @@ type DeleteNodeEvent struct {
 func (x *DeleteNodeEvent) Reset() {
 	*x = DeleteNodeEvent{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_visualize_grpc_proto_msgTypes[24]
+		mi := &file_visualize_grpc_proto_msgTypes[25]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1815,7 +1894,7 @@ func (x *DeleteNodeEvent) String() string {
 func (*DeleteNodeEvent) ProtoMessage() {}
 
 func (x *DeleteNodeEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_visualize_grpc_proto_msgTypes[24]
+	mi := &file_visualize_grpc_proto_msgTypes[25]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1828,7 +1907,7 @@ func (x *DeleteNodeEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteNodeEvent.ProtoReflect.Descriptor instead.
 func (*DeleteNodeEvent) Descriptor() ([]byte, []int) {
-	return file_visualize_grpc_proto_rawDescGZIP(), []int{24}
+	return file_visualize_grpc_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *DeleteNodeEvent) GetNodeId() int32 {
@@ -1854,7 +1933,7 @@ type AddNodeEvent struct {
 func (x *AddNodeEvent) Reset() {
 	*x = AddNodeEvent{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_visualize_grpc_proto_msgTypes[25]
+		mi := &file_visualize_grpc_proto_msgTypes[26]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1867,7 +1946,7 @@ func (x *AddNodeEvent) String() string {
 func (*AddNodeEvent) ProtoMessage() {}
 
 func (x *AddNodeEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_visualize_grpc_proto_msgTypes[25]
+	mi := &file_visualize_grpc_proto_msgTypes[26]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1880,7 +1959,7 @@ func (x *AddNodeEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddNodeEvent.ProtoReflect.Descriptor instead.
 func (*AddNodeEvent) Descriptor() ([]byte, []int) {
-	return file_visualize_grpc_proto_rawDescGZIP(), []int{25}
+	return file_visualize_grpc_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *AddNodeEvent) GetNodeId() int32 {
@@ -1939,7 +2018,7 @@ type NodeMode struct {
 func (x *NodeMode) Reset() {
 	*x = NodeMode{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_visualize_grpc_proto_msgTypes[26]
+		mi := &file_visualize_grpc_proto_msgTypes[27]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1952,7 +2031,7 @@ func (x *NodeMode) String() string {
 func (*NodeMode) ProtoMessage() {}
 
 func (x *NodeMode) ProtoReflect() protoreflect.Message {
-	mi := &file_visualize_grpc_proto_msgTypes[26]
+	mi := &file_visualize_grpc_proto_msgTypes[27]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1965,7 +2044,7 @@ func (x *NodeMode) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NodeMode.ProtoReflect.Descriptor instead.
 func (*NodeMode) Descriptor() ([]byte, []int) {
-	return file_visualize_grpc_proto_rawDescGZIP(), []int{26}
+	return file_visualize_grpc_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *NodeMode) GetRxOnWhenIdle() bool {
@@ -2008,7 +2087,7 @@ type SetNodeRloc16Event struct {
 func (x *SetNodeRloc16Event) Reset() {
 	*x = SetNodeRloc16Event{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_visualize_grpc_proto_msgTypes[27]
+		mi := &file_visualize_grpc_proto_msgTypes[28]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2021,7 +2100,7 @@ func (x *SetNodeRloc16Event) String() string {
 func (*SetNodeRloc16Event) ProtoMessage() {}
 
 func (x *SetNodeRloc16Event) ProtoReflect() protoreflect.Message {
-	mi := &file_visualize_grpc_proto_msgTypes[27]
+	mi := &file_visualize_grpc_proto_msgTypes[28]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2034,7 +2113,7 @@ func (x *SetNodeRloc16Event) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetNodeRloc16Event.ProtoReflect.Descriptor instead.
 func (*SetNodeRloc16Event) Descriptor() ([]byte, []int) {
-	return file_visualize_grpc_proto_rawDescGZIP(), []int{27}
+	return file_visualize_grpc_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *SetNodeRloc16Event) GetNodeId() int32 {
@@ -2063,7 +2142,7 @@ type OnExtAddrChangeEvent struct {
 func (x *OnExtAddrChangeEvent) Reset() {
 	*x = OnExtAddrChangeEvent{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_visualize_grpc_proto_msgTypes[28]
+		mi := &file_visualize_grpc_proto_msgTypes[29]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2076,7 +2155,7 @@ func (x *OnExtAddrChangeEvent) String() string {
 func (*OnExtAddrChangeEvent) ProtoMessage() {}
 
 func (x *OnExtAddrChangeEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_visualize_grpc_proto_msgTypes[28]
+	mi := &file_visualize_grpc_proto_msgTypes[29]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2089,7 +2168,7 @@ func (x *OnExtAddrChangeEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OnExtAddrChangeEvent.ProtoReflect.Descriptor instead.
 func (*OnExtAddrChangeEvent) Descriptor() ([]byte, []int) {
-	return file_visualize_grpc_proto_rawDescGZIP(), []int{28}
+	return file_visualize_grpc_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *OnExtAddrChangeEvent) GetNodeId() int32 {
@@ -2120,7 +2199,7 @@ type SetTitleEvent struct {
 func (x *SetTitleEvent) Reset() {
 	*x = SetTitleEvent{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_visualize_grpc_proto_msgTypes[29]
+		mi := &file_visualize_grpc_proto_msgTypes[30]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2133,7 +2212,7 @@ func (x *SetTitleEvent) String() string {
 func (*SetTitleEvent) ProtoMessage() {}
 
 func (x *SetTitleEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_visualize_grpc_proto_msgTypes[29]
+	mi := &file_visualize_grpc_proto_msgTypes[30]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2146,7 +2225,7 @@ func (x *SetTitleEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetTitleEvent.ProtoReflect.Descriptor instead.
 func (*SetTitleEvent) Descriptor() ([]byte, []int) {
-	return file_visualize_grpc_proto_rawDescGZIP(), []int{29}
+	return file_visualize_grpc_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *SetTitleEvent) GetTitle() string {
@@ -2189,7 +2268,7 @@ type SetNodeModeEvent struct {
 func (x *SetNodeModeEvent) Reset() {
 	*x = SetNodeModeEvent{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_visualize_grpc_proto_msgTypes[30]
+		mi := &file_visualize_grpc_proto_msgTypes[31]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2202,7 +2281,7 @@ func (x *SetNodeModeEvent) String() string {
 func (*SetNodeModeEvent) ProtoMessage() {}
 
 func (x *SetNodeModeEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_visualize_grpc_proto_msgTypes[30]
+	mi := &file_visualize_grpc_proto_msgTypes[31]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2215,7 +2294,7 @@ func (x *SetNodeModeEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetNodeModeEvent.ProtoReflect.Descriptor instead.
 func (*SetNodeModeEvent) Descriptor() ([]byte, []int) {
-	return file_visualize_grpc_proto_rawDescGZIP(), []int{30}
+	return file_visualize_grpc_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *SetNodeModeEvent) GetNodeId() int32 {
@@ -2247,7 +2326,7 @@ type SetNetworkInfoEvent struct {
 func (x *SetNetworkInfoEvent) Reset() {
 	*x = SetNetworkInfoEvent{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_visualize_grpc_proto_msgTypes[31]
+		mi := &file_visualize_grpc_proto_msgTypes[32]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2260,7 +2339,7 @@ func (x *SetNetworkInfoEvent) String() string {
 func (*SetNetworkInfoEvent) ProtoMessage() {}
 
 func (x *SetNetworkInfoEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_visualize_grpc_proto_msgTypes[31]
+	mi := &file_visualize_grpc_proto_msgTypes[32]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2273,7 +2352,7 @@ func (x *SetNetworkInfoEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetNetworkInfoEvent.ProtoReflect.Descriptor instead.
 func (*SetNetworkInfoEvent) Descriptor() ([]byte, []int) {
-	return file_visualize_grpc_proto_rawDescGZIP(), []int{31}
+	return file_visualize_grpc_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *SetNetworkInfoEvent) GetReal() bool {
@@ -2326,7 +2405,7 @@ type NodeEnergy struct {
 func (x *NodeEnergy) Reset() {
 	*x = NodeEnergy{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_visualize_grpc_proto_msgTypes[32]
+		mi := &file_visualize_grpc_proto_msgTypes[33]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2339,7 +2418,7 @@ func (x *NodeEnergy) String() string {
 func (*NodeEnergy) ProtoMessage() {}
 
 func (x *NodeEnergy) ProtoReflect() protoreflect.Message {
-	mi := &file_visualize_grpc_proto_msgTypes[32]
+	mi := &file_visualize_grpc_proto_msgTypes[33]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2352,7 +2431,7 @@ func (x *NodeEnergy) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NodeEnergy.ProtoReflect.Descriptor instead.
 func (*NodeEnergy) Descriptor() ([]byte, []int) {
-	return file_visualize_grpc_proto_rawDescGZIP(), []int{32}
+	return file_visualize_grpc_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *NodeEnergy) GetNodeId() int32 {
@@ -2402,7 +2481,7 @@ type EnergyEvent struct {
 func (x *EnergyEvent) Reset() {
 	*x = EnergyEvent{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_visualize_grpc_proto_msgTypes[33]
+		mi := &file_visualize_grpc_proto_msgTypes[34]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2415,7 +2494,7 @@ func (x *EnergyEvent) String() string {
 func (*EnergyEvent) ProtoMessage() {}
 
 func (x *EnergyEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_visualize_grpc_proto_msgTypes[33]
+	mi := &file_visualize_grpc_proto_msgTypes[34]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2428,7 +2507,7 @@ func (x *EnergyEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EnergyEvent.ProtoReflect.Descriptor instead.
 func (*EnergyEvent) Descriptor() ([]byte, []int) {
-	return file_visualize_grpc_proto_rawDescGZIP(), []int{33}
+	return file_visualize_grpc_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *EnergyEvent) GetTimestamp() uint64 {
@@ -2464,7 +2543,7 @@ type NodeStats struct {
 func (x *NodeStats) Reset() {
 	*x = NodeStats{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_visualize_grpc_proto_msgTypes[34]
+		mi := &file_visualize_grpc_proto_msgTypes[35]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2477,7 +2556,7 @@ func (x *NodeStats) String() string {
 func (*NodeStats) ProtoMessage() {}
 
 func (x *NodeStats) ProtoReflect() protoreflect.Message {
-	mi := &file_visualize_grpc_proto_msgTypes[34]
+	mi := &file_visualize_grpc_proto_msgTypes[35]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2490,7 +2569,7 @@ func (x *NodeStats) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NodeStats.ProtoReflect.Descriptor instead.
 func (*NodeStats) Descriptor() ([]byte, []int) {
-	return file_visualize_grpc_proto_rawDescGZIP(), []int{34}
+	return file_visualize_grpc_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *NodeStats) GetNumNodes() uint32 {
@@ -2568,7 +2647,7 @@ type NodeStatsInfoEvent struct {
 func (x *NodeStatsInfoEvent) Reset() {
 	*x = NodeStatsInfoEvent{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_visualize_grpc_proto_msgTypes[35]
+		mi := &file_visualize_grpc_proto_msgTypes[36]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2581,7 +2660,7 @@ func (x *NodeStatsInfoEvent) String() string {
 func (*NodeStatsInfoEvent) ProtoMessage() {}
 
 func (x *NodeStatsInfoEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_visualize_grpc_proto_msgTypes[35]
+	mi := &file_visualize_grpc_proto_msgTypes[36]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2594,7 +2673,7 @@ func (x *NodeStatsInfoEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NodeStatsInfoEvent.ProtoReflect.Descriptor instead.
 func (*NodeStatsInfoEvent) Descriptor() ([]byte, []int) {
-	return file_visualize_grpc_proto_rawDescGZIP(), []int{35}
+	return file_visualize_grpc_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *NodeStatsInfoEvent) GetTimestamp() uint64 {
@@ -2622,7 +2701,7 @@ type CommandRequest struct {
 func (x *CommandRequest) Reset() {
 	*x = CommandRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_visualize_grpc_proto_msgTypes[36]
+		mi := &file_visualize_grpc_proto_msgTypes[37]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2635,7 +2714,7 @@ func (x *CommandRequest) String() string {
 func (*CommandRequest) ProtoMessage() {}
 
 func (x *CommandRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_visualize_grpc_proto_msgTypes[36]
+	mi := &file_visualize_grpc_proto_msgTypes[37]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2648,7 +2727,7 @@ func (x *CommandRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CommandRequest.ProtoReflect.Descriptor instead.
 func (*CommandRequest) Descriptor() ([]byte, []int) {
-	return file_visualize_grpc_proto_rawDescGZIP(), []int{36}
+	return file_visualize_grpc_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *CommandRequest) GetCommand() string {
@@ -2669,7 +2748,7 @@ type CommandResponse struct {
 func (x *CommandResponse) Reset() {
 	*x = CommandResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_visualize_grpc_proto_msgTypes[37]
+		mi := &file_visualize_grpc_proto_msgTypes[38]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2682,7 +2761,7 @@ func (x *CommandResponse) String() string {
 func (*CommandResponse) ProtoMessage() {}
 
 func (x *CommandResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_visualize_grpc_proto_msgTypes[37]
+	mi := &file_visualize_grpc_proto_msgTypes[38]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2695,7 +2774,7 @@ func (x *CommandResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CommandResponse.ProtoReflect.Descriptor instead.
 func (*CommandResponse) Descriptor() ([]byte, []int) {
-	return file_visualize_grpc_proto_rawDescGZIP(), []int{37}
+	return file_visualize_grpc_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *CommandResponse) GetOutput() []string {
@@ -2717,7 +2796,7 @@ type ReplayEntry struct {
 func (x *ReplayEntry) Reset() {
 	*x = ReplayEntry{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_visualize_grpc_proto_msgTypes[38]
+		mi := &file_visualize_grpc_proto_msgTypes[39]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2730,7 +2809,7 @@ func (x *ReplayEntry) String() string {
 func (*ReplayEntry) ProtoMessage() {}
 
 func (x *ReplayEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_visualize_grpc_proto_msgTypes[38]
+	mi := &file_visualize_grpc_proto_msgTypes[39]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2743,7 +2822,7 @@ func (x *ReplayEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReplayEntry.ProtoReflect.Descriptor instead.
 func (*ReplayEntry) Descriptor() ([]byte, []int) {
-	return file_visualize_grpc_proto_rawDescGZIP(), []int{38}
+	return file_visualize_grpc_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *ReplayEntry) GetTimestamp() uint64 {
@@ -2771,7 +2850,7 @@ type SelectNodeRequest struct {
 func (x *SelectNodeRequest) Reset() {
 	*x = SelectNodeRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_visualize_grpc_proto_msgTypes[39]
+		mi := &file_visualize_grpc_proto_msgTypes[40]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2784,7 +2863,7 @@ func (x *SelectNodeRequest) String() string {
 func (*SelectNodeRequest) ProtoMessage() {}
 
 func (x *SelectNodeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_visualize_grpc_proto_msgTypes[39]
+	mi := &file_visualize_grpc_proto_msgTypes[40]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2797,7 +2876,7 @@ func (x *SelectNodeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SelectNodeRequest.ProtoReflect.Descriptor instead.
 func (*SelectNodeRequest) Descriptor() ([]byte, []int) {
-	return file_visualize_grpc_proto_rawDescGZIP(), []int{39}
+	return file_visualize_grpc_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *SelectNodeRequest) GetNodeId() int32 {
@@ -2816,7 +2895,7 @@ type Empty struct {
 func (x *Empty) Reset() {
 	*x = Empty{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_visualize_grpc_proto_msgTypes[40]
+		mi := &file_visualize_grpc_proto_msgTypes[41]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2829,7 +2908,7 @@ func (x *Empty) String() string {
 func (*Empty) ProtoMessage() {}
 
 func (x *Empty) ProtoReflect() protoreflect.Message {
-	mi := &file_visualize_grpc_proto_msgTypes[40]
+	mi := &file_visualize_grpc_proto_msgTypes[41]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2842,7 +2921,7 @@ func (x *Empty) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Empty.ProtoReflect.Descriptor instead.
 func (*Empty) Descriptor() ([]byte, []int) {
-	return file_visualize_grpc_proto_rawDescGZIP(), []int{40}
+	return file_visualize_grpc_proto_rawDescGZIP(), []int{41}
 }
 
 var File_visualize_grpc_proto protoreflect.FileDescriptor
@@ -3033,14 +3112,29 @@ var file_visualize_grpc_proto_rawDesc = []byte{
 	0x6f, 0x64, 0x65, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x05, 0x52, 0x0a, 0x70, 0x65,
 	0x65, 0x72, 0x4e, 0x6f, 0x64, 0x65, 0x49, 0x64, 0x12, 0x1d, 0x0a, 0x0a, 0x74, 0x65, 0x78, 0x74,
 	0x5f, 0x6c, 0x61, 0x62, 0x65, 0x6c, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x09, 0x74, 0x65,
-	0x78, 0x74, 0x4c, 0x61, 0x62, 0x65, 0x6c, 0x22, 0x6c, 0x0a, 0x11, 0x41, 0x64, 0x64, 0x4c, 0x69,
-	0x6e, 0x6b, 0x53, 0x74, 0x61, 0x74, 0x73, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x12, 0x17, 0x0a, 0x07,
-	0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x05, 0x52, 0x06, 0x6e,
-	0x6f, 0x64, 0x65, 0x49, 0x64, 0x12, 0x3e, 0x0a, 0x0a, 0x6c, 0x69, 0x6e, 0x6b, 0x5f, 0x73, 0x74,
-	0x61, 0x74, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x1f, 0x2e, 0x76, 0x69, 0x73, 0x75,
-	0x61, 0x6c, 0x69, 0x7a, 0x65, 0x5f, 0x67, 0x72, 0x70, 0x63, 0x5f, 0x70, 0x62, 0x2e, 0x4c, 0x69,
-	0x6e, 0x6b, 0x53, 0x74, 0x61, 0x74, 0x49, 0x6e, 0x66, 0x6f, 0x52, 0x09, 0x6c, 0x69, 0x6e, 0x6b,
-	0x53, 0x74, 0x61, 0x74, 0x73, 0x22, 0x84, 0x01, 0x0a, 0x14, 0x52, 0x65, 0x6d, 0x6f, 0x76, 0x65,
+	0x78, 0x74, 0x4c, 0x61, 0x62, 0x65, 0x6c, 0x22, 0xa1, 0x01, 0x0a, 0x13, 0x4c, 0x69, 0x6e, 0x6b,
+	0x53, 0x74, 0x61, 0x74, 0x4c, 0x61, 0x62, 0x65, 0x6c, 0x46, 0x6f, 0x72, 0x6d, 0x61, 0x74, 0x12,
+	0x1b, 0x0a, 0x09, 0x66, 0x6f, 0x6e, 0x74, 0x5f, 0x73, 0x69, 0x7a, 0x65, 0x18, 0x01, 0x20, 0x01,
+	0x28, 0x0d, 0x52, 0x08, 0x66, 0x6f, 0x6e, 0x74, 0x53, 0x69, 0x7a, 0x65, 0x12, 0x1d, 0x0a, 0x0a,
+	0x66, 0x6f, 0x6e, 0x74, 0x5f, 0x63, 0x6f, 0x6c, 0x6f, 0x72, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0d,
+	0x52, 0x09, 0x66, 0x6f, 0x6e, 0x74, 0x43, 0x6f, 0x6c, 0x6f, 0x72, 0x12, 0x20, 0x0a, 0x0c, 0x69,
+	0x73, 0x5f, 0x66, 0x6f, 0x6e, 0x74, 0x5f, 0x62, 0x6f, 0x6c, 0x64, 0x18, 0x03, 0x20, 0x01, 0x28,
+	0x08, 0x52, 0x0a, 0x69, 0x73, 0x46, 0x6f, 0x6e, 0x74, 0x42, 0x6f, 0x6c, 0x64, 0x12, 0x2c, 0x0a,
+	0x12, 0x64, 0x69, 0x73, 0x74, 0x61, 0x6e, 0x63, 0x65, 0x5f, 0x66, 0x72, 0x6f, 0x6d, 0x5f, 0x6e,
+	0x6f, 0x64, 0x65, 0x18, 0x04, 0x20, 0x01, 0x28, 0x0d, 0x52, 0x10, 0x64, 0x69, 0x73, 0x74, 0x61,
+	0x6e, 0x63, 0x65, 0x46, 0x72, 0x6f, 0x6d, 0x4e, 0x6f, 0x64, 0x65, 0x22, 0xb7, 0x01, 0x0a, 0x11,
+	0x41, 0x64, 0x64, 0x4c, 0x69, 0x6e, 0x6b, 0x53, 0x74, 0x61, 0x74, 0x73, 0x45, 0x76, 0x65, 0x6e,
+	0x74, 0x12, 0x17, 0x0a, 0x07, 0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01,
+	0x28, 0x05, 0x52, 0x06, 0x6e, 0x6f, 0x64, 0x65, 0x49, 0x64, 0x12, 0x3e, 0x0a, 0x0a, 0x6c, 0x69,
+	0x6e, 0x6b, 0x5f, 0x73, 0x74, 0x61, 0x74, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x1f,
+	0x2e, 0x76, 0x69, 0x73, 0x75, 0x61, 0x6c, 0x69, 0x7a, 0x65, 0x5f, 0x67, 0x72, 0x70, 0x63, 0x5f,
+	0x70, 0x62, 0x2e, 0x4c, 0x69, 0x6e, 0x6b, 0x53, 0x74, 0x61, 0x74, 0x49, 0x6e, 0x66, 0x6f, 0x52,
+	0x09, 0x6c, 0x69, 0x6e, 0x6b, 0x53, 0x74, 0x61, 0x74, 0x73, 0x12, 0x49, 0x0a, 0x0c, 0x6c, 0x61,
+	0x62, 0x65, 0x6c, 0x5f, 0x66, 0x6f, 0x72, 0x6d, 0x61, 0x74, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0b,
+	0x32, 0x26, 0x2e, 0x76, 0x69, 0x73, 0x75, 0x61, 0x6c, 0x69, 0x7a, 0x65, 0x5f, 0x67, 0x72, 0x70,
+	0x63, 0x5f, 0x70, 0x62, 0x2e, 0x4c, 0x69, 0x6e, 0x6b, 0x53, 0x74, 0x61, 0x74, 0x4c, 0x61, 0x62,
+	0x65, 0x6c, 0x46, 0x6f, 0x72, 0x6d, 0x61, 0x74, 0x52, 0x0b, 0x6c, 0x61, 0x62, 0x65, 0x6c, 0x46,
+	0x6f, 0x72, 0x6d, 0x61, 0x74, 0x22, 0x84, 0x01, 0x0a, 0x14, 0x52, 0x65, 0x6d, 0x6f, 0x76, 0x65,
 	0x4c, 0x69, 0x6e, 0x6b, 0x53, 0x74, 0x61, 0x74, 0x73, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x12, 0x17,
 	0x0a, 0x07, 0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x05, 0x52,
 	0x06, 0x6e, 0x6f, 0x64, 0x65, 0x49, 0x64, 0x12, 0x2f, 0x0a, 0x14, 0x72, 0x65, 0x6d, 0x6f, 0x76,
@@ -3260,7 +3354,7 @@ func file_visualize_grpc_proto_rawDescGZIP() []byte {
 }
 
 var file_visualize_grpc_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_visualize_grpc_proto_msgTypes = make([]protoimpl.MessageInfo, 41)
+var file_visualize_grpc_proto_msgTypes = make([]protoimpl.MessageInfo, 42)
 var file_visualize_grpc_proto_goTypes = []interface{}{
 	(OtDeviceRole)(0),               // 0: visualize_grpc_pb.OtDeviceRole
 	(*VisualizeRequest)(nil),        // 1: visualize_grpc_pb.VisualizeRequest
@@ -3274,86 +3368,88 @@ var file_visualize_grpc_proto_goTypes = []interface{}{
 	(*AddChildTableEvent)(nil),      // 9: visualize_grpc_pb.AddChildTableEvent
 	(*RemoveChildTableEvent)(nil),   // 10: visualize_grpc_pb.RemoveChildTableEvent
 	(*LinkStatInfo)(nil),            // 11: visualize_grpc_pb.LinkStatInfo
-	(*AddLinkStatsEvent)(nil),       // 12: visualize_grpc_pb.AddLinkStatsEvent
-	(*RemoveLinkStatsEvent)(nil),    // 13: visualize_grpc_pb.RemoveLinkStatsEvent
-	(*SetSpeedEvent)(nil),           // 14: visualize_grpc_pb.SetSpeedEvent
-	(*HeartbeatEvent)(nil),          // 15: visualize_grpc_pb.HeartbeatEvent
-	(*AdvanceTimeEvent)(nil),        // 16: visualize_grpc_pb.AdvanceTimeEvent
-	(*SetParentEvent)(nil),          // 17: visualize_grpc_pb.SetParentEvent
-	(*CountDownEvent)(nil),          // 18: visualize_grpc_pb.CountDownEvent
-	(*ShowDemoLegendEvent)(nil),     // 19: visualize_grpc_pb.ShowDemoLegendEvent
-	(*SetNodePosEvent)(nil),         // 20: visualize_grpc_pb.SetNodePosEvent
-	(*SetNodeRoleEvent)(nil),        // 21: visualize_grpc_pb.SetNodeRoleEvent
-	(*SetNodePartitionIdEvent)(nil), // 22: visualize_grpc_pb.SetNodePartitionIdEvent
-	(*OnNodeFailEvent)(nil),         // 23: visualize_grpc_pb.OnNodeFailEvent
-	(*OnNodeRecoverEvent)(nil),      // 24: visualize_grpc_pb.OnNodeRecoverEvent
-	(*DeleteNodeEvent)(nil),         // 25: visualize_grpc_pb.DeleteNodeEvent
-	(*AddNodeEvent)(nil),            // 26: visualize_grpc_pb.AddNodeEvent
-	(*NodeMode)(nil),                // 27: visualize_grpc_pb.NodeMode
-	(*SetNodeRloc16Event)(nil),      // 28: visualize_grpc_pb.SetNodeRloc16Event
-	(*OnExtAddrChangeEvent)(nil),    // 29: visualize_grpc_pb.OnExtAddrChangeEvent
-	(*SetTitleEvent)(nil),           // 30: visualize_grpc_pb.SetTitleEvent
-	(*SetNodeModeEvent)(nil),        // 31: visualize_grpc_pb.SetNodeModeEvent
-	(*SetNetworkInfoEvent)(nil),     // 32: visualize_grpc_pb.SetNetworkInfoEvent
-	(*NodeEnergy)(nil),              // 33: visualize_grpc_pb.NodeEnergy
-	(*EnergyEvent)(nil),             // 34: visualize_grpc_pb.EnergyEvent
-	(*NodeStats)(nil),               // 35: visualize_grpc_pb.NodeStats
-	(*NodeStatsInfoEvent)(nil),      // 36: visualize_grpc_pb.NodeStatsInfoEvent
-	(*CommandRequest)(nil),          // 37: visualize_grpc_pb.CommandRequest
-	(*CommandResponse)(nil),         // 38: visualize_grpc_pb.CommandResponse
-	(*ReplayEntry)(nil),             // 39: visualize_grpc_pb.ReplayEntry
-	(*SelectNodeRequest)(nil),       // 40: visualize_grpc_pb.SelectNodeRequest
-	(*Empty)(nil),                   // 41: visualize_grpc_pb.Empty
+	(*LinkStatLabelFormat)(nil),     // 12: visualize_grpc_pb.LinkStatLabelFormat
+	(*AddLinkStatsEvent)(nil),       // 13: visualize_grpc_pb.AddLinkStatsEvent
+	(*RemoveLinkStatsEvent)(nil),    // 14: visualize_grpc_pb.RemoveLinkStatsEvent
+	(*SetSpeedEvent)(nil),           // 15: visualize_grpc_pb.SetSpeedEvent
+	(*HeartbeatEvent)(nil),          // 16: visualize_grpc_pb.HeartbeatEvent
+	(*AdvanceTimeEvent)(nil),        // 17: visualize_grpc_pb.AdvanceTimeEvent
+	(*SetParentEvent)(nil),          // 18: visualize_grpc_pb.SetParentEvent
+	(*CountDownEvent)(nil),          // 19: visualize_grpc_pb.CountDownEvent
+	(*ShowDemoLegendEvent)(nil),     // 20: visualize_grpc_pb.ShowDemoLegendEvent
+	(*SetNodePosEvent)(nil),         // 21: visualize_grpc_pb.SetNodePosEvent
+	(*SetNodeRoleEvent)(nil),        // 22: visualize_grpc_pb.SetNodeRoleEvent
+	(*SetNodePartitionIdEvent)(nil), // 23: visualize_grpc_pb.SetNodePartitionIdEvent
+	(*OnNodeFailEvent)(nil),         // 24: visualize_grpc_pb.OnNodeFailEvent
+	(*OnNodeRecoverEvent)(nil),      // 25: visualize_grpc_pb.OnNodeRecoverEvent
+	(*DeleteNodeEvent)(nil),         // 26: visualize_grpc_pb.DeleteNodeEvent
+	(*AddNodeEvent)(nil),            // 27: visualize_grpc_pb.AddNodeEvent
+	(*NodeMode)(nil),                // 28: visualize_grpc_pb.NodeMode
+	(*SetNodeRloc16Event)(nil),      // 29: visualize_grpc_pb.SetNodeRloc16Event
+	(*OnExtAddrChangeEvent)(nil),    // 30: visualize_grpc_pb.OnExtAddrChangeEvent
+	(*SetTitleEvent)(nil),           // 31: visualize_grpc_pb.SetTitleEvent
+	(*SetNodeModeEvent)(nil),        // 32: visualize_grpc_pb.SetNodeModeEvent
+	(*SetNetworkInfoEvent)(nil),     // 33: visualize_grpc_pb.SetNetworkInfoEvent
+	(*NodeEnergy)(nil),              // 34: visualize_grpc_pb.NodeEnergy
+	(*EnergyEvent)(nil),             // 35: visualize_grpc_pb.EnergyEvent
+	(*NodeStats)(nil),               // 36: visualize_grpc_pb.NodeStats
+	(*NodeStatsInfoEvent)(nil),      // 37: visualize_grpc_pb.NodeStatsInfoEvent
+	(*CommandRequest)(nil),          // 38: visualize_grpc_pb.CommandRequest
+	(*CommandResponse)(nil),         // 39: visualize_grpc_pb.CommandResponse
+	(*ReplayEntry)(nil),             // 40: visualize_grpc_pb.ReplayEntry
+	(*SelectNodeRequest)(nil),       // 41: visualize_grpc_pb.SelectNodeRequest
+	(*Empty)(nil),                   // 42: visualize_grpc_pb.Empty
 }
 var file_visualize_grpc_proto_depIdxs = []int32{
-	26, // 0: visualize_grpc_pb.VisualizeEvent.add_node:type_name -> visualize_grpc_pb.AddNodeEvent
-	25, // 1: visualize_grpc_pb.VisualizeEvent.delete_node:type_name -> visualize_grpc_pb.DeleteNodeEvent
-	28, // 2: visualize_grpc_pb.VisualizeEvent.set_node_rloc16:type_name -> visualize_grpc_pb.SetNodeRloc16Event
-	21, // 3: visualize_grpc_pb.VisualizeEvent.set_node_role:type_name -> visualize_grpc_pb.SetNodeRoleEvent
-	20, // 4: visualize_grpc_pb.VisualizeEvent.set_node_pos:type_name -> visualize_grpc_pb.SetNodePosEvent
-	22, // 5: visualize_grpc_pb.VisualizeEvent.set_node_partition_id:type_name -> visualize_grpc_pb.SetNodePartitionIdEvent
-	23, // 6: visualize_grpc_pb.VisualizeEvent.on_node_fail:type_name -> visualize_grpc_pb.OnNodeFailEvent
-	24, // 7: visualize_grpc_pb.VisualizeEvent.on_node_recover:type_name -> visualize_grpc_pb.OnNodeRecoverEvent
-	17, // 8: visualize_grpc_pb.VisualizeEvent.set_parent:type_name -> visualize_grpc_pb.SetParentEvent
-	18, // 9: visualize_grpc_pb.VisualizeEvent.count_down:type_name -> visualize_grpc_pb.CountDownEvent
-	19, // 10: visualize_grpc_pb.VisualizeEvent.show_demo_legend:type_name -> visualize_grpc_pb.ShowDemoLegendEvent
-	16, // 11: visualize_grpc_pb.VisualizeEvent.advance_time:type_name -> visualize_grpc_pb.AdvanceTimeEvent
+	27, // 0: visualize_grpc_pb.VisualizeEvent.add_node:type_name -> visualize_grpc_pb.AddNodeEvent
+	26, // 1: visualize_grpc_pb.VisualizeEvent.delete_node:type_name -> visualize_grpc_pb.DeleteNodeEvent
+	29, // 2: visualize_grpc_pb.VisualizeEvent.set_node_rloc16:type_name -> visualize_grpc_pb.SetNodeRloc16Event
+	22, // 3: visualize_grpc_pb.VisualizeEvent.set_node_role:type_name -> visualize_grpc_pb.SetNodeRoleEvent
+	21, // 4: visualize_grpc_pb.VisualizeEvent.set_node_pos:type_name -> visualize_grpc_pb.SetNodePosEvent
+	23, // 5: visualize_grpc_pb.VisualizeEvent.set_node_partition_id:type_name -> visualize_grpc_pb.SetNodePartitionIdEvent
+	24, // 6: visualize_grpc_pb.VisualizeEvent.on_node_fail:type_name -> visualize_grpc_pb.OnNodeFailEvent
+	25, // 7: visualize_grpc_pb.VisualizeEvent.on_node_recover:type_name -> visualize_grpc_pb.OnNodeRecoverEvent
+	18, // 8: visualize_grpc_pb.VisualizeEvent.set_parent:type_name -> visualize_grpc_pb.SetParentEvent
+	19, // 9: visualize_grpc_pb.VisualizeEvent.count_down:type_name -> visualize_grpc_pb.CountDownEvent
+	20, // 10: visualize_grpc_pb.VisualizeEvent.show_demo_legend:type_name -> visualize_grpc_pb.ShowDemoLegendEvent
+	17, // 11: visualize_grpc_pb.VisualizeEvent.advance_time:type_name -> visualize_grpc_pb.AdvanceTimeEvent
 	7,  // 12: visualize_grpc_pb.VisualizeEvent.add_router_table:type_name -> visualize_grpc_pb.AddRouterTableEvent
 	8,  // 13: visualize_grpc_pb.VisualizeEvent.remove_router_table:type_name -> visualize_grpc_pb.RemoveRouterTableEvent
 	9,  // 14: visualize_grpc_pb.VisualizeEvent.add_child_table:type_name -> visualize_grpc_pb.AddChildTableEvent
 	10, // 15: visualize_grpc_pb.VisualizeEvent.remove_child_table:type_name -> visualize_grpc_pb.RemoveChildTableEvent
 	5,  // 16: visualize_grpc_pb.VisualizeEvent.send:type_name -> visualize_grpc_pb.SendEvent
-	14, // 17: visualize_grpc_pb.VisualizeEvent.set_speed:type_name -> visualize_grpc_pb.SetSpeedEvent
-	15, // 18: visualize_grpc_pb.VisualizeEvent.heartbeat:type_name -> visualize_grpc_pb.HeartbeatEvent
-	29, // 19: visualize_grpc_pb.VisualizeEvent.on_ext_addr_change:type_name -> visualize_grpc_pb.OnExtAddrChangeEvent
-	30, // 20: visualize_grpc_pb.VisualizeEvent.set_title:type_name -> visualize_grpc_pb.SetTitleEvent
-	31, // 21: visualize_grpc_pb.VisualizeEvent.set_node_mode:type_name -> visualize_grpc_pb.SetNodeModeEvent
-	32, // 22: visualize_grpc_pb.VisualizeEvent.set_network_info:type_name -> visualize_grpc_pb.SetNetworkInfoEvent
-	36, // 23: visualize_grpc_pb.VisualizeEvent.node_stats_info:type_name -> visualize_grpc_pb.NodeStatsInfoEvent
-	12, // 24: visualize_grpc_pb.VisualizeEvent.add_link_stats:type_name -> visualize_grpc_pb.AddLinkStatsEvent
-	13, // 25: visualize_grpc_pb.VisualizeEvent.remove_link_stats:type_name -> visualize_grpc_pb.RemoveLinkStatsEvent
+	15, // 17: visualize_grpc_pb.VisualizeEvent.set_speed:type_name -> visualize_grpc_pb.SetSpeedEvent
+	16, // 18: visualize_grpc_pb.VisualizeEvent.heartbeat:type_name -> visualize_grpc_pb.HeartbeatEvent
+	30, // 19: visualize_grpc_pb.VisualizeEvent.on_ext_addr_change:type_name -> visualize_grpc_pb.OnExtAddrChangeEvent
+	31, // 20: visualize_grpc_pb.VisualizeEvent.set_title:type_name -> visualize_grpc_pb.SetTitleEvent
+	32, // 21: visualize_grpc_pb.VisualizeEvent.set_node_mode:type_name -> visualize_grpc_pb.SetNodeModeEvent
+	33, // 22: visualize_grpc_pb.VisualizeEvent.set_network_info:type_name -> visualize_grpc_pb.SetNetworkInfoEvent
+	37, // 23: visualize_grpc_pb.VisualizeEvent.node_stats_info:type_name -> visualize_grpc_pb.NodeStatsInfoEvent
+	13, // 24: visualize_grpc_pb.VisualizeEvent.add_link_stats:type_name -> visualize_grpc_pb.AddLinkStatsEvent
+	14, // 25: visualize_grpc_pb.VisualizeEvent.remove_link_stats:type_name -> visualize_grpc_pb.RemoveLinkStatsEvent
 	6,  // 26: visualize_grpc_pb.SendEvent.mv_info:type_name -> visualize_grpc_pb.MsgVisualizeInfo
 	11, // 27: visualize_grpc_pb.AddLinkStatsEvent.link_stats:type_name -> visualize_grpc_pb.LinkStatInfo
-	0,  // 28: visualize_grpc_pb.SetNodeRoleEvent.role:type_name -> visualize_grpc_pb.OtDeviceRole
-	27, // 29: visualize_grpc_pb.SetNodeModeEvent.node_mode:type_name -> visualize_grpc_pb.NodeMode
-	33, // 30: visualize_grpc_pb.EnergyEvent.NodesEnergy:type_name -> visualize_grpc_pb.NodeEnergy
-	35, // 31: visualize_grpc_pb.NodeStatsInfoEvent.node_stats:type_name -> visualize_grpc_pb.NodeStats
-	4,  // 32: visualize_grpc_pb.ReplayEntry.event:type_name -> visualize_grpc_pb.VisualizeEvent
-	1,  // 33: visualize_grpc_pb.VisualizeGrpcService.Visualize:input_type -> visualize_grpc_pb.VisualizeRequest
-	37, // 34: visualize_grpc_pb.VisualizeGrpcService.Command:input_type -> visualize_grpc_pb.CommandRequest
-	2,  // 35: visualize_grpc_pb.VisualizeGrpcService.Energy:input_type -> visualize_grpc_pb.EnergyRequest
-	3,  // 36: visualize_grpc_pb.VisualizeGrpcService.NodeStats:input_type -> visualize_grpc_pb.NodeStatsRequest
-	40, // 37: visualize_grpc_pb.VisualizeGrpcService.SelectNode:input_type -> visualize_grpc_pb.SelectNodeRequest
-	4,  // 38: visualize_grpc_pb.VisualizeGrpcService.Visualize:output_type -> visualize_grpc_pb.VisualizeEvent
-	38, // 39: visualize_grpc_pb.VisualizeGrpcService.Command:output_type -> visualize_grpc_pb.CommandResponse
-	34, // 40: visualize_grpc_pb.VisualizeGrpcService.Energy:output_type -> visualize_grpc_pb.EnergyEvent
-	4,  // 41: visualize_grpc_pb.VisualizeGrpcService.NodeStats:output_type -> visualize_grpc_pb.VisualizeEvent
-	41, // 42: visualize_grpc_pb.VisualizeGrpcService.SelectNode:output_type -> visualize_grpc_pb.Empty
-	38, // [38:43] is the sub-list for method output_type
-	33, // [33:38] is the sub-list for method input_type
-	33, // [33:33] is the sub-list for extension type_name
-	33, // [33:33] is the sub-list for extension extendee
-	0,  // [0:33] is the sub-list for field type_name
+	12, // 28: visualize_grpc_pb.AddLinkStatsEvent.label_format:type_name -> visualize_grpc_pb.LinkStatLabelFormat
+	0,  // 29: visualize_grpc_pb.SetNodeRoleEvent.role:type_name -> visualize_grpc_pb.OtDeviceRole
+	28, // 30: visualize_grpc_pb.SetNodeModeEvent.node_mode:type_name -> visualize_grpc_pb.NodeMode
+	34, // 31: visualize_grpc_pb.EnergyEvent.NodesEnergy:type_name -> visualize_grpc_pb.NodeEnergy
+	36, // 32: visualize_grpc_pb.NodeStatsInfoEvent.node_stats:type_name -> visualize_grpc_pb.NodeStats
+	4,  // 33: visualize_grpc_pb.ReplayEntry.event:type_name -> visualize_grpc_pb.VisualizeEvent
+	1,  // 34: visualize_grpc_pb.VisualizeGrpcService.Visualize:input_type -> visualize_grpc_pb.VisualizeRequest
+	38, // 35: visualize_grpc_pb.VisualizeGrpcService.Command:input_type -> visualize_grpc_pb.CommandRequest
+	2,  // 36: visualize_grpc_pb.VisualizeGrpcService.Energy:input_type -> visualize_grpc_pb.EnergyRequest
+	3,  // 37: visualize_grpc_pb.VisualizeGrpcService.NodeStats:input_type -> visualize_grpc_pb.NodeStatsRequest
+	41, // 38: visualize_grpc_pb.VisualizeGrpcService.SelectNode:input_type -> visualize_grpc_pb.SelectNodeRequest
+	4,  // 39: visualize_grpc_pb.VisualizeGrpcService.Visualize:output_type -> visualize_grpc_pb.VisualizeEvent
+	39, // 40: visualize_grpc_pb.VisualizeGrpcService.Command:output_type -> visualize_grpc_pb.CommandResponse
+	35, // 41: visualize_grpc_pb.VisualizeGrpcService.Energy:output_type -> visualize_grpc_pb.EnergyEvent
+	4,  // 42: visualize_grpc_pb.VisualizeGrpcService.NodeStats:output_type -> visualize_grpc_pb.VisualizeEvent
+	42, // 43: visualize_grpc_pb.VisualizeGrpcService.SelectNode:output_type -> visualize_grpc_pb.Empty
+	39, // [39:44] is the sub-list for method output_type
+	34, // [34:39] is the sub-list for method input_type
+	34, // [34:34] is the sub-list for extension type_name
+	34, // [34:34] is the sub-list for extension extendee
+	0,  // [0:34] is the sub-list for field type_name
 }
 
 func init() { file_visualize_grpc_proto_init() }
@@ -3495,7 +3591,7 @@ func file_visualize_grpc_proto_init() {
 			}
 		}
 		file_visualize_grpc_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*AddLinkStatsEvent); i {
+			switch v := v.(*LinkStatLabelFormat); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -3507,7 +3603,7 @@ func file_visualize_grpc_proto_init() {
 			}
 		}
 		file_visualize_grpc_proto_msgTypes[12].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*RemoveLinkStatsEvent); i {
+			switch v := v.(*AddLinkStatsEvent); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -3519,7 +3615,7 @@ func file_visualize_grpc_proto_init() {
 			}
 		}
 		file_visualize_grpc_proto_msgTypes[13].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SetSpeedEvent); i {
+			switch v := v.(*RemoveLinkStatsEvent); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -3531,7 +3627,7 @@ func file_visualize_grpc_proto_init() {
 			}
 		}
 		file_visualize_grpc_proto_msgTypes[14].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*HeartbeatEvent); i {
+			switch v := v.(*SetSpeedEvent); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -3543,7 +3639,7 @@ func file_visualize_grpc_proto_init() {
 			}
 		}
 		file_visualize_grpc_proto_msgTypes[15].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*AdvanceTimeEvent); i {
+			switch v := v.(*HeartbeatEvent); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -3555,7 +3651,7 @@ func file_visualize_grpc_proto_init() {
 			}
 		}
 		file_visualize_grpc_proto_msgTypes[16].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SetParentEvent); i {
+			switch v := v.(*AdvanceTimeEvent); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -3567,7 +3663,7 @@ func file_visualize_grpc_proto_init() {
 			}
 		}
 		file_visualize_grpc_proto_msgTypes[17].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*CountDownEvent); i {
+			switch v := v.(*SetParentEvent); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -3579,7 +3675,7 @@ func file_visualize_grpc_proto_init() {
 			}
 		}
 		file_visualize_grpc_proto_msgTypes[18].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ShowDemoLegendEvent); i {
+			switch v := v.(*CountDownEvent); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -3591,7 +3687,7 @@ func file_visualize_grpc_proto_init() {
 			}
 		}
 		file_visualize_grpc_proto_msgTypes[19].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SetNodePosEvent); i {
+			switch v := v.(*ShowDemoLegendEvent); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -3603,7 +3699,7 @@ func file_visualize_grpc_proto_init() {
 			}
 		}
 		file_visualize_grpc_proto_msgTypes[20].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SetNodeRoleEvent); i {
+			switch v := v.(*SetNodePosEvent); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -3615,7 +3711,7 @@ func file_visualize_grpc_proto_init() {
 			}
 		}
 		file_visualize_grpc_proto_msgTypes[21].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SetNodePartitionIdEvent); i {
+			switch v := v.(*SetNodeRoleEvent); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -3627,7 +3723,7 @@ func file_visualize_grpc_proto_init() {
 			}
 		}
 		file_visualize_grpc_proto_msgTypes[22].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*OnNodeFailEvent); i {
+			switch v := v.(*SetNodePartitionIdEvent); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -3639,7 +3735,7 @@ func file_visualize_grpc_proto_init() {
 			}
 		}
 		file_visualize_grpc_proto_msgTypes[23].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*OnNodeRecoverEvent); i {
+			switch v := v.(*OnNodeFailEvent); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -3651,7 +3747,7 @@ func file_visualize_grpc_proto_init() {
 			}
 		}
 		file_visualize_grpc_proto_msgTypes[24].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*DeleteNodeEvent); i {
+			switch v := v.(*OnNodeRecoverEvent); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -3663,7 +3759,7 @@ func file_visualize_grpc_proto_init() {
 			}
 		}
 		file_visualize_grpc_proto_msgTypes[25].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*AddNodeEvent); i {
+			switch v := v.(*DeleteNodeEvent); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -3675,7 +3771,7 @@ func file_visualize_grpc_proto_init() {
 			}
 		}
 		file_visualize_grpc_proto_msgTypes[26].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*NodeMode); i {
+			switch v := v.(*AddNodeEvent); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -3687,7 +3783,7 @@ func file_visualize_grpc_proto_init() {
 			}
 		}
 		file_visualize_grpc_proto_msgTypes[27].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SetNodeRloc16Event); i {
+			switch v := v.(*NodeMode); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -3699,7 +3795,7 @@ func file_visualize_grpc_proto_init() {
 			}
 		}
 		file_visualize_grpc_proto_msgTypes[28].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*OnExtAddrChangeEvent); i {
+			switch v := v.(*SetNodeRloc16Event); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -3711,7 +3807,7 @@ func file_visualize_grpc_proto_init() {
 			}
 		}
 		file_visualize_grpc_proto_msgTypes[29].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SetTitleEvent); i {
+			switch v := v.(*OnExtAddrChangeEvent); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -3723,7 +3819,7 @@ func file_visualize_grpc_proto_init() {
 			}
 		}
 		file_visualize_grpc_proto_msgTypes[30].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SetNodeModeEvent); i {
+			switch v := v.(*SetTitleEvent); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -3735,7 +3831,7 @@ func file_visualize_grpc_proto_init() {
 			}
 		}
 		file_visualize_grpc_proto_msgTypes[31].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SetNetworkInfoEvent); i {
+			switch v := v.(*SetNodeModeEvent); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -3747,7 +3843,7 @@ func file_visualize_grpc_proto_init() {
 			}
 		}
 		file_visualize_grpc_proto_msgTypes[32].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*NodeEnergy); i {
+			switch v := v.(*SetNetworkInfoEvent); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -3759,7 +3855,7 @@ func file_visualize_grpc_proto_init() {
 			}
 		}
 		file_visualize_grpc_proto_msgTypes[33].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*EnergyEvent); i {
+			switch v := v.(*NodeEnergy); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -3771,7 +3867,7 @@ func file_visualize_grpc_proto_init() {
 			}
 		}
 		file_visualize_grpc_proto_msgTypes[34].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*NodeStats); i {
+			switch v := v.(*EnergyEvent); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -3783,7 +3879,7 @@ func file_visualize_grpc_proto_init() {
 			}
 		}
 		file_visualize_grpc_proto_msgTypes[35].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*NodeStatsInfoEvent); i {
+			switch v := v.(*NodeStats); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -3795,7 +3891,7 @@ func file_visualize_grpc_proto_init() {
 			}
 		}
 		file_visualize_grpc_proto_msgTypes[36].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*CommandRequest); i {
+			switch v := v.(*NodeStatsInfoEvent); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -3807,7 +3903,7 @@ func file_visualize_grpc_proto_init() {
 			}
 		}
 		file_visualize_grpc_proto_msgTypes[37].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*CommandResponse); i {
+			switch v := v.(*CommandRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -3819,7 +3915,7 @@ func file_visualize_grpc_proto_init() {
 			}
 		}
 		file_visualize_grpc_proto_msgTypes[38].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ReplayEntry); i {
+			switch v := v.(*CommandResponse); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -3831,7 +3927,7 @@ func file_visualize_grpc_proto_init() {
 			}
 		}
 		file_visualize_grpc_proto_msgTypes[39].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SelectNodeRequest); i {
+			switch v := v.(*ReplayEntry); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -3843,6 +3939,18 @@ func file_visualize_grpc_proto_init() {
 			}
 		}
 		file_visualize_grpc_proto_msgTypes[40].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*SelectNodeRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_visualize_grpc_proto_msgTypes[41].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Empty); i {
 			case 0:
 				return &v.state
@@ -3889,7 +3997,7 @@ func file_visualize_grpc_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_visualize_grpc_proto_rawDesc,
 			NumEnums:      1,
-			NumMessages:   41,
+			NumMessages:   42,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

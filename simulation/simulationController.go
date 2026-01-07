@@ -55,7 +55,7 @@ func (sc *simulationController) Command(cmd string) ([]string, error) {
 func (sc *simulationController) SelectNode(id types.NodeId) error {
 	sim := sc.sim
 	sim.PostAsync(func() {
-		sim.d.ShowLinkStatsForNode(id)
+		sim.d.OnNodeSelected(id)
 	})
 	return nil
 }

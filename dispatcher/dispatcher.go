@@ -729,7 +729,7 @@ func (d *Dispatcher) sendRadioCommRxStartEvents(srcNode *Node, evt *Event) {
 	}
 
 	// dispatch the message to all in range that are receiving.
-	neighborNodes := map[NodeId]*Node{}
+	neighborNodes := make(map[NodeId]*Node, len(d.nodesArray))
 	for _, dstNode := range d.nodesArray {
 		if d.checkRadioReachable(srcNode, dstNode) {
 			d.sendOneRadioFrame(evt, srcNode, dstNode)
@@ -866,8 +866,9 @@ func (d *Dispatcher) sendOneRadioFrame(evt *Event, srcnode *Node, dstnode *Node)
 		// send the event plus time keeping - moves dstnode's time to the current send-event's time.
 		dstnode.sendEvent(&evt2)
 
-		// for every successful radio frame dispatch, keep link statistics.
-		srcnode.onRadioFrameDispatch(dstnode, &evt2.RadioCommData)
+		// for every successful radio frame dispatch, allow the Visualizer to update link statistics.
+		// This includes both unicast and multicast/broadcast, and interference.
+		d.vis.OnRadioFrameDispatch(srcnode.Id, dstnode.Id, evt2.RadioCommData)
 	}
 }
 
@@ -1028,6 +1029,7 @@ func (d *Dispatcher) handleStatusPush(node *Node, data string) {
 		case "child_added":
 			extaddr, err := strconv.ParseUint(sp[1], 16, 64)
 			logger.PanicIfError(err)
+			// FIXME insert here the 'setParent' call
 			if d.visOptions.ChildTable {
 				d.vis.AddChildTable(srcid, extaddr)
 			}
@@ -1517,32 +1519,24 @@ func (d *Dispatcher) handleRadioState(node *Node, evt *Event) {
 	}
 }
 
-func (d *Dispatcher) ShowLinkStatsForNode(nodeid NodeId) {
-	if nodeid != d.selectedNodeId {
+func (d *Dispatcher) OnNodeSelected(nodeid NodeId) {
+	isSameSelected := nodeid == d.selectedNodeId
+	logger.Debugf("OnNodeSelected(%d), isSame=%v", nodeid, isSameSelected)
+	if !isSameSelected {
 		if d.selectedNodeId != InvalidNodeId {
-			d.vis.RemoveLinkStats(d.selectedNodeId, true, []NodeId{})
-		}
-		if node, ok := d.nodes[nodeid]; ok {
-			d.selectedNodeId = nodeid
-			if d.visOptions.TxRxPower && len(d.nodes) > 1 {
-				if _, ok := d.nodes[nodeid]; ok {
-					linkStats := make([]visualize.LinkStatInfo, 0, len(d.nodes)-1)
-					for peerId, peerNode := range d.nodes {
-						if peerId != nodeid {
-							if peerLinkStats, ok := node.linkStats[peerNode.ExtAddr]; ok {
-								ls := visualize.LinkStatInfo{
-									PeerNodeId: peerId,
-									TextLabel:  fmt.Sprintf("%d", peerLinkStats.LastTx.RxRssiDbm),
-								}
-								linkStats = append(linkStats, ls)
-							}
-						}
-					}
-					d.vis.AddLinkStats(nodeid, linkStats)
-				}
+			// hide linkstats for previously selected node
+			optNotVisible := visualize.LinkStatsOptions{
+				Visible: false,
 			}
-		} else {
-			d.selectedNodeId = InvalidNodeId // node unselected
+			d.vis.SetLinkStats(d.selectedNodeId, optNotVisible)
 		}
 	}
+
+	// set linkstats for selected node
+	if _, ok := d.nodes[nodeid]; ok {
+		if d.visOptions.LinkStats {
+			d.vis.SetLinkStats(nodeid, d.visOptions.LinkStatsOpt)
+		}
+	}
+	d.selectedNodeId = nodeid
 }

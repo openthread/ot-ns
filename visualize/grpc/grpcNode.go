@@ -28,6 +28,7 @@ package visualize_grpc
 
 import (
 	. "github.com/openthread/ot-ns/types"
+	"github.com/openthread/ot-ns/visualize"
 )
 
 type grpcNode struct {
@@ -44,6 +45,8 @@ type grpcNode struct {
 	parent        uint64
 	routerTable   map[uint64]struct{}
 	childTable    map[uint64]struct{}
+	linkStats     visualize.LinkStatsOptions
+	lastTxPower   map[NodeId]int8
 	threadVersion uint16
 	version       string
 	commit        string
@@ -61,11 +64,13 @@ func newGprcNode(id NodeId, cfg *NodeConfig) *grpcNode {
 		mode:          DefaultNodeMode(),
 		rloc16:        InvalidRloc16,
 		role:          OtDeviceRoleDisabled,
-		partitionId:   0,
+		partitionId:   InvalidPartitionId,
 		failed:        false,
-		parent:        0,
+		parent:        InvalidExtAddr,
 		routerTable:   map[uint64]struct{}{},
 		childTable:    map[uint64]struct{}{},
+		linkStats:     visualize.LinkStatsOptions{},
+		lastTxPower:   map[NodeId]int8{},
 		threadVersion: InvalidThreadVersion,
 		version:       cfg.Version,
 		commit:        "",
