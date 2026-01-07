@@ -346,14 +346,6 @@ export default class PixiVisualizer extends VObject {
         this.nodes[nodeId].setRole(role);
         if (oldRole !== role) {
             this.logNode(nodeId, `Role changed from ${fmt.roleToString(oldRole)} to ${fmt.roleToString(role)}`)
-
-            // if there's a role change to Router, then consider the former-parent as a new Router neighbor.
-            // OT does not send an event in this case (FIXME: to let OT send this and also send the 'new parent'
-            // event.)
-            if (role == OtDeviceRole.OT_DEVICE_ROLE_ROUTER) {
-                this.nodes[nodeId].setFormerParentAsRouter();
-            }
-
             this.onNodeUpdate(nodeId);
         }
     }

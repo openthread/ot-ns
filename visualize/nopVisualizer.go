@@ -49,8 +49,7 @@ func (nv *NopVisualizer) SetNetworkInfo(networkInfo NetworkInfo) {
 func (nv *NopVisualizer) OnExtAddrChange(id NodeId, extaddr uint64) {
 }
 
-func (nv *NopVisualizer) OnRadioFrameDispatch(srcid NodeId, dstid NodeId, data event.RadioCommEventData) {
-
+func (nv *NopVisualizer) OnRadioFrameDispatch(srcid NodeId, dstid NodeId, evt *event.Event) {
 }
 
 func (nv *NopVisualizer) SetSpeed(speed float64) {

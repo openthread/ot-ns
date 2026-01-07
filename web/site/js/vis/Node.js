@@ -100,6 +100,13 @@ export default class Node extends VObject {
         this.setOnTap((e) => {
             e.stopPropagation();
         });
+        this.setOnHover((e) => {
+                this.root.alpha = 0.92;
+            },
+            (e) => {
+                this.root.alpha = 1.0;
+            }
+        );
 
         this.setDraggable();
 
@@ -379,13 +386,6 @@ export default class Node extends VObject {
         }
     }
 
-    setFormerParentAsRouter() {
-        if (this.parent !== EXT_ADDR_INVALID) {
-            this._neighbors[this.parent] = 1;
-        }
-        this._removeParent();
-    }
-
     onDraggingTimer() {
         let pos = this.position;
         this.vis.ctrlMoveNodeTo(this.id, pos.x, pos.y, (err, resp) => {
@@ -396,7 +396,7 @@ export default class Node extends VObject {
         let pos = this.position;
         this.vis.ctrlMoveNodeTo(this.id, pos.x, pos.y, (err, resp) => {
             if (err !== null) {
-                this.position.set(this.x, this.y)
+                this.position.set(this.x, this.y);
             }
         })
     }

@@ -148,14 +148,14 @@ func (gv *grpcVisualizer) OnExtAddrChange(nodeid NodeId, extaddr uint64) {
 	}}})
 }
 
-func (gv *grpcVisualizer) OnRadioFrameDispatch(srcid NodeId, dstid NodeId, data event.RadioCommEventData) {
-	isSrcChange, _ /* isDstChange*/ := gv.f.onRadioFrameDispatch(srcid, dstid, data)
+func (gv *grpcVisualizer) OnRadioFrameDispatch(srcid NodeId, dstid NodeId, evt *event.Event) {
+	isRenderSrcChange, _ /* isDstChange*/ := gv.f.onRadioFrameDispatch(srcid, dstid, evt)
 
-	if isSrcChange {
+	if isRenderSrcChange {
 		ls := make([]*pb.LinkStatInfo, 1)
 		ls[0] = &pb.LinkStatInfo{
 			PeerNodeId: int32(dstid),
-			TextLabel:  fmt.Sprintf("%d dBm", gv.f.nodes[srcid].lastTxPower[dstid]),
+			TextLabel:  fmt.Sprintf("%d\ndBm", gv.f.nodes[srcid].lastTxPower[dstid]),
 		}
 		e := &pb.VisualizeEvent{Type: &pb.VisualizeEvent_AddLinkStats{AddLinkStats: &pb.AddLinkStatsEvent{
 			NodeId:    int32(srcid),
@@ -211,6 +211,7 @@ func (gv *grpcVisualizer) Send(srcid NodeId, dstid NodeId, mvinfo *visualize.Msg
 	gv.Lock()
 	defer gv.Unlock()
 
+	gv.f.send(srcid, dstid, mvinfo)
 	gv.addVisualizeEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_Send{Send: &pb.SendEvent{
 		SrcId: int32(srcid),
 		DstId: int32(dstid),
@@ -370,7 +371,7 @@ func (gv *grpcVisualizer) SetLinkStats(nodeid NodeId, opt visualize.LinkStatsOpt
 			if txPow, ok := gv.f.nodes[nodeid].lastTxPower[peerId]; ok {
 				peerLinkStatsProto = append(peerLinkStatsProto, &pb.LinkStatInfo{
 					PeerNodeId: int32(peerId),
-					TextLabel:  fmt.Sprintf("%d", txPow),
+					TextLabel:  fmt.Sprintf("%d\ndBm", txPow),
 				})
 			}
 		}

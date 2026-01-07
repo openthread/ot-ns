@@ -62,7 +62,7 @@ type Visualizer interface {
 	CountDown(duration time.Duration, text string)
 	SetParent(id NodeId, extaddr uint64)
 	OnExtAddrChange(id NodeId, extaddr uint64)
-	OnRadioFrameDispatch(srcid NodeId, dstid NodeId, data event.RadioCommEventData)
+	OnRadioFrameDispatch(srcid NodeId, dstid NodeId, data *event.Event)
 	SetTitle(titleInfo TitleInfo)
 	SetNetworkInfo(networkInfo NetworkInfo)
 	UpdateNodesEnergy(node []*energy.NodeEnergy, timestamp uint64, updateView bool)

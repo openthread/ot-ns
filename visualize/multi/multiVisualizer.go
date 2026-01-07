@@ -30,9 +30,9 @@ import (
 	"time"
 
 	"github.com/openthread/ot-ns/energy"
+	"github.com/openthread/ot-ns/event"
 	. "github.com/openthread/ot-ns/types"
 	"github.com/openthread/ot-ns/visualize"
-	"github.com/openthread/ot-ns/event"
 )
 
 type MultiVisualizer struct {
@@ -60,9 +60,9 @@ func (mv *MultiVisualizer) OnExtAddrChange(id NodeId, extaddr uint64) {
 	}
 }
 
-func (mv *MultiVisualizer) OnRadioFrameDispatch(srcid NodeId, dstid NodeId, data event.RadioCommEventData) {
+func (mv *MultiVisualizer) OnRadioFrameDispatch(srcid NodeId, dstid NodeId, evt *event.Event) {
 	for _, v := range mv.vs {
-		v.OnRadioFrameDispatch(srcid, dstid, data)
+		v.OnRadioFrameDispatch(srcid, dstid, evt)
 	}
 }
 

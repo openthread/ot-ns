@@ -866,9 +866,9 @@ func (d *Dispatcher) sendOneRadioFrame(evt *Event, srcnode *Node, dstnode *Node)
 		// send the event plus time keeping - moves dstnode's time to the current send-event's time.
 		dstnode.sendEvent(&evt2)
 
-		// for every successful radio frame dispatch, allow the Visualizer to update link statistics.
-		// This includes both unicast and multicast/broadcast, and interference.
-		d.vis.OnRadioFrameDispatch(srcnode.Id, dstnode.Id, evt2.RadioCommData)
+		// for every successful radio frame event dispatch, allow the Visualizer to update link statistics.
+		// This includes the start/end of frame events, and all of unicast/multicast/broadcast/interference.
+		d.vis.OnRadioFrameDispatch(srcnode.Id, dstnode.Id, &evt2)
 	}
 }
 
@@ -1029,10 +1029,14 @@ func (d *Dispatcher) handleStatusPush(node *Node, data string) {
 		case "child_added":
 			extaddr, err := strconv.ParseUint(sp[1], 16, 64)
 			logger.PanicIfError(err)
-			// FIXME insert here the 'setParent' call
 			if d.visOptions.ChildTable {
 				d.vis.AddChildTable(srcid, extaddr)
 			}
+
+			// TODO when OT natively generates the 'parent' push, below needs to be removed.
+			childId := d.extaddrMap[extaddr].Id
+			d.vis.SetParent(childId, node.ExtAddr)
+
 			d.Counters.TopologyChanges++
 		case "child_removed":
 			extaddr, err := strconv.ParseUint(sp[1], 16, 64)

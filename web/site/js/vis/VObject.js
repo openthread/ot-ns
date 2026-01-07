@@ -141,6 +141,11 @@ export default class VObject {
         // this._root.on("pointermove", func)
     }
 
+    setOnHover(func_hover, func_unhover) {
+        this._root.on("mouseover", func_hover);
+        this._root.on("mouseout", func_unhover);
+    }
+
     setDraggable() {
         this.setOnTouchStart((e) => {
             e.stopPropagation();

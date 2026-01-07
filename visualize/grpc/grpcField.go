@@ -69,6 +69,13 @@ func (f *grpcField) setNodeMode(id NodeId, mode NodeMode) {
 	f.nodes[id].mode = mode
 }
 
+func (f *grpcField) send(srcid NodeId, dstid NodeId, mvInfo *visualize.MsgVisualizeInfo) {
+	src := f.nodes[srcid]
+
+	// keep track of Tx power of current (ongoing) frame transmitted by source
+	src.curTxPower = mvInfo.PowerDbm
+}
+
 func (f *grpcField) setNodePartitionId(id NodeId, parid uint32) {
 	f.nodes[id].partitionId = parid
 }
@@ -195,14 +202,37 @@ func (f *grpcField) onExtAddrChange(id NodeId, extaddr uint64) {
 }
 
 // TODO document return type
-func (f *grpcField) onRadioFrameDispatch(srcid NodeId, dstid NodeId, data event.RadioCommEventData) (bool, bool) {
-	src := f.nodes[srcid]
+func (f *grpcField) onRadioFrameDispatch(srcid NodeId, dstid NodeId, evt *event.Event) (bool, bool) {
 
-	// keep track of Tx power of successfully dispatched frames (unicast/broadcast/...)
-	txPow, ok := src.lastTxPower[dstid]
-	if !ok || txPow != data.PowerDbm {
-		src.lastTxPower[dstid] = data.PowerDbm
-		return f.isNodeLinkedPeer(srcid, dstid), false
+	switch evt.Type {
+	case event.EventTypeRadioCommStart:
+		break
+
+	case event.EventTypeRadioRxDone:
+		src := f.nodes[srcid]
+		dst := f.nodes[dstid]
+		isSrcChange := false
+		isDstChange := false
+
+		// keep track of Tx power and Rx RSSI of successfully dispatched frames
+		txPow, ok := src.lastTxPower[dstid]
+		if !ok || txPow != src.curTxPower {
+			src.lastTxPower[dstid] = src.curTxPower
+			isSrcChange = true
+		}
+		rssi, ok := src.lastRssi[dstid]
+		newRssi := evt.RadioCommData.PowerDbm
+		if !ok || rssi != newRssi {
+			src.lastRssi[dstid] = newRssi
+			isDstChange = true
+		}
+
+		if f.isNodeLinkedPeer(srcid, dstid) {
+			return isSrcChange && src.linkStats.Visible, isDstChange && dst.linkStats.Visible
+		}
+
+	default:
+		logger.Panicf("not implemented")
 	}
 
 	return false, false

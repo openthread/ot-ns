@@ -46,7 +46,9 @@ type grpcNode struct {
 	routerTable   map[uint64]struct{}
 	childTable    map[uint64]struct{}
 	linkStats     visualize.LinkStatsOptions
+	curTxPower    int8
 	lastTxPower   map[NodeId]int8
+	lastRssi      map[NodeId]int8
 	threadVersion uint16
 	version       string
 	commit        string
@@ -70,7 +72,9 @@ func newGprcNode(id NodeId, cfg *NodeConfig) *grpcNode {
 		routerTable:   map[uint64]struct{}{},
 		childTable:    map[uint64]struct{}{},
 		linkStats:     visualize.LinkStatsOptions{},
+		curTxPower:    RssiInvalid,
 		lastTxPower:   map[NodeId]int8{},
+		lastRssi:      map[NodeId]int8{},
 		threadVersion: InvalidThreadVersion,
 		version:       cfg.Version,
 		commit:        "",
