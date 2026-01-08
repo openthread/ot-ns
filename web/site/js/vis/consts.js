@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2023, The OTNS Authors.
+// Copyright (c) 2020-2026, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,11 +25,9 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 // nodes and numbering
-import VObject from "./VObject";
-import PIXI from "pixi.js-legacy";
-
-export const NODE_ID_UNSELECTED = 0;
-export const NODE_ID_INVALID = 0xffff;
+export const NODE_ID_INVALID = 0;
+export const NODE_ID_ALL_NODES = -2;
+export const ROUTER_OR_CHILD_ID_INVALID = 0xffff;
 export const EXT_ADDR_INVALID = 0xFFFFFFFFFFFFFFFF;
 
 // simulation speed controls
@@ -66,5 +64,3 @@ export const LINKSTATS_DEFAULT_TEXT_STYLE = {
     fontSize: LINKSTATS_FONT_SIZE,
     distanceFromNode: 32,
 };
-
-

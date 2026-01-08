@@ -1524,23 +1524,18 @@ func (d *Dispatcher) handleRadioState(node *Node, evt *Event) {
 }
 
 func (d *Dispatcher) OnNodeSelected(nodeid NodeId) {
-	isSameSelected := nodeid == d.selectedNodeId
-	logger.Debugf("OnNodeSelected(%d), isSame=%v", nodeid, isSameSelected)
-	if !isSameSelected {
+	if nodeid == InvalidNodeId {
 		if d.selectedNodeId != InvalidNodeId {
-			// hide linkstats for previously selected node
+			// when node deselected - hide linkstats for all nodes
 			optNotVisible := visualize.LinkStatsOptions{
 				Visible: false,
 			}
-			d.vis.SetLinkStats(d.selectedNodeId, optNotVisible)
+			d.vis.SetLinkStats(AllNodesId, optNotVisible)
 		}
+	} else if d.visOptions.LinkStats && d.nodes[nodeid] != nil {
+		// enable linkstats for each selected node
+		d.vis.SetLinkStats(nodeid, d.visOptions.LinkStatsOpt)
 	}
 
-	// set linkstats for selected node
-	if _, ok := d.nodes[nodeid]; ok {
-		if d.visOptions.LinkStats {
-			d.vis.SetLinkStats(nodeid, d.visOptions.LinkStatsOpt)
-		}
-	}
 	d.selectedNodeId = nodeid
 }

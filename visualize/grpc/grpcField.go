@@ -33,7 +33,7 @@ import (
 	"github.com/openthread/ot-ns/visualize"
 )
 
-// grpcField locally tracks simulation topology and properties. This information is used to recreate the GUI
+// grpcField tracks simulation topology and node properties. This information is used to recreate the GUI
 // after a reload event, or to selectively render GUI elements based on user interaction where the rendering
 // logic runs on the server (Go) side.
 type grpcField struct {
@@ -70,10 +70,8 @@ func (f *grpcField) setNodeMode(id NodeId, mode NodeMode) {
 }
 
 func (f *grpcField) send(srcid NodeId, dstid NodeId, mvInfo *visualize.MsgVisualizeInfo) {
-	src := f.nodes[srcid]
-
-	// keep track of Tx power of current (ongoing) frame transmitted by source
-	src.curTxPower = mvInfo.PowerDbm
+	// remember properties of (ongoing) frame transmitted by source, for later use
+	f.nodes[srcid].curTxPower = mvInfo.PowerDbm
 }
 
 func (f *grpcField) setNodePartitionId(id NodeId, parid uint32) {
@@ -99,8 +97,8 @@ func (f *grpcField) advanceTime(ts uint64, speed float64) bool {
 	return hasChanged
 }
 
-func (f *grpcField) onNodeFail(nodeid NodeId) {
-	f.nodes[nodeid].failed = true
+func (f *grpcField) onNodeFail(id NodeId) {
+	f.nodes[id].failed = true
 }
 
 func (f *grpcField) onNodeRecover(id NodeId) {
@@ -115,80 +113,70 @@ func (f *grpcField) setNodePos(id NodeId, x, y, z int) {
 }
 
 func (f *grpcField) deleteNode(id NodeId) {
-	delete(f.extAddrMap, f.nodes[id].extaddr)
+	extaddr := f.nodes[id].extaddr
+	for _, node := range f.nodes {
+		delete(node.neighborInfo, extaddr)
+	}
+	delete(f.extAddrMap, extaddr)
 	delete(f.nodes, id)
 }
 
 func (f *grpcField) setParent(id NodeId, extaddr uint64) {
-	f.nodes[id].parent = extaddr
+	node := f.nodes[id]
+	node.parent = extaddr
+	node.setLinked(extaddr, true)
 }
 
 func (f *grpcField) addRouterTable(id NodeId, extaddr uint64) {
-	f.nodes[id].routerTable[extaddr] = struct{}{}
+	node := f.nodes[id]
+	node.routerTable[extaddr] = struct{}{}
+	node.setLinked(extaddr, true)
 }
 
 func (f *grpcField) removeRouterTable(id NodeId, extaddr uint64) {
-	delete(f.nodes[id].routerTable, extaddr)
+	node := f.nodes[id]
+	delete(node.routerTable, extaddr)
+	node.setLinked(extaddr, false)
 }
 
 func (f *grpcField) addChildTable(id NodeId, extaddr uint64) {
-	f.nodes[id].childTable[extaddr] = struct{}{}
+	node := f.nodes[id]
+	node.childTable[extaddr] = struct{}{}
+	node.setLinked(extaddr, true)
 }
 
 func (f *grpcField) removeChildTable(id NodeId, extaddr uint64) {
-	delete(f.nodes[id].childTable, extaddr)
+	node := f.nodes[id]
+	delete(node.childTable, extaddr)
+	node.setLinked(extaddr, false)
 }
 
 func (f *grpcField) setLinkStats(id NodeId, opt visualize.LinkStatsOptions) {
-	f.nodes[id].linkStats = opt
+	node := f.nodes[id]
+	node.linkStats = opt
 }
 
-func (f *grpcField) isNodeLinkedPeer(id NodeId, peerId NodeId) bool {
-	node := f.nodes[id]
-	peer := f.nodes[peerId]
-	peerExtAddr := peer.extaddr
-	if _, ok := node.routerTable[peerExtAddr]; ok {
-		return true
+func (f *grpcField) checkLinkStatUpdates(node *grpcNode, peerExtAddr uint64) {
+	nbStats := node.getNeighborInfo(peerExtAddr)
+	if nbStats.isLinked && node.linkStats.Visible {
+		//
 	}
-	if _, ok := node.childTable[peerExtAddr]; ok {
-		return true
-	}
-	if node.parent == peerExtAddr {
-		return true
-	}
-
-	nodeExtAddr := node.extaddr
-	if _, ok := peer.routerTable[nodeExtAddr]; ok {
-		return true
-	}
-	if _, ok := peer.childTable[nodeExtAddr]; ok {
-		return true
-	}
-	if peer.parent == nodeExtAddr {
-		return true
-	}
-
-	return false
 }
 
-func (f *grpcField) getNodeLinkedPeers(id NodeId) []NodeId {
+func (f *grpcField) getNodeLinkedPeers(id NodeId) []uint64 {
 	node := f.nodes[id]
-	maxArraySize := len(node.routerTable) + len(node.childTable) + 1
-	peerIds := make([]NodeId, 0, maxArraySize)
-	for extAddr, _ := range node.routerTable {
-		if extAddr != InvalidExtAddr {
-			peerIds = append(peerIds, f.extAddrMap[extAddr])
+	peerExtAddrs := make([]uint64, 0, len(node.neighborInfo)+5)
+	for peerExtAddr, nbInfo := range node.neighborInfo {
+		if nbInfo.isLinked {
+			peerExtAddrs = append(peerExtAddrs, peerExtAddr)
+		} else {
+			peerNodeId := f.extAddrMap[peerExtAddr]
+			if peerNbInfo, ok := f.nodes[peerNodeId].neighborInfo[node.extaddr]; ok && peerNbInfo.isLinked {
+				peerExtAddrs = append(peerExtAddrs, peerExtAddr)
+			}
 		}
 	}
-	for extAddr, _ := range node.childTable {
-		if extAddr != InvalidExtAddr {
-			peerIds = append(peerIds, f.extAddrMap[extAddr])
-		}
-	}
-	if node.parent != InvalidExtAddr {
-		peerIds = append(peerIds, f.extAddrMap[node.parent])
-	}
-	return peerIds
+	return peerExtAddrs
 }
 
 func (f *grpcField) setSpeed(speed float64) {
@@ -196,46 +184,47 @@ func (f *grpcField) setSpeed(speed float64) {
 }
 
 func (f *grpcField) onExtAddrChange(id NodeId, extaddr uint64) {
-	delete(f.extAddrMap, f.nodes[id].extaddr)
-	f.nodes[id].extaddr = extaddr
+	node := f.nodes[id]
+	oldExtaddr := node.extaddr
+	if oldExtaddr != InvalidExtAddr {
+		for _, pnode := range f.nodes {
+			delete(pnode.neighborInfo, oldExtaddr)
+		}
+	}
+	delete(f.extAddrMap, oldExtaddr)
+	node.extaddr = extaddr
 	f.extAddrMap[extaddr] = id
 }
 
-// TODO document return type
-func (f *grpcField) onRadioFrameDispatch(srcid NodeId, dstid NodeId, evt *event.Event) (bool, bool) {
-
-	switch evt.Type {
-	case event.EventTypeRadioCommStart:
-		break
-
-	case event.EventTypeRadioRxDone:
+// onRadioFrameDispatch updates Tx/Rx frame statistics that can be potentially visualized.
+// isSrcChange/isDstChange return true if respectively a link property at the source or destination node visibly
+// changed.
+func (f *grpcField) onRadioFrameDispatch(srcid NodeId, dstid NodeId, evt *event.Event) (isSrcChange bool, isDstChange bool) {
+	if evt.Type == event.EventTypeRadioRxDone {
+		// keep track of stats for successfully dispatched frames to/from neighbor node
 		src := f.nodes[srcid]
 		dst := f.nodes[dstid]
-		isSrcChange := false
-		isDstChange := false
+		dstExtAddr := dst.extaddr
 
-		// keep track of Tx power and Rx RSSI of successfully dispatched frames
-		txPow, ok := src.lastTxPower[dstid]
-		if !ok || txPow != src.curTxPower {
-			src.lastTxPower[dstid] = src.curTxPower
-			isSrcChange = true
+		nbInfo := src.getNeighborInfo(dstExtAddr)
+
+		if nbInfo.lastTxPower != src.curTxPower {
+			nbInfo.lastTxPower = src.curTxPower
+			isSrcChange = src.linkStats.Visible && nbInfo.isLinked
 		}
-		rssi, ok := src.lastRssi[dstid]
+
 		newRssi := evt.RadioCommData.PowerDbm
-		if !ok || rssi != newRssi {
-			src.lastRssi[dstid] = newRssi
-			isDstChange = true
+		if nbInfo.lastRssi != newRssi {
+			nbInfo.lastRssi = newRssi
+			isDstChange = dst.linkStats.Visible
 		}
 
-		if f.isNodeLinkedPeer(srcid, dstid) {
-			return isSrcChange && src.linkStats.Visible, isDstChange && dst.linkStats.Visible
+		if isDstChange { // for dst side, check if it considers itself linked.
+			peerNbInfo := dst.getNeighborInfo(src.extaddr)
+			isDstChange = peerNbInfo.isLinked
 		}
-
-	default:
-		logger.Panicf("not implemented")
 	}
-
-	return false, false
+	return
 }
 
 func (f *grpcField) setTitleInfo(info visualize.TitleInfo) {
@@ -250,8 +239,10 @@ func newGrpcField() *grpcField {
 	gf := &grpcField{
 		nodes:         map[NodeId]*grpcNode{},
 		extAddrMap:    map[uint64]NodeId{},
-		curSpeed:      1,
-		speed:         1,
+		curTime:       0,
+		curSpeed:      1.0,
+		speed:         1.0,
+		titleInfo:     visualize.DefaultTitleInfo(),
 		networkInfo:   visualize.DefaultNetworkInfo(),
 		nodeStatsInfo: visualize.DefaultNodeStatsInfo(),
 	}

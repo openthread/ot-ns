@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2024, The OTNS Authors.
+// Copyright (c) 2020-2026, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -29,15 +29,11 @@ import VObject from "./VObject";
 import ActionBar from "./ActionBar";
 import {Text} from "./wrapper";
 import {
-    FRAME_CONTROL_MASK_FRAME_TYPE,
-    FRAME_TYPE_ACK,
-    LOG_WINDOW_FONT_COLOR,
-    MAX_SPEED,
-    PAUSE_SPEED,
-    STATUS_MSG_FONT_FAMILY,
-    STATUS_MSG_FONT_SIZE,
-    NODE_ID_UNSELECTED,
-    NODE_LABEL_FONT_FAMILY, LOG_WINDOW_ERROR_FONT_COLOR
+    FRAME_CONTROL_MASK_FRAME_TYPE, FRAME_TYPE_ACK,
+    LOG_WINDOW_FONT_COLOR, STATUS_MSG_FONT_FAMILY, STATUS_MSG_FONT_SIZE, NODE_LABEL_FONT_FAMILY,
+    LOG_WINDOW_ERROR_FONT_COLOR,
+    MAX_SPEED, PAUSE_SPEED,
+    NODE_ID_INVALID, NODE_ID_ALL_NODES
 } from "./consts";
 import Node from "./Node"
 import {AckMessage, BroadcastMessage, UnicastMessage} from "./message";
@@ -113,7 +109,7 @@ export default class PixiVisualizer extends VObject {
 
         this.nodeWindow = new NodeWindow();
         this.addChild(this.nodeWindow);
-        this._selectedNodeId = NODE_ID_UNSELECTED;
+        this._selectedNodeId = NODE_ID_INVALID;
         this._selectAddedNode = false;
 
         this.otVersion = "";
@@ -380,7 +376,7 @@ export default class PixiVisualizer extends VObject {
         const node = this.nodes[nodeId];
         delete this.nodes[nodeId];
         if (nodeId === this._selectedNodeId) {
-            this.setSelectedNode(NODE_ID_UNSELECTED);
+            this.setSelectedNode(NODE_ID_INVALID);
         }
         if (node) node.destroy();
         this.logNode(nodeId, "Deleted")
@@ -433,12 +429,24 @@ export default class PixiVisualizer extends VObject {
     }
 
     visAddLinkStats(id, linkStatsList, labelFormat) {
-        this.nodes[id].addLinkStats(linkStatsList, labelFormat);
+        if (id === NODE_ID_ALL_NODES) {
+            for (let nodeId in this.nodes) {
+                this.nodes[nodeId].addLinkStats(linkStatsList, labelFormat);
+            }
+        } else {
+            this.nodes[id].addLinkStats(linkStatsList, labelFormat);
+        }
         // no this.onNodeUpdate() call, since no node properties changed apart from link stats.
     }
 
     visRemoveLinkStats(id, removeForAllPeers, peerNodeIdsList) {
-        this.nodes[id].removeLinkStats(removeForAllPeers, peerNodeIdsList);
+        if (id === NODE_ID_ALL_NODES) {
+            for (let nodeId in this.nodes) {
+                this.nodes[nodeId].removeLinkStats(removeForAllPeers, peerNodeIdsList);
+            }
+        } else {
+            this.nodes[id].removeLinkStats(removeForAllPeers, peerNodeIdsList);
+        }
         // no this.onNodeUpdate() call, since no node properties changed apart from link stats.
     }
 
@@ -572,7 +580,7 @@ export default class PixiVisualizer extends VObject {
         if (old_sel) {
             old_sel.onUnselected();
         }
-        this._selectedNodeId = NODE_ID_UNSELECTED;
+        this._selectedNodeId = NODE_ID_INVALID;
 
         let new_sel = this.nodes[id];
         if (new_sel) {
@@ -627,7 +635,7 @@ export default class PixiVisualizer extends VObject {
     }
 
     onTapedStage() {
-        this.setSelectedNode(NODE_ID_UNSELECTED)
+        this.setSelectedNode(NODE_ID_INVALID)
     }
 
     _drawNodeLinks() {

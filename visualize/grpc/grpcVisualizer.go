@@ -148,24 +148,45 @@ func (gv *grpcVisualizer) OnExtAddrChange(nodeid NodeId, extaddr uint64) {
 	}}})
 }
 
+// doLinkStatUpdates checks what link stat updates need to be visualized after a topology update involving
+// node nodeid and a peer with extaddr.
+func (gv *grpcVisualizer) doLinkStatUpdates(nodeid NodeId, extaddr uint64) {
+	src := gv.f.nodes[nodeid]
+	if src.linkStats.Visible && src.getNeighborInfo(extaddr).isLinked {
+		e := gv.createLinkStatsUpdateEvent(nodeid, gv.f.extAddrMap[extaddr])
+		gv.addVisualizeEvent(e)
+	}
+}
+
+func (gv *grpcVisualizer) createLinkStatsUpdateEvent(srcid NodeId, dstid NodeId) *pb.VisualizeEvent {
+	src := gv.f.nodes[srcid]
+	dst := gv.f.nodes[dstid]
+	dstExtAddr := dst.extaddr
+	ls := make([]*pb.LinkStatInfo, 1)
+	ls[0] = &pb.LinkStatInfo{
+		PeerNodeId: int32(dstid),
+		TextLabel:  fmt.Sprintf("%d\ndBm", src.neighborInfo[dstExtAddr].lastTxPower),
+	}
+	e := &pb.VisualizeEvent{Type: &pb.VisualizeEvent_AddLinkStats{AddLinkStats: &pb.AddLinkStatsEvent{
+		NodeId:    int32(srcid),
+		LinkStats: ls,
+		LabelFormat: &pb.LinkStatLabelFormat{
+			FontSize:         13,
+			DistanceFromNode: 40,
+		},
+	}}}
+	return e
+}
+
 func (gv *grpcVisualizer) OnRadioFrameDispatch(srcid NodeId, dstid NodeId, evt *event.Event) {
-	isRenderSrcChange, _ /* isDstChange*/ := gv.f.onRadioFrameDispatch(srcid, dstid, evt)
+	isSrcChange, isDstChange := gv.f.onRadioFrameDispatch(srcid, dstid, evt)
 
-	if isRenderSrcChange {
-		ls := make([]*pb.LinkStatInfo, 1)
-		ls[0] = &pb.LinkStatInfo{
-			PeerNodeId: int32(dstid),
-			TextLabel:  fmt.Sprintf("%d\ndBm", gv.f.nodes[srcid].lastTxPower[dstid]),
-		}
-		e := &pb.VisualizeEvent{Type: &pb.VisualizeEvent_AddLinkStats{AddLinkStats: &pb.AddLinkStatsEvent{
-			NodeId:    int32(srcid),
-			LinkStats: ls,
-			LabelFormat: &pb.LinkStatLabelFormat{
-				FontSize:         13,
-				DistanceFromNode: 40,
-			},
-		}}}
-
+	if isSrcChange {
+		e := gv.createLinkStatsUpdateEvent(srcid, dstid)
+		gv.addVisualizeEvent(e)
+	}
+	if isDstChange {
+		e := gv.createLinkStatsUpdateEvent(dstid, srcid)
 		gv.addVisualizeEvent(e)
 	}
 }
@@ -321,6 +342,7 @@ func (gv *grpcVisualizer) AddRouterTable(nodeid NodeId, extaddr uint64) {
 		NodeId:  int32(nodeid),
 		ExtAddr: extaddr,
 	}}})
+	gv.doLinkStatUpdates(nodeid, extaddr)
 }
 
 func (gv *grpcVisualizer) RemoveRouterTable(nodeid NodeId, extaddr uint64) {
@@ -332,6 +354,7 @@ func (gv *grpcVisualizer) RemoveRouterTable(nodeid NodeId, extaddr uint64) {
 		NodeId:  int32(nodeid),
 		ExtAddr: extaddr,
 	}}})
+	gv.doLinkStatUpdates(nodeid, extaddr)
 }
 
 func (gv *grpcVisualizer) AddChildTable(nodeid NodeId, extaddr uint64) {
@@ -343,6 +366,7 @@ func (gv *grpcVisualizer) AddChildTable(nodeid NodeId, extaddr uint64) {
 		NodeId:  int32(nodeid),
 		ExtAddr: extaddr,
 	}}})
+	gv.doLinkStatUpdates(nodeid, extaddr)
 }
 
 func (gv *grpcVisualizer) RemoveChildTable(nodeid NodeId, extaddr uint64) {
@@ -354,6 +378,7 @@ func (gv *grpcVisualizer) RemoveChildTable(nodeid NodeId, extaddr uint64) {
 		NodeId:  int32(nodeid),
 		ExtAddr: extaddr,
 	}}})
+	gv.doLinkStatUpdates(nodeid, extaddr)
 }
 
 func (gv *grpcVisualizer) SetLinkStats(nodeid NodeId, opt visualize.LinkStatsOptions) {
@@ -361,38 +386,58 @@ func (gv *grpcVisualizer) SetLinkStats(nodeid NodeId, opt visualize.LinkStatsOpt
 	defer gv.Unlock()
 
 	var e *pb.VisualizeEvent
-	if opt.Visible {
-		// identify current peers of the node, that will have a link line drawn to them.
-		peerNodeIds := gv.f.getNodeLinkedPeers(nodeid)
+	if opt.Visible && nodeid != AllNodesId {
+		node := gv.f.nodes[nodeid]
+		// identify current peers of the node, including peers that are unilaterally linked to this node.
+		peerNodeExtAddrs := gv.f.getNodeLinkedPeers(nodeid)
 
 		// for each peer, generate a label
-		peerLinkStatsProto := make([]*pb.LinkStatInfo, 0, len(peerNodeIds))
-		for _, peerId := range peerNodeIds {
-			if txPow, ok := gv.f.nodes[nodeid].lastTxPower[peerId]; ok {
-				peerLinkStatsProto = append(peerLinkStatsProto, &pb.LinkStatInfo{
-					PeerNodeId: int32(peerId),
-					TextLabel:  fmt.Sprintf("%d\ndBm", txPow),
-				})
+		peerLinkStatsProto := make([]*pb.LinkStatInfo, 0, len(peerNodeExtAddrs))
+		for _, peerExtAddr := range peerNodeExtAddrs {
+			nbInfo := node.getNeighborInfo(peerExtAddr)
+			peerNodeId := int32(gv.f.extAddrMap[peerExtAddr])
+			var textLabel string
+			if nbInfo.lastTxPower == RssiInvalid {
+				textLabel = "N/A\ndBm"
+			} else {
+				textLabel = fmt.Sprintf("%d\ndBm", nbInfo.lastTxPower)
 			}
+			peerLinkStatsProto = append(peerLinkStatsProto, &pb.LinkStatInfo{
+				PeerNodeId: peerNodeId,
+				TextLabel:  textLabel,
+			})
 		}
 
-		e = &pb.VisualizeEvent{Type: &pb.VisualizeEvent_AddLinkStats{AddLinkStats: &pb.AddLinkStatsEvent{
-			NodeId:    int32(nodeid),
-			LinkStats: peerLinkStatsProto,
-			LabelFormat: &pb.LinkStatLabelFormat{
-				FontSize:         13,
-				DistanceFromNode: 40,
-			},
-		}}}
+		if len(peerLinkStatsProto) > 0 {
+			e = &pb.VisualizeEvent{Type: &pb.VisualizeEvent_AddLinkStats{AddLinkStats: &pb.AddLinkStatsEvent{
+				NodeId:    int32(nodeid),
+				LinkStats: peerLinkStatsProto,
+				LabelFormat: &pb.LinkStatLabelFormat{
+					FontSize:         13,
+					DistanceFromNode: 40,
+				},
+			}}}
+		}
 	} else {
+		logger.AssertFalse(opt.Visible) // current code only supports clearing for 1 or all nodes
 		e = &pb.VisualizeEvent{Type: &pb.VisualizeEvent_RemoveLinkStats{RemoveLinkStats: &pb.RemoveLinkStatsEvent{
 			NodeId:            int32(nodeid),
 			RemoveForAllPeers: true,
 		}}}
 	}
 
-	gv.f.setLinkStats(nodeid, opt)
-	gv.addVisualizeEvent(e)
+	if nodeid != AllNodesId {
+		gv.f.setLinkStats(nodeid, opt)
+	} else {
+		for nid, _ := range gv.f.nodes {
+			gv.f.setLinkStats(nid, opt)
+		}
+	}
+
+	if e != nil {
+		gv.addVisualizeEvent(e)
+	}
+	logger.Debugf("End of SetLinkStats")
 }
 
 func (gv *grpcVisualizer) ShowDemoLegend(x int, y int, title string) {
@@ -427,6 +472,7 @@ func (gv *grpcVisualizer) SetParent(nodeid NodeId, extaddr uint64) {
 		NodeId:  int32(nodeid),
 		ExtAddr: extaddr,
 	}}})
+	gv.doLinkStatUpdates(nodeid, extaddr)
 }
 
 func (gv *grpcVisualizer) SetTitle(titleInfo visualize.TitleInfo) {

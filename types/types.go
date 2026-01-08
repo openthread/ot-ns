@@ -39,6 +39,7 @@ type ChannelId = uint8
 const (
 	InvalidNodeId         NodeId = 0
 	BroadcastNodeId       NodeId = -1
+	AllNodesId            NodeId = -2
 	InitialDispatcherPort        = 9000
 
 	// InvalidExtAddr defines the invalid extended address for nodes.

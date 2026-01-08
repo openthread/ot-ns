@@ -32,7 +32,7 @@ import {Resources} from "./resources";
 import LinkStats from "./LinkStats";
 import {
     EXT_ADDR_INVALID, LINKSTATS_FONT_COLOR,
-    NODE_ID_INVALID,
+    ROUTER_OR_CHILD_ID_INVALID,
     NODE_LABEL_FONT_FAMILY,
     NODE_LABEL_FONT_SIZE,
     LINKSTATS_DEFAULT_TEXT_STYLE,
@@ -59,9 +59,9 @@ export default class Node extends VObject {
         this.radioRange = radioRange;
         this.nodeMode = new NodeMode([true, true, true, true]);
         this.rloc16 = 0xfffe;
-        this.routerId = NODE_ID_INVALID;
-        this.childId = NODE_ID_INVALID;
-        this.parentId = NODE_ID_INVALID;
+        this.routerId = ROUTER_OR_CHILD_ID_INVALID;
+        this.childId = ROUTER_OR_CHILD_ID_INVALID;
+        this.parentId = ROUTER_OR_CHILD_ID_INVALID;
         this.role = OtDeviceRole.OT_DEVICE_ROLE_DISABLED;
         this.txPowerLast = POWER_DBM_INVALID;
         this.channelLast = -1;
@@ -264,8 +264,8 @@ export default class Node extends VObject {
         }
         if (role == OtDeviceRole.OT_DEVICE_ROLE_DISABLED || role == OtDeviceRole.OT_DEVICE_ROLE_DETACHED) {
             this._removeParent()
-            this.childId = NODE_ID_INVALID;
-            this.routerId = NODE_ID_INVALID;
+            this.childId = ROUTER_OR_CHILD_ID_INVALID;
+            this.routerId = ROUTER_OR_CHILD_ID_INVALID;
         }
     }
 
@@ -343,7 +343,7 @@ export default class Node extends VObject {
     _removeParent() {
         this._removeLinkStatsFor(this.parent);
         this._parent = EXT_ADDR_INVALID;
-        this.parentId = NODE_ID_INVALID;
+        this.parentId = ROUTER_OR_CHILD_ID_INVALID;
     }
 
     addLinkStats(linkStatsList, labelFormatReq) {
