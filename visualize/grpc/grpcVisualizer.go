@@ -152,9 +152,15 @@ func (gv *grpcVisualizer) OnExtAddrChange(nodeid NodeId, extaddr uint64) {
 // node nodeid and a peer with extaddr.
 func (gv *grpcVisualizer) doLinkStatUpdates(nodeid NodeId, extaddr uint64) {
 	src := gv.f.nodes[nodeid]
-	if src.linkStatsOpt.Visible && src.linkStatsOpt.TxPower && src.getNeighborInfo(extaddr).isLinked {
-		e := gv.createTxPowerLinkStatsUpdateEvent(nodeid, gv.f.extAddrMap[extaddr])
-		gv.addVisualizeEvent(e)
+	if src.linkStatsOpt.Visible && src.getNeighborInfo(extaddr).isLinked {
+		if src.linkStatsOpt.TxPower {
+			e := gv.createTxPowerLinkStatsUpdateEvent(nodeid, gv.f.extAddrMap[extaddr])
+			gv.addVisualizeEvent(e)
+		}
+		if src.linkStatsOpt.RxRssi {
+			e := gv.createRssiLinkStatsUpdateEvent(nodeid, gv.f.extAddrMap[extaddr])
+			gv.addVisualizeEvent(e)
+		}
 	}
 	// TODO other type of (e.g. Rx) link stats to add here.
 }
@@ -179,6 +185,27 @@ func (gv *grpcVisualizer) createTxPowerLinkStatsUpdateEvent(srcid NodeId, dstid 
 	return e
 }
 
+func (gv *grpcVisualizer) createRssiLinkStatsUpdateEvent(srcid NodeId, dstid NodeId) *pb.VisualizeEvent {
+	src := gv.f.nodes[srcid]
+	dst := gv.f.nodes[dstid]
+	dstExtAddr := dst.extaddr
+	ls := make([]*pb.LinkStatInfo, 1)
+	ls[0] = &pb.LinkStatInfo{
+		PeerNodeId: int32(dstid),
+		TextLabel:  fmt.Sprintf("%d\nRSS", src.neighborInfo[dstExtAddr].lastRssi),
+		Distance:   90,
+	}
+	e := &pb.VisualizeEvent{Type: &pb.VisualizeEvent_AddLinkStats{AddLinkStats: &pb.AddLinkStatsEvent{
+		NodeId:    int32(srcid),
+		LinkStats: ls,
+		LabelFormat: &pb.LinkStatLabelFormat{
+			FontSize:         13,
+			DistanceFromNode: 40,
+		},
+	}}}
+	return e
+}
+
 func (gv *grpcVisualizer) OnRadioFrameDispatch(srcid NodeId, dstid NodeId, evt *event.Event) {
 	isSrcChange, isDstChange := gv.f.onRadioFrameDispatch(srcid, dstid, evt)
 
@@ -187,7 +214,7 @@ func (gv *grpcVisualizer) OnRadioFrameDispatch(srcid NodeId, dstid NodeId, evt *
 		gv.addVisualizeEvent(e)
 	}
 	if isDstChange {
-		e := gv.createTxPowerLinkStatsUpdateEvent(dstid, srcid)
+		e := gv.createRssiLinkStatsUpdateEvent(dstid, srcid)
 		gv.addVisualizeEvent(e)
 	}
 }
@@ -388,26 +415,48 @@ func (gv *grpcVisualizer) SetLinkStats(nodeid NodeId, opt visualize.LinkStatsOpt
 
 	var e *pb.VisualizeEvent
 
-	if opt.Visible && opt.TxPower && nodeid != AllNodesId {
+	if opt.Visible && (opt.TxPower || opt.RxRssi) && nodeid != AllNodesId {
 		node := gv.f.nodes[nodeid]
 		// identify current peers of the node, including peers that are unilaterally linked to this node.
 		peerNodeExtAddrs := gv.f.getNodeLinkedPeers(nodeid)
+		labelsPerPeer := 1
+		if opt.TxPower && opt.RxRssi {
+			labelsPerPeer = 2
+		}
 
-		// for each peer, generate a label
-		peerLinkStatsProto := make([]*pb.LinkStatInfo, 0, len(peerNodeExtAddrs))
+		// for each peer, generate 1 or 2 labels
+		peerLinkStatsProto := make([]*pb.LinkStatInfo, 0, labelsPerPeer*len(peerNodeExtAddrs))
 		for _, peerExtAddr := range peerNodeExtAddrs {
+			var textLabel string
 			nbInfo := node.getNeighborInfo(peerExtAddr)
 			peerNodeId := int32(gv.f.extAddrMap[peerExtAddr])
-			var textLabel string
-			if nbInfo.lastTxPower == RssiInvalid {
-				textLabel = "N/A\ndBm"
-			} else {
-				textLabel = fmt.Sprintf("%d\ndBm", nbInfo.lastTxPower)
+
+			if opt.TxPower {
+				if nbInfo.lastTxPower == RssiInvalid {
+					textLabel = "N/A\ndBm"
+				} else {
+					textLabel = fmt.Sprintf("%d\ndBm", nbInfo.lastTxPower)
+				}
+				peerLinkStatsProto = append(peerLinkStatsProto, &pb.LinkStatInfo{
+					PeerNodeId: peerNodeId,
+					TextLabel:  textLabel,
+					Distance:   10,
+				})
 			}
-			peerLinkStatsProto = append(peerLinkStatsProto, &pb.LinkStatInfo{
-				PeerNodeId: peerNodeId,
-				TextLabel:  textLabel,
-			})
+
+			if opt.RxRssi {
+				if nbInfo.lastTxPower == RssiInvalid {
+					textLabel = "N/A\nRSS"
+				} else {
+					textLabel = fmt.Sprintf("%d\nRSS", nbInfo.lastRssi)
+				}
+				peerLinkStatsProto = append(peerLinkStatsProto, &pb.LinkStatInfo{
+					PeerNodeId: peerNodeId,
+					TextLabel:  textLabel,
+					Distance:   90,
+				})
+
+			}
 		}
 
 		if len(peerLinkStatsProto) > 0 {

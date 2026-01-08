@@ -29,13 +29,14 @@ import * as PIXI from "pixi.js-legacy";
 import VObject from "./VObject";
 
 export default class LinkStats extends VObject {
-    constructor(node, peer, textLabel, textStyle) {
+    constructor(node, peer, textLabel, distanceRelative, textStyle) {
         super();
         this._root = new PIXI.Container();
         this._node = node;
         this._peer = peer;
         this._text = null;
-        this._distFromNode = textStyle.distanceFromNode;
+        this._distanceRel = distanceRelative;
+        this._minPixelsFromNode = textStyle.distanceFromNode;
 
         if (node && peer) {
             this._text = new PIXI.Text(textLabel, textStyle);
@@ -43,7 +44,7 @@ export default class LinkStats extends VObject {
             this.visible = true;
             this._root.visible = true;
             this.addChild(this._text);
-            this.position.copyFrom(calcVector(this._node.position, this._peer.position, this._distFromNode));
+            this.position.copyFrom(calcVector(this._node.position, this._peer.position, this._distanceRel, this._minPixelsFromNode));
         }
     }
 
@@ -53,14 +54,14 @@ export default class LinkStats extends VObject {
 
     onPositionChange() {
         if (this._node && this._peer && !this._peer.destroyed) {
-            this.position.copyFrom(calcVector(this._node.position, this._peer.position, this._distFromNode));
+            this.position.copyFrom(calcVector(this._node.position, this._peer.position, this._distanceRel, this._minPixelsFromNode));
             this._peer.onPeerPositionChange(this._node.extAddr);
         }
     }
 
     onPeerPositionChange() {
         if (this._node && this._peer && !this._peer.destroyed) {
-            this.position.copyFrom(calcVector(this._node.position, this._peer.position, this._distFromNode));
+            this.position.copyFrom(calcVector(this._node.position, this._peer.position, this._distanceRel, this._minPixelsFromNode));
         }
     }
 
@@ -70,15 +71,19 @@ export default class LinkStats extends VObject {
 
 }
 
-function calcVector(srcPos, destPos, dist) {
+function calcVector(srcPos, destPos, distanceRel, minPixelsFromNode) {
     const dx = destPos.x - srcPos.x;
     const dy = destPos.y - srcPos.y;
     const totalDist = Math.sqrt(dx * dx + dy * dy);
 
-    if (totalDist === 0 || dist >= totalDist) {
-        return new PIXI.Point(dx, dy);
+    if (totalDist === 0 || totalDist <= 2 * minPixelsFromNode) {
+        return new PIXI.Point(dx/2.0, dy/2.0); // if really tight, pick middle ground
     }
 
-    const ratio = dist / totalDist;
-    return new PIXI.Point(dx * ratio, dy * ratio);
+    const unitX = dx / totalDist;
+    const unitY = dy / totalDist;
+    const availableDist = totalDist - 2 * minPixelsFromNode;
+    const travelDist = minPixelsFromNode + (availableDist * (distanceRel / 100.0));
+
+    return new PIXI.Point(unitX * travelDist, unitY * travelDist);
 }

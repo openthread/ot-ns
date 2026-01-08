@@ -366,7 +366,8 @@ export default class Node extends VObject {
             }
             if (peer) {
                 const textLabel = linkStatInfo.getTextLabel();
-                const ls = new LinkStats(this, peer, textLabel, labelFormat);
+                const distanceRelative = linkStatInfo.getDistance();
+                const ls = new LinkStats(this, peer, textLabel, distanceRelative, labelFormat);
                 this._linkStats[peerId] = ls;
                 this.addChild(ls);
             }

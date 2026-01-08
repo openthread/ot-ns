@@ -111,13 +111,14 @@ message RemoveChildTableEvent {
 message LinkStatInfo {
     int32 peer_node_id = 1;
     string text_label = 2;
+    int32 distance = 3; // a relative distance measure 0-100% along the graph edge
 }
 
 message LinkStatLabelFormat {
   uint32 font_size = 1;
   uint32 font_color = 2; // RGB bytes, range 0x000000 (black) to 0xFFFFFF (white)
   bool is_font_bold = 3;
-  uint32 distance_from_node = 4; // pixels - 0 means in center of node
+  uint32 distance_from_node = 4; // min dist in pixels - 0 means it can be in center of node
 }
 
 message AddLinkStatsEvent {

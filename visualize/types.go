@@ -31,8 +31,8 @@ import (
 
 	"github.com/openthread/ot-ns/dissectpkt/wpan"
 	"github.com/openthread/ot-ns/energy"
-	. "github.com/openthread/ot-ns/types"
 	"github.com/openthread/ot-ns/event"
+	. "github.com/openthread/ot-ns/types"
 )
 
 type Visualizer interface {
@@ -145,7 +145,7 @@ type LinkStatsOptions struct {
 func DefaultLinkStatsOptions() LinkStatsOptions {
 	return LinkStatsOptions{
 		Visible: true,
-		TxPower: true,
-		RxRssi:  false,
+		TxPower: false,
+		RxRssi:  true,
 	}
 }
