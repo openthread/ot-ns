@@ -152,13 +152,14 @@ func (gv *grpcVisualizer) OnExtAddrChange(nodeid NodeId, extaddr uint64) {
 // node nodeid and a peer with extaddr.
 func (gv *grpcVisualizer) doLinkStatUpdates(nodeid NodeId, extaddr uint64) {
 	src := gv.f.nodes[nodeid]
-	if src.linkStats.Visible && src.getNeighborInfo(extaddr).isLinked {
-		e := gv.createLinkStatsUpdateEvent(nodeid, gv.f.extAddrMap[extaddr])
+	if src.linkStatsOpt.Visible && src.linkStatsOpt.TxPower && src.getNeighborInfo(extaddr).isLinked {
+		e := gv.createTxPowerLinkStatsUpdateEvent(nodeid, gv.f.extAddrMap[extaddr])
 		gv.addVisualizeEvent(e)
 	}
+	// TODO other type of (e.g. Rx) link stats to add here.
 }
 
-func (gv *grpcVisualizer) createLinkStatsUpdateEvent(srcid NodeId, dstid NodeId) *pb.VisualizeEvent {
+func (gv *grpcVisualizer) createTxPowerLinkStatsUpdateEvent(srcid NodeId, dstid NodeId) *pb.VisualizeEvent {
 	src := gv.f.nodes[srcid]
 	dst := gv.f.nodes[dstid]
 	dstExtAddr := dst.extaddr
@@ -182,11 +183,11 @@ func (gv *grpcVisualizer) OnRadioFrameDispatch(srcid NodeId, dstid NodeId, evt *
 	isSrcChange, isDstChange := gv.f.onRadioFrameDispatch(srcid, dstid, evt)
 
 	if isSrcChange {
-		e := gv.createLinkStatsUpdateEvent(srcid, dstid)
+		e := gv.createTxPowerLinkStatsUpdateEvent(srcid, dstid)
 		gv.addVisualizeEvent(e)
 	}
 	if isDstChange {
-		e := gv.createLinkStatsUpdateEvent(dstid, srcid)
+		e := gv.createTxPowerLinkStatsUpdateEvent(dstid, srcid)
 		gv.addVisualizeEvent(e)
 	}
 }
@@ -386,7 +387,8 @@ func (gv *grpcVisualizer) SetLinkStats(nodeid NodeId, opt visualize.LinkStatsOpt
 	defer gv.Unlock()
 
 	var e *pb.VisualizeEvent
-	if opt.Visible && nodeid != AllNodesId {
+
+	if opt.Visible && opt.TxPower && nodeid != AllNodesId {
 		node := gv.f.nodes[nodeid]
 		// identify current peers of the node, including peers that are unilaterally linked to this node.
 		peerNodeExtAddrs := gv.f.getNodeLinkedPeers(nodeid)
@@ -418,8 +420,7 @@ func (gv *grpcVisualizer) SetLinkStats(nodeid NodeId, opt visualize.LinkStatsOpt
 				},
 			}}}
 		}
-	} else {
-		logger.AssertFalse(opt.Visible) // current code only supports clearing for 1 or all nodes
+	} else if !opt.Visible {
 		e = &pb.VisualizeEvent{Type: &pb.VisualizeEvent_RemoveLinkStats{RemoveLinkStats: &pb.RemoveLinkStatsEvent{
 			NodeId:            int32(nodeid),
 			RemoveForAllPeers: true,

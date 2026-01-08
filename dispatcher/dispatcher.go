@@ -1532,7 +1532,7 @@ func (d *Dispatcher) OnNodeSelected(nodeid NodeId) {
 			}
 			d.vis.SetLinkStats(AllNodesId, optNotVisible)
 		}
-	} else if d.visOptions.LinkStats && d.nodes[nodeid] != nil {
+	} else if d.visOptions.LinkStatsOpt.Visible && d.nodes[nodeid] != nil {
 		// enable linkstats for each selected node
 		d.vis.SetLinkStats(nodeid, d.visOptions.LinkStatsOpt)
 	}

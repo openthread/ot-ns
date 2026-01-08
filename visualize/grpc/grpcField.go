@@ -153,12 +153,12 @@ func (f *grpcField) removeChildTable(id NodeId, extaddr uint64) {
 
 func (f *grpcField) setLinkStats(id NodeId, opt visualize.LinkStatsOptions) {
 	node := f.nodes[id]
-	node.linkStats = opt
+	node.linkStatsOpt = opt
 }
 
 func (f *grpcField) checkLinkStatUpdates(node *grpcNode, peerExtAddr uint64) {
 	nbStats := node.getNeighborInfo(peerExtAddr)
-	if nbStats.isLinked && node.linkStats.Visible {
+	if nbStats.isLinked && node.linkStatsOpt.Visible {
 		//
 	}
 }
@@ -210,13 +210,13 @@ func (f *grpcField) onRadioFrameDispatch(srcid NodeId, dstid NodeId, evt *event.
 
 		if nbInfo.lastTxPower != src.curTxPower {
 			nbInfo.lastTxPower = src.curTxPower
-			isSrcChange = src.linkStats.Visible && nbInfo.isLinked
+			isSrcChange = src.linkStatsOpt.Visible && src.linkStatsOpt.TxPower && nbInfo.isLinked
 		}
 
 		newRssi := evt.RadioCommData.PowerDbm
 		if nbInfo.lastRssi != newRssi {
 			nbInfo.lastRssi = newRssi
-			isDstChange = dst.linkStats.Visible
+			isDstChange = dst.linkStatsOpt.Visible && dst.linkStatsOpt.RxRssi
 		}
 
 		if isDstChange { // for dst side, check if it considers itself linked.

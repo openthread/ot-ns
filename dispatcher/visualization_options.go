@@ -36,7 +36,6 @@ type VisualizationOptions struct {
 	AckMessage       bool
 	RouterTable      bool
 	ChildTable       bool
-	LinkStats        bool
 	LinkStatsOpt     visualize.LinkStatsOptions
 }
 
@@ -47,7 +46,6 @@ func defaultVisualizationOptions() VisualizationOptions {
 		AckMessage:       false,
 		RouterTable:      true,
 		ChildTable:       true,
-		LinkStats:        true,
 		LinkStatsOpt:     visualize.DefaultLinkStatsOptions(),
 	}
 }

@@ -46,7 +46,7 @@ type grpcNode struct {
 	parent        uint64
 	routerTable   map[uint64]struct{}
 	childTable    map[uint64]struct{}
-	linkStats     visualize.LinkStatsOptions
+	linkStatsOpt  visualize.LinkStatsOptions
 	curTxPower    int8
 	neighborInfo  map[uint64]*grpcNeighborInfo
 	threadVersion uint16
@@ -78,7 +78,7 @@ func newGprcNode(id NodeId, cfg *NodeConfig) *grpcNode {
 		parent:        InvalidExtAddr,
 		routerTable:   map[uint64]struct{}{},
 		childTable:    map[uint64]struct{}{},
-		linkStats:     visualize.LinkStatsOptions{},
+		linkStatsOpt:  visualize.LinkStatsOptions{},
 		curTxPower:    RssiInvalid,
 		neighborInfo:  map[uint64]*grpcNeighborInfo{},
 		threadVersion: InvalidThreadVersion,
