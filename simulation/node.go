@@ -294,14 +294,17 @@ func (node *Node) CommandNoDone(cmd string) ([]string, bool) {
 		if !ok {
 			break
 		}
+		lineTrimmed := strings.TrimSpace(line)
 		if strings.HasPrefix(line, "Error") {
 			node.error(errors.New(line))
-		} else if strings.TrimSpace(line) == "Done" {
+		} else if lineTrimmed == "Done" {
 			// potential background commands that return a 'Done' CLI output at the end are flagged here.
 			hasDoneOutput = true
 		} else {
 			output = append(output, line)
-			hasDoneOutput = false
+			if len(lineTrimmed) > 0 {
+				hasDoneOutput = false
+			}
 		}
 	}
 	return output, hasDoneOutput
