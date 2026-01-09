@@ -1004,6 +1004,78 @@ class BasicTests(OTNSTestCase):
         self.assertTrue(os.path.isfile('tmp/0_txbytes.csv'))
         self.assertTrue(os.path.isfile('tmp/0_chansamples.csv'))
 
+    def testBackgroundCommands(self):
+        ns: OTNS = self.ns
+        ns.radiomodel = 'MIDisc'
+
+        nid_ldr = ns.add("router", x=600, y=300)  # Leader
+        ns.node_cmd(nid_ldr, "prefix add 2001:dead:beef:cafe::/64 paros med")
+        ns.node_cmd(nid_ldr, "netdata register")
+        ns.go(10)
+
+        nid_srv = ns.add("router", x=600, y=500)  # Router/REED aka 'server'
+        ns.go(10)
+
+        # Add Children to the Router
+        ns.add("med")
+        ns.add("sed")
+        ns.add("sed")
+        ns.add("sed")
+        ns.add("fed")
+        ns.go(10)
+
+        # Add a neighbour Router
+        nid_diag = ns.add("router", x=670, y=320)
+        ns.go(130)
+
+        a_rloc16 = ns.get_rloc16(nid_srv)
+        a_rloc = ns.get_ipaddrs(nid_srv, 'rloc')[0]
+        a_mleid = ns.get_ipaddrs(nid_srv, 'mleid')[0]
+
+        # Execute several 'background' commands. These will not return an immediate 'Done' CLI response, but will
+        # run in the background and produce a 'Done' CLI response after some simulation time has passed.
+        # OTNS will for such cases generate a 'Started' CLI response to signal the command has been started.
+        # The 'Done' response will follow after the command has completed running in the 'background', which
+        # takes some simulation time.
+        self.assertEqual(0, len(ns.node_cmd(nid_ldr, f'ping {a_mleid}')))
+        ns.go(10)
+
+        # The 'async' flag turns the 'ping' command into a 'foreground' command i.e. it generates an immediate
+        # 'Done' CLI response. The ping process keeps running in the background while the simulation progresses.
+        # OTNS will detect the 'Done' and won't generate a 'Started' CLI response in this case even though 'ping'
+        # is marked as a potential 'background' command.
+        self.assertEqual(0, len(ns.node_cmd(nid_ldr, f'ping async {a_mleid}')))
+        ns.go(10)
+
+        self.assertEqual(0, len(ns.node_cmd(nid_ldr, f'networkdiagnostic get {a_rloc} 19 23 24 25 26 27 28')))
+        ns.go(10)
+
+        self.assertEqual(0, len(ns.node_cmd(nid_diag, f'meshdiag childtable 0x{a_rloc16:x}')))
+        ns.go(10)
+
+        self.assertEqual(0, len(ns.node_cmd(nid_diag, f'meshdiag childip6 0x{a_rloc16:x}')))
+        ns.go(10)
+
+        self.assertEqual(0, len(ns.node_cmd(nid_diag, f'meshdiag routerneighbortable 0x{a_rloc16:x}')))
+        ns.go(10)
+
+        # Only available when OPENTHREAD_CONFIG_REFERENCE_DEVICE_ENABLE config is enabled.
+        # ns.node_cmd(nid_diag, f'linkmetrics config 0x{a_rloc16:x} enhanced-ack register qm')
+        # ns.go(10)
+
+        self.assertEqual(0, len(ns.node_cmd(nid_diag, f'discover')))
+        ns.go(10)
+
+        # As a sanity check, mix with an 'always-foreground' command here.
+        self.assertEqual(1, len(ns.node_cmd(nid_diag, f'state')))
+
+        self.assertEqual(0, len(ns.node_cmd(nid_ldr, f'scan')))
+        ns.go(10)
+
+        # Sanity check that the invalid command detection still works.
+        with self.assertRaises(errors.OTNSCliError):
+            ns.node_cmd(nid_diag, f'abcdefgdns xquery test.example')
+
 
 if __name__ == '__main__':
     unittest.main()
