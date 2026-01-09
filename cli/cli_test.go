@@ -196,6 +196,10 @@ func TestContextlessCommandPat(t *testing.T) {
 	assert.True(t, isContextlessCommand("node 1"))
 	assert.True(t, isContextlessCommand("!nodes"))
 	assert.True(t, isContextlessCommand("!ping 23 24"))
+
+	assert.False(t, isContextlessCommand("the exit"))
+	assert.False(t, isContextlessCommand("nodi 1"))
+	assert.False(t, isContextlessCommand("@ping 23 24"))
 }
 
 func TestBackgroundCommandPat(t *testing.T) {
@@ -214,10 +218,12 @@ func TestBackgroundCommandPat(t *testing.T) {
 	assert.True(t, backgroundCommandsPat.MatchString("networkdiagnostic qry ff02::1234 23 24 25"))
 	assert.True(t, backgroundCommandsPat.MatchString("mdns register anystring anystring"))
 	assert.True(t, backgroundCommandsPat.MatchString("mdns   register  anystring anystring"))
+	assert.True(t, backgroundCommandsPat.MatchString("mdns register"))
 
 	assert.False(t, backgroundCommandsPat.MatchString("state"))
 	assert.False(t, backgroundCommandsPat.MatchString("coap get ff02::1234 test"))
-	assert.True(t, backgroundCommandsPat.MatchString("mdns config anystring"))
+	assert.False(t, backgroundCommandsPat.MatchString("mdns config anystring"))
+	assert.False(t, backgroundCommandsPat.MatchString("mdns registez"))
 }
 
 type mockCliHandler struct {

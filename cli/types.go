@@ -48,8 +48,8 @@ var (
 		"sntp",
 	}
 
-	backgroundCommandsPat  = regexp.MustCompile(`(` + strings.Join(backgroundCommands, "|") + `)\b`)
-	contextLessCommandsPat = regexp.MustCompile(`(exit|node|!.+)\b`)
+	backgroundCommandsPat  = regexp.MustCompile(`^\s*(` + strings.Join(backgroundCommands, "|") + `)\b`)
+	contextLessCommandsPat = regexp.MustCompile(`^\s*(exit|node|!.+)\b`)
 )
 
 func isContextlessCommand(line string) bool {
