@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025, The OTNS Authors.
+// Copyright (c) 2020-2026, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -122,6 +122,8 @@ type ExecutableConfig struct {
 	Ftd         string
 	Mtd         string
 	Br          string
+	Rcp         string
+	RcpHost     string
 	SearchPaths []string
 }
 
@@ -140,6 +142,8 @@ var DefaultExecutableConfig ExecutableConfig = ExecutableConfig{
 	Ftd:         "ot-cli-ftd",
 	Mtd:         "ot-cli-mtd",
 	Br:          "ot-cli-ftd_br",
+	Rcp:         "ot-rcp",
+	RcpHost:     "ot-cli",
 	SearchPaths: []string{".", "./ot-rfsim/ot-versions", "./build/bin"},
 }
 
@@ -155,11 +159,13 @@ func DefaultNodeConfig() NodeConfig {
 		IsRaw:          false,
 		IsRouter:       true,
 		IsMtd:          false,
+		IsRcp:          false,
 		IsBorderRouter: false,
 		RxOffWhenIdle:  false,
 		NodeLogFile:    true,
 		RadioRange:     defaultRadioRange,
 		ExecutablePath: "",
+		HostExePath:    "",
 		Restore:        false,
 		InitScript:     []string{},
 		RandomSeed:     0, // 0 means not specified, i.e. truly unpredictable.
@@ -183,8 +189,13 @@ func (s *Simulation) NodeConfigFinalize(nodeCfg *NodeConfig) {
 		nodeCfg.ID = s.genNodeId()
 	}
 
-	nodeCfg.UpdateNodeConfigFromType()
+	if err := nodeCfg.UpdateNodeConfigFromType(); err != nil {
+		logger.Errorf("Node config finalization error: %v", err)
+		nodeCfg.ExecutablePath = "InvalidNodeExecutable"
+		return
+	}
 	nodeCfg.ExecutablePath = s.cfg.ExeConfig.FindExecutableBasedOnConfig(nodeCfg)
+	nodeCfg.HostExePath = s.cfg.ExeConfig.FindHostExecutableBasedOnConfig(nodeCfg)
 
 	// check for an implicit Thread-version setting in the executable-selection.
 	if len(s.cfg.ExeConfig.Version) > 0 && len(nodeCfg.Version) == 0 {
@@ -244,7 +255,8 @@ func (cfg *ExecutableConfig) SetVersion(version string, defaultConfig *Executabl
 		cfg.Ftd = defaultConfig.Ftd + "_" + version
 		cfg.Mtd = defaultConfig.Mtd + "_" + version
 	}
-	cfg.Br = defaultConfig.Br // BR is currently not adapted to versions.
+	cfg.Br = defaultConfig.Br   // BR is currently not adapted to versions.
+	cfg.Rcp = defaultConfig.Rcp // RCP is currently not adapted to versions.
 	cfg.Version = version
 }
 
@@ -256,9 +268,9 @@ func isFile(exePath string) bool {
 }
 
 // FindExecutable returns a full path to the named executable, by searching in standard
-// search paths if needed. If the given exeName is already a full path itself, it will be returned itself.
+// search paths if needed. If the given exeName is already a full path itself, or empty, it will be returned itself.
 func (cfg *ExecutableConfig) FindExecutable(exeName string) string {
-	if filepath.IsAbs(exeName) || exeName[0] == '.' {
+	if filepath.IsAbs(exeName) || len(exeName) == 0 || exeName[0] == '.' {
 		return exeName
 	}
 	for _, sp := range cfg.SearchPaths {
@@ -286,9 +298,25 @@ func (cfg *ExecutableConfig) FindExecutableBasedOnConfig(nodeCfg *NodeConfig) st
 	if nodeCfg.IsBorderRouter {
 		exeName = cfg.Br
 	}
+	if nodeCfg.IsRcp {
+		exeName = cfg.Rcp
+	}
 
 	if len(nodeCfg.Version) > 0 && nodeCfg.Version != versionLatestTag {
 		exeName += "_" + nodeCfg.Version
+	}
+
+	return cfg.FindExecutable(exeName)
+}
+
+// FindHostExecutableBasedOnConfig gets the RCP host executable, if any, based on NodeConfig information.
+func (cfg *ExecutableConfig) FindHostExecutableBasedOnConfig(nodeCfg *NodeConfig) string {
+	if len(nodeCfg.HostExePath) > 0 {
+		return nodeCfg.HostExePath
+	}
+	exeName := ""
+	if nodeCfg.IsRcp {
+		exeName = cfg.RcpHost
 	}
 
 	return cfg.FindExecutable(exeName)

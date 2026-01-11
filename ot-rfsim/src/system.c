@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016-2024, The OpenThread Authors.
+ *  Copyright (c) 2016-2026, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -53,7 +53,7 @@ static void handleSignal(int aSignal);
 
 volatile bool   gTerminate          = false;
 uint32_t        gNodeId             = 0;
-int             gSockFd             = 0;
+int             gSockFd             = 0; // file descriptor for Unix socket to/from OT-NS
 static uint16_t sIsInstanceInitDone = false;
 
 void otSysInit(int argc, char *argv[])
@@ -143,6 +143,10 @@ void otSysProcessDrivers(otInstance *aInstance)
     FD_SET(gSockFd, &read_fds);
     max_fd = gSockFd;
 
+#if OPENTHREAD_SIMULATION_VIRTUAL_TIME_UART == 0
+    platformUartUpdateFdSet(&read_fds, &write_fds, &error_fds, &max_fd);
+#endif
+
     if (!otTaskletsArePending(aInstance) && platformAlarmGetNext() > 0 &&
         (!platformRadioIsTransmitPending() || platformRadioIsBusy()))
     {
@@ -150,7 +154,7 @@ void otSysProcessDrivers(otInstance *aInstance)
         platformRadioReportStateToSimulator(false);
         otSimSendSleepEvent();
 
-        // wake up by reception of socket event from simulator.
+        // wake up by reception of socket event from OT-NS, or received SPINEL UART data (for RCP only).
         rval = select(max_fd + 1, &read_fds, &write_fds, &error_fds, NULL);
 
         if ((rval < 0) && (errno != EINTR))
@@ -168,6 +172,7 @@ void otSysProcessDrivers(otInstance *aInstance)
     platformAlarmProcess(aInstance);
     platformRadioProcess(aInstance);
     platformRadioInterfererProcess(aInstance);
+    platformUartProcess();
 #if OPENTHREAD_CONFIG_BLE_TCAT_ENABLE
     platformBleProcess(aInstance);
 #endif

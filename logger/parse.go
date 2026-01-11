@@ -37,8 +37,10 @@ const (
 	DefaultLevelString = "default"
 )
 
+// Example Posix ot-cli OTNS status push: 00:00:02.233 [-] Otns----------: transmit=11,d841,121,ffff
 var (
-	logPattern = regexp.MustCompile(`\[(-|C|W|N|I|D|CRIT|WARN|NOTE|INFO|DEBG)]`)
+	logPattern               = regexp.MustCompile(`\[(-|C|W|N|I|D|CRIT|WARN|NOTE|INFO|DEBG)]`)
+	otnsStatusPushLogPattern = regexp.MustCompile(`\[-] Otns-+: (.*)$`)
 )
 
 func ParseLevelString(level string) (Level, error) {
@@ -85,7 +87,7 @@ func parseOtLevelChar(level byte) Level {
 	}
 }
 
-// ParseOtLogLine attempts to parse line as an OT generated log line with timestamp/level/message.
+// ParseOtLogLine attempts to parse 'line' as an OT-generated log line with timestamp/level/message.
 // Returns true if successful and also returns the determined log level of the log line.
 func ParseOtLogLine(line string) (bool, Level) {
 	logIdx := logPattern.FindStringSubmatchIndex(line)
@@ -93,6 +95,17 @@ func ParseOtLogLine(line string) (bool, Level) {
 		return false, 0
 	}
 	return true, parseOtLevelChar(line[logIdx[2]])
+}
+
+// ParseOtnsStatusPush parses an OT Posix host log line for OTNS status push events, coming from
+// the OTNS module, and extracts the status message, if present.
+// Returns true and the extracted status if a match is found, else returns false and an empty string.
+func ParseOtnsStatusPush(line string) (bool, string) {
+	match := otnsStatusPushLogPattern.FindStringSubmatch(line)
+	if len(match) < 2 {
+		return false, ""
+	}
+	return true, match[1]
 }
 
 func GetLevelString(level Level) string {

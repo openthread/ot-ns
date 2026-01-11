@@ -328,18 +328,7 @@
  *
  * This setting configures OT-NS simulator support. It MUST be enabled
  * for the RFSIM platform.
- *
  */
 #define OPENTHREAD_CONFIG_OTNS_ENABLE 1
-
-/**
- * @def OPENTHREAD_SIMULATION_VIRTUAL_TIME
- *
- * MUST be enabled for the RFSIM platform.
- *
- */
-#ifndef OPENTHREAD_SIMULATION_VIRTUAL_TIME
-#define OPENTHREAD_SIMULATION_VIRTUAL_TIME 1
-#endif
 
 #endif // OPENTHREAD_CORE_RFSIM_CONFIG_H_

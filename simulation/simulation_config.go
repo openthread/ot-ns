@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2024, The OTNS Authors.
+// Copyright (c) 2020-2026, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -27,11 +27,14 @@
 package simulation
 
 import (
+	"time"
+
 	"github.com/openthread/ot-ns/logger"
 	"github.com/openthread/ot-ns/prng"
 	. "github.com/openthread/ot-ns/types"
 )
 
+// Thread Network defaults
 const (
 	DefaultChannel         = 11
 	DefaultExtPanid        = "dead00beef00cafe"
@@ -48,8 +51,11 @@ type Config struct {
 	NewNodeConfig    NodeConfig
 	NewNodeScripts   *YamlScriptConfig
 	Speed            float64
+	SimStepDuration  time.Duration
 	ReadOnly         bool
 	Realtime         bool
+	RtSpeedSmoothing float64 // Used if Realtime=true: 0.0 < value <= 1.0 - determines PID filter tau_f
+	RtDriftCorrGain  float64 // Used if Realtime=true: 0.0 < value < ~8.0 - equals PID filter K_p
 	AutoGo           bool
 	DumpPackets      bool
 	DispatcherHost   string
@@ -69,9 +75,12 @@ func DefaultConfig() *Config {
 		ExeConfigDefault: DefaultExecutableConfig,
 		NewNodeConfig:    DefaultNodeConfig(),
 		NewNodeScripts:   DefaultNodeScripts(),
-		Speed:            1,
+		Speed:            1.0,
+		SimStepDuration:  time.Second,
 		ReadOnly:         false,
 		Realtime:         false,
+		RtSpeedSmoothing: 0.4,
+		RtDriftCorrGain:  3.0,
 		AutoGo:           true,
 		DumpPackets:      false,
 		DispatcherHost:   "localhost",

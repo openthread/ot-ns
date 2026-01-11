@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025, The OTNS Authors.
+// Copyright (c) 2020-2026, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -312,7 +312,7 @@ type AddCmd struct {
 
 // noinspection GoVetStructTag
 type NodeTypeOrRole struct {
-	Val string `@("router"|"reed"|"fed"|"med"|"sed"|"ssed"|"br"|"mtd"|"ftd"|"wifi")` //nolint
+	Val string `@("router"|"reed"|"fed"|"med"|"sed"|"ssed"|"br"|"mtd"|"ftd"|"wifi"|"rcp")` //nolint
 }
 
 // noinspection GoVetStructTag
