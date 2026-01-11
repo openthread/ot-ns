@@ -6,6 +6,10 @@ module.exports = {
         maxEntrypointSize: 1048576,
     },
 
+    optimization: {
+        moduleIds: 'hashed',
+    },
+
     resolve: {
         extensions: ['*', '.mjs', '.js', '.json']
     },
