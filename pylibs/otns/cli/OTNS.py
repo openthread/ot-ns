@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2020-2024, The OTNS Authors.
+# Copyright (c) 2020-2026, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -262,7 +262,7 @@ class OTNS(object):
         logging.basicConfig(level=level, format='%(asctime)s - %(levelname)s - %(message)s')
 
     @property
-    def time(self) -> int:
+    def time(self) -> float:
         """
         Get simulation time.
 

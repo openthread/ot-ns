@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2024, The OTNS Authors.
+// Copyright (c) 2020-2026, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -253,20 +253,16 @@ export default class PixiVisualizer extends VObject {
         }
         this.real = real;
         this._applyReal();
-        this.log(`Real devices: ${real ? "ON" : "OFF"}`);
+        this.log(`Real-time simulation: ${real ? "ON" : "OFF"}`);
     }
 
     _applyReal() {
-        if (this.real) {
-            this.actionBar.setAbilities({})
-        } else {
-            this.actionBar.setAbilities({
-                "speed": true,
-                "add": true,
-                "del": true,
-                "radio": true,
-            })
-        }
+        this.actionBar.setAbilities({
+            "speed": !this.real,
+            "add": true,
+            "del": true,
+            "radio": true,
+        })
     }
 
     updateStatusMsg() {
@@ -319,9 +315,7 @@ export default class PixiVisualizer extends VObject {
         }
 
         let msg = `Added at (${x},${y},${z})`;
-        if (!this.real) {
-            msg += `, radio range ${radioRange}`
-        }
+        msg += `, radio range ${radioRange}`
         this.logNode(nodeId, msg)
         this.onNodeUpdate(nodeId);
     }
@@ -585,7 +579,7 @@ export default class PixiVisualizer extends VObject {
 
     setSpeed(speed) {
         if (this.real) {
-            console.error("setSpeed() not available in real mode");
+            console.error("setSpeed() not available in real-time mode");
             return
         }
 

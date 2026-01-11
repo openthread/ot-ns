@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2020-2025, The OTNS Authors.
+# Copyright (c) 2020-2026, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -857,6 +857,19 @@ class BasicTests(OTNSTestCase):
             ns.speed = 23
             self.assertEqual(1.0, ns.speed)
 
+            # Check that 'go' command fails and does not advance the time.
+            t = ns.time
+            go_output = ns.go(100)
+            self.assertTrue(ns.time >= t)
+            self.assertTrue(ns.time < t + 10.0)  # 10 sec is a worst case assumption of CPU unavailability in a CI host
+            # Go does not raise errors as exception, but it will output the error line
+            self.assertTrue(go_output[0].startswith('Error:'))
+
+            # Check that simulation time advances with real clock time. Allow a small error margin.
+            t = ns.time
+            time.sleep(0.100)
+            self.assertTrue(ns.time >= t + 0.099)
+
     def testClockDriftSetting(self):
         ns: OTNS = self.ns
         ns.add('router')
@@ -940,7 +953,8 @@ class BasicTests(OTNSTestCase):
 
         n1 = ns.add('router')
         n2 = ns.add('router')
-        ns.go(10)
+        ns.go(20)
+        self.assertFormPartitions(1)
         n1_ipaddr = ns.get_ipaddrs(n1, 'mleid')[0]
 
         ns.node_cmd(n1, 'udp open')

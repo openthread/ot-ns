@@ -68,6 +68,11 @@ target_compile_definitions(ot-config INTERFACE
     OPENTHREAD_CORE_CONFIG_PLATFORM_CHECK_FILE="openthread-core-rfsim-config-check.h"
 )
 
+option(OT_SIMULATION_VIRTUAL_TIME_UART "enable virtual time for UART" ON)
+if(OT_SIMULATION_VIRTUAL_TIME_UART)
+    target_compile_definitions(ot-config INTERFACE OPENTHREAD_SIMULATION_VIRTUAL_TIME_UART=1)
+endif()
+
 target_include_directories(ot-config INTERFACE
     ${PROJECT_SOURCE_DIR}/src
 )
