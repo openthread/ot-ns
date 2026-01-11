@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2024, The OTNS Authors.
+// Copyright (c) 2020-2026, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -115,7 +115,7 @@ func (s *Simulation) ImportNodes(nwConfig YamlNetworkConfig, nodes []YamlNodeCon
 		s.NodeConfigFinalize(&cfg)
 		_, err := s.AddNode(&cfg)
 		if err != nil {
-			logger.Warnf("Warn: %s", err)
+			logger.Warnf("Warn: %v", err)
 			allOk = false // continue trying to import remaining nodes
 		}
 	}

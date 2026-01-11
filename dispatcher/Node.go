@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2024, The OTNS Authors.
+// Copyright (c) 2020-2026, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -129,9 +129,8 @@ func (node *Node) String() string {
 	return GetNodeName(node.Id)
 }
 
-// SendToUART sends any data to virtual time UART of the node.
-func (node *Node) SendToUART(data []byte) error {
-	var err error
+// SendToVirtualUART sends any data to the virtual-time UART of the node.
+func (node *Node) SendToVirtualUART(data []byte) error {
 	evt := &Event{
 		Timestamp: node.D.CurTime,
 		Type:      EventTypeUartWrite,
@@ -141,10 +140,7 @@ func (node *Node) SendToUART(data []byte) error {
 
 	node.logger.Tracef("UART-write: %s", data)
 	node.sendEvent(evt)
-	if node.err != nil {
-		err = node.err
-	}
-	return err
+	return node.err
 }
 
 func (node *Node) SendRfSimEvent(writeValue bool, param RfSimParam, value RfSimParamValue) error {
@@ -200,8 +196,10 @@ func (node *Node) sendEvent(evt *Event) {
 
 	err := node.sendRawData(evt.Serialize())
 	if err != nil {
+		err = fmt.Errorf("send event failed: %w", err)
 		node.logger.Error(err)
 		node.err = err
+		_ = node.conn.Close()
 	} else {
 		node.D.setAlive(node.Id)
 	}

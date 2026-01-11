@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2020-2025, The OTNS Authors.
+# Copyright (c) 2020-2026, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -853,9 +853,29 @@ class BasicTests(OTNSTestCase):
             ns.add('router')
             ns.add('router')
             self.assertEqual(True, ns.autogo)
-            self.assertEqual(1.0, ns.speed)
+            self.assertTrue(ns.speed <= 1.5)
             ns.speed = 23
-            self.assertEqual(1.0, ns.speed)
+            self.assertTrue(ns.speed <= 1.5)  # speed is maintained within 0.5-1.5 limits.
+            self.assertTrue(ns.speed >= 0.5)
+
+            # Check that 'go' command fails and does not advance the time.
+            t = ns.time
+            go_output = ns.go(100)
+            self.assertTrue(ns.time >= t)
+            self.assertTrue(ns.time < t + 10.0)  # 10 sec is a worst case assumption of CPU unavailability in a CI host
+            # 'go' does not raise errors as exception in the OTNS Python framework, but it will output an error line.
+            self.assertTrue(go_output[0].startswith('Error:'))
+
+            # Check that simulation time advances with real clock time. Allow an error margin.
+            st0 = ns.time
+            rt0 = time.time()
+            time.sleep(2.0)
+            st1 = ns.time
+            rt1 = time.time()
+            rt_passed = rt1 - rt0
+            print(f'Simulation elapsed time: {st1-st0}, real elapsed time: {rt_passed}')
+            self.assertTrue(st1 >= st0 + rt_passed - 0.2)
+            self.assertTrue(st1 <= st0 + rt_passed + 0.2)
 
     def testClockDriftSetting(self):
         ns: OTNS = self.ns
@@ -940,7 +960,8 @@ class BasicTests(OTNSTestCase):
 
         n1 = ns.add('router')
         n2 = ns.add('router')
-        ns.go(10)
+        ns.go(20)
+        self.assertFormPartitions(1)
         n1_ipaddr = ns.get_ipaddrs(n1, 'mleid')[0]
 
         ns.node_cmd(n1, 'udp open')

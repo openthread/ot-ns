@@ -82,7 +82,7 @@ install_package git --apt git --brew git || true
 git submodule update --init --recursive
 
 # Do the rest via the test script, automatically
-./script/test py-ver-unittests || die "OTNS Installation/tests failed!"
+./script/test py-quick-test || die "OTNS Installation/tests failed!"
 
 # Check if 'otns' command is available.
 if [[ -n $(which otns) ]]; then
