@@ -8,6 +8,7 @@ module.exports = {
 
     optimization: {
         moduleIds: 'hashed',
+        chunkIds: 'named'
     },
 
     resolve: {
