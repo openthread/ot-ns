@@ -31,6 +31,18 @@ import (
 	"github.com/openthread/ot-ns/visualize"
 )
 
+// FIXME - support deletion of stale ExtAddrs.
+
+type TxStats struct {
+	DurationUs uint64
+	TxPowerDbm int8
+	RxRssiDbm  int8
+}
+
+type NodeLinkStats struct {
+	LastTx TxStats
+}
+
 // updateNodeStats calculates fresh node statistics and sends it to the Visualizers.
 func (d *Dispatcher) updateNodeStats() {
 	s := d.calcStats()
@@ -73,8 +85,8 @@ func (d *Dispatcher) visSendTimeWindowStats(stats *TimeWindowStats) {
 		WinStartUs:      stats.WinStartUs,
 		WinWidthUs:      stats.WinWidthUs,
 		NodePhyStats:    stats.PhyStats,
-		PhyTxBytes:      make(map[NodeId]uint64),
-		ChanSampleCount: make(map[NodeId]uint64),
+		PhyTxBytes:      make(map[NodeId]uint64, len(stats.PhyStats)),
+		ChanSampleCount: make(map[NodeId]uint64, len(stats.PhyStats)),
 	}
 	for id, st := range stats.PhyStats {
 		statsInfo.PhyTxBytes[id] = st.TxBytes
@@ -135,7 +147,7 @@ func countRole(nodes map[NodeId]*Node, role OtDeviceRole) int {
 func countUniquePts(nodes map[NodeId]*Node) int {
 	pts := make(map[uint32]struct{})
 	for _, n := range nodes {
-		if n.PartitionId > 0 {
+		if n.PartitionId != InvalidPartitionId {
 			pts[n.PartitionId] = struct{}{}
 		}
 	}

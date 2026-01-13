@@ -110,7 +110,7 @@ func (rm *RadioModelMutualInterference) OnEventDispatch(src *RadioNode, dst *Rad
 		// compute the RSSI and store in the event
 		evt.RadioCommData.PowerDbm = clipRssi(rm.GetTxRssi(src, dst))
 
-		// check for interference by other signals and apply to event.
+		// check for interference by other signals and apply to event: may result in FCS error.
 		rm.applyInterference(src, dst, evt)
 
 	case EventTypeRadioChannelSample:

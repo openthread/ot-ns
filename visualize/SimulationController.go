@@ -1,4 +1,4 @@
-// Copyright (c) 2020, The OTNS Authors.
+// Copyright (c) 2020-2025, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -26,8 +26,14 @@
 
 package visualize
 
+import "github.com/openthread/ot-ns/types"
+
 // SimulationController interfaces back to the entity controlling the simulation.
 type SimulationController interface {
-	// Command is called when the Visualizer wants to execute a CLI command.
+
+	// Command is called when the Visualizer wants to execute an OTNS CLI command.
 	Command(cmd string) ([]string, error)
+
+	// SelectNode is called when the Visualizer's user selects another node.
+	SelectNode(id types.NodeId) error
 }

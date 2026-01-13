@@ -65,6 +65,8 @@ message VisualizeEvent {
         SetNodeModeEvent set_node_mode = 22;
         SetNetworkInfoEvent set_network_info = 23;
         NodeStatsInfoEvent node_stats_info = 24;
+        AddLinkStatsEvent add_link_stats = 25;
+        RemoveLinkStatsEvent remove_link_stats = 26;
     }
 }
 
@@ -95,13 +97,40 @@ message RemoveRouterTableEvent {
     int32 node_id = 1;
     uint64 ext_addr = 2;
 }
+
 message AddChildTableEvent {
     int32 node_id = 1;
     uint64 ext_addr = 2;
 }
+
 message RemoveChildTableEvent {
     int32 node_id = 1;
     uint64 ext_addr = 2;
+}
+
+message LinkStatInfo {
+    int32 peer_node_id = 1;
+    string text_label = 2;
+    int32 distance = 3; // a relative distance measure 0-100% along the graph edge
+}
+
+message LinkStatLabelFormat {
+  uint32 font_size = 1;
+  uint32 font_color = 2; // RGB bytes, range 0x000000 (black) to 0xFFFFFF (white)
+  bool is_font_bold = 3;
+  uint32 distance_from_node = 4; // min dist in pixels - 0 means it can be in center of node
+}
+
+message AddLinkStatsEvent {
+    int32 node_id = 1;
+    repeated LinkStatInfo link_stats = 2;
+    LinkStatLabelFormat label_format = 3; // optionally included i.e. nullable
+}
+
+message RemoveLinkStatsEvent {
+    int32 node_id = 1;
+    bool remove_for_all_peers = 2;
+    repeated int32 peer_node_ids = 3; // if remove_for_all_peers is false, this specifies for which peers to remove
 }
 
 message SetSpeedEvent {
@@ -258,11 +287,16 @@ message ReplayEntry {
     VisualizeEvent event = 2;
 }
 
+message SelectNodeRequest {
+    int32 node_id = 1;
+}
+
 service VisualizeGrpcService {
     rpc Visualize (VisualizeRequest) returns (stream VisualizeEvent);
     rpc Command (CommandRequest) returns (CommandResponse);
     rpc Energy (EnergyRequest) returns (stream EnergyEvent);
     rpc NodeStats (NodeStatsRequest) returns (stream VisualizeEvent);
+    rpc SelectNode (SelectNodeRequest) returns (Empty);
 }
 
 message Empty {

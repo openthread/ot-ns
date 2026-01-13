@@ -29,8 +29,15 @@ import VObject from "./VObject";
 import {NodeMode, OtDeviceRole} from '../proto/visualize_grpc_pb'
 import {Visualizer} from "./PixiVisualizer";
 import {Resources} from "./resources";
-import {NODE_ID_INVALID, NODE_LABEL_FONT_FAMILY, NODE_LABEL_FONT_SIZE, POWER_DBM_INVALID,
-        EXT_ADDR_INVALID} from "./consts";
+import LinkStats from "./LinkStats";
+import {
+    EXT_ADDR_INVALID, LINKSTATS_FONT_COLOR,
+    ROUTER_OR_CHILD_ID_INVALID,
+    NODE_LABEL_FONT_FAMILY,
+    NODE_LABEL_FONT_SIZE,
+    LINKSTATS_DEFAULT_TEXT_STYLE,
+    POWER_DBM_INVALID, NODE_ID_INVALID
+} from "./consts";
 
 const NODE_SHAPE_SCALE = 64;
 const NODE_SELECTION_SCALE = 128;
@@ -52,21 +59,20 @@ export default class Node extends VObject {
         this.radioRange = radioRange;
         this.nodeMode = new NodeMode([true, true, true, true]);
         this.rloc16 = 0xfffe;
-        this.routerId = NODE_ID_INVALID;
-        this.childId = NODE_ID_INVALID;
-        this.parentId = NODE_ID_INVALID;
+        this.routerId = ROUTER_OR_CHILD_ID_INVALID;
+        this.childId = ROUTER_OR_CHILD_ID_INVALID;
+        this.parentNodeId = NODE_ID_INVALID;
         this.role = OtDeviceRole.OT_DEVICE_ROLE_DISABLED;
         this.txPowerLast = POWER_DBM_INVALID;
         this.channelLast = -1;
         this.otVersion = "";
         this.otCommit = "";
         this._failed = false;
-        this._parent = 0;
+        this._parent = EXT_ADDR_INVALID;
         this._partition = 0;
-        this._children = {};
-        this._neighbors = {};
-        this._createTime = this.vis.curTime;
-        // this._draggingOffset = null
+        this._children = {}; // extAddr -> 1
+        this._neighbors = {}; // extAddr -> 1
+        this._linkStats = {}; // nodeId -> LinkStats
         this._selected = false;
 
         this._root = new PIXI.Container();
@@ -81,12 +87,12 @@ export default class Node extends VObject {
         statusSprite.anchor.x = 0.5;
         statusSprite.anchor.y = 0.5;
         statusSprite.scale.x = statusSprite.scale.y = radius * 2 / NODE_SHAPE_SCALE;
-        this._root.addChild(statusSprite);
+        this.addChild(statusSprite);
         this._statusSprite = statusSprite;
 
         let node = this;
-        this._root.interactive = true;
-        this._root.hitArea = new PIXI.Circle(0, 0, radius);
+        this.interactive = true;
+        this.root.hitArea = new PIXI.Circle(0, 0, radius);
         this.setOnTouchStart((e) => {
             this.vis.setSelectedNode(node.id);
             e.stopPropagation();
@@ -94,6 +100,13 @@ export default class Node extends VObject {
         this.setOnTap((e) => {
             e.stopPropagation();
         });
+        this.setOnHover((e) => {
+                this.root.alpha = 0.92;
+            },
+            (e) => {
+                this.root.alpha = 1.0;
+            }
+        );
 
         this.setDraggable();
 
@@ -102,14 +115,14 @@ export default class Node extends VObject {
         partitionSprite.anchor.y = 0.5;
         partitionSprite.scale.x = partitionSprite.scale.y = radius * 2 / NODE_SHAPE_SCALE / 1.5;
         partitionSprite.tint = this.vis.getPartitionColor(this._partition);
-        this._root.addChild(partitionSprite);
+        this.addChild(partitionSprite);
         this._partitionSprite = partitionSprite;
 
         this._updateSize();
 
         let label = new PIXI.Text("", {fontFamily: NODE_LABEL_FONT_FAMILY, fontSize: NODE_LABEL_FONT_SIZE, align: 'left'});
         label.position.set(11, 11);
-        this._root.addChild(label);
+        this.addChild(label);
         this.label = label;
         this._updateLabel();
 
@@ -117,7 +130,7 @@ export default class Node extends VObject {
         failedMask.anchor.set(0.5, 0.5);
         failedMask.scale.set(0.5, 0.5);
         failedMask.visible = false;
-        this._root.addChild(failedMask);
+        this.addChild(failedMask);
         this._failedMask = failedMask
     }
 
@@ -198,15 +211,19 @@ export default class Node extends VObject {
     }
 
     setPosition(x, y, z) {
-        let zChanged = z != this.z;
+        const zChanged = z !== this.z;
+        const posChanged = x !== this.x || y !== this.y || zChanged;
         this.x = x;
         this.y = y;
         this.z = z;
         if (!this.isDragging()) {
             this.position.set(x, y)
         }
-        if (zChanged) {
-            this._updateSize(); // higher (z coord) nodes appear larger.
+        if (posChanged) {
+            this.onPositionChange();
+            if (zChanged) {
+                this._updateSize(); // higher (z coord) nodes appear larger.
+            }
         }
     }
 
@@ -246,10 +263,9 @@ export default class Node extends VObject {
             this._updateSize()
         }
         if (role == OtDeviceRole.OT_DEVICE_ROLE_DISABLED || role == OtDeviceRole.OT_DEVICE_ROLE_DETACHED) {
-            this._parent = NODE_ID_INVALID;
-            this.parentId = NODE_ID_INVALID;
-            this.childId = NODE_ID_INVALID;
-            this.routerId = NODE_ID_INVALID;
+            this._removeParent()
+            this.childId = ROUTER_OR_CHILD_ID_INVALID;
+            this.routerId = ROUTER_OR_CHILD_ID_INVALID;
         }
     }
 
@@ -290,19 +306,83 @@ export default class Node extends VObject {
     }
 
     addRouterTable(extaddr) {
-        this._neighbors[extaddr] = 1
+        this._neighbors[extaddr] = 1;
     }
 
     removeRouterTable(extaddr) {
-        delete this._neighbors[extaddr]
+        delete this._neighbors[extaddr];
     }
 
     addChildTable(extaddr) {
-        this._children[extaddr] = 1
+        this._children[extaddr] = 1;
     }
 
     removeChildTable(extaddr) {
         delete this._children[extaddr]
+    }
+
+    setParent(extAddr) {
+        this._removeParent();
+        const parentNode = this.vis.findNodeByExtAddr(extAddr);
+        this.parent = extAddr;
+        if (parentNode) {
+            this.parentNodeId = parentNode.id;
+        }
+    }
+
+    _removeParent() {
+        this._parent = EXT_ADDR_INVALID;
+        this.parentNodeId = NODE_ID_INVALID;
+    }
+
+    addLinkStats(linkStatsList, labelFormatReq) {
+        let labelFormat = { ...LINKSTATS_DEFAULT_TEXT_STYLE };
+
+        if (labelFormatReq) {
+            // Copy only attributes that are NOT the protobuf "default" values
+            labelFormat.fontSize = labelFormatReq.fontSize || labelFormat.fontSize;
+            labelFormat.fontColor = labelFormatReq.fontColor || labelFormat.fontColor;
+            labelFormat.isFontBold = labelFormatReq.isFontBold || labelFormat.isFontBold;
+            labelFormat.distanceFromNode = labelFormatReq.distanceFromNode || labelFormat.distanceFromNode;
+        }
+
+        for (const linkStatInfo of linkStatsList) {
+            const peerNodeId = linkStatInfo.getPeerNodeId();
+            const peer = this.vis.nodes[peerNodeId];
+            const existingLinkStat = this._linkStats[peerNodeId];
+            console.log("addLinkStats: peerNodeId=", peerNodeId, peer, "existingLinkStat=", existingLinkStat); // FIXME
+            if (existingLinkStat) {
+                existingLinkStat.destroy();
+            }
+            if (peer) {
+                const textLabel = linkStatInfo.getTextLabel();
+                const distanceRelative = linkStatInfo.getDistance();
+                const ls = new LinkStats(this, peer, textLabel, distanceRelative, labelFormat);
+                this._linkStats[peerNodeId] = ls;
+                this.addChild(ls);
+            }
+        }
+    }
+
+    _removeLinkStatsFor(peerNodeId) {
+        const linkStats = this._linkStats[peerNodeId];
+        if (linkStats) {
+            linkStats.destroy();
+            delete this._linkStats[peerNodeId];
+        }
+    }
+
+    removeLinkStats(removeForAllPeers, peerNodeIdsList) {
+        if (removeForAllPeers) {
+            for (const linkStats of Object.values(this._linkStats)) {
+                linkStats.destroy();
+            }
+            this._linkStats = {};
+        } else {
+            for (const peerNodeId of peerNodeIdsList) {
+                this._removeLinkStatsFor(peerNodeId);
+            }
+        }
     }
 
     onDraggingTimer() {
@@ -315,14 +395,24 @@ export default class Node extends VObject {
         let pos = this.position;
         this.vis.ctrlMoveNodeTo(this.id, pos.x, pos.y, (err, resp) => {
             if (err !== null) {
-                this.position.set(this.x, this.y)
+                this.position.set(this.x, this.y);
             }
         })
     }
 
-    update(dt) {
-        super.update(dt);
-        // this._updateDragging(dt)
+    onPositionChange() {
+        for(const linkStats of Object.values(this._linkStats)) {
+            linkStats.onPositionChange();
+        }
+    }
+
+    onPeerPositionChange(peerNodeId) {
+        console.log("onPeerPositionChange", peerNodeId); // FIXME
+        const linkStats = this._linkStats[peerNodeId];
+        if (linkStats) {
+            console.log("onPeerPositionChange: linkstats found", linkStats); // FIXME
+            linkStats.onPeerPositionChange();
+        }
     }
 
     onSelected() {
@@ -334,7 +424,7 @@ export default class Node extends VObject {
             selbox.alpha = 0.7;
             selbox.scale.set(selboxsize / NODE_SELECTION_SCALE, selboxsize / NODE_SELECTION_SCALE);
             selbox.anchor.set(0.5, 0.5);
-            this.root.addChildAt(selbox, 0);
+            this.addChildAt(selbox, 0);
             this._selbox = selbox;
 
             const rangeCircleSize = this.radioRange;
@@ -343,7 +433,7 @@ export default class Node extends VObject {
             rangeCircle.lineStyle({width: 1, color: 0x338a3e, alpha: 0.7});
             rangeCircle.drawCircle(0, 0, rangeCircleSize);
             rangeCircle.endFill();
-            this.root.addChildAt(rangeCircle, 0);
+            this.addChildAt(rangeCircle, 0);
             this._rangeCircle = rangeCircle;
         }
     }
@@ -352,10 +442,15 @@ export default class Node extends VObject {
         this._selected = false;
         if (this._selbox) {
             this._selbox.destroy();
-            delete this._selbox;
+            this._selbox = null;
 
             this._rangeCircle.destroy();
-            delete this._rangeCircle;
+            this._rangeCircle = null;
         }
     }
+
+    update(dt) {
+        super.update(dt);
+    }
+
 }

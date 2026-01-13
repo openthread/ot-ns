@@ -1159,6 +1159,14 @@ func (rt *CmdRunner) executeConfigVisualization(cc *CommandContext, cmd *ConfigV
 			opts.ChildTable = cmd.ChildTable.OnOrOff.On != nil
 		}
 
+		if cmd.LinkTxPower != nil {
+			opts.LinkStatsOpt.TxPower = cmd.LinkTxPower.OnOrOff.On != nil
+		}
+
+		if cmd.LinkRxRssi != nil {
+			opts.LinkStatsOpt.RxRssi = cmd.LinkRxRssi.OnOrOff.On != nil
+		}
+
 		sim.Dispatcher().SetVisualizationOptions(opts)
 	})
 
@@ -1174,6 +1182,8 @@ func (rt *CmdRunner) executeConfigVisualization(cc *CommandContext, cmd *ConfigV
 	cc.outputf("ack=%s\n", bool_to_onoroff(opts.AckMessage))
 	cc.outputf("rtb=%s\n", bool_to_onoroff(opts.RouterTable))
 	cc.outputf("ctb=%s\n", bool_to_onoroff(opts.ChildTable))
+	cc.outputf("txp=%s\n", bool_to_onoroff(opts.LinkStatsOpt.TxPower))
+	cc.outputf("rss=%s\n", bool_to_onoroff(opts.LinkStatsOpt.RxRssi))
 }
 
 func (rt *CmdRunner) enterNodeContext(nodeId NodeId) bool {

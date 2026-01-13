@@ -30,6 +30,7 @@ import (
 	"time"
 
 	"github.com/openthread/ot-ns/energy"
+	"github.com/openthread/ot-ns/event"
 	. "github.com/openthread/ot-ns/types"
 )
 
@@ -46,6 +47,9 @@ func (nv *NopVisualizer) SetNetworkInfo(networkInfo NetworkInfo) {
 }
 
 func (nv *NopVisualizer) OnExtAddrChange(id NodeId, extaddr uint64) {
+}
+
+func (nv *NopVisualizer) OnRadioFrameDispatch(srcid NodeId, dstid NodeId, evt *event.Event) {
 }
 
 func (nv *NopVisualizer) SetSpeed(speed float64) {
@@ -70,6 +74,9 @@ func (nv *NopVisualizer) AddChildTable(id NodeId, extaddr uint64) {
 }
 
 func (nv *NopVisualizer) RemoveChildTable(id NodeId, extaddr uint64) {
+}
+
+func (nv *NopVisualizer) SetLinkStats(id NodeId, opt LinkStatsOptions) {
 }
 
 func (nv *NopVisualizer) DeleteNode(id NodeId) {

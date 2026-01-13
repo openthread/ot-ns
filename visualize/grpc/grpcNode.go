@@ -1,4 +1,4 @@
-// Copyright (c) 2022-2024, The OTNS Authors.
+// Copyright (c) 2022-2026, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -28,8 +28,10 @@ package visualize_grpc
 
 import (
 	. "github.com/openthread/ot-ns/types"
+	"github.com/openthread/ot-ns/visualize"
 )
 
+// grpcNode tracks relevant visualization status/info for a single simulated node, used by grpcField.
 type grpcNode struct {
 	nodeid        NodeId
 	extaddr       uint64
@@ -44,9 +46,19 @@ type grpcNode struct {
 	parent        uint64
 	routerTable   map[uint64]struct{}
 	childTable    map[uint64]struct{}
+	linkStatsOpt  visualize.LinkStatsOptions
+	curTxPower    int8
+	neighborInfo  map[uint64]*grpcNeighborInfo
 	threadVersion uint16
 	version       string
 	commit        string
+}
+
+// grpcNeighborInfo keeps statistics on a single (current or past) neighbor node.
+type grpcNeighborInfo struct {
+	lastTxPower int8 // last Tx power (dBm) of sending a frame successfully TO this node
+	lastRssi    int8 // last RSSI (dBm) of receiving a frame successfully FROM this node
+	isLinked    bool // whether this node considers itself linked to the neighbor
 }
 
 func newGprcNode(id NodeId, cfg *NodeConfig) *grpcNode {
@@ -61,14 +73,35 @@ func newGprcNode(id NodeId, cfg *NodeConfig) *grpcNode {
 		mode:          DefaultNodeMode(),
 		rloc16:        InvalidRloc16,
 		role:          OtDeviceRoleDisabled,
-		partitionId:   0,
+		partitionId:   InvalidPartitionId,
 		failed:        false,
-		parent:        0,
+		parent:        InvalidExtAddr,
 		routerTable:   map[uint64]struct{}{},
 		childTable:    map[uint64]struct{}{},
+		linkStatsOpt:  visualize.LinkStatsOptions{},
+		curTxPower:    RssiInvalid,
+		neighborInfo:  map[uint64]*grpcNeighborInfo{},
 		threadVersion: InvalidThreadVersion,
 		version:       cfg.Version,
 		commit:        "",
 	}
 	return gn
+}
+
+func (gn *grpcNode) setLinked(extAddr uint64, isLinked bool) {
+	nbInfo := gn.getNeighborInfo(extAddr)
+	nbInfo.isLinked = isLinked
+}
+
+func (gn *grpcNode) getNeighborInfo(extAddr uint64) *grpcNeighborInfo {
+	nbInfo, ok := gn.neighborInfo[extAddr]
+	if !ok {
+		nbInfo = &grpcNeighborInfo{
+			lastTxPower: RssiInvalid,
+			lastRssi:    RssiInvalid,
+			isLinked:    false,
+		}
+		gn.neighborInfo[extAddr] = nbInfo
+	}
+	return nbInfo
 }

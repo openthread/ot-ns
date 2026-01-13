@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2024, The OTNS Authors.
+// Copyright (c) 2020-2026, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -27,17 +27,23 @@
 package visualize_grpc
 
 import (
+	"fmt"
 	"math"
 	"net"
 	"sync"
 	"time"
 
 	"github.com/openthread/ot-ns/energy"
+	"github.com/openthread/ot-ns/event"
 	"github.com/openthread/ot-ns/logger"
 	. "github.com/openthread/ot-ns/types"
 	"github.com/openthread/ot-ns/visualize"
 	"github.com/openthread/ot-ns/visualize/grpc/pb"
 	"github.com/openthread/ot-ns/visualize/grpc/replay"
+)
+
+const (
+	LinkStatsFontSize = 12
 )
 
 type grpcVisualizer struct {
@@ -146,6 +152,85 @@ func (gv *grpcVisualizer) OnExtAddrChange(nodeid NodeId, extaddr uint64) {
 	}}})
 }
 
+// doLinkStatUpdates checks what link stat updates need to be visualized after a topology update involving
+// node nodeid and a peer with extaddr.
+func (gv *grpcVisualizer) doLinkStatUpdates(nodeid NodeId, extaddr uint64) {
+	node := gv.f.nodes[nodeid]
+	nbInfo := node.getNeighborInfo(extaddr)
+	if node.linkStatsOpt.Visible && nbInfo.isLinked {
+		if peerNodeId, ok := gv.f.extAddrMap[extaddr]; ok {
+			if node.linkStatsOpt.TxPower {
+				e := gv.createTxPowerLinkStatsUpdateEvent(nodeid, peerNodeId)
+				gv.addVisualizeEvent(e)
+			}
+			if node.linkStatsOpt.RxRssi {
+				e := gv.createRssiLinkStatsUpdateEvent(nodeid, peerNodeId)
+				gv.addVisualizeEvent(e)
+			}
+		}
+	}
+	// TODO other type of (e.g. Rx) link stats to add here.
+}
+
+// createTxPowerLinkStatsUpdateEvent is a helper to create a VisualizeEvent for updating Tx power value shown
+// at node nodeid, given a frame was sent to peerId.
+func (gv *grpcVisualizer) createTxPowerLinkStatsUpdateEvent(nodeid NodeId, peerId NodeId) *pb.VisualizeEvent {
+	node := gv.f.nodes[nodeid]
+	peer := gv.f.nodes[peerId]
+
+	ls := make([]*pb.LinkStatInfo, 1)
+	ls[0] = &pb.LinkStatInfo{
+		PeerNodeId: int32(peerId),
+		TextLabel:  fmt.Sprintf("%d\ndBm", node.neighborInfo[peer.extaddr].lastTxPower),
+		Distance:   10,
+	}
+	e := &pb.VisualizeEvent{Type: &pb.VisualizeEvent_AddLinkStats{AddLinkStats: &pb.AddLinkStatsEvent{
+		NodeId:    int32(nodeid),
+		LinkStats: ls,
+		LabelFormat: &pb.LinkStatLabelFormat{
+			FontSize:         LinkStatsFontSize,
+			DistanceFromNode: 40,
+		},
+	}}}
+	return e
+}
+
+// createRssiLinkStatsUpdateEvent is a helper to create a VisualizeEvent for updating RSSI value
+// at node nodeid, given a frame was sent from peerId to it.
+func (gv *grpcVisualizer) createRssiLinkStatsUpdateEvent(nodeid NodeId, peerId NodeId) *pb.VisualizeEvent {
+	node := gv.f.nodes[nodeid]
+	peer := gv.f.nodes[peerId]
+
+	ls := make([]*pb.LinkStatInfo, 1)
+	ls[0] = &pb.LinkStatInfo{
+		PeerNodeId: int32(peerId),
+		TextLabel:  fmt.Sprintf("%d\nRSS", node.neighborInfo[peer.extaddr].lastRssi),
+		Distance:   25,
+	}
+	e := &pb.VisualizeEvent{Type: &pb.VisualizeEvent_AddLinkStats{AddLinkStats: &pb.AddLinkStatsEvent{
+		NodeId:    int32(nodeid),
+		LinkStats: ls,
+		LabelFormat: &pb.LinkStatLabelFormat{
+			FontSize:         LinkStatsFontSize,
+			DistanceFromNode: 40,
+		},
+	}}}
+	return e
+}
+
+func (gv *grpcVisualizer) OnRadioFrameDispatch(srcid NodeId, dstid NodeId, evt *event.Event) {
+	isSrcChanged, isDstChanged := gv.f.onRadioFrameDispatch(srcid, dstid, evt)
+
+	if isSrcChanged {
+		e := gv.createTxPowerLinkStatsUpdateEvent(srcid, dstid)
+		gv.addVisualizeEvent(e)
+	}
+	if isDstChanged {
+		e := gv.createRssiLinkStatsUpdateEvent(dstid, srcid)
+		gv.addVisualizeEvent(e)
+	}
+}
+
 func (gv *grpcVisualizer) SetNodeRloc16(nodeid NodeId, rloc16 uint16) {
 	gv.Lock()
 	defer gv.Unlock()
@@ -187,6 +272,7 @@ func (gv *grpcVisualizer) Send(srcid NodeId, dstid NodeId, mvinfo *visualize.Msg
 	gv.Lock()
 	defer gv.Unlock()
 
+	gv.f.send(srcid, dstid, mvinfo)
 	gv.addVisualizeEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_Send{Send: &pb.SendEvent{
 		SrcId: int32(srcid),
 		DstId: int32(dstid),
@@ -277,58 +363,142 @@ func (gv *grpcVisualizer) SetNodePos(nodeid NodeId, x, y, z int) {
 	}}})
 }
 
-func (gv *grpcVisualizer) DeleteNode(id NodeId) {
+func (gv *grpcVisualizer) DeleteNode(nodeid NodeId) {
 	gv.Lock()
 	defer gv.Unlock()
 
-	gv.f.deleteNode(id)
+	gv.f.deleteNode(nodeid)
 	gv.addVisualizeEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_DeleteNode{DeleteNode: &pb.DeleteNodeEvent{
-		NodeId: int32(id),
+		NodeId: int32(nodeid),
 	}}})
 }
 
-func (gv *grpcVisualizer) AddRouterTable(id NodeId, extaddr uint64) {
+func (gv *grpcVisualizer) AddRouterTable(nodeid NodeId, extaddr uint64) {
 	gv.Lock()
 	defer gv.Unlock()
 
-	gv.f.addRouterTable(id, extaddr)
+	gv.f.addRouterTable(nodeid, extaddr)
 	gv.addVisualizeEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_AddRouterTable{AddRouterTable: &pb.AddRouterTableEvent{
-		NodeId:  int32(id),
+		NodeId:  int32(nodeid),
 		ExtAddr: extaddr,
 	}}})
+	gv.doLinkStatUpdates(nodeid, extaddr)
 }
 
-func (gv *grpcVisualizer) RemoveRouterTable(id NodeId, extaddr uint64) {
+func (gv *grpcVisualizer) RemoveRouterTable(nodeid NodeId, extaddr uint64) {
 	gv.Lock()
 	defer gv.Unlock()
 
-	gv.f.removeRouterTable(id, extaddr)
+	gv.f.removeRouterTable(nodeid, extaddr)
 	gv.addVisualizeEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_RemoveRouterTable{RemoveRouterTable: &pb.RemoveRouterTableEvent{
-		NodeId:  int32(id),
+		NodeId:  int32(nodeid),
 		ExtAddr: extaddr,
 	}}})
+	gv.doLinkStatUpdates(nodeid, extaddr)
 }
 
-func (gv *grpcVisualizer) AddChildTable(id NodeId, extaddr uint64) {
+func (gv *grpcVisualizer) AddChildTable(nodeid NodeId, extaddr uint64) {
 	gv.Lock()
 	defer gv.Unlock()
 
-	gv.f.addChildTable(id, extaddr)
+	gv.f.addChildTable(nodeid, extaddr)
 	gv.addVisualizeEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_AddChildTable{AddChildTable: &pb.AddChildTableEvent{
-		NodeId:  int32(id),
+		NodeId:  int32(nodeid),
 		ExtAddr: extaddr,
 	}}})
+	gv.doLinkStatUpdates(nodeid, extaddr)
 }
 
-func (gv *grpcVisualizer) RemoveChildTable(id NodeId, extaddr uint64) {
+func (gv *grpcVisualizer) RemoveChildTable(nodeid NodeId, extaddr uint64) {
 	gv.Lock()
 	defer gv.Unlock()
 
-	gv.f.removeChildTable(id, extaddr)
+	gv.f.removeChildTable(nodeid, extaddr)
 	gv.addVisualizeEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_RemoveChildTable{RemoveChildTable: &pb.RemoveChildTableEvent{
-		NodeId:  int32(id),
+		NodeId:  int32(nodeid),
 		ExtAddr: extaddr,
 	}}})
+	gv.doLinkStatUpdates(nodeid, extaddr)
+}
+
+func (gv *grpcVisualizer) SetLinkStats(nodeid NodeId, opt visualize.LinkStatsOptions) {
+	gv.Lock()
+	defer gv.Unlock()
+
+	var e *pb.VisualizeEvent
+
+	if opt.Visible && (opt.TxPower || opt.RxRssi) && nodeid != AllNodesId {
+		node := gv.f.nodes[nodeid]
+		// identify current peers of the node, including peers that are unilaterally linked to this node.
+		peerNodeExtAddrs := gv.f.getNodeLinkedPeers(nodeid)
+		labelsPerPeer := 1
+		if opt.TxPower && opt.RxRssi {
+			labelsPerPeer = 2
+		}
+
+		// for each peer, generate 1 or 2 labels
+		peerLinkStatsProto := make([]*pb.LinkStatInfo, 0, labelsPerPeer*len(peerNodeExtAddrs))
+		for _, peerExtAddr := range peerNodeExtAddrs {
+			var textLabel string
+			nbInfo := node.getNeighborInfo(peerExtAddr)
+			peerNodeId := int32(gv.f.extAddrMap[peerExtAddr])
+
+			if opt.TxPower {
+				if nbInfo.lastTxPower == RssiInvalid {
+					textLabel = "N/A\ndBm"
+				} else {
+					textLabel = fmt.Sprintf("%d\ndBm", nbInfo.lastTxPower)
+				}
+				peerLinkStatsProto = append(peerLinkStatsProto, &pb.LinkStatInfo{
+					PeerNodeId: peerNodeId,
+					TextLabel:  textLabel,
+					Distance:   15,
+				})
+			}
+
+			if opt.RxRssi {
+				if nbInfo.lastTxPower == RssiInvalid {
+					textLabel = "N/A\nRSS"
+				} else {
+					textLabel = fmt.Sprintf("%d\nRSS", nbInfo.lastRssi)
+				}
+				peerLinkStatsProto = append(peerLinkStatsProto, &pb.LinkStatInfo{
+					PeerNodeId: peerNodeId,
+					TextLabel:  textLabel,
+					Distance:   25,
+				})
+
+			}
+		}
+
+		if len(peerLinkStatsProto) > 0 {
+			e = &pb.VisualizeEvent{Type: &pb.VisualizeEvent_AddLinkStats{AddLinkStats: &pb.AddLinkStatsEvent{
+				NodeId:    int32(nodeid),
+				LinkStats: peerLinkStatsProto,
+				LabelFormat: &pb.LinkStatLabelFormat{
+					FontSize:         LinkStatsFontSize,
+					DistanceFromNode: 40,
+				},
+			}}}
+		}
+	} else if !opt.Visible {
+		e = &pb.VisualizeEvent{Type: &pb.VisualizeEvent_RemoveLinkStats{RemoveLinkStats: &pb.RemoveLinkStatsEvent{
+			NodeId:            int32(nodeid),
+			RemoveForAllPeers: true,
+		}}}
+	}
+
+	if nodeid != AllNodesId {
+		gv.f.setLinkStats(nodeid, opt)
+	} else {
+		for nid, _ := range gv.f.nodes {
+			gv.f.setLinkStats(nid, opt)
+		}
+	}
+
+	if e != nil {
+		gv.addVisualizeEvent(e)
+	}
 }
 
 func (gv *grpcVisualizer) ShowDemoLegend(x int, y int, title string) {
@@ -354,15 +524,16 @@ func (gv *grpcVisualizer) CountDown(duration time.Duration, text string) {
 	}}})
 }
 
-func (gv *grpcVisualizer) SetParent(id NodeId, extaddr uint64) {
+func (gv *grpcVisualizer) SetParent(nodeid NodeId, extaddr uint64) {
 	gv.Lock()
 	defer gv.Unlock()
 
-	gv.f.setParent(id, extaddr)
+	gv.f.setParent(nodeid, extaddr)
 	gv.addVisualizeEvent(&pb.VisualizeEvent{Type: &pb.VisualizeEvent_SetParent{SetParent: &pb.SetParentEvent{
-		NodeId:  int32(id),
+		NodeId:  int32(nodeid),
 		ExtAddr: extaddr,
 	}}})
+	gv.doLinkStatUpdates(nodeid, extaddr)
 }
 
 func (gv *grpcVisualizer) SetTitle(titleInfo visualize.TitleInfo) {

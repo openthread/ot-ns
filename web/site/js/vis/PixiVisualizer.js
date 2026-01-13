@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2024, The OTNS Authors.
+// Copyright (c) 2020-2026, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -29,15 +29,11 @@ import VObject from "./VObject";
 import ActionBar from "./ActionBar";
 import {Text} from "./wrapper";
 import {
-    FRAME_CONTROL_MASK_FRAME_TYPE,
-    FRAME_TYPE_ACK,
-    LOG_WINDOW_FONT_COLOR,
-    MAX_SPEED,
-    PAUSE_SPEED,
-    STATUS_MSG_FONT_FAMILY,
-    STATUS_MSG_FONT_SIZE,
-    NODE_ID_INVALID,
-    NODE_LABEL_FONT_FAMILY
+    FRAME_CONTROL_MASK_FRAME_TYPE, FRAME_TYPE_ACK,
+    LOG_WINDOW_FONT_COLOR, STATUS_MSG_FONT_FAMILY, STATUS_MSG_FONT_SIZE, NODE_LABEL_FONT_FAMILY,
+    LOG_WINDOW_ERROR_FONT_COLOR,
+    MAX_SPEED, PAUSE_SPEED,
+    NODE_ID_INVALID, NODE_ID_ALL_NODES
 } from "./consts";
 import Node from "./Node"
 import {AckMessage, BroadcastMessage, UnicastMessage} from "./message";
@@ -46,7 +42,7 @@ import * as fmt from "./format_text"
 import NodeWindow from "./NodeWindow";
 
 const {
-    OtDeviceRole, CommandRequest
+    OtDeviceRole, CommandRequest, SelectNodeRequest,
 } = require('../proto/visualize_grpc_pb.js');
 
 var vis = null;
@@ -71,7 +67,6 @@ export default class PixiVisualizer extends VObject {
         this.newNodePos = null;
 
         this.root = new PIXI.Container();
-        // this.root.width =
         this.root.position.set(0, 20);
         this.root.interactive = true;
         this.root.hitArea = new PIXI.Rectangle(0, 0, 3000, 3000);
@@ -114,7 +109,7 @@ export default class PixiVisualizer extends VObject {
 
         this.nodeWindow = new NodeWindow();
         this.addChild(this.nodeWindow);
-        this._selectedNodeId = 0;
+        this._selectedNodeId = NODE_ID_INVALID;
         this._selectAddedNode = false;
 
         this.otVersion = "";
@@ -151,7 +146,7 @@ export default class PixiVisualizer extends VObject {
     update(dt) {
         super.update(dt);
 
-        this._drawNodeLinks();
+        this._drawNodeLinks2();
 
         for (let id in this.nodes) {
             let node = this.nodes[id];
@@ -197,13 +192,12 @@ export default class PixiVisualizer extends VObject {
     _resetIdleCheckTimer() {
         if (this._idleCheckTimer) {
             this.cancelCallback(this._idleCheckTimer);
-            delete this._idleCheckTimer
         }
 
         this._idleCheckTimer = this.addCallback(10, () => {
             console.error("idle timer fired, reloading ...");
             location.reload()
-        })
+        });
     }
 
     visAdvanceTime(ts, speed) {
@@ -220,7 +214,7 @@ export default class PixiVisualizer extends VObject {
     stopIdleCheckTimer() {
         if (this._idleCheckTimer) {
             this.cancelCallback(this._idleCheckTimer);
-            delete this._idleCheckTimer
+            this._idleCheckTimer = null;
         }
     }
 
@@ -305,7 +299,14 @@ export default class PixiVisualizer extends VObject {
     log(text, color = LOG_WINDOW_FONT_COLOR) {
         console.log(text);
         if (this.logWindow) {
-            this.logWindow.addLog(text, color)
+            this.logWindow.addLog(text, color);
+        }
+    }
+
+    logError(text) {
+        console.error("Error: ", text);
+        if (this.logWindow) {
+            this.logWindow.addLog("Error: " + text, LOG_WINDOW_ERROR_FONT_COLOR);
         }
     }
 
@@ -330,7 +331,7 @@ export default class PixiVisualizer extends VObject {
         let node = this.nodes[nodeId];
         let oldRloc16 = node.rloc16;
         node.setRloc16(rloc16);
-        if (oldRloc16 != rloc16) {
+        if (oldRloc16 !== rloc16) {
             this.logNode(nodeId, `RLOC16 changed from ${fmt.formatRloc16(oldRloc16)} to ${fmt.formatRloc16(rloc16)}`)
             this.onNodeUpdate(nodeId);
         }
@@ -339,7 +340,7 @@ export default class PixiVisualizer extends VObject {
     visSetNodeRole(nodeId, role) {
         let oldRole = this.nodes[nodeId].role;
         this.nodes[nodeId].setRole(role);
-        if (oldRole != role) {
+        if (oldRole !== role) {
             this.logNode(nodeId, `Role changed from ${fmt.roleToString(oldRole)} to ${fmt.roleToString(role)}`)
             this.onNodeUpdate(nodeId);
         }
@@ -366,20 +367,27 @@ export default class PixiVisualizer extends VObject {
                 this.displayOTVersion(version, commit);
                 this.onNodeUpdate(nodeId);
             }else{
-                this.log(`visSetNetworkInfo(): node ${nodeId} not found`);
+                this.logError(`visSetNetworkInfo(): node ${nodeId} not found`);
             }
         }
     }
 
     visDeleteNode(nodeId) {
-        let node = this.nodes[nodeId];
+        const node = this.nodes[nodeId];
         delete this.nodes[nodeId];
-        node.destroy();
         if (nodeId === this._selectedNodeId) {
-            this.setSelectedNode(0);
+            this.setSelectedNode(NODE_ID_INVALID);
         }
+        this.removeLinkStatsForDeletedNode(nodeId);
+        if (node) node.destroy();
         this.logNode(nodeId, "Deleted")
         this.onNodeUpdate(nodeId);
+    }
+
+    removeLinkStatsForDeletedNode(deletedNodeId) {
+        for (const nodeid in this.nodes) {
+            this.nodes[nodeid].removeLinkStats(false, [deletedNodeId]);
+        }
     }
 
     visSetSpeed(speed) {
@@ -422,19 +430,36 @@ export default class PixiVisualizer extends VObject {
     }
 
     visSetParent(nodeId, extAddr) {
-        let parent = this.findNodeByExtAddr(extAddr);
-        this.nodes[nodeId].parent = extAddr;
-        if (parent) {
-            this.nodes[nodeId].parentId = parent.id;
-        }else {
-            this.nodes[nodeId].parentId = NODE_ID_INVALID;
-        }
+        this.nodes[nodeId].setParent(extAddr);
         this.logNode(nodeId, `Parent set to ${this.formatExtAddrPretty(extAddr)}`)
         this.onNodeUpdate(nodeId);
     }
 
+    visAddLinkStats(id, linkStatsList, labelFormat) {
+        console.log('visAddLinkStats', id, linkStatsList, labelFormat); // FIXME
+        if (id === NODE_ID_ALL_NODES) {
+            for (let nodeId in this.nodes) {
+                this.nodes[nodeId].addLinkStats(linkStatsList, labelFormat);
+            }
+        } else {
+            this.nodes[id].addLinkStats(linkStatsList, labelFormat);
+        }
+        // no this.onNodeUpdate() call, since no node properties changed apart from link stats.
+    }
+
+    visRemoveLinkStats(id, removeForAllPeers, peerNodeIdsList) {
+        if (id === NODE_ID_ALL_NODES) {
+            for (let nodeId in this.nodes) {
+                this.nodes[nodeId].removeLinkStats(removeForAllPeers, peerNodeIdsList);
+            }
+        } else {
+            this.nodes[id].removeLinkStats(removeForAllPeers, peerNodeIdsList);
+        }
+        // no this.onNodeUpdate() call, since no node properties changed apart from link stats.
+    }
+
     visSetTitle(title, x, y, fontSize) {
-        let oldTitleText = this.titleText.text;
+        const oldTitleText = this.titleText.text;
         this.titleText.text = title;
         this.titleText.x = x;
         this.titleText.y = y;
@@ -526,8 +551,7 @@ export default class PixiVisualizer extends VObject {
 
         this.grpcServiceClient.command(req, {}, (err, resp) => {
                 if (err !== null) {
-                    this.log("Error: " + err.toLocaleString());
-                    console.error("Error: " + err.toLocaleString());
+                    this.logError(err.toLocaleString());
                     if (callback) {
                         callback(err, [])
                     }
@@ -560,15 +584,11 @@ export default class PixiVisualizer extends VObject {
     }
 
     setSelectedNode(id) {
-        if (id === this._selectedNodeId) {
-            return;
-        }
-
         let old_sel = this.nodes[this._selectedNodeId];
         if (old_sel) {
             old_sel.onUnselected();
         }
-        this._selectedNodeId = 0; // unselect
+        this._selectedNodeId = NODE_ID_INVALID;
 
         let new_sel = this.nodes[id];
         if (new_sel) {
@@ -581,6 +601,14 @@ export default class PixiVisualizer extends VObject {
 
         this.nodeWindow.showNode(new_sel);
         this.actionBar.setContext(new_sel || "any");
+
+        let req = new SelectNodeRequest();
+        req.setNodeId(this._selectedNodeId);
+        this.grpcServiceClient.selectNode(req, {}, (err, resp) => {
+            if (err) {
+                this.logError(err.toLocaleString());
+            }
+        });
     }
 
     setSpeed(speed) {
@@ -615,33 +643,90 @@ export default class PixiVisualizer extends VObject {
     }
 
     onTapedStage() {
-        this.setSelectedNode(0)
+        this.setSelectedNode(NODE_ID_INVALID)
     }
 
+    _drawNodeLinks2() {
+        const linkLineWidth = 1;
+        const thickWidth = linkLineWidth * 4;
+
+        this._bgStage.removeChildren().forEach(child => child.destroy());
+        const graphics = new PIXI.Graphics();
+
+        // 1. Helper to categorize links by their required thickness
+        let greenLinks = { thin: [], thick: [] };
+        let blueLinks = { thin: [], thick: [] };
+
+        for (const nodeid in this.nodes) {
+            const node = this.nodes[nodeid];
+            const isNodeSelected = (nodeid == this._selectedNodeId);
+
+            // Collect Green Links (Children)
+            for (const extaddr in node._children) {
+                const child = this.findNodeByExtAddr(extaddr);
+                if (child) {
+                    const type = (isNodeSelected || child.id == this._selectedNodeId) ? 'thick' : 'thin';
+                    greenLinks[type].push(node.position, child.position);
+                }
+            }
+
+            // Collect Blue Links (Neighbors)
+            for (const extaddr in node._neighbors) {
+                const neighbor = this.findNodeByExtAddr(extaddr);
+                if (neighbor) {
+                    const type = (isNodeSelected || neighbor.id == this._selectedNodeId) ? 'thick' : 'thin';
+                    blueLinks[type].push(node.position, neighbor.position);
+                }
+            }
+        }
+
+        // 2. Draw Green Links
+        graphics.lineStyle(linkLineWidth, 0x8bc34a, 1);
+        this._batchDraw(graphics, greenLinks.thin);
+
+        graphics.lineStyle(thickWidth, 0x8bc34a, 1);
+        this._batchDraw(graphics, greenLinks.thick);
+
+        // 3. Draw Blue Links
+        graphics.lineStyle(linkLineWidth, 0x1976d2, 1);
+        this._batchDraw(graphics, blueLinks.thin);
+
+        graphics.lineStyle(thickWidth, 0x1976d2, 1);
+        this._batchDraw(graphics, blueLinks.thick);
+
+        this._bgStage.addChild(graphics);
+    }
+
+    // Simple helper to execute the move/line commands
+    _batchDraw(graphics, points) {
+        for (let i = 0; i < points.length; i += 2) {
+            graphics.moveTo(points[i].x, points[i].y);
+            graphics.lineTo(points[i+1].x, points[i+1].y);
+        }
+    }
+
+    // FIXME - this is the old drawing code, which didn't use batches.
     _drawNodeLinks() {
-        let linkLineWidth = 1;
-        // this._bgStage.removeChildAt(0)
+        const linkLineWidth = 1;
         this._bgStage.removeChildren().forEach(child => child.destroy());
 
         const graphics = new PIXI.Graphics();
         graphics.beginFill(0x8bc34a);
 
-        for (let nodeid in this.nodes) {
-            let node = this.nodes[nodeid];
-            if (node.parent) {
-                let parent = this.findNodeByExtAddr(node.parent);
-                if (parent !== null) {
-                    graphics.moveTo(node.position.x, node.position.y);
-                    graphics.lineTo(parent.position.x, parent.position.y)
-                }
+        for (const nodeid in this.nodes) {
+            const node = this.nodes[nodeid];
+            const parent = this.findNodeByExtAddr(node.parent);
+            if (parent) {
+                graphics.moveTo(node.position.x, node.position.y);
+                graphics.lineTo(parent.position.x, parent.position.y);
             }
-            for (let extaddr in node._children) {
-                let child = this.findNodeByExtAddr(extaddr);
+            for (const extaddr in node._children) {
+                const child = this.findNodeByExtAddr(extaddr);
                 if (child) {
-                    graphics.lineStyle(nodeid == this._selectedNodeId || child.id == this._selectedNodeId ? linkLineWidth * 3 : linkLineWidth, 0x8bc34a, 1);
+                    graphics.lineStyle((nodeid === this._selectedNodeId || child.id === this._selectedNodeId) ? linkLineWidth * 3 : linkLineWidth, 0x8bc34a, 1);
 
                     graphics.moveTo(node.position.x, node.position.y);
-                    graphics.lineTo(child.position.x, child.position.y)
+                    graphics.lineTo(child.position.x, child.position.y);
                 }
             }
         }
@@ -649,13 +734,14 @@ export default class PixiVisualizer extends VObject {
 
         graphics.beginFill(0x1976d2);
 
-        for (let nodeid in this.nodes) {
-            graphics.lineStyle(nodeid == this._selectedNodeId ? linkLineWidth * 3 : linkLineWidth, 0x1976d2, 1);
+        for (const nodeid in this.nodes) {
+            const node = this.nodes[nodeid];
 
-            let node = this.nodes[nodeid];
-            for (let extaddr in node._neighbors) {
-                let neighbor = this.findNodeByExtAddr(extaddr);
+            for (const extaddr in node._neighbors) {
+                const neighbor = this.findNodeByExtAddr(extaddr);
                 if (neighbor) {
+                    graphics.lineStyle((nodeid === this._selectedNodeId || neighbor.id === this._selectedNodeId) ? linkLineWidth * 3 : linkLineWidth, 0x1976d2, 1);
+
                     graphics.moveTo(node.position.x, node.position.y);
                     graphics.lineTo(neighbor.position.x, neighbor.position.y)
                 }
@@ -671,8 +757,8 @@ export default class PixiVisualizer extends VObject {
      * @returns Node
      */
     findNodeByExtAddr(extaddr) {
-        for (let nodeid in this.nodes) {
-            let node = this.nodes[nodeid];
+        for (const nodeid in this.nodes) {
+            const node = this.nodes[nodeid];
             if (node.extAddr == extaddr) {
                 return node
             }
@@ -695,11 +781,6 @@ export default class PixiVisualizer extends VObject {
     visAddChildTable(nodeId, extaddr) {
         this.nodes[nodeId].addChildTable(extaddr);
         this.logNode(nodeId, `Child table added: ${this.formatExtAddrPretty(extaddr)}`)
-        let child = this.findNodeByExtAddr(extaddr);
-        if (child && this.nodes[child.id]) {
-            let extAddrParent = this.nodes[nodeId].extAddr;
-            this.visSetParent(child.id,extAddrParent); // call from here because 'parent' push event is not emitted by OT.
-        }
         this.onNodeUpdate(nodeId);
     }
 
@@ -720,19 +801,19 @@ export default class PixiVisualizer extends VObject {
     }
 
     onNodeUpdate(nodeId) {
-        if(this._selectedNodeId==nodeId && nodeId > 0){
+        if(this._selectedNodeId===nodeId){
             this.nodeWindow.showNode(this.nodes[nodeId])
         }
     }
 
     randomColor() {
-        let hue = Math.floor(Math.random() * 360);
-        let color = `hsl(${hue}deg, 92%, 23%)`;
+        const hue = Math.floor(Math.random() * 360);
+        const color = `hsl(${hue}deg, 92%, 23%)`;
         return color;
     }
 
     formatExtAddrPretty(extAddr) {
-        let node = this.findNodeByExtAddr(extAddr);
+        const node = this.findNodeByExtAddr(extAddr);
         if (node) {
             return `Node ${node.id}(${fmt.formatExtAddr(extAddr)})`
         } else {
@@ -782,7 +863,7 @@ export default class PixiVisualizer extends VObject {
 
     deleteMessage(msg) {
         delete this._messages[msg.id];
-        msg._root.destroy()
+        msg.destroy()
     }
 
     createBroadcastMessage(src, mvInfo) {
@@ -798,7 +879,7 @@ export default class PixiVisualizer extends VObject {
     }
 
     onResize(width, height) {
-        console.log("window resized to " + width + "," + height);
+        console.log("Window resized to " + width + "," + height);
         this.actionBar.position.set(10, height - this.actionBar.height - 20 - 10);
         this._resetLogWindowPosition(width, height);
     }

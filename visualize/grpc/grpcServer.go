@@ -34,6 +34,7 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/openthread/ot-ns/logger"
+	"github.com/openthread/ot-ns/types"
 	"github.com/openthread/ot-ns/visualize/grpc/pb"
 )
 
@@ -144,6 +145,11 @@ func (gs *grpcServer) Command(ctx context.Context, req *pb.CommandRequest) (*pb.
 	return &pb.CommandResponse{
 		Output: output,
 	}, err
+}
+
+func (gs *grpcServer) SelectNode(ctx context.Context, req *pb.SelectNodeRequest) (*pb.Empty, error) {
+	err := gs.vis.simctrl.SelectNode(types.NodeId(req.GetNodeId()))
+	return &pb.Empty{}, err
 }
 
 func (gs *grpcServer) Run() error {

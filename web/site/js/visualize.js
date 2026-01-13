@@ -74,13 +74,13 @@ function getDesiredFieldSize() {
 window.addEventListener("resize", function () {
     let [w, h] = getDesiredFieldSize();
     app.renderer.resize(w, h);
-    if (vis !== null) {
+    if (vis) {
         vis.onResize(w, h)
     }
 });
 
 function loadOk() {
-    console.log('connecting to gRPC server ' + server);
+    console.log('Connecting to gRPC server ' + server);
     grpcServiceClient = new VisualizeGrpcServiceClient(server);
 
     vis = new PixiVisualizer(app, grpcServiceClient);
@@ -139,8 +139,17 @@ function loadOk() {
                 break;
             case VisualizeEvent.TypeCase.SET_PARENT:
                 e = resp.getSetParent();
-                // TODO - currently OT does not emit this event. Workaround is used to call visSetParent().
                 vis.visSetParent(e.getNodeId(), e.getExtAddr());
+                break;
+            case VisualizeEvent.TypeCase.ADD_LINK_STATS:
+                e = resp.getAddLinkStats();
+                const labelFormatPb = e.getLabelFormat();
+                const labelFormat = labelFormatPb ? labelFormatPb.toObject() : null;
+                vis.visAddLinkStats(e.getNodeId(), e.getLinkStatsList(), labelFormat);
+                break;
+            case VisualizeEvent.TypeCase.REMOVE_LINK_STATS:
+                e = resp.getRemoveLinkStats();
+                vis.visRemoveLinkStats(e.getNodeId(), e.getRemoveForAllPeers(), e.getPeerNodeIdsList());
                 break;
             case VisualizeEvent.TypeCase.SET_NODE_PARTITION_ID:
                 e = resp.getSetNodePartitionId();
@@ -202,14 +211,14 @@ function loadOk() {
                 console.error('visualize gRPC stream status: code = ' + status.code + ' details = ' + status.details);
                 vis.stopIdleCheckTimer(); // stop expecting the HeartBeat events
             }else{
-                console.log('visualize gRPC stream status: code = ' + status.code + ' details = ' + status.details);
+                console.log('Visualize gRPC stream status: code = ' + status.code + ' details = ' + status.details);
             }
         }
     });
 
     stream.on('end', function (end) {
         // stream end signal
-        console.log('visualize gRPC stream end');
+        console.log('Visualize gRPC stream end');
         vis.stopIdleCheckTimer();
     });
 }

@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2023, The OTNS Authors.
+// Copyright (c) 2020-2026, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,7 +25,9 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 // nodes and numbering
-export const NODE_ID_INVALID = 0xffff;
+export const NODE_ID_INVALID = 0;
+export const NODE_ID_ALL_NODES = -2;
+export const ROUTER_OR_CHILD_ID_INVALID = 0xffff;
 export const EXT_ADDR_INVALID = 0xFFFFFFFFFFFFFFFF;
 
 // simulation speed controls
@@ -50,3 +52,15 @@ export const STATUS_MSG_FONT_SIZE = 13;
 export const LOG_WINDOW_FONT_FAMILY = 'verdana, helvetica, sans-serif';
 export const LOG_WINDOW_FONT_SIZE = 11.5;
 export const LOG_WINDOW_FONT_COLOR = "Blue";
+export const LOG_WINDOW_ERROR_FONT_COLOR = "Red";
+
+export const LINKSTATS_FONT_FAMILY = 'consolas, monaco, monospace';
+export const LINKSTATS_FONT_SIZE = 12;
+export const LINKSTATS_FONT_COLOR = 0xFF0000;
+export const LINKSTATS_DEFAULT_TEXT_STYLE = {
+    fontColor: LINKSTATS_FONT_COLOR,
+    fontFamily: LINKSTATS_FONT_FAMILY,
+    isFontBold: false,
+    fontSize: LINKSTATS_FONT_SIZE,
+    distanceFromNode: 32,
+};

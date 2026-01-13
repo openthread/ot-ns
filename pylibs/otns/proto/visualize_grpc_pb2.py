@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='visualize_grpc.proto',
   package='visualize_grpc_pb',
   syntax='proto3',
-  serialized_pb=_b('\n\x14visualize_grpc.proto\x12\x11visualize_grpc_pb\"\x12\n\x10VisualizeRequest\"\x0f\n\rEnergyRequest\"\x12\n\x10NodeStatsRequest\"\xf9\x0b\n\x0eVisualizeEvent\x12\x33\n\x08\x61\x64\x64_node\x18\x01 \x01(\x0b\x32\x1f.visualize_grpc_pb.AddNodeEventH\x00\x12\x39\n\x0b\x64\x65lete_node\x18\x02 \x01(\x0b\x32\".visualize_grpc_pb.DeleteNodeEventH\x00\x12@\n\x0fset_node_rloc16\x18\x03 \x01(\x0b\x32%.visualize_grpc_pb.SetNodeRloc16EventH\x00\x12<\n\rset_node_role\x18\x04 \x01(\x0b\x32#.visualize_grpc_pb.SetNodeRoleEventH\x00\x12:\n\x0cset_node_pos\x18\x05 \x01(\x0b\x32\".visualize_grpc_pb.SetNodePosEventH\x00\x12K\n\x15set_node_partition_id\x18\x06 \x01(\x0b\x32*.visualize_grpc_pb.SetNodePartitionIdEventH\x00\x12:\n\x0con_node_fail\x18\x07 \x01(\x0b\x32\".visualize_grpc_pb.OnNodeFailEventH\x00\x12@\n\x0fon_node_recover\x18\x08 \x01(\x0b\x32%.visualize_grpc_pb.OnNodeRecoverEventH\x00\x12\x37\n\nset_parent\x18\t \x01(\x0b\x32!.visualize_grpc_pb.SetParentEventH\x00\x12\x37\n\ncount_down\x18\n \x01(\x0b\x32!.visualize_grpc_pb.CountDownEventH\x00\x12\x42\n\x10show_demo_legend\x18\x0b \x01(\x0b\x32&.visualize_grpc_pb.ShowDemoLegendEventH\x00\x12;\n\x0c\x61\x64vance_time\x18\x0c \x01(\x0b\x32#.visualize_grpc_pb.AdvanceTimeEventH\x00\x12\x42\n\x10\x61\x64\x64_router_table\x18\r \x01(\x0b\x32&.visualize_grpc_pb.AddRouterTableEventH\x00\x12H\n\x13remove_router_table\x18\x0e \x01(\x0b\x32).visualize_grpc_pb.RemoveRouterTableEventH\x00\x12@\n\x0f\x61\x64\x64_child_table\x18\x0f \x01(\x0b\x32%.visualize_grpc_pb.AddChildTableEventH\x00\x12\x46\n\x12remove_child_table\x18\x10 \x01(\x0b\x32(.visualize_grpc_pb.RemoveChildTableEventH\x00\x12,\n\x04send\x18\x11 \x01(\x0b\x32\x1c.visualize_grpc_pb.SendEventH\x00\x12\x35\n\tset_speed\x18\x12 \x01(\x0b\x32 .visualize_grpc_pb.SetSpeedEventH\x00\x12\x36\n\theartbeat\x18\x13 \x01(\x0b\x32!.visualize_grpc_pb.HeartbeatEventH\x00\x12\x45\n\x12on_ext_addr_change\x18\x14 \x01(\x0b\x32\'.visualize_grpc_pb.OnExtAddrChangeEventH\x00\x12\x35\n\tset_title\x18\x15 \x01(\x0b\x32 .visualize_grpc_pb.SetTitleEventH\x00\x12<\n\rset_node_mode\x18\x16 \x01(\x0b\x32#.visualize_grpc_pb.SetNodeModeEventH\x00\x12\x42\n\x10set_network_info\x18\x17 \x01(\x0b\x32&.visualize_grpc_pb.SetNetworkInfoEventH\x00\x12@\n\x0fnode_stats_info\x18\x18 \x01(\x0b\x32%.visualize_grpc_pb.NodeStatsInfoEventH\x00\x42\x06\n\x04type\"a\n\tSendEvent\x12\x0e\n\x06src_id\x18\x01 \x01(\x05\x12\x0e\n\x06\x64st_id\x18\x02 \x01(\x05\x12\x34\n\x07mv_info\x18\x03 \x01(\x0b\x32#.visualize_grpc_pb.MsgVisualizeInfo\"\xdc\x01\n\x10MsgVisualizeInfo\x12\x0f\n\x07\x63hannel\x18\x01 \x01(\r\x12\x15\n\rframe_control\x18\x02 \x01(\r\x12\x0b\n\x03seq\x18\x03 \x01(\r\x12\x16\n\x0e\x64st_addr_short\x18\x04 \x01(\r\x12\x19\n\x11\x64st_addr_extended\x18\x05 \x01(\x04\x12\x18\n\x10send_duration_us\x18\x06 \x01(\r\x12\x19\n\x11vis_true_duration\x18\x07 \x01(\x08\x12\x11\n\tpower_dbm\x18\x08 \x01(\x05\x12\x18\n\x10\x66rame_size_bytes\x18\t \x01(\r\"8\n\x13\x41\x64\x64RouterTableEvent\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\x12\x10\n\x08\x65xt_addr\x18\x02 \x01(\x04\";\n\x16RemoveRouterTableEvent\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\x12\x10\n\x08\x65xt_addr\x18\x02 \x01(\x04\"7\n\x12\x41\x64\x64\x43hildTableEvent\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\x12\x10\n\x08\x65xt_addr\x18\x02 \x01(\x04\":\n\x15RemoveChildTableEvent\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\x12\x10\n\x08\x65xt_addr\x18\x02 \x01(\x04\"\x1e\n\rSetSpeedEvent\x12\r\n\x05speed\x18\x01 \x01(\x01\"\x10\n\x0eHeartbeatEvent\"4\n\x10\x41\x64vanceTimeEvent\x12\x11\n\ttimestamp\x18\x01 \x01(\x04\x12\r\n\x05speed\x18\x02 \x01(\x01\"3\n\x0eSetParentEvent\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\x12\x10\n\x08\x65xt_addr\x18\x02 \x01(\x04\"3\n\x0e\x43ountDownEvent\x12\x13\n\x0b\x64uration_ms\x18\x01 \x01(\x03\x12\x0c\n\x04text\x18\x02 \x01(\t\":\n\x13ShowDemoLegendEvent\x12\t\n\x01x\x18\x01 \x01(\x05\x12\t\n\x01y\x18\x02 \x01(\x05\x12\r\n\x05title\x18\x03 \x01(\t\"C\n\x0fSetNodePosEvent\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\x12\t\n\x01x\x18\x02 \x01(\x05\x12\t\n\x01y\x18\x03 \x01(\x05\x12\t\n\x01z\x18\x04 \x01(\x05\"R\n\x10SetNodeRoleEvent\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\x12-\n\x04role\x18\x02 \x01(\x0e\x32\x1f.visualize_grpc_pb.OtDeviceRole\"@\n\x17SetNodePartitionIdEvent\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\x12\x14\n\x0cpartition_id\x18\x02 \x01(\r\"\"\n\x0fOnNodeFailEvent\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\"%\n\x12OnNodeRecoverEvent\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\"\"\n\x0f\x44\x65leteNodeEvent\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\"h\n\x0c\x41\x64\x64NodeEvent\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\x12\t\n\x01x\x18\x02 \x01(\x05\x12\t\n\x01y\x18\x03 \x01(\x05\x12\t\n\x01z\x18\x04 \x01(\x05\x12\x13\n\x0bradio_range\x18\x05 \x01(\x05\x12\x11\n\tnode_type\x18\x06 \x01(\t\"x\n\x08NodeMode\x12\x17\n\x0frx_on_when_idle\x18\x01 \x01(\x08\x12\x1c\n\x14secure_data_requests\x18\x02 \x01(\x08\x12\x1a\n\x12\x66ull_thread_device\x18\x03 \x01(\x08\x12\x19\n\x11\x66ull_network_data\x18\x04 \x01(\x08\"5\n\x12SetNodeRloc16Event\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\x12\x0e\n\x06rloc16\x18\x02 \x01(\r\"9\n\x14OnExtAddrChangeEvent\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\x12\x10\n\x08\x65xt_addr\x18\x02 \x01(\x04\"G\n\rSetTitleEvent\x12\r\n\x05title\x18\x01 \x01(\t\x12\t\n\x01x\x18\x02 \x01(\x05\x12\t\n\x01y\x18\x03 \x01(\x05\x12\x11\n\tfont_size\x18\x04 \x01(\x05\"S\n\x10SetNodeModeEvent\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\x12.\n\tnode_mode\x18\x02 \x01(\x0b\x32\x1b.visualize_grpc_pb.NodeMode\"m\n\x13SetNetworkInfoEvent\x12\x0c\n\x04real\x18\x01 \x01(\x08\x12\x0f\n\x07version\x18\x02 \x01(\t\x12\x0e\n\x06\x63ommit\x18\x03 \x01(\t\x12\x0f\n\x07node_id\x18\x04 \x01(\x05\x12\x16\n\x0ethread_version\x18\x05 \x01(\x05\"V\n\nNodeEnergy\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\x12\x10\n\x08\x64isabled\x18\x02 \x01(\x01\x12\r\n\x05sleep\x18\x03 \x01(\x01\x12\n\n\x02tx\x18\x04 \x01(\x01\x12\n\n\x02rx\x18\x05 \x01(\x01\"T\n\x0b\x45nergyEvent\x12\x11\n\ttimestamp\x18\x01 \x01(\x04\x12\x32\n\x0bNodesEnergy\x18\x02 \x03(\x0b\x32\x1d.visualize_grpc_pb.NodeEnergy\"\xc3\x01\n\tNodeStats\x12\x10\n\x08NumNodes\x18\x01 \x01(\r\x12\x12\n\nNumLeaders\x18\x02 \x01(\r\x12\x15\n\rNumPartitions\x18\x03 \x01(\r\x12\x12\n\nNumRouters\x18\x04 \x01(\r\x12\x15\n\rNumEndDevices\x18\x05 \x01(\r\x12\x13\n\x0bNumDetached\x18\x06 \x01(\r\x12\x13\n\x0bNumDisabled\x18\x07 \x01(\r\x12\x11\n\tNumSleepy\x18\x08 \x01(\r\x12\x11\n\tNumFailed\x18\t \x01(\r\"Y\n\x12NodeStatsInfoEvent\x12\x11\n\ttimestamp\x18\x01 \x01(\x04\x12\x30\n\nnode_stats\x18\x02 \x01(\x0b\x32\x1c.visualize_grpc_pb.NodeStats\"!\n\x0e\x43ommandRequest\x12\x0f\n\x07\x63ommand\x18\x01 \x01(\t\"!\n\x0f\x43ommandResponse\x12\x0e\n\x06output\x18\x01 \x03(\t\"R\n\x0bReplayEntry\x12\x11\n\ttimestamp\x18\x01 \x01(\x04\x12\x30\n\x05\x65vent\x18\x02 \x01(\x0b\x32!.visualize_grpc_pb.VisualizeEvent\"\x07\n\x05\x45mpty*\x98\x01\n\x0cOtDeviceRole\x12\x1b\n\x17OT_DEVICE_ROLE_DISABLED\x10\x00\x12\x1b\n\x17OT_DEVICE_ROLE_DETACHED\x10\x01\x12\x18\n\x14OT_DEVICE_ROLE_CHILD\x10\x02\x12\x19\n\x15OT_DEVICE_ROLE_ROUTER\x10\x03\x12\x19\n\x15OT_DEVICE_ROLE_LEADER\x10\x04\x32\xe4\x02\n\x14VisualizeGrpcService\x12U\n\tVisualize\x12#.visualize_grpc_pb.VisualizeRequest\x1a!.visualize_grpc_pb.VisualizeEvent0\x01\x12P\n\x07\x43ommand\x12!.visualize_grpc_pb.CommandRequest\x1a\".visualize_grpc_pb.CommandResponse\x12L\n\x06\x45nergy\x12 .visualize_grpc_pb.EnergyRequest\x1a\x1e.visualize_grpc_pb.EnergyEvent0\x01\x12U\n\tNodeStats\x12#.visualize_grpc_pb.NodeStatsRequest\x1a!.visualize_grpc_pb.VisualizeEvent0\x01\x42/Z-github.com/openthread/ot-ns/visualize/grpc/pbb\x06proto3')
+  serialized_pb=_b('\n\x14visualize_grpc.proto\x12\x11visualize_grpc_pb\"\x12\n\x10VisualizeRequest\"\x0f\n\rEnergyRequest\"\x12\n\x10NodeStatsRequest\"\xff\x0c\n\x0eVisualizeEvent\x12\x33\n\x08\x61\x64\x64_node\x18\x01 \x01(\x0b\x32\x1f.visualize_grpc_pb.AddNodeEventH\x00\x12\x39\n\x0b\x64\x65lete_node\x18\x02 \x01(\x0b\x32\".visualize_grpc_pb.DeleteNodeEventH\x00\x12@\n\x0fset_node_rloc16\x18\x03 \x01(\x0b\x32%.visualize_grpc_pb.SetNodeRloc16EventH\x00\x12<\n\rset_node_role\x18\x04 \x01(\x0b\x32#.visualize_grpc_pb.SetNodeRoleEventH\x00\x12:\n\x0cset_node_pos\x18\x05 \x01(\x0b\x32\".visualize_grpc_pb.SetNodePosEventH\x00\x12K\n\x15set_node_partition_id\x18\x06 \x01(\x0b\x32*.visualize_grpc_pb.SetNodePartitionIdEventH\x00\x12:\n\x0con_node_fail\x18\x07 \x01(\x0b\x32\".visualize_grpc_pb.OnNodeFailEventH\x00\x12@\n\x0fon_node_recover\x18\x08 \x01(\x0b\x32%.visualize_grpc_pb.OnNodeRecoverEventH\x00\x12\x37\n\nset_parent\x18\t \x01(\x0b\x32!.visualize_grpc_pb.SetParentEventH\x00\x12\x37\n\ncount_down\x18\n \x01(\x0b\x32!.visualize_grpc_pb.CountDownEventH\x00\x12\x42\n\x10show_demo_legend\x18\x0b \x01(\x0b\x32&.visualize_grpc_pb.ShowDemoLegendEventH\x00\x12;\n\x0c\x61\x64vance_time\x18\x0c \x01(\x0b\x32#.visualize_grpc_pb.AdvanceTimeEventH\x00\x12\x42\n\x10\x61\x64\x64_router_table\x18\r \x01(\x0b\x32&.visualize_grpc_pb.AddRouterTableEventH\x00\x12H\n\x13remove_router_table\x18\x0e \x01(\x0b\x32).visualize_grpc_pb.RemoveRouterTableEventH\x00\x12@\n\x0f\x61\x64\x64_child_table\x18\x0f \x01(\x0b\x32%.visualize_grpc_pb.AddChildTableEventH\x00\x12\x46\n\x12remove_child_table\x18\x10 \x01(\x0b\x32(.visualize_grpc_pb.RemoveChildTableEventH\x00\x12,\n\x04send\x18\x11 \x01(\x0b\x32\x1c.visualize_grpc_pb.SendEventH\x00\x12\x35\n\tset_speed\x18\x12 \x01(\x0b\x32 .visualize_grpc_pb.SetSpeedEventH\x00\x12\x36\n\theartbeat\x18\x13 \x01(\x0b\x32!.visualize_grpc_pb.HeartbeatEventH\x00\x12\x45\n\x12on_ext_addr_change\x18\x14 \x01(\x0b\x32\'.visualize_grpc_pb.OnExtAddrChangeEventH\x00\x12\x35\n\tset_title\x18\x15 \x01(\x0b\x32 .visualize_grpc_pb.SetTitleEventH\x00\x12<\n\rset_node_mode\x18\x16 \x01(\x0b\x32#.visualize_grpc_pb.SetNodeModeEventH\x00\x12\x42\n\x10set_network_info\x18\x17 \x01(\x0b\x32&.visualize_grpc_pb.SetNetworkInfoEventH\x00\x12@\n\x0fnode_stats_info\x18\x18 \x01(\x0b\x32%.visualize_grpc_pb.NodeStatsInfoEventH\x00\x12>\n\x0e\x61\x64\x64_link_stats\x18\x19 \x01(\x0b\x32$.visualize_grpc_pb.AddLinkStatsEventH\x00\x12\x44\n\x11remove_link_stats\x18\x1a \x01(\x0b\x32\'.visualize_grpc_pb.RemoveLinkStatsEventH\x00\x42\x06\n\x04type\"a\n\tSendEvent\x12\x0e\n\x06src_id\x18\x01 \x01(\x05\x12\x0e\n\x06\x64st_id\x18\x02 \x01(\x05\x12\x34\n\x07mv_info\x18\x03 \x01(\x0b\x32#.visualize_grpc_pb.MsgVisualizeInfo\"\xdc\x01\n\x10MsgVisualizeInfo\x12\x0f\n\x07\x63hannel\x18\x01 \x01(\r\x12\x15\n\rframe_control\x18\x02 \x01(\r\x12\x0b\n\x03seq\x18\x03 \x01(\r\x12\x16\n\x0e\x64st_addr_short\x18\x04 \x01(\r\x12\x19\n\x11\x64st_addr_extended\x18\x05 \x01(\x04\x12\x18\n\x10send_duration_us\x18\x06 \x01(\r\x12\x19\n\x11vis_true_duration\x18\x07 \x01(\x08\x12\x11\n\tpower_dbm\x18\x08 \x01(\x05\x12\x18\n\x10\x66rame_size_bytes\x18\t \x01(\r\"8\n\x13\x41\x64\x64RouterTableEvent\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\x12\x10\n\x08\x65xt_addr\x18\x02 \x01(\x04\";\n\x16RemoveRouterTableEvent\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\x12\x10\n\x08\x65xt_addr\x18\x02 \x01(\x04\"7\n\x12\x41\x64\x64\x43hildTableEvent\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\x12\x10\n\x08\x65xt_addr\x18\x02 \x01(\x04\":\n\x15RemoveChildTableEvent\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\x12\x10\n\x08\x65xt_addr\x18\x02 \x01(\x04\"J\n\x0cLinkStatInfo\x12\x14\n\x0cpeer_node_id\x18\x01 \x01(\x05\x12\x12\n\ntext_label\x18\x02 \x01(\t\x12\x10\n\x08\x64istance\x18\x03 \x01(\x05\"n\n\x13LinkStatLabelFormat\x12\x11\n\tfont_size\x18\x01 \x01(\r\x12\x12\n\nfont_color\x18\x02 \x01(\r\x12\x14\n\x0cis_font_bold\x18\x03 \x01(\x08\x12\x1a\n\x12\x64istance_from_node\x18\x04 \x01(\r\"\x97\x01\n\x11\x41\x64\x64LinkStatsEvent\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\x12\x33\n\nlink_stats\x18\x02 \x03(\x0b\x32\x1f.visualize_grpc_pb.LinkStatInfo\x12<\n\x0clabel_format\x18\x03 \x01(\x0b\x32&.visualize_grpc_pb.LinkStatLabelFormat\"\\\n\x14RemoveLinkStatsEvent\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\x12\x1c\n\x14remove_for_all_peers\x18\x02 \x01(\x08\x12\x15\n\rpeer_node_ids\x18\x03 \x03(\x05\"\x1e\n\rSetSpeedEvent\x12\r\n\x05speed\x18\x01 \x01(\x01\"\x10\n\x0eHeartbeatEvent\"4\n\x10\x41\x64vanceTimeEvent\x12\x11\n\ttimestamp\x18\x01 \x01(\x04\x12\r\n\x05speed\x18\x02 \x01(\x01\"3\n\x0eSetParentEvent\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\x12\x10\n\x08\x65xt_addr\x18\x02 \x01(\x04\"3\n\x0e\x43ountDownEvent\x12\x13\n\x0b\x64uration_ms\x18\x01 \x01(\x03\x12\x0c\n\x04text\x18\x02 \x01(\t\":\n\x13ShowDemoLegendEvent\x12\t\n\x01x\x18\x01 \x01(\x05\x12\t\n\x01y\x18\x02 \x01(\x05\x12\r\n\x05title\x18\x03 \x01(\t\"C\n\x0fSetNodePosEvent\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\x12\t\n\x01x\x18\x02 \x01(\x05\x12\t\n\x01y\x18\x03 \x01(\x05\x12\t\n\x01z\x18\x04 \x01(\x05\"R\n\x10SetNodeRoleEvent\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\x12-\n\x04role\x18\x02 \x01(\x0e\x32\x1f.visualize_grpc_pb.OtDeviceRole\"@\n\x17SetNodePartitionIdEvent\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\x12\x14\n\x0cpartition_id\x18\x02 \x01(\r\"\"\n\x0fOnNodeFailEvent\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\"%\n\x12OnNodeRecoverEvent\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\"\"\n\x0f\x44\x65leteNodeEvent\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\"h\n\x0c\x41\x64\x64NodeEvent\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\x12\t\n\x01x\x18\x02 \x01(\x05\x12\t\n\x01y\x18\x03 \x01(\x05\x12\t\n\x01z\x18\x04 \x01(\x05\x12\x13\n\x0bradio_range\x18\x05 \x01(\x05\x12\x11\n\tnode_type\x18\x06 \x01(\t\"x\n\x08NodeMode\x12\x17\n\x0frx_on_when_idle\x18\x01 \x01(\x08\x12\x1c\n\x14secure_data_requests\x18\x02 \x01(\x08\x12\x1a\n\x12\x66ull_thread_device\x18\x03 \x01(\x08\x12\x19\n\x11\x66ull_network_data\x18\x04 \x01(\x08\"5\n\x12SetNodeRloc16Event\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\x12\x0e\n\x06rloc16\x18\x02 \x01(\r\"9\n\x14OnExtAddrChangeEvent\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\x12\x10\n\x08\x65xt_addr\x18\x02 \x01(\x04\"G\n\rSetTitleEvent\x12\r\n\x05title\x18\x01 \x01(\t\x12\t\n\x01x\x18\x02 \x01(\x05\x12\t\n\x01y\x18\x03 \x01(\x05\x12\x11\n\tfont_size\x18\x04 \x01(\x05\"S\n\x10SetNodeModeEvent\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\x12.\n\tnode_mode\x18\x02 \x01(\x0b\x32\x1b.visualize_grpc_pb.NodeMode\"m\n\x13SetNetworkInfoEvent\x12\x0c\n\x04real\x18\x01 \x01(\x08\x12\x0f\n\x07version\x18\x02 \x01(\t\x12\x0e\n\x06\x63ommit\x18\x03 \x01(\t\x12\x0f\n\x07node_id\x18\x04 \x01(\x05\x12\x16\n\x0ethread_version\x18\x05 \x01(\x05\"V\n\nNodeEnergy\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\x12\x10\n\x08\x64isabled\x18\x02 \x01(\x01\x12\r\n\x05sleep\x18\x03 \x01(\x01\x12\n\n\x02tx\x18\x04 \x01(\x01\x12\n\n\x02rx\x18\x05 \x01(\x01\"T\n\x0b\x45nergyEvent\x12\x11\n\ttimestamp\x18\x01 \x01(\x04\x12\x32\n\x0bNodesEnergy\x18\x02 \x03(\x0b\x32\x1d.visualize_grpc_pb.NodeEnergy\"\xc3\x01\n\tNodeStats\x12\x10\n\x08NumNodes\x18\x01 \x01(\r\x12\x12\n\nNumLeaders\x18\x02 \x01(\r\x12\x15\n\rNumPartitions\x18\x03 \x01(\r\x12\x12\n\nNumRouters\x18\x04 \x01(\r\x12\x15\n\rNumEndDevices\x18\x05 \x01(\r\x12\x13\n\x0bNumDetached\x18\x06 \x01(\r\x12\x13\n\x0bNumDisabled\x18\x07 \x01(\r\x12\x11\n\tNumSleepy\x18\x08 \x01(\r\x12\x11\n\tNumFailed\x18\t \x01(\r\"Y\n\x12NodeStatsInfoEvent\x12\x11\n\ttimestamp\x18\x01 \x01(\x04\x12\x30\n\nnode_stats\x18\x02 \x01(\x0b\x32\x1c.visualize_grpc_pb.NodeStats\"!\n\x0e\x43ommandRequest\x12\x0f\n\x07\x63ommand\x18\x01 \x01(\t\"!\n\x0f\x43ommandResponse\x12\x0e\n\x06output\x18\x01 \x03(\t\"R\n\x0bReplayEntry\x12\x11\n\ttimestamp\x18\x01 \x01(\x04\x12\x30\n\x05\x65vent\x18\x02 \x01(\x0b\x32!.visualize_grpc_pb.VisualizeEvent\"$\n\x11SelectNodeRequest\x12\x0f\n\x07node_id\x18\x01 \x01(\x05\"\x07\n\x05\x45mpty*\x98\x01\n\x0cOtDeviceRole\x12\x1b\n\x17OT_DEVICE_ROLE_DISABLED\x10\x00\x12\x1b\n\x17OT_DEVICE_ROLE_DETACHED\x10\x01\x12\x18\n\x14OT_DEVICE_ROLE_CHILD\x10\x02\x12\x19\n\x15OT_DEVICE_ROLE_ROUTER\x10\x03\x12\x19\n\x15OT_DEVICE_ROLE_LEADER\x10\x04\x32\xb2\x03\n\x14VisualizeGrpcService\x12U\n\tVisualize\x12#.visualize_grpc_pb.VisualizeRequest\x1a!.visualize_grpc_pb.VisualizeEvent0\x01\x12P\n\x07\x43ommand\x12!.visualize_grpc_pb.CommandRequest\x1a\".visualize_grpc_pb.CommandResponse\x12L\n\x06\x45nergy\x12 .visualize_grpc_pb.EnergyRequest\x1a\x1e.visualize_grpc_pb.EnergyEvent0\x01\x12U\n\tNodeStats\x12#.visualize_grpc_pb.NodeStatsRequest\x1a!.visualize_grpc_pb.VisualizeEvent0\x01\x12L\n\nSelectNode\x12$.visualize_grpc_pb.SelectNodeRequest\x1a\x18.visualize_grpc_pb.EmptyB/Z-github.com/openthread/ot-ns/visualize/grpc/pbb\x06proto3')
 )
 
 _OTDEVICEROLE = _descriptor.EnumDescriptor(
@@ -52,8 +52,8 @@ _OTDEVICEROLE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=4028,
-  serialized_end=4180,
+  serialized_start=4636,
+  serialized_end=4788,
 )
 _sym_db.RegisterEnumDescriptor(_OTDEVICEROLE)
 
@@ -313,6 +313,20 @@ _VISUALIZEEVENT = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='add_link_stats', full_name='visualize_grpc_pb.VisualizeEvent.add_link_stats', index=24,
+      number=25, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='remove_link_stats', full_name='visualize_grpc_pb.VisualizeEvent.remove_link_stats', index=25,
+      number=26, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -329,7 +343,7 @@ _VISUALIZEEVENT = _descriptor.Descriptor(
       index=0, containing_type=None, fields=[]),
   ],
   serialized_start=101,
-  serialized_end=1630,
+  serialized_end=1764,
 )
 
 
@@ -373,8 +387,8 @@ _SENDEVENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1632,
-  serialized_end=1729,
+  serialized_start=1766,
+  serialized_end=1863,
 )
 
 
@@ -460,8 +474,8 @@ _MSGVISUALIZEINFO = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1732,
-  serialized_end=1952,
+  serialized_start=1866,
+  serialized_end=2086,
 )
 
 
@@ -498,8 +512,8 @@ _ADDROUTERTABLEEVENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1954,
-  serialized_end=2010,
+  serialized_start=2088,
+  serialized_end=2144,
 )
 
 
@@ -536,8 +550,8 @@ _REMOVEROUTERTABLEEVENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2012,
-  serialized_end=2071,
+  serialized_start=2146,
+  serialized_end=2205,
 )
 
 
@@ -574,8 +588,8 @@ _ADDCHILDTABLEEVENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2073,
-  serialized_end=2128,
+  serialized_start=2207,
+  serialized_end=2262,
 )
 
 
@@ -612,8 +626,195 @@ _REMOVECHILDTABLEEVENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2130,
-  serialized_end=2188,
+  serialized_start=2264,
+  serialized_end=2322,
+)
+
+
+_LINKSTATINFO = _descriptor.Descriptor(
+  name='LinkStatInfo',
+  full_name='visualize_grpc_pb.LinkStatInfo',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='peer_node_id', full_name='visualize_grpc_pb.LinkStatInfo.peer_node_id', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='text_label', full_name='visualize_grpc_pb.LinkStatInfo.text_label', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='distance', full_name='visualize_grpc_pb.LinkStatInfo.distance', index=2,
+      number=3, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=2324,
+  serialized_end=2398,
+)
+
+
+_LINKSTATLABELFORMAT = _descriptor.Descriptor(
+  name='LinkStatLabelFormat',
+  full_name='visualize_grpc_pb.LinkStatLabelFormat',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='font_size', full_name='visualize_grpc_pb.LinkStatLabelFormat.font_size', index=0,
+      number=1, type=13, cpp_type=3, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='font_color', full_name='visualize_grpc_pb.LinkStatLabelFormat.font_color', index=1,
+      number=2, type=13, cpp_type=3, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='is_font_bold', full_name='visualize_grpc_pb.LinkStatLabelFormat.is_font_bold', index=2,
+      number=3, type=8, cpp_type=7, label=1,
+      has_default_value=False, default_value=False,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='distance_from_node', full_name='visualize_grpc_pb.LinkStatLabelFormat.distance_from_node', index=3,
+      number=4, type=13, cpp_type=3, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=2400,
+  serialized_end=2510,
+)
+
+
+_ADDLINKSTATSEVENT = _descriptor.Descriptor(
+  name='AddLinkStatsEvent',
+  full_name='visualize_grpc_pb.AddLinkStatsEvent',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='node_id', full_name='visualize_grpc_pb.AddLinkStatsEvent.node_id', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='link_stats', full_name='visualize_grpc_pb.AddLinkStatsEvent.link_stats', index=1,
+      number=2, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='label_format', full_name='visualize_grpc_pb.AddLinkStatsEvent.label_format', index=2,
+      number=3, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=2513,
+  serialized_end=2664,
+)
+
+
+_REMOVELINKSTATSEVENT = _descriptor.Descriptor(
+  name='RemoveLinkStatsEvent',
+  full_name='visualize_grpc_pb.RemoveLinkStatsEvent',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='node_id', full_name='visualize_grpc_pb.RemoveLinkStatsEvent.node_id', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='remove_for_all_peers', full_name='visualize_grpc_pb.RemoveLinkStatsEvent.remove_for_all_peers', index=1,
+      number=2, type=8, cpp_type=7, label=1,
+      has_default_value=False, default_value=False,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='peer_node_ids', full_name='visualize_grpc_pb.RemoveLinkStatsEvent.peer_node_ids', index=2,
+      number=3, type=5, cpp_type=1, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=2666,
+  serialized_end=2758,
 )
 
 
@@ -643,8 +844,8 @@ _SETSPEEDEVENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2190,
-  serialized_end=2220,
+  serialized_start=2760,
+  serialized_end=2790,
 )
 
 
@@ -667,8 +868,8 @@ _HEARTBEATEVENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2222,
-  serialized_end=2238,
+  serialized_start=2792,
+  serialized_end=2808,
 )
 
 
@@ -705,8 +906,8 @@ _ADVANCETIMEEVENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2240,
-  serialized_end=2292,
+  serialized_start=2810,
+  serialized_end=2862,
 )
 
 
@@ -743,8 +944,8 @@ _SETPARENTEVENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2294,
-  serialized_end=2345,
+  serialized_start=2864,
+  serialized_end=2915,
 )
 
 
@@ -781,8 +982,8 @@ _COUNTDOWNEVENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2347,
-  serialized_end=2398,
+  serialized_start=2917,
+  serialized_end=2968,
 )
 
 
@@ -826,8 +1027,8 @@ _SHOWDEMOLEGENDEVENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2400,
-  serialized_end=2458,
+  serialized_start=2970,
+  serialized_end=3028,
 )
 
 
@@ -878,8 +1079,8 @@ _SETNODEPOSEVENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2460,
-  serialized_end=2527,
+  serialized_start=3030,
+  serialized_end=3097,
 )
 
 
@@ -916,8 +1117,8 @@ _SETNODEROLEEVENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2529,
-  serialized_end=2611,
+  serialized_start=3099,
+  serialized_end=3181,
 )
 
 
@@ -954,8 +1155,8 @@ _SETNODEPARTITIONIDEVENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2613,
-  serialized_end=2677,
+  serialized_start=3183,
+  serialized_end=3247,
 )
 
 
@@ -985,8 +1186,8 @@ _ONNODEFAILEVENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2679,
-  serialized_end=2713,
+  serialized_start=3249,
+  serialized_end=3283,
 )
 
 
@@ -1016,8 +1217,8 @@ _ONNODERECOVEREVENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2715,
-  serialized_end=2752,
+  serialized_start=3285,
+  serialized_end=3322,
 )
 
 
@@ -1047,8 +1248,8 @@ _DELETENODEEVENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2754,
-  serialized_end=2788,
+  serialized_start=3324,
+  serialized_end=3358,
 )
 
 
@@ -1113,8 +1314,8 @@ _ADDNODEEVENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2790,
-  serialized_end=2894,
+  serialized_start=3360,
+  serialized_end=3464,
 )
 
 
@@ -1165,8 +1366,8 @@ _NODEMODE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2896,
-  serialized_end=3016,
+  serialized_start=3466,
+  serialized_end=3586,
 )
 
 
@@ -1203,8 +1404,8 @@ _SETNODERLOC16EVENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3018,
-  serialized_end=3071,
+  serialized_start=3588,
+  serialized_end=3641,
 )
 
 
@@ -1241,8 +1442,8 @@ _ONEXTADDRCHANGEEVENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3073,
-  serialized_end=3130,
+  serialized_start=3643,
+  serialized_end=3700,
 )
 
 
@@ -1293,8 +1494,8 @@ _SETTITLEEVENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3132,
-  serialized_end=3203,
+  serialized_start=3702,
+  serialized_end=3773,
 )
 
 
@@ -1331,8 +1532,8 @@ _SETNODEMODEEVENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3205,
-  serialized_end=3288,
+  serialized_start=3775,
+  serialized_end=3858,
 )
 
 
@@ -1390,8 +1591,8 @@ _SETNETWORKINFOEVENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3290,
-  serialized_end=3399,
+  serialized_start=3860,
+  serialized_end=3969,
 )
 
 
@@ -1449,8 +1650,8 @@ _NODEENERGY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3401,
-  serialized_end=3487,
+  serialized_start=3971,
+  serialized_end=4057,
 )
 
 
@@ -1487,8 +1688,8 @@ _ENERGYEVENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3489,
-  serialized_end=3573,
+  serialized_start=4059,
+  serialized_end=4143,
 )
 
 
@@ -1574,8 +1775,8 @@ _NODESTATS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3576,
-  serialized_end=3771,
+  serialized_start=4146,
+  serialized_end=4341,
 )
 
 
@@ -1612,8 +1813,8 @@ _NODESTATSINFOEVENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3773,
-  serialized_end=3862,
+  serialized_start=4343,
+  serialized_end=4432,
 )
 
 
@@ -1643,8 +1844,8 @@ _COMMANDREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3864,
-  serialized_end=3897,
+  serialized_start=4434,
+  serialized_end=4467,
 )
 
 
@@ -1674,8 +1875,8 @@ _COMMANDRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3899,
-  serialized_end=3932,
+  serialized_start=4469,
+  serialized_end=4502,
 )
 
 
@@ -1712,8 +1913,39 @@ _REPLAYENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3934,
-  serialized_end=4016,
+  serialized_start=4504,
+  serialized_end=4586,
+)
+
+
+_SELECTNODEREQUEST = _descriptor.Descriptor(
+  name='SelectNodeRequest',
+  full_name='visualize_grpc_pb.SelectNodeRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='node_id', full_name='visualize_grpc_pb.SelectNodeRequest.node_id', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=4588,
+  serialized_end=4624,
 )
 
 
@@ -1736,8 +1968,8 @@ _EMPTY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4018,
-  serialized_end=4025,
+  serialized_start=4626,
+  serialized_end=4633,
 )
 
 _VISUALIZEEVENT.fields_by_name['add_node'].message_type = _ADDNODEEVENT
@@ -1764,6 +1996,8 @@ _VISUALIZEEVENT.fields_by_name['set_title'].message_type = _SETTITLEEVENT
 _VISUALIZEEVENT.fields_by_name['set_node_mode'].message_type = _SETNODEMODEEVENT
 _VISUALIZEEVENT.fields_by_name['set_network_info'].message_type = _SETNETWORKINFOEVENT
 _VISUALIZEEVENT.fields_by_name['node_stats_info'].message_type = _NODESTATSINFOEVENT
+_VISUALIZEEVENT.fields_by_name['add_link_stats'].message_type = _ADDLINKSTATSEVENT
+_VISUALIZEEVENT.fields_by_name['remove_link_stats'].message_type = _REMOVELINKSTATSEVENT
 _VISUALIZEEVENT.oneofs_by_name['type'].fields.append(
   _VISUALIZEEVENT.fields_by_name['add_node'])
 _VISUALIZEEVENT.fields_by_name['add_node'].containing_oneof = _VISUALIZEEVENT.oneofs_by_name['type']
@@ -1836,7 +2070,15 @@ _VISUALIZEEVENT.fields_by_name['set_network_info'].containing_oneof = _VISUALIZE
 _VISUALIZEEVENT.oneofs_by_name['type'].fields.append(
   _VISUALIZEEVENT.fields_by_name['node_stats_info'])
 _VISUALIZEEVENT.fields_by_name['node_stats_info'].containing_oneof = _VISUALIZEEVENT.oneofs_by_name['type']
+_VISUALIZEEVENT.oneofs_by_name['type'].fields.append(
+  _VISUALIZEEVENT.fields_by_name['add_link_stats'])
+_VISUALIZEEVENT.fields_by_name['add_link_stats'].containing_oneof = _VISUALIZEEVENT.oneofs_by_name['type']
+_VISUALIZEEVENT.oneofs_by_name['type'].fields.append(
+  _VISUALIZEEVENT.fields_by_name['remove_link_stats'])
+_VISUALIZEEVENT.fields_by_name['remove_link_stats'].containing_oneof = _VISUALIZEEVENT.oneofs_by_name['type']
 _SENDEVENT.fields_by_name['mv_info'].message_type = _MSGVISUALIZEINFO
+_ADDLINKSTATSEVENT.fields_by_name['link_stats'].message_type = _LINKSTATINFO
+_ADDLINKSTATSEVENT.fields_by_name['label_format'].message_type = _LINKSTATLABELFORMAT
 _SETNODEROLEEVENT.fields_by_name['role'].enum_type = _OTDEVICEROLE
 _SETNODEMODEEVENT.fields_by_name['node_mode'].message_type = _NODEMODE
 _ENERGYEVENT.fields_by_name['NodesEnergy'].message_type = _NODEENERGY
@@ -1852,6 +2094,10 @@ DESCRIPTOR.message_types_by_name['AddRouterTableEvent'] = _ADDROUTERTABLEEVENT
 DESCRIPTOR.message_types_by_name['RemoveRouterTableEvent'] = _REMOVEROUTERTABLEEVENT
 DESCRIPTOR.message_types_by_name['AddChildTableEvent'] = _ADDCHILDTABLEEVENT
 DESCRIPTOR.message_types_by_name['RemoveChildTableEvent'] = _REMOVECHILDTABLEEVENT
+DESCRIPTOR.message_types_by_name['LinkStatInfo'] = _LINKSTATINFO
+DESCRIPTOR.message_types_by_name['LinkStatLabelFormat'] = _LINKSTATLABELFORMAT
+DESCRIPTOR.message_types_by_name['AddLinkStatsEvent'] = _ADDLINKSTATSEVENT
+DESCRIPTOR.message_types_by_name['RemoveLinkStatsEvent'] = _REMOVELINKSTATSEVENT
 DESCRIPTOR.message_types_by_name['SetSpeedEvent'] = _SETSPEEDEVENT
 DESCRIPTOR.message_types_by_name['HeartbeatEvent'] = _HEARTBEATEVENT
 DESCRIPTOR.message_types_by_name['AdvanceTimeEvent'] = _ADVANCETIMEEVENT
@@ -1878,6 +2124,7 @@ DESCRIPTOR.message_types_by_name['NodeStatsInfoEvent'] = _NODESTATSINFOEVENT
 DESCRIPTOR.message_types_by_name['CommandRequest'] = _COMMANDREQUEST
 DESCRIPTOR.message_types_by_name['CommandResponse'] = _COMMANDRESPONSE
 DESCRIPTOR.message_types_by_name['ReplayEntry'] = _REPLAYENTRY
+DESCRIPTOR.message_types_by_name['SelectNodeRequest'] = _SELECTNODEREQUEST
 DESCRIPTOR.message_types_by_name['Empty'] = _EMPTY
 DESCRIPTOR.enum_types_by_name['OtDeviceRole'] = _OTDEVICEROLE
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
@@ -1951,6 +2198,34 @@ RemoveChildTableEvent = _reflection.GeneratedProtocolMessageType('RemoveChildTab
   # @@protoc_insertion_point(class_scope:visualize_grpc_pb.RemoveChildTableEvent)
   ))
 _sym_db.RegisterMessage(RemoveChildTableEvent)
+
+LinkStatInfo = _reflection.GeneratedProtocolMessageType('LinkStatInfo', (_message.Message,), dict(
+  DESCRIPTOR = _LINKSTATINFO,
+  __module__ = 'visualize_grpc_pb2'
+  # @@protoc_insertion_point(class_scope:visualize_grpc_pb.LinkStatInfo)
+  ))
+_sym_db.RegisterMessage(LinkStatInfo)
+
+LinkStatLabelFormat = _reflection.GeneratedProtocolMessageType('LinkStatLabelFormat', (_message.Message,), dict(
+  DESCRIPTOR = _LINKSTATLABELFORMAT,
+  __module__ = 'visualize_grpc_pb2'
+  # @@protoc_insertion_point(class_scope:visualize_grpc_pb.LinkStatLabelFormat)
+  ))
+_sym_db.RegisterMessage(LinkStatLabelFormat)
+
+AddLinkStatsEvent = _reflection.GeneratedProtocolMessageType('AddLinkStatsEvent', (_message.Message,), dict(
+  DESCRIPTOR = _ADDLINKSTATSEVENT,
+  __module__ = 'visualize_grpc_pb2'
+  # @@protoc_insertion_point(class_scope:visualize_grpc_pb.AddLinkStatsEvent)
+  ))
+_sym_db.RegisterMessage(AddLinkStatsEvent)
+
+RemoveLinkStatsEvent = _reflection.GeneratedProtocolMessageType('RemoveLinkStatsEvent', (_message.Message,), dict(
+  DESCRIPTOR = _REMOVELINKSTATSEVENT,
+  __module__ = 'visualize_grpc_pb2'
+  # @@protoc_insertion_point(class_scope:visualize_grpc_pb.RemoveLinkStatsEvent)
+  ))
+_sym_db.RegisterMessage(RemoveLinkStatsEvent)
 
 SetSpeedEvent = _reflection.GeneratedProtocolMessageType('SetSpeedEvent', (_message.Message,), dict(
   DESCRIPTOR = _SETSPEEDEVENT,
@@ -2134,6 +2409,13 @@ ReplayEntry = _reflection.GeneratedProtocolMessageType('ReplayEntry', (_message.
   ))
 _sym_db.RegisterMessage(ReplayEntry)
 
+SelectNodeRequest = _reflection.GeneratedProtocolMessageType('SelectNodeRequest', (_message.Message,), dict(
+  DESCRIPTOR = _SELECTNODEREQUEST,
+  __module__ = 'visualize_grpc_pb2'
+  # @@protoc_insertion_point(class_scope:visualize_grpc_pb.SelectNodeRequest)
+  ))
+_sym_db.RegisterMessage(SelectNodeRequest)
+
 Empty = _reflection.GeneratedProtocolMessageType('Empty', (_message.Message,), dict(
   DESCRIPTOR = _EMPTY,
   __module__ = 'visualize_grpc_pb2'
@@ -2151,8 +2433,8 @@ _VISUALIZEGRPCSERVICE = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=0,
   options=None,
-  serialized_start=4183,
-  serialized_end=4539,
+  serialized_start=4791,
+  serialized_end=5225,
   methods=[
   _descriptor.MethodDescriptor(
     name='Visualize',
@@ -2188,6 +2470,15 @@ _VISUALIZEGRPCSERVICE = _descriptor.ServiceDescriptor(
     containing_service=None,
     input_type=_NODESTATSREQUEST,
     output_type=_VISUALIZEEVENT,
+    options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='SelectNode',
+    full_name='visualize_grpc_pb.VisualizeGrpcService.SelectNode',
+    index=4,
+    containing_service=None,
+    input_type=_SELECTNODEREQUEST,
+    output_type=_EMPTY,
     options=None,
   ),
 ])

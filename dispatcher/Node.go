@@ -89,6 +89,7 @@ type Node struct {
 	joinerSession *joinerSession
 	joinResults   []*JoinResult
 	logger        *logger.NodeLogger
+	linkStats     map[uint64]NodeLinkStats // link stats for any Rx neighbor, indexed by neighbor's Node.ExtAddr
 }
 
 func newNode(d *Dispatcher, nodeid NodeId, cfg *NodeConfig) *Node {
@@ -119,6 +120,7 @@ func newNode(d *Dispatcher, nodeid NodeId, cfg *NodeConfig) *Node {
 		RadioNode:   radiomodel.NewRadioNode(nodeid, radioCfg),
 		joinerState: OtJoinerStateIdle,
 		logger:      logger.GetNodeLogger(d.cfg.OutputDir, d.cfg.SimulationId, cfg),
+		linkStats:   make(map[uint64]NodeLinkStats),
 	}
 
 	nc.failureCtrl = newFailureCtrl(nc, NonFailTime)

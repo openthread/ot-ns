@@ -32,6 +32,7 @@ export default class VObject {
 
     constructor() {
         this._root = null;
+        this.destroyed = false;
         this._timerMgr = new TimerMgr(this);
         this.vis = Visualizer();
     }
@@ -109,6 +110,7 @@ export default class VObject {
     }
 
     destroy() {
+        this.destroyed = true;
         this._root.destroy()
     }
 
@@ -137,6 +139,11 @@ export default class VObject {
         this._root.on("mousemove", func);
         this._root.on("touchmove", func)
         // this._root.on("pointermove", func)
+    }
+
+    setOnHover(func_hover, func_unhover) {
+        this._root.on("mouseover", func_hover);
+        this._root.on("mouseout", func_unhover);
     }
 
     setDraggable() {
@@ -168,7 +175,6 @@ export default class VObject {
             delete this._draggingMouseDownPos
         })
     }
-
 
     isDragging() {
         return typeof this._draggingOffset !== 'undefined'

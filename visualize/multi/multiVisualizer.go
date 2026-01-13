@@ -30,6 +30,7 @@ import (
 	"time"
 
 	"github.com/openthread/ot-ns/energy"
+	"github.com/openthread/ot-ns/event"
 	. "github.com/openthread/ot-ns/types"
 	"github.com/openthread/ot-ns/visualize"
 )
@@ -56,6 +57,12 @@ func (mv *MultiVisualizer) SetNetworkInfo(networkInfo visualize.NetworkInfo) {
 func (mv *MultiVisualizer) OnExtAddrChange(id NodeId, extaddr uint64) {
 	for _, v := range mv.vs {
 		v.OnExtAddrChange(id, extaddr)
+	}
+}
+
+func (mv *MultiVisualizer) OnRadioFrameDispatch(srcid NodeId, dstid NodeId, evt *event.Event) {
+	for _, v := range mv.vs {
+		v.OnRadioFrameDispatch(srcid, dstid, evt)
 	}
 }
 
@@ -177,6 +184,12 @@ func (mv *MultiVisualizer) AddChildTable(id NodeId, extaddr uint64) {
 func (mv *MultiVisualizer) RemoveChildTable(id NodeId, extaddr uint64) {
 	for _, v := range mv.vs {
 		v.RemoveChildTable(id, extaddr)
+	}
+}
+
+func (mv *MultiVisualizer) SetLinkStats(nodeid NodeId, opt visualize.LinkStatsOptions) {
+	for _, v := range mv.vs {
+		v.SetLinkStats(nodeid, opt)
 	}
 }
 
