@@ -204,24 +204,20 @@ func (f *grpcField) onRadioFrameDispatch(srcid NodeId, dstid NodeId, evt *event.
 		// keep track of stats for successfully dispatched frames to/from neighbor node
 		src := f.nodes[srcid]
 		dst := f.nodes[dstid]
-		dstExtAddr := dst.extaddr
 
-		nbInfo := src.getNeighborInfo(dstExtAddr)
+		nbInfo := src.getNeighborInfo(dst.extaddr)
+		dstNbInfo := dst.getNeighborInfo(src.extaddr)
+		isLinked := nbInfo.isLinked || dstNbInfo.isLinked
 
 		if nbInfo.lastTxPower != src.curTxPower {
 			nbInfo.lastTxPower = src.curTxPower
-			isSrcChange = src.linkStatsOpt.Visible && src.linkStatsOpt.TxPower && nbInfo.isLinked
+			isSrcChange = src.linkStatsOpt.Visible && src.linkStatsOpt.TxPower && isLinked
 		}
 
 		newRssi := evt.RadioCommData.PowerDbm
-		if nbInfo.lastRssi != newRssi {
-			nbInfo.lastRssi = newRssi
-			isDstChange = dst.linkStatsOpt.Visible && dst.linkStatsOpt.RxRssi
-		}
-
-		if isDstChange { // for dst side, check if it considers itself linked.
-			peerNbInfo := dst.getNeighborInfo(src.extaddr)
-			isDstChange = peerNbInfo.isLinked
+		if dstNbInfo.lastRssi != newRssi {
+			dstNbInfo.lastRssi = newRssi
+			isDstChange = dst.linkStatsOpt.Visible && dst.linkStatsOpt.RxRssi && isLinked
 		}
 	}
 	return

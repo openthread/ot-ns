@@ -56,9 +56,9 @@ type grpcNode struct {
 
 // grpcNeighborInfo keeps statistics on a single (current or past) neighbor node.
 type grpcNeighborInfo struct {
-	lastTxPower int8
-	lastRssi    int8
-	isLinked    bool
+	lastTxPower int8 // last Tx power (dBm) of sending a frame successfully TO this node
+	lastRssi    int8 // last RSSI (dBm) of receiving a frame successfully FROM this node
+	isLinked    bool // whether this node considers itself linked to the neighbor
 }
 
 func newGprcNode(id NodeId, cfg *NodeConfig) *grpcNode {

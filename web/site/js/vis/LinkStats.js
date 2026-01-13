@@ -1,4 +1,4 @@
-// Copyright (c) 2025, The OTNS Authors.
+// Copyright (c) 2025-2026, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -29,22 +29,22 @@ import * as PIXI from "pixi.js-legacy";
 import VObject from "./VObject";
 
 export default class LinkStats extends VObject {
-    constructor(node, peer, textLabel, distanceRelative, textStyle) {
+    constructor(node, peerNode, textLabel, distanceRelative, textStyle) {
         super();
         this._root = new PIXI.Container();
         this._node = node;
-        this._peer = peer;
+        this._peer = peerNode;
         this._text = null;
         this._distanceRel = distanceRelative;
         this._minPixelsFromNode = textStyle.distanceFromNode;
 
-        if (node && peer) {
+        if (node && peerNode) {
             this._text = new PIXI.Text(textLabel, textStyle);
             this._text.anchor.set(0.5, 0.5);
             this.visible = true;
             this._root.visible = true;
             this.addChild(this._text);
-            this.position.copyFrom(calcVector(this._node.position, this._peer.position, this._distanceRel, this._minPixelsFromNode));
+            this.position.copyFrom(this.calcLabelPos());
         }
     }
 
@@ -53,15 +53,19 @@ export default class LinkStats extends VObject {
     }
 
     onPositionChange() {
+        console.log('onPositionChange'); // FIXME
         if (this._node && this._peer && !this._peer.destroyed) {
-            this.position.copyFrom(calcVector(this._node.position, this._peer.position, this._distanceRel, this._minPixelsFromNode));
-            this._peer.onPeerPositionChange(this._node.extAddr);
+            console.log(`LinkStats: Own position change for node ${this._node.id}: to ${this._node.position}`); // FIXME
+            this.position.copyFrom(this.calcLabelPos());
+            this._peer.onPeerPositionChange(this._node.id);
         }
     }
 
     onPeerPositionChange() {
+        console.log('onPeerPositionChange'); // FIXME
         if (this._node && this._peer && !this._peer.destroyed) {
-            this.position.copyFrom(calcVector(this._node.position, this._peer.position, this._distanceRel, this._minPixelsFromNode));
+            console.log(`LinkStats: Peer position change for node ${this._peer.id}: to ${this._peer.position}`); // FIXME
+            this.position.copyFrom(this.calcLabelPos());
         }
     }
 
@@ -69,21 +73,24 @@ export default class LinkStats extends VObject {
         super.update(dt);
     }
 
-}
+    calcLabelPos() {
+        const srcPos = this._node.position;
+        const destPos = this._peer.position;
 
-function calcVector(srcPos, destPos, distanceRel, minPixelsFromNode) {
-    const dx = destPos.x - srcPos.x;
-    const dy = destPos.y - srcPos.y;
-    const totalDist = Math.sqrt(dx * dx + dy * dy);
+        const dx = destPos.x - srcPos.x;
+        const dy = destPos.y - srcPos.y;
+        const totalDist = Math.sqrt(dx * dx + dy * dy);
 
-    if (totalDist === 0 || totalDist <= 2 * minPixelsFromNode) {
-        return new PIXI.Point(dx/2.0, dy/2.0); // if really tight, pick middle ground
+        if (totalDist === 0 || totalDist <= 2 * this._minPixelsFromNode) {
+            return new PIXI.Point(dx/2.0, dy/2.0); // if really tight, pick middle ground
+        }
+
+        const unitX = dx / totalDist;
+        const unitY = dy / totalDist;
+        const availableDist = totalDist - 2 * this._minPixelsFromNode;
+        const travelDist = this._minPixelsFromNode + (availableDist * (this._distanceRel / 100.0));
+
+        return new PIXI.Point(unitX * travelDist, unitY * travelDist);
     }
 
-    const unitX = dx / totalDist;
-    const unitY = dy / totalDist;
-    const availableDist = totalDist - 2 * minPixelsFromNode;
-    const travelDist = minPixelsFromNode + (availableDist * (distanceRel / 100.0));
-
-    return new PIXI.Point(unitX * travelDist, unitY * travelDist);
 }

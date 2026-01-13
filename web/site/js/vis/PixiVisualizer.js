@@ -146,7 +146,7 @@ export default class PixiVisualizer extends VObject {
     update(dt) {
         super.update(dt);
 
-        this._drawNodeLinks();
+        this._drawNodeLinks2();
 
         for (let id in this.nodes) {
             let node = this.nodes[id];
@@ -378,9 +378,16 @@ export default class PixiVisualizer extends VObject {
         if (nodeId === this._selectedNodeId) {
             this.setSelectedNode(NODE_ID_INVALID);
         }
+        this.removeLinkStatsForDeletedNode(nodeId);
         if (node) node.destroy();
         this.logNode(nodeId, "Deleted")
         this.onNodeUpdate(nodeId);
+    }
+
+    removeLinkStatsForDeletedNode(deletedNodeId) {
+        for (const nodeid in this.nodes) {
+            this.nodes[nodeid].removeLinkStats(false, [deletedNodeId]);
+        }
     }
 
     visSetSpeed(speed) {
@@ -429,6 +436,7 @@ export default class PixiVisualizer extends VObject {
     }
 
     visAddLinkStats(id, linkStatsList, labelFormat) {
+        console.log('visAddLinkStats', id, linkStatsList, labelFormat); // FIXME
         if (id === NODE_ID_ALL_NODES) {
             for (let nodeId in this.nodes) {
                 this.nodes[nodeId].addLinkStats(linkStatsList, labelFormat);
@@ -638,6 +646,66 @@ export default class PixiVisualizer extends VObject {
         this.setSelectedNode(NODE_ID_INVALID)
     }
 
+    _drawNodeLinks2() {
+        const linkLineWidth = 1;
+        const thickWidth = linkLineWidth * 4;
+
+        this._bgStage.removeChildren().forEach(child => child.destroy());
+        const graphics = new PIXI.Graphics();
+
+        // 1. Helper to categorize links by their required thickness
+        let greenLinks = { thin: [], thick: [] };
+        let blueLinks = { thin: [], thick: [] };
+
+        for (const nodeid in this.nodes) {
+            const node = this.nodes[nodeid];
+            const isNodeSelected = (nodeid == this._selectedNodeId);
+
+            // Collect Green Links (Children)
+            for (const extaddr in node._children) {
+                const child = this.findNodeByExtAddr(extaddr);
+                if (child) {
+                    const type = (isNodeSelected || child.id == this._selectedNodeId) ? 'thick' : 'thin';
+                    greenLinks[type].push(node.position, child.position);
+                }
+            }
+
+            // Collect Blue Links (Neighbors)
+            for (const extaddr in node._neighbors) {
+                const neighbor = this.findNodeByExtAddr(extaddr);
+                if (neighbor) {
+                    const type = (isNodeSelected || neighbor.id == this._selectedNodeId) ? 'thick' : 'thin';
+                    blueLinks[type].push(node.position, neighbor.position);
+                }
+            }
+        }
+
+        // 2. Draw Green Links
+        graphics.lineStyle(linkLineWidth, 0x8bc34a, 1);
+        this._batchDraw(graphics, greenLinks.thin);
+
+        graphics.lineStyle(thickWidth, 0x8bc34a, 1);
+        this._batchDraw(graphics, greenLinks.thick);
+
+        // 3. Draw Blue Links
+        graphics.lineStyle(linkLineWidth, 0x1976d2, 1);
+        this._batchDraw(graphics, blueLinks.thin);
+
+        graphics.lineStyle(thickWidth, 0x1976d2, 1);
+        this._batchDraw(graphics, blueLinks.thick);
+
+        this._bgStage.addChild(graphics);
+    }
+
+    // Simple helper to execute the move/line commands
+    _batchDraw(graphics, points) {
+        for (let i = 0; i < points.length; i += 2) {
+            graphics.moveTo(points[i].x, points[i].y);
+            graphics.lineTo(points[i+1].x, points[i+1].y);
+        }
+    }
+
+    // FIXME - this is the old drawing code, which didn't use batches.
     _drawNodeLinks() {
         const linkLineWidth = 1;
         this._bgStage.removeChildren().forEach(child => child.destroy());
@@ -655,7 +723,7 @@ export default class PixiVisualizer extends VObject {
             for (const extaddr in node._children) {
                 const child = this.findNodeByExtAddr(extaddr);
                 if (child) {
-                    graphics.lineStyle(nodeid == this._selectedNodeId || child.id == this._selectedNodeId ? linkLineWidth * 3 : linkLineWidth, 0x8bc34a, 1);
+                    graphics.lineStyle((nodeid === this._selectedNodeId || child.id === this._selectedNodeId) ? linkLineWidth * 3 : linkLineWidth, 0x8bc34a, 1);
 
                     graphics.moveTo(node.position.x, node.position.y);
                     graphics.lineTo(child.position.x, child.position.y);
@@ -668,11 +736,12 @@ export default class PixiVisualizer extends VObject {
 
         for (const nodeid in this.nodes) {
             const node = this.nodes[nodeid];
-            graphics.lineStyle(nodeid == this._selectedNodeId ? linkLineWidth * 3 : linkLineWidth, 0x1976d2, 1);
 
             for (const extaddr in node._neighbors) {
                 const neighbor = this.findNodeByExtAddr(extaddr);
                 if (neighbor) {
+                    graphics.lineStyle((nodeid === this._selectedNodeId || neighbor.id === this._selectedNodeId) ? linkLineWidth * 3 : linkLineWidth, 0x1976d2, 1);
+
                     graphics.moveTo(node.position.x, node.position.y);
                     graphics.lineTo(neighbor.position.x, neighbor.position.y)
                 }

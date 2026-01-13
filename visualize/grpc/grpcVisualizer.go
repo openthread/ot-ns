@@ -42,6 +42,10 @@ import (
 	"github.com/openthread/ot-ns/visualize/grpc/replay"
 )
 
+const (
+	LinkStatsFontSize = 12
+)
+
 type grpcVisualizer struct {
 	simctrl             visualize.SimulationController
 	server              *grpcServer
@@ -151,55 +155,63 @@ func (gv *grpcVisualizer) OnExtAddrChange(nodeid NodeId, extaddr uint64) {
 // doLinkStatUpdates checks what link stat updates need to be visualized after a topology update involving
 // node nodeid and a peer with extaddr.
 func (gv *grpcVisualizer) doLinkStatUpdates(nodeid NodeId, extaddr uint64) {
-	src := gv.f.nodes[nodeid]
-	if src.linkStatsOpt.Visible && src.getNeighborInfo(extaddr).isLinked {
-		if src.linkStatsOpt.TxPower {
-			e := gv.createTxPowerLinkStatsUpdateEvent(nodeid, gv.f.extAddrMap[extaddr])
-			gv.addVisualizeEvent(e)
-		}
-		if src.linkStatsOpt.RxRssi {
-			e := gv.createRssiLinkStatsUpdateEvent(nodeid, gv.f.extAddrMap[extaddr])
-			gv.addVisualizeEvent(e)
+	node := gv.f.nodes[nodeid]
+	nbInfo := node.getNeighborInfo(extaddr)
+	if node.linkStatsOpt.Visible && nbInfo.isLinked {
+		if peerNodeId, ok := gv.f.extAddrMap[extaddr]; ok {
+			if node.linkStatsOpt.TxPower {
+				e := gv.createTxPowerLinkStatsUpdateEvent(nodeid, peerNodeId)
+				gv.addVisualizeEvent(e)
+			}
+			if node.linkStatsOpt.RxRssi {
+				e := gv.createRssiLinkStatsUpdateEvent(nodeid, peerNodeId)
+				gv.addVisualizeEvent(e)
+			}
 		}
 	}
 	// TODO other type of (e.g. Rx) link stats to add here.
 }
 
-func (gv *grpcVisualizer) createTxPowerLinkStatsUpdateEvent(srcid NodeId, dstid NodeId) *pb.VisualizeEvent {
-	src := gv.f.nodes[srcid]
-	dst := gv.f.nodes[dstid]
-	dstExtAddr := dst.extaddr
+// createTxPowerLinkStatsUpdateEvent is a helper to create a VisualizeEvent for updating Tx power value shown
+// at node nodeid, given a frame was sent to peerId.
+func (gv *grpcVisualizer) createTxPowerLinkStatsUpdateEvent(nodeid NodeId, peerId NodeId) *pb.VisualizeEvent {
+	node := gv.f.nodes[nodeid]
+	peer := gv.f.nodes[peerId]
+
 	ls := make([]*pb.LinkStatInfo, 1)
 	ls[0] = &pb.LinkStatInfo{
-		PeerNodeId: int32(dstid),
-		TextLabel:  fmt.Sprintf("%d\ndBm", src.neighborInfo[dstExtAddr].lastTxPower),
+		PeerNodeId: int32(peerId),
+		TextLabel:  fmt.Sprintf("%d\ndBm", node.neighborInfo[peer.extaddr].lastTxPower),
+		Distance:   10,
 	}
 	e := &pb.VisualizeEvent{Type: &pb.VisualizeEvent_AddLinkStats{AddLinkStats: &pb.AddLinkStatsEvent{
-		NodeId:    int32(srcid),
+		NodeId:    int32(nodeid),
 		LinkStats: ls,
 		LabelFormat: &pb.LinkStatLabelFormat{
-			FontSize:         13,
+			FontSize:         LinkStatsFontSize,
 			DistanceFromNode: 40,
 		},
 	}}}
 	return e
 }
 
-func (gv *grpcVisualizer) createRssiLinkStatsUpdateEvent(srcid NodeId, dstid NodeId) *pb.VisualizeEvent {
-	src := gv.f.nodes[srcid]
-	dst := gv.f.nodes[dstid]
-	dstExtAddr := dst.extaddr
+// createRssiLinkStatsUpdateEvent is a helper to create a VisualizeEvent for updating RSSI value
+// at node nodeid, given a frame was sent from peerId to it.
+func (gv *grpcVisualizer) createRssiLinkStatsUpdateEvent(nodeid NodeId, peerId NodeId) *pb.VisualizeEvent {
+	node := gv.f.nodes[nodeid]
+	peer := gv.f.nodes[peerId]
+
 	ls := make([]*pb.LinkStatInfo, 1)
 	ls[0] = &pb.LinkStatInfo{
-		PeerNodeId: int32(dstid),
-		TextLabel:  fmt.Sprintf("%d\nRSS", src.neighborInfo[dstExtAddr].lastRssi),
-		Distance:   90,
+		PeerNodeId: int32(peerId),
+		TextLabel:  fmt.Sprintf("%d\nRSS", node.neighborInfo[peer.extaddr].lastRssi),
+		Distance:   25,
 	}
 	e := &pb.VisualizeEvent{Type: &pb.VisualizeEvent_AddLinkStats{AddLinkStats: &pb.AddLinkStatsEvent{
-		NodeId:    int32(srcid),
+		NodeId:    int32(nodeid),
 		LinkStats: ls,
 		LabelFormat: &pb.LinkStatLabelFormat{
-			FontSize:         13,
+			FontSize:         LinkStatsFontSize,
 			DistanceFromNode: 40,
 		},
 	}}}
@@ -207,13 +219,13 @@ func (gv *grpcVisualizer) createRssiLinkStatsUpdateEvent(srcid NodeId, dstid Nod
 }
 
 func (gv *grpcVisualizer) OnRadioFrameDispatch(srcid NodeId, dstid NodeId, evt *event.Event) {
-	isSrcChange, isDstChange := gv.f.onRadioFrameDispatch(srcid, dstid, evt)
+	isSrcChanged, isDstChanged := gv.f.onRadioFrameDispatch(srcid, dstid, evt)
 
-	if isSrcChange {
+	if isSrcChanged {
 		e := gv.createTxPowerLinkStatsUpdateEvent(srcid, dstid)
 		gv.addVisualizeEvent(e)
 	}
-	if isDstChange {
+	if isDstChanged {
 		e := gv.createRssiLinkStatsUpdateEvent(dstid, srcid)
 		gv.addVisualizeEvent(e)
 	}
@@ -440,7 +452,7 @@ func (gv *grpcVisualizer) SetLinkStats(nodeid NodeId, opt visualize.LinkStatsOpt
 				peerLinkStatsProto = append(peerLinkStatsProto, &pb.LinkStatInfo{
 					PeerNodeId: peerNodeId,
 					TextLabel:  textLabel,
-					Distance:   10,
+					Distance:   15,
 				})
 			}
 
@@ -453,7 +465,7 @@ func (gv *grpcVisualizer) SetLinkStats(nodeid NodeId, opt visualize.LinkStatsOpt
 				peerLinkStatsProto = append(peerLinkStatsProto, &pb.LinkStatInfo{
 					PeerNodeId: peerNodeId,
 					TextLabel:  textLabel,
-					Distance:   90,
+					Distance:   25,
 				})
 
 			}
@@ -464,7 +476,7 @@ func (gv *grpcVisualizer) SetLinkStats(nodeid NodeId, opt visualize.LinkStatsOpt
 				NodeId:    int32(nodeid),
 				LinkStats: peerLinkStatsProto,
 				LabelFormat: &pb.LinkStatLabelFormat{
-					FontSize:         13,
+					FontSize:         LinkStatsFontSize,
 					DistanceFromNode: 40,
 				},
 			}}}
@@ -487,7 +499,6 @@ func (gv *grpcVisualizer) SetLinkStats(nodeid NodeId, opt visualize.LinkStatsOpt
 	if e != nil {
 		gv.addVisualizeEvent(e)
 	}
-	logger.Debugf("End of SetLinkStats")
 }
 
 func (gv *grpcVisualizer) ShowDemoLegend(x int, y int, title string) {

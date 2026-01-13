@@ -36,7 +36,7 @@ import {
     NODE_LABEL_FONT_FAMILY,
     NODE_LABEL_FONT_SIZE,
     LINKSTATS_DEFAULT_TEXT_STYLE,
-    POWER_DBM_INVALID
+    POWER_DBM_INVALID, NODE_ID_INVALID
 } from "./consts";
 
 const NODE_SHAPE_SCALE = 64;
@@ -61,7 +61,7 @@ export default class Node extends VObject {
         this.rloc16 = 0xfffe;
         this.routerId = ROUTER_OR_CHILD_ID_INVALID;
         this.childId = ROUTER_OR_CHILD_ID_INVALID;
-        this.parentId = ROUTER_OR_CHILD_ID_INVALID;
+        this.parentNodeId = NODE_ID_INVALID;
         this.role = OtDeviceRole.OT_DEVICE_ROLE_DISABLED;
         this.txPowerLast = POWER_DBM_INVALID;
         this.channelLast = -1;
@@ -309,16 +309,7 @@ export default class Node extends VObject {
         this._neighbors[extaddr] = 1;
     }
 
-    _removeLinkStatsFor(peerNodeId) {
-        const linkStats = this._linkStats[peerNodeId];
-        if (linkStats) {
-            linkStats.destroy();
-            delete this._linkStats[peerNodeId];
-        }
-    }
-
     removeRouterTable(extaddr) {
-        this._removeLinkStatsFor(extaddr);
         delete this._neighbors[extaddr];
     }
 
@@ -327,7 +318,6 @@ export default class Node extends VObject {
     }
 
     removeChildTable(extaddr) {
-        this._removeLinkStatsFor(extaddr);
         delete this._children[extaddr]
     }
 
@@ -336,14 +326,13 @@ export default class Node extends VObject {
         const parentNode = this.vis.findNodeByExtAddr(extAddr);
         this.parent = extAddr;
         if (parentNode) {
-            this.parentId = parentNode.id;
+            this.parentNodeId = parentNode.id;
         }
     }
 
     _removeParent() {
-        this._removeLinkStatsFor(this.parent);
         this._parent = EXT_ADDR_INVALID;
-        this.parentId = ROUTER_OR_CHILD_ID_INVALID;
+        this.parentNodeId = NODE_ID_INVALID;
     }
 
     addLinkStats(linkStatsList, labelFormatReq) {
@@ -358,9 +347,10 @@ export default class Node extends VObject {
         }
 
         for (const linkStatInfo of linkStatsList) {
-            const peerId = linkStatInfo.getPeerNodeId();
-            const peer = this.vis.nodes[peerId];
-            const existingLinkStat = this._linkStats[peerId];
+            const peerNodeId = linkStatInfo.getPeerNodeId();
+            const peer = this.vis.nodes[peerNodeId];
+            const existingLinkStat = this._linkStats[peerNodeId];
+            console.log("addLinkStats: peerNodeId=", peerNodeId, peer, "existingLinkStat=", existingLinkStat); // FIXME
             if (existingLinkStat) {
                 existingLinkStat.destroy();
             }
@@ -368,9 +358,17 @@ export default class Node extends VObject {
                 const textLabel = linkStatInfo.getTextLabel();
                 const distanceRelative = linkStatInfo.getDistance();
                 const ls = new LinkStats(this, peer, textLabel, distanceRelative, labelFormat);
-                this._linkStats[peerId] = ls;
+                this._linkStats[peerNodeId] = ls;
                 this.addChild(ls);
             }
+        }
+    }
+
+    _removeLinkStatsFor(peerNodeId) {
+        const linkStats = this._linkStats[peerNodeId];
+        if (linkStats) {
+            linkStats.destroy();
+            delete this._linkStats[peerNodeId];
         }
     }
 
@@ -408,9 +406,11 @@ export default class Node extends VObject {
         }
     }
 
-    onPeerPositionChange(extAddr) {
-        const linkStats = this._linkStats[extAddr];
+    onPeerPositionChange(peerNodeId) {
+        console.log("onPeerPositionChange", peerNodeId); // FIXME
+        const linkStats = this._linkStats[peerNodeId];
         if (linkStats) {
+            console.log("onPeerPositionChange: linkstats found", linkStats); // FIXME
             linkStats.onPeerPositionChange();
         }
     }

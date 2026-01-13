@@ -229,7 +229,8 @@ type ConfigVisualizationCmd struct {
 	AckMessage       *CVAckMessage       `| @@`    //nolint
 	RouterTable      *CVRouterTable      `| @@`    //nolint
 	ChildTable       *CVChildTable       `| @@`    //nolint
-	LinkTxPower      *CVLinkTxPower      `| @@ )*` //nolint
+	LinkTxPower      *CVLinkTxPower      `| @@`    //nolint
+	LinkRxRssi       *CVLinkRxRssi       `| @@ )*` //nolint
 }
 
 // noinspection GoVetStructTag
@@ -264,7 +265,13 @@ type CVChildTable struct {
 
 // noinspection GoVetStructTag
 type CVLinkTxPower struct {
-	Flag    struct{}    `"ltx"` //nolint
+	Flag    struct{}    `"txp"` //nolint
+	OnOrOff OnOrOffFlag `@@`    //nolint
+}
+
+// noinspection GoVetStructTag
+type CVLinkRxRssi struct {
+	Flag    struct{}    `"rss"` //nolint
 	OnOrOff OnOrOffFlag `@@`    //nolint
 }
 

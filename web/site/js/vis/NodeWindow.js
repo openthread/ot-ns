@@ -62,7 +62,7 @@ export default class NodeWindow extends VObject {
         }else if(node.role === OtDeviceRole.OT_DEVICE_ROLE_CHILD) {
             cid = `Child ID  : ${node.childId}\n`;
             pid = `Parent    : ${fmt.formatExtAddr(node.parent)}\n` +
-                  `            (Node ${node.parentId})\n`;
+                  `            (Node ${node.parentNodeId})\n`;
         }
 
         txt += rid+cid+pid;
