@@ -48,8 +48,8 @@ func addSignalPowersDbm(p1 DbValue, p2 DbValue) DbValue {
 	return 10.0 * math.Log10(math.Pow(10, p1/10.0)+math.Pow(10, p2/10.0))
 }
 
-// ClipRssi clips the RSSI value (in dBm, as DbValue) to int8 range for return to OT nodes.
-func ClipRssi(rssi DbValue) int8 {
+// clipRssi clips the RSSI value (in dBm, as DbValue) to int8 range for return to OT nodes.
+func clipRssi(rssi DbValue) int8 {
 	if rssi > RssiMax {
 		rssi = RssiMax
 	} else if rssi < RssiMin {
