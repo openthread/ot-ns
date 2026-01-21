@@ -1004,6 +1004,69 @@ class BasicTests(OTNSTestCase):
         self.assertTrue(os.path.isfile('tmp/0_txbytes.csv'))
         self.assertTrue(os.path.isfile('tmp/0_chansamples.csv'))
 
+    def testCoapObserve(self):
+        ns: OTNS = self.ns
+        ns.coaps_enable()
+
+        # see https://datatracker.ietf.org/doc/html/rfc7252#section-3
+        COAP_205_CONTENT = 69
+        COAP_404_NOT_FOUND = 132
+        COAP_CON = 0
+        COAP_NON = 1
+        COAP_ACK = 2
+
+        # CoAP server + resource setup
+        srv = ns.add("router")
+        ns.node_cmd(srv, "coap start")
+        ns.node_cmd(srv, "coap resource test-resource")
+        ns.node_cmd(srv, "coap set TestPayload_1")
+        srv_addr = ns.get_ipaddrs(srv, 'mleid')[0]
+
+        # CoAP client
+        cl = ns.add("router")
+        ns.node_cmd(cl, "coap start")
+
+        # form the network
+        ns.go(20)
+        self.assertFormPartitions(1)
+
+        # client sends NON observe request
+        ns.node_cmd(cl, f"coap observe {srv_addr} test-resource")
+        ns.go(10)
+        self.assertCoapMessageSent(src=srv, type=COAP_NON, code=COAP_205_CONTENT)
+
+        # resource changes: every change triggers a notification
+        for i in range(1, 10):
+            ns.node_cmd(srv, f"coap set TestPayload_{i}")
+            ns.go(10)
+            self.assertCoapMessageSent(src=srv, type=COAP_CON if i == 6 else COAP_NON, code=COAP_205_CONTENT)
+
+        # cancel subscription
+        ns.node_cmd(cl, "coap cancel")
+        ns.go(10)
+        self.assertCoapMessageSent(src=srv, type=COAP_ACK, code=COAP_205_CONTENT)
+
+        # now repeat the observe request using CON type. This triggers CON notifications to be sent.
+        ns.node_cmd(cl, f"coap observe {srv_addr} test-resource con")
+        ns.go(10)
+        self.assertCoapMessageSent(src=srv, type=COAP_ACK, code=COAP_205_CONTENT)
+
+        # resource changes: every change triggers a notification
+        for i in range(1, 10):
+            ns.node_cmd(srv, f"coap set TestPayload_{i}")
+            ns.go(10)
+            self.assertCoapMessageSent(src=srv, type=COAP_CON, code=COAP_205_CONTENT)
+
+        # send a cancel request again
+        ns.node_cmd(cl, f"coap cancel")
+        ns.go(10)
+        self.assertCoapMessageSent(src=srv, type=COAP_ACK, code=COAP_205_CONTENT)
+
+        # observe another resource (a non-existing one)
+        ns.node_cmd(cl, f"coap observe {srv_addr} resnotfound")
+        ns.go(10)
+        self.assertCoapMessageSent(src=srv, type=COAP_NON, code=COAP_404_NOT_FOUND)
+
 
 if __name__ == '__main__':
     unittest.main()
