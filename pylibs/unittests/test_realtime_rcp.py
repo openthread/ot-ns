@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2020-2026, The OTNS Authors.
+# Copyright (c) 2026, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -24,21 +24,47 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+#
 
-import setuptools
+import time
+import unittest
 
-setuptools.setup(
-    name="pyOTNS",
-    version="2.2.0",
-    author="The OTNS Authors",
-    description="Run OTNS2 OpenThread mesh network simulations from Python code",
-    url="https://github.com/openthread/ot-ns",
-    packages=setuptools.find_packages(),
-    classifiers=[
-        "Programming Language :: Python :: 3",
-        "License :: OSI Approved :: BSD 3-Clause License",
-        "Operating System :: OS Independent",
-    ],
-    python_requires='>=3.9',
-    install_requires=['PyYAML'],
-)
+from OTNSTestCase import OTNSTestCase
+from otns.cli import errors, OTNS
+
+
+class RealtimeTests(OTNSTestCase):
+    """
+    Unit tests that need to run in the OTNS -realtime mode: for example RCP nodes.
+    """
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.ns.close()
+        self.ns = OTNS(otns_args=['-log', 'debug', '-realtime'])
+
+    def testAddDelRcpNode(self):
+        ns: OTNS = self.ns
+
+        ns.add('rcp')
+        ns.add('rcp')
+        ns.add('rcp')
+        ns.add('fed')
+        ns.add('med')
+        self.assertEqual(5, len(ns.nodes()))
+
+        # let the simulation advance
+        time.sleep(45)
+        self.assertEqual(5, len(ns.nodes()))
+        self.assertFormPartitions(1)
+
+        ns.delete(1)
+        self.assertEqual(4, len(ns.nodes()))
+        time.sleep(10)
+        self.assertEqual(4, len(ns.nodes()))
+        self.assertTrue(1 not in ns.nodes())
+        self.assertFormPartitions(1)
+
+
+if __name__ == '__main__':
+    unittest.main()

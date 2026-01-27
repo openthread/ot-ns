@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2024, The OTNS Authors.
+// Copyright (c) 2020-2026, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -40,7 +40,7 @@ var (
 )
 
 var (
-	doneOrErrorRegexp = regexp.MustCompile(`(Done|Error \d+: .*)`)
+	doneOrErrorRegexp = regexp.MustCompile(`^\s*(Done|Error \d+: .*)`)
 )
 
 type NodeUartType int

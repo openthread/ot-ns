@@ -38,7 +38,7 @@ const (
 	DefaultDispatcherSpeed float64 = -1.0
 	Ever                   uint64  = math.MaxUint64 / 2
 	MaxSimulateSpeed               = 1000000
-	DefaultReadTimeout             = time.Second * 5
+	DefaultReadTimeout             = time.Second * 10
 )
 
 type TimeWindowStats struct {

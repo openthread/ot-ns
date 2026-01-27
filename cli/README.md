@@ -54,7 +54,7 @@ Add a node to the simulation and get the node ID.
 add <type> [x <x>] [y <y>] [rr <radio-range>] [id <node-id>] [restore] [exe <path>] [v11|v12|v13|v14]
 ```
 
-The `<type>` can be `router`, `fed`, `med`, `sed`, `ssed`, `br` (Border Router), or `wifi` (for a Wi-Fi interferer node). Node ID can be specified using the `id` parameter, otherwise OTNS assigns the next available one. If the `restore` option is specified, the node restores its network configuration from persistent storage.
+The `<type>` can be `router`, `fed`, `med`, `sed`, `ssed`, `br` (Border Router), `rcp` or `wifi` (for a Wi-Fi interferer node). Node ID can be specified using the `id` parameter, otherwise OTNS assigns the next available one. If the `restore` option is specified, the node restores its network configuration from persistent storage.
 
 The (advanced) `exe` option can be used to specify a node executable for the new node; either a name only which is then located in the default search paths, or a full abs or rel pathname pointing to the executable to use.
 
@@ -348,6 +348,8 @@ go <duration> [speed <particular-speed>]
 ```
 
 Simulate for a specified time in seconds or indefinitely (duration=`ever`). It is required in `-autogo=false` mode to advance the simulation. In `-autogo=true` mode, it can be optionally used to advance the simulation quickly by the given time. For example, in a paused simulation to quickly advance 64 us, 1 ms, 10 seconds, or an hour. The optional `speed` argument can be given to do the simulation at that speed e.g. to see the animations and log output better. The `duration` argument can optionally end with a time unit suffix: `us`, `ms`, `s`, `m`, or `h`.
+
+In `-realtime` mode this command is not available and will always return an error.
 
 ```bash
 > go 1

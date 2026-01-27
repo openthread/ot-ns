@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016-2024, The OpenThread Authors.
+ *  Copyright (c) 2016-2026, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -193,10 +193,24 @@ void platformRandomInit(int32_t randomSeed);
 void platformLoggingInit(char *processName);
 
 /**
- * restores the Uart.
+ * Restores the UART.
  *
  */
 void platformUartRestore(void);
+
+/**
+ * Updates the file descriptor sets with file descriptors used by the UART driver.
+ *
+ * @param[in,out]  aReadFdSet   A pointer to the read file descriptors.
+ * @param[in,out]  aWriteFdSet  A pointer to the write file descriptors.
+ * @param[in,out]  aMaxFd       A pointer to the max file descriptor.
+ */
+void platformUartUpdateFdSet(fd_set *aReadFdSet, fd_set *aWriteFdSet, fd_set *aErrorFdSet, int *aMaxFd);
+
+/**
+ * Performs UART driver processing.
+ */
+void platformUartProcess(void);
 
 /**
  * initializes the OT-RFSIM simulator communications.
