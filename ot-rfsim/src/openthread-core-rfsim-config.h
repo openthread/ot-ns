@@ -59,6 +59,10 @@
 #define OT_THREAD_VERSION_1_3_1 5
 #endif
 
+#ifndef RFSIM_SW_VERSION
+#define RFSIM_SW_VERSION "2.0.0"
+#endif
+
 // Helper macros for vendor SW version string
 #define STRINGIZE_HELPER(x) #x
 #define STRINGIZE(x) STRINGIZE_HELPER(x)
@@ -330,7 +334,9 @@
  * for the RFSIM platform.
  *
  */
+#ifndef OPENTHREAD_CONFIG_OTNS_ENABLE
 #define OPENTHREAD_CONFIG_OTNS_ENABLE 1
+#endif
 
 /**
  * @def OPENTHREAD_SIMULATION_VIRTUAL_TIME
