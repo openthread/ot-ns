@@ -90,7 +90,7 @@ void platformReceiveEvent(otInstance *aInstance)
         perror("recvfrom");
         platformExit(EXIT_FAILURE);
     }
-    OT_ASSERT(rval >= sizeof(struct EventHeader));
+    OT_ASSERT(rval >= (ssize_t)sizeof(struct EventHeader));
 
     // read the rest of data (payload data - optional).
     uint16_t payloadLen = event.mDataLength;
@@ -353,9 +353,6 @@ void platformNetifSetUp(otInstance *aInstance)
     // otNat64SetReceiveIp4Callback(gInstance, processReceive, gInstance);
 #endif
     // otIp6SetAddressCallback(aInstance, processAddressChange, aInstance);
-#if OPENTHREAD_POSIX_MULTICAST_PROMISCUOUS_REQUIRED
-    // otIp6SetMulticastPromiscuousEnabled(aInstance, true);
-#endif
 #if OPENTHREAD_CONFIG_NAT64_TRANSLATOR_ENABLE
     // nat64Init();
 #endif

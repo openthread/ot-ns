@@ -51,7 +51,7 @@ type NodeConfig struct {
 // UpdateNodeConfigFromType sets NodeConfig flags correctly, based on chosen node type cfg.Type
 func (cfg *NodeConfig) UpdateNodeConfigFromType() {
 	switch cfg.Type {
-	case ROUTER, REED, FTD:
+	case ROUTER, REED, FTD, MATTER:
 		cfg.IsRouter = true
 		cfg.IsMtd = false
 		cfg.IsBorderRouter = false

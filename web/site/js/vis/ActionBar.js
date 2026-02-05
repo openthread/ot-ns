@@ -97,6 +97,9 @@ export default class ActionBar extends VObject {
         this.addButton("BR", "any", "add", (e) => {
             this.actionNewBR(e)
         });
+        this.addButton("Matter", "any", "add", (e) => {
+            this.actionNewMatter(e)
+        });
         // add node context buttons
         this.addButton("Delete", "node", "del", (e) => {
             this.actionDelete(e)
@@ -204,6 +207,10 @@ export default class ActionBar extends VObject {
         this.vis.ctrlAddNode("br")
     }
 
+    actionNewMatter(e) {
+        this.vis.ctrlAddNode("matter")
+    }
+
     actionDelete(e) {
         this.vis.deleteSelectedNode()
     }
@@ -235,7 +242,7 @@ export default class ActionBar extends VObject {
         }
         this.vis.actionBar.refresh()
     }
-    
+
     actionOpenEnergyWindow() {
         window.open(document.location.href.replace("/visualize","/energyViewer"), '_blank');
     }
