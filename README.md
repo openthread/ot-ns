@@ -54,6 +54,8 @@ To do a quick try-out of OTNS without installing any software locally, you can f
 docker run -it -p 8997-9000:8997-9000 openthread/otns-playground
 ```
 
+The playground has some limitations: by default, any save/load operations are confined to the container's file system and will be lost when the container stops. To persist data, use Docker's -v flag to mount a volume. Additionally, the 'web' command does not work.
+
 # Contributing
 
 We would love for you to contribute to OTNS and help make it even better than it is today! See our [Contributing Guidelines](CONTRIBUTING.md) for more information.
