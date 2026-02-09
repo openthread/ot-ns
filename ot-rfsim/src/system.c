@@ -40,8 +40,12 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 
+#include <openthread/instance.h>
 #include <openthread/tasklet.h>
 #include <openthread/udp.h>
+#if OPENTHREAD_API_VERSION > 551
+#include <openthread-select.h>
+#endif
 
 #include "common/debug.hpp"
 
@@ -113,6 +117,18 @@ void otSysDeinit(void)
     gSockFd = 0;
 }
 
+static void platformInstanceInit(otInstance *aInstance)
+{
+    if (!sIsInstanceInitDone)
+    {
+#if OPENTHREAD_CONFIG_UDP_FORWARD_ENABLE && OPENTHREAD_CONFIG_BORDER_ROUTING_ENABLE
+        otUdpForwardSetForwarder(aInstance, handleUdpForwarding, aInstance);
+#endif
+        platformNetifSetUp(aInstance);
+        sIsInstanceInitDone = true;
+    }
+}
+
 void otSysProcessDrivers(otInstance *aInstance)
 {
     fd_set read_fds;
@@ -126,15 +142,7 @@ void otSysProcessDrivers(otInstance *aInstance)
         platformExit(EXIT_SUCCESS);
     }
 
-    // on the first call, perform any init that requires the aInstance.
-    if (!sIsInstanceInitDone)
-    { // TODO move to own function
-#if OPENTHREAD_CONFIG_UDP_FORWARD_ENABLE && OPENTHREAD_CONFIG_BORDER_ROUTING_ENABLE
-        otUdpForwardSetForwarder(aInstance, handleUdpForwarding, aInstance);
-#endif
-        platformNetifSetUp(aInstance);
-        sIsInstanceInitDone = true;
-    }
+    platformInstanceInit(aInstance);
 
     FD_ZERO(&read_fds);
     FD_ZERO(&write_fds);
@@ -210,3 +218,71 @@ static void handleSignal(int aSignal)
 
     gTerminate = true;
 }
+
+#if OPENTHREAD_API_VERSION > 551
+void otSysUpdateEvents(otInstance     *aInstance,
+                       int            *aMaxFd,
+                       fd_set         *aReadFdSet,
+                       fd_set         *aWriteFdSet,
+                       fd_set         *aErrorFdSet,
+                       struct timeval *aTimeout)
+{
+    if (gTerminate)
+    {
+        platformExit(EXIT_SUCCESS);
+    }
+
+    platformInstanceInit(aInstance);
+
+    FD_SET(gSockFd, aReadFdSet);
+    if (gSockFd > *aMaxFd)
+    {
+        *aMaxFd = gSockFd;
+    }
+
+    long nextAlarm = platformAlarmGetNext();
+
+    if (!otTaskletsArePending(aInstance) && nextAlarm > 0 &&
+        (!platformRadioIsTransmitPending() || platformRadioIsBusy()))
+    {
+        // report my final radio state at end of this time instant, then go to sleep.
+        platformRadioReportStateToSimulator(false);
+        otSimSendSleepEvent();
+
+        long sec  = nextAlarm / 1000000;
+        long usec = nextAlarm % 1000000;
+        if (sec < aTimeout->tv_sec)
+        {
+            aTimeout->tv_sec  = sec;
+            aTimeout->tv_usec = usec;
+        }
+        else if (sec == aTimeout->tv_sec && usec < aTimeout->tv_usec)
+        {
+            aTimeout->tv_usec = usec;
+        }
+    }
+    else
+    {
+        aTimeout->tv_sec  = 0;
+        aTimeout->tv_usec = 0;
+    }
+}
+
+void otSysProcessEvents(otInstance   *aInstance,
+                        const fd_set *aReadFdSet,
+                        const fd_set *aWriteFdSet,
+                        const fd_set *aErrorFdSet)
+{
+    if (FD_ISSET(gSockFd, aReadFdSet))
+    {
+        platformReceiveEvent(aInstance);
+    }
+
+    platformAlarmProcess(aInstance);
+    platformRadioProcess(aInstance);
+    platformRadioInterfererProcess(aInstance);
+#if OPENTHREAD_CONFIG_BLE_TCAT_ENABLE
+    platformBleProcess(aInstance);
+#endif
+}
+#endif // OPENTHREAD_API_VERSION > 551

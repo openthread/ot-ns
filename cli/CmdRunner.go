@@ -1273,6 +1273,11 @@ func (rt *CmdRunner) executeExe(cc *CommandContext, cmd *ExeCmd) {
 					ec.Ftd = cmd.Path
 				}
 				cc.outputf("ftd: %s\n", ec.Ftd)
+			case MATTER:
+				if isSetPath {
+					ec.Matter = cmd.Path
+				}
+				cc.outputf("matter: %s\n", ec.Matter)
 			case MTD, MED, SED, SSED:
 				if isSetPath {
 					ec.Mtd = cmd.Path
@@ -1301,10 +1306,12 @@ func (rt *CmdRunner) executeExe(cc *CommandContext, cmd *ExeCmd) {
 		cc.outputf("ftd: %s\n", ec.Ftd)
 		cc.outputf("mtd: %s\n", ec.Mtd)
 		cc.outputf("br : %s\n", ec.Br)
+		cc.outputf("matter: %s\n", ec.Matter)
 		cc.outputf("Executables search path: %s\n", ec.SearchPathsString())
 		cc.outputf("Detected FTD path      : %s\n", ec.FindExecutable(ec.Ftd))
 		cc.outputf("Detected MTD path      : %s\n", ec.FindExecutable(ec.Mtd))
 		cc.outputf("Detected BR path       : %s\n", ec.FindExecutable(ec.Br))
+		cc.outputf("Detected Matter path   : %s\n", ec.FindExecutable(ec.Matter))
 	})
 }
 

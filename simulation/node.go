@@ -96,7 +96,16 @@ func newNode(s *Simulation, nodeid NodeId, cfg *NodeConfig, dnode *dispatcher.No
 	}
 
 	var cmd *exec.Cmd
-	if cfg.RandomSeed == 0 {
+	if cfg.Type == MATTER {
+		args := []string{
+			fmt.Sprintf("--thread-args=%d", nodeid),
+			fmt.Sprintf("--thread-args=%s", s.d.GetUnixSocketName()),
+		}
+		if cfg.RandomSeed != 0 {
+			args = append(args, fmt.Sprintf("--thread-args=%d", cfg.RandomSeed))
+		}
+		cmd = exec.CommandContext(context.Background(), cfg.ExecutablePath, args...)
+	} else if cfg.RandomSeed == 0 {
 		cmd = exec.CommandContext(context.Background(), cfg.ExecutablePath, strconv.Itoa(nodeid), s.d.GetUnixSocketName())
 	} else {
 		seedParam := fmt.Sprintf("%d", cfg.RandomSeed)

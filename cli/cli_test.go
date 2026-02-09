@@ -51,6 +51,8 @@ func TestParseBytes(t *testing.T) {
 	assert.True(t, cmd.Add != nil && cmd.Add.Type.Val == SED)
 	assert.Nil(t, parseBytes([]byte("add fed"), &cmd))
 	assert.True(t, cmd.Add != nil && cmd.Add.Type.Val == FED)
+	assert.Nil(t, parseBytes([]byte("add matter"), &cmd))
+	assert.True(t, cmd.Add != nil && cmd.Add.Type.Val == MATTER)
 	assert.Nil(t, parseBytes([]byte("add router x 100 y 200"), &cmd))
 	assert.True(t, *cmd.Add.X == 100 && *cmd.Add.Y == 200)
 	assert.Nil(t, parseBytes([]byte("add router id 100"), &cmd))
