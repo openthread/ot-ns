@@ -1,4 +1,4 @@
-// Copyright (c) 2022-2025, The OTNS Authors.
+// Copyright (c) 2022-2026, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -60,6 +60,7 @@ const (
 	MTD    = "mtd"
 	FTD    = "ftd"
 	WIFI   = "wifi" // Wi-Fi interferer node
+	RCP    = "rcp"  // Thread Router RCP+host node
 )
 
 func GetNodeName(id NodeId) string {

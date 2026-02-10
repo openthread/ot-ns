@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2024, The OTNS Authors.
+// Copyright (c) 2020-2026, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -129,8 +129,8 @@ func (node *Node) String() string {
 	return GetNodeName(node.Id)
 }
 
-// SendToUART sends any data to virtual time UART of the node.
-func (node *Node) SendToUART(data []byte) error {
+// SendToVirtualUART sends any data to the virtual-time UART of the node.
+func (node *Node) SendToVirtualUART(data []byte) error {
 	var err error
 	evt := &Event{
 		Timestamp: node.D.CurTime,

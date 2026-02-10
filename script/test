@@ -115,6 +115,20 @@ py_versions_unittests()
     build_openthread_versions
 
     python3 "$OTNSDIR"/pylibs/unittests/test_exe_versions.py
+    python3 "$OTNSDIR"/pylibs/unittests/test_realtime_rcp.py
+}
+
+py_quick_test()
+{
+    install_deps
+    activate_python_venv
+    python3 -m pip install -r "$OTNSDIR"/pylibs/unittests/requirements.txt
+    install_otns
+    build_openthread_versions
+
+    python3 "$OTNSDIR"/pylibs/unittests/test_basic.py BasicTests.testKpi
+    python3 "$OTNSDIR"/pylibs/unittests/test_border_router.py
+    python3 "$OTNSDIR"/pylibs/unittests/test_exe_versions.py
 }
 
 check_py_example()
@@ -178,6 +192,10 @@ main()
                 ;;
             py-ver-unittests)
                 py_versions_unittests
+                shift 1
+                ;;
+            py-quick-test)
+                py_quick_test
                 shift 1
                 ;;
             py-examples)

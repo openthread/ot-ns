@@ -1,4 +1,4 @@
-// Copyright (c) 2022-2024, The OTNS Authors.
+// Copyright (c) 2022-2026, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -95,8 +95,9 @@ func DefaultTitleInfo() TitleInfo {
 	}
 }
 
+// NetworkInfo represents information about a simulated network (if InvalidNodeId) or node (if valid NodeId).
 type NetworkInfo struct {
-	Real          bool
+	Real          bool // Whether the node or network is simulated with fixed real-time speed
 	Version       string
 	Commit        string
 	NodeId        int
