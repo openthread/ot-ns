@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2024, The OTNS Authors.
+// Copyright (c) 2020-2026, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -86,6 +86,7 @@ type YamlScriptConfig struct {
 	Mtd string `yaml:"mtd"`
 	Ftd string `yaml:"ftd"`
 	Br  string `yaml:"br"`
+	Ext string `yaml:"ext"`
 	All string `yaml:"all"`
 }
 
@@ -127,6 +128,11 @@ func (ys *YamlScriptConfig) BuildFtdScript() []string {
 
 func (ys *YamlScriptConfig) BuildBrScript() []string {
 	script := ys.Ftd + "\n" + ys.Br + "\n" + ys.All
+	return strings.Split(script, "\n")
+}
+
+func (ys *YamlScriptConfig) BuildExtScript() []string {
+	script := ys.Ext + "\n" + ys.All
 	return strings.Split(script, "\n")
 }
 

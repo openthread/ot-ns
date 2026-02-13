@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025, The OTNS Authors.
+// Copyright (c) 2020-2026, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -38,6 +38,7 @@ type NodeConfig struct {
 	IsMtd          bool
 	IsRouter       bool
 	IsBorderRouter bool
+	IsExternal     bool
 	RxOffWhenIdle  bool
 	NodeLogFile    bool
 	RadioRange     int
@@ -81,6 +82,9 @@ func (cfg *NodeConfig) UpdateNodeConfigFromType() {
 		cfg.IsMtd = false
 		cfg.IsBorderRouter = false
 		cfg.RxOffWhenIdle = false
+	case EXT:
+		cfg.IsRouter = false
+		cfg.IsExternal = true
 	default:
 		panic("unknown node type cfg.Type")
 	}

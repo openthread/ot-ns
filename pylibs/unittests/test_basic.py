@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-# Copyright (c) 2020-2025, The OTNS Authors.
+#
+# Copyright (c) 2020-2026, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -1075,6 +1076,35 @@ class BasicTests(OTNSTestCase):
         # Sanity check that the invalid command detection still works.
         with self.assertRaises(errors.OTNSCliError):
             ns.node_cmd(nid_diag, f'abcdefgdns xquery test.example')
+
+    def testSimulationId(self):
+        ns: OTNS = self.ns
+
+        # create a simulation with sim_id = 2
+        with OTNS(sim_id=2) as ns2:
+            ns2.add('router')
+            ns2.add('router')
+            ns2.add('router')
+            self.assertEqual(3, len(ns2.nodes()))
+            ns2.go(20)
+            self.assertEqual(20.0, ns2.time)
+            self.assertEqual(3, len(ns2.nodes()))
+
+            # check number of partitions
+            ns2_pars = ns2.partitions()
+            self.assertEqual(1, len(ns2_pars))
+
+            # check that 'ns' is untouched
+            self.assertEqual(0, len(ns.nodes()))
+            self.assertEqual(0.0, ns.time)
+            ns.add('med')
+            ns.go(10)
+            self.assertEqual(10.0, ns.time)
+
+            # check sockets differ per simulation
+            sock1 = ns.get_otns_socket()
+            sock2 = ns2.get_otns_socket()
+            self.assertTrue(sock1 != sock2)
 
 
 if __name__ == '__main__':

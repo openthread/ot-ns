@@ -235,3 +235,30 @@ $ cd ..
 ```
 
 In this example a node is built with debug logs off (for more speed in simulation), CoAP-observe enabled, and TCP enabled.
+
+## Adding Externally Started OpenThread Nodes to an OTNS Simulation (Optional, for Advanced Use Only)
+
+OTNS allows a user to start an OpenThread node executable externally, outside the control of a currently running OTNS instance. This new node is then automatically added to the simulation and is then controlled by OTNS. This can be useful in cases where custom node builds need to be tested in an existing (running) simulation topology, or a debugger (or profiler, or similar tool) needs to attach to the newly launched node process. Also, this approach can be useful if the outputs of the node process (such as `stdout` or `stderr`) need to be captured or interactively viewed in a terminal window while a simulation progresses.
+
+Below, an example is given how to add a new node to a running OTNS instance. We assume there is already a running OTNS simulation with a single Router node with node ID 1. Then, to start a second node with node ID 2 from a script or via a shell command:
+
+```bash
+$ ./ot-rfsim/ot-versions/ot-cli-ftd 2 /tmp/otns/socket_dispatcher_0
+```
+
+The first argument is the node ID (2), and the second argument is the Unix socket used by OTNS to communicate with all node processes. The value '0' in the socket filename refers to the simulation ID used by the running OTNS instance. By default, always simulation ID '0' is used. This can be changed by using the `-listen` OTNS commandline argument with a value higher than 9000 for the port number. Port 9010 gets simulation ID 1, 9020 gets simulation ID 2, and so on.
+
+An OpenThread node that is added to the simulation will get a special node type "ext" assigned, for "external". This is done because OTNS does not necessarily know the exact type of the newly added node (such as Router, Border Router, FED, etc.).
+
+When running the `nodes` CLI command in OTNS after adding the Router (ID=1) and the external node (ID=2) as in the above example, the output would look as follows:
+
+```bash
+> nodes
+id=1    type=router  extaddr=cae5353a2ec488e1  rloc16=a800  x=100   y=100    z=0      state=leader    failed=false    exe=ot-cli-ftd
+id=2    type=ext     extaddr=d28274ff6942c05c  rloc16=a801  x=60    y=150    z=0      state=child     failed=false    exe=(external-node)
+Done
+```
+
+This shows the "ext" type for node 2, and also the string "(external-node)" instead of the actual node's executable name, which is unknown to OTNS.
+
+In case the externally running node process is interrupted (e.g. by pressing Ctrl+C) or killed, the corresponding node automatically gets removed from the simulation and a warning is logged by OTNS.
