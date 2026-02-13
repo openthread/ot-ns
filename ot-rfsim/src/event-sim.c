@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2024, The OpenThread Authors.
+ *  Copyright (c) 2022-2025, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -44,17 +44,29 @@ struct Event gLastSentEvent;
 
 void otSimSendSleepEvent(void)
 {
-    OT_ASSERT(platformAlarmGetNext() > 0);
+    uint64_t next = platformAlarmGetNext();
+    OT_ASSERT(next > 0);
     struct Event event;
 
-    event.mDelay      = platformAlarmGetNext();
+    event.mDelay      = next;
     event.mEvent      = OT_SIM_EVENT_ALARM_FIRED;
     event.mDataLength = 0;
 
     otSimSendEvent(&event);
 }
 
-void otSimSendRadioCommEvent(struct RadioCommEventData *aEventData, const uint8_t *aPayload, size_t aLenPayload)
+void otSimSendScheduleNodeEvent(uint64_t aDelayUs)
+{
+    struct Event event;
+
+    event.mDelay      = aDelayUs;
+    event.mEvent      = OT_SIM_EVENT_SCHEDULE_NODE;
+    event.mDataLength = 0;
+
+    otSimSendEvent(&event);
+}
+
+void otSimSendRadioCommEvent(const struct RadioCommEventData *aEventData, const uint8_t *aPayload, size_t aLenPayload)
 {
     OT_ASSERT(aLenPayload <= OT_EVENT_DATA_MAX_SIZE);
     struct Event event;
@@ -67,7 +79,7 @@ void otSimSendRadioCommEvent(struct RadioCommEventData *aEventData, const uint8_
     otSimSendEvent(&event);
 }
 
-void otSimSendRadioCommInterferenceEvent(struct RadioCommEventData *aEventData)
+void otSimSendRadioCommInterferenceEvent(const struct RadioCommEventData *aEventData)
 {
     struct Event event;
 
@@ -79,7 +91,7 @@ void otSimSendRadioCommInterferenceEvent(struct RadioCommEventData *aEventData)
     otSimSendEvent(&event);
 }
 
-void otSimSendRadioChanSampleEvent(struct RadioCommEventData *aChanData)
+void otSimSendRadioChanSampleEvent(const struct RadioCommEventData *aChanData)
 {
     struct Event event;
 
@@ -91,7 +103,7 @@ void otSimSendRadioChanSampleEvent(struct RadioCommEventData *aChanData)
     otSimSendEvent(&event);
 }
 
-void otSimSendRadioStateEvent(struct RadioStateEventData *aStateData, uint64_t aDeltaUntilNextRadioState)
+void otSimSendRadioStateEvent(const struct RadioStateEventData *aStateData, uint64_t aDeltaUntilNextRadioState)
 {
     struct Event event;
 
@@ -157,8 +169,8 @@ void otSimSendExtAddrEvent(const otExtAddress *aExtAddress)
 
 void otSimSendNodeInfoEvent(uint32_t nodeId)
 {
-    struct Event event;
     OT_ASSERT(nodeId > 0);
+    struct Event event;
 
     memcpy(event.mData, &nodeId, sizeof(uint32_t));
     event.mEvent      = OT_SIM_EVENT_NODE_INFO;
@@ -181,11 +193,14 @@ void otSimSendRfSimParamRespEvent(uint8_t param, int32_t value)
     otSimSendEvent(&event);
 }
 
-void otSimSendMsgToHostEvent(uint8_t evType, struct MsgToHostEventData *aEventData, uint8_t *aMsgBytes, size_t aMsgLen)
+void otSimSendMsgToHostEvent(uint8_t                          evType,
+                             const struct MsgToHostEventData *aEventData,
+                             const uint8_t                   *aMsgBytes,
+                             size_t                           aMsgLen)
 {
     const size_t evDataSz = sizeof(struct MsgToHostEventData);
-    struct Event event;
     OT_ASSERT(aMsgLen <= OT_EVENT_DATA_MAX_SIZE - evDataSz);
+    struct Event event;
 
     event.mEvent = evType;
     event.mDelay = 0;
@@ -198,16 +213,13 @@ void otSimSendMsgToHostEvent(uint8_t evType, struct MsgToHostEventData *aEventDa
 
 void otSimSendEvent(struct Event *aEvent)
 {
-    ssize_t rval;
+    OT_ASSERT(gSockFd != 0);
 
     aEvent->mMsgId = gLastMsgId;
     gLastSentEvent = *aEvent;
 
-    if (gSockFd == 0) // don't send events if socket invalid.
-        return;
-
     // send header and data.
-    rval = write(gSockFd, aEvent, offsetof(struct Event, mData) + aEvent->mDataLength);
+    const ssize_t rval = write(gSockFd, aEvent, offsetof(struct Event, mData) + aEvent->mDataLength);
 
     if (rval < 0)
     {

@@ -36,10 +36,11 @@ const (
 // OT_ERROR_* error codes from OpenThread that can be sent by OT-NS to the OT nodes.
 // (See OpenThread error.h for details)
 const (
-	OT_ERROR_NONE   = 0
-	OT_ERROR_ABORT  = 11
-	OT_ERROR_FCS    = 17
-	OT_TX_TYPE_INTF = 192 // special status used for interference signals Tx
+	OT_ERROR_NONE      = 0
+	OT_ERROR_ABORT     = 11
+	OT_ERROR_FCS       = 17
+	OT_TX_TYPE_INTF    = 192 // special status used for interference signals Tx
+	OT_TX_TYPE_BLE_ADV = 193 // special status used for BLE adv signals Tx
 )
 
 const (
