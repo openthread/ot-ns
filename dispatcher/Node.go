@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2024, The OTNS Authors.
+// Copyright (c) 2020-2026, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -27,8 +27,11 @@
 package dispatcher
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"net"
+	"syscall"
 
 	. "github.com/openthread/ot-ns/event"
 	"github.com/openthread/ot-ns/logger"
@@ -78,17 +81,18 @@ type Node struct {
 	Type        string
 	RadioNode   *radiomodel.RadioNode
 
-	conn          net.Conn
-	msgId         uint64
-	err           error
-	failureCtrl   *FailureCtrl
-	isFailed      bool
-	pendingPings  []*pingRequest
-	pingResults   []*PingResult
-	joinerState   OtJoinerState
-	joinerSession *joinerSession
-	joinResults   []*JoinResult
-	logger        *logger.NodeLogger
+	conn            net.Conn
+	hasDisconnected bool // keeps track of whether the node process disconnected
+	msgId           uint64
+	err             error
+	failureCtrl     *FailureCtrl // keeps track of radio failures scheduled by OTNS
+	isFailed        bool         // current state related to scheduled radio failures
+	pendingPings    []*pingRequest
+	pingResults     []*PingResult
+	joinerState     OtJoinerState
+	joinerSession   *joinerSession
+	joinResults     []*JoinResult
+	logger          *logger.NodeLogger
 }
 
 func newNode(d *Dispatcher, nodeid NodeId, cfg *NodeConfig) *Node {
@@ -102,27 +106,44 @@ func newNode(d *Dispatcher, nodeid NodeId, cfg *NodeConfig) *Node {
 	}
 
 	nc := &Node{
-		D:           d,
-		Id:          nodeid,
-		CurTime:     d.CurTime,
-		CreateTime:  d.CurTime,
-		X:           cfg.X,
-		Y:           cfg.Y,
-		Z:           cfg.Z,
-		ExtAddr:     InvalidExtAddr,
-		Rloc16:      InvalidRloc16,
-		Mode:        DefaultNodeMode(),
-		Role:        OtDeviceRoleDisabled,
-		Type:        cfg.Type,
-		conn:        nil, // connection will be set when first event is received from node.
-		err:         nil, // keep track of connection errors.
-		RadioNode:   radiomodel.NewRadioNode(nodeid, radioCfg),
-		joinerState: OtJoinerStateIdle,
-		logger:      logger.GetNodeLogger(d.cfg.OutputDir, d.cfg.SimulationId, cfg),
+		D:               d,
+		Id:              nodeid,
+		CurTime:         d.CurTime,
+		CreateTime:      d.CurTime,
+		X:               cfg.X,
+		Y:               cfg.Y,
+		Z:               cfg.Z,
+		ExtAddr:         InvalidExtAddr,
+		Rloc16:          InvalidRloc16,
+		Mode:            DefaultNodeMode(),
+		Role:            OtDeviceRoleDisabled,
+		Type:            cfg.Type,
+		conn:            nil, // connection will be set when first event is received from node.
+		hasDisconnected: false,
+		err:             nil, // keep track of connection errors.
+		RadioNode:       radiomodel.NewRadioNode(nodeid, radioCfg),
+		joinerState:     OtJoinerStateIdle,
+		logger:          logger.GetNodeLogger(d.cfg.OutputDir, d.cfg.SimulationId, cfg),
 	}
 
 	nc.failureCtrl = newFailureCtrl(nc, NonFailTime)
 	return nc
+}
+
+func (node *Node) exit() {
+	node.DisconnectSocket()
+	node.hasDisconnected = true
+	node.logger.Close()
+}
+
+// DisconnectSocket closes the socket connection (if any) with the node process.
+func (node *Node) DisconnectSocket() {
+	if node.conn != nil {
+		err := node.conn.Close()
+		if err == nil {
+			logger.Tracef("Closed dispatcher node %d socket connection.", node.Id)
+		}
+	}
 }
 
 func (node *Node) String() string {
@@ -198,8 +219,10 @@ func (node *Node) sendEvent(evt *Event) {
 		}
 	}
 
-	err := node.sendRawData(evt.Serialize())
-	if err != nil {
+	if err, wasSocketClosed := node.sendRawData(evt.Serialize()); err != nil {
+		if wasSocketClosed {
+			node.DisconnectSocket() // just in case peer closed it, also close locally.
+		}
 		node.logger.Error(err)
 		node.err = err
 	} else {
@@ -207,18 +230,17 @@ func (node *Node) sendEvent(evt *Event) {
 	}
 }
 
-// sendRawData is INTERNAL to send bytes to socket of node
-func (node *Node) sendRawData(msg []byte) error {
-	if node.conn == nil {
-		return fmt.Errorf("sendRawData(): node connection is closed")
+// sendRawData is INTERNAL to send bytes to socket of node. It returns the error result and
+// a flag indicating whether the socket was closed by either side.
+func (node *Node) sendRawData(msg []byte) (error, bool) {
+	logger.AssertNotNil(node.conn)
+	if _, err := node.conn.Write(msg); err != nil {
+		if errors.Is(err, net.ErrClosed) || errors.Is(err, io.EOF) || errors.Is(err, syscall.EPIPE) {
+			return err, true
+		}
+		return err, false
 	}
-	n, err := node.conn.Write(msg)
-	if err != nil {
-		return err
-	} else if len(msg) != n {
-		return fmt.Errorf("failed to write complete Event to %s socket %v+", node.String(), node.conn)
-	}
-	return err
+	return nil, false
 }
 
 func (node *Node) IsFailed() bool {
@@ -226,7 +248,7 @@ func (node *Node) IsFailed() bool {
 }
 
 func (node *Node) IsConnected() bool {
-	return node.conn != nil
+	return node.conn != nil && !node.hasDisconnected
 }
 
 func (node *Node) Fail() {

@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025, The OTNS Authors.
+// Copyright (c) 2020-2026, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -87,7 +87,7 @@ type Node struct {
 func newNode(s *Simulation, nodeid NodeId, cfg *NodeConfig, dnode *dispatcher.Node) (*Node, error) {
 	var err error
 
-	if !cfg.Restore {
+	if !cfg.Restore && !cfg.IsExternal {
 		flashFile := fmt.Sprintf("%s/%d_%d.flash", s.cfg.OutputDir, s.cfg.Id, nodeid)
 		if err = os.RemoveAll(flashFile); err != nil {
 			logger.Errorf("Remove flash file %s failed: %+v", flashFile, err)
@@ -124,23 +124,25 @@ func newNode(s *Simulation, nodeid NodeId, cfg *NodeConfig, dnode *dispatcher.No
 	node.Logger.Debugf("  exe cmd : %v", cmd)
 	node.Logger.Debugf("  position: (%d,%d,%d)", cfg.X, cfg.Y, cfg.Z)
 
-	if node.pipeIn, err = cmd.StdinPipe(); err != nil {
-		return node, err
-	}
+	if !cfg.IsExternal {
+		if node.pipeIn, err = cmd.StdinPipe(); err != nil {
+			return node, err
+		}
 
-	if node.pipeOut, err = cmd.StdoutPipe(); err != nil {
-		return node, err
-	}
+		if node.pipeOut, err = cmd.StdoutPipe(); err != nil {
+			return node, err
+		}
 
-	if node.pipeErr, err = cmd.StderrPipe(); err != nil {
-		return node, err
-	}
+		if node.pipeErr, err = cmd.StderrPipe(); err != nil {
+			return node, err
+		}
 
-	if err = cmd.Start(); err != nil {
-		return node, err
-	}
+		if err = cmd.Start(); err != nil {
+			return node, err
+		}
 
-	go node.lineReaderStdErr(node.pipeErr) // reads StdErr output from OT node exe and acts on failures
+		go node.lineReaderStdErr(node.pipeErr) // reads StdErr output from OT node exe and acts on failures
+	}
 
 	return node, err
 }
@@ -156,6 +158,8 @@ func (node *Node) error(err error) {
 	}
 }
 
+// runScript runs a node script on this node, consisting of a series of node CLI commands.
+// Returns immediately with error value in case any CLI command fails.
 func (node *Node) runScript(cfg []string) error {
 	logger.AssertNotNil(cfg)
 	if len(cfg) == 0 {
@@ -218,8 +222,12 @@ func (node *Node) exit() error {
 		err = node.cmd.Wait() // wait for process end
 		node.Logger.Tracef("Node process exited. Wait().err=%v", err)
 		<-processDone // signal above kill-goroutine to end
+		node.Logger.Debugf("Node process exited.")
+	} else if node.cfg.IsExternal {
+		// The node process is external, so we cannot control it here. Disconnecting the DNode socket
+		// is used instead. It triggers the Unix socket server GoRoutine to emit a final exit event.
+		node.DNode.DisconnectSocket()
 	}
-	node.Logger.Debugf("Node exited.")
 
 	// finalize the log file/printing.
 	node.DisplayPendingLogEntries()
@@ -227,8 +235,8 @@ func (node *Node) exit() error {
 	node.Logger.Close()
 
 	// typical errors can be nil, or "signal: killed" if SIGKILL was necessary, or "signal: broken pipe", or
-	// any of the "exit: ..." errors listed in code of node.cmd.Wait(). Most errors aren't critical: they
-	// will still stop the node.
+	// any of the "exit: ..." errors listed in code of node.cmd.Wait(). Most errors aren't critical: the
+	// node will still be stopped, regardless.
 	return err
 }
 
@@ -1072,38 +1080,17 @@ func (node *Node) onStart() {
 	}
 }
 
-func (node *Node) onProcessFailure() {
-	node.Logger.Errorf("Node process exited after an error occurred.")
-	node.S.Dispatcher().NotifyNodeProcessFailure(node.Id)
-	node.S.PostAsync(func() {
-		_, nodeExists := node.S.nodes[node.Id]
-		if node.S.ctx.Err() == nil && nodeExists {
-			logger.Warnf("Deleting node %v due to process failure.", node.Id)
-			_ = node.S.DeleteNode(node.Id)
-		}
-	})
-}
-
 func (node *Node) lineReaderStdErr(reader io.Reader) {
 	scanner := bufio.NewScanner(bufio.NewReader(reader)) // no filter applied.
 	scanner.Split(bufio.ScanLines)
 
-	var errProc error = nil
 	for scanner.Scan() {
 		line := scanner.Text()
-		stderrLine := fmt.Sprintf("StdErr: %s", line)
-
-		// mark the first error output line of the node
-		if errProc == nil {
-			errProc = errors.New(stderrLine)
-		}
+		errProc := fmt.Errorf("StdErr: %s", line)
 		node.Logger.Error(errProc)
 	}
-
-	// when the stderr of the node closes and any error was raised, inform simulation of node's failure.
-	if errProc != nil {
-		node.onProcessFailure()
-	}
+	// if the process exited, we trigger the socket's disconnection.
+	node.DNode.DisconnectSocket()
 }
 
 func (node *Node) expectEvent(evtType event.EventType, timeout time.Duration) (*event.Event, error) {
@@ -1219,6 +1206,11 @@ func (node *Node) setupMode() {
 
 	// only MED can use RxOffWhenIdle
 	logger.AssertTrue(!node.cfg.RxOffWhenIdle || node.cfg.IsMtd)
+
+	// Externally launched node does not receive 'mode' configuration
+	if node.cfg.IsExternal {
+		return
+	}
 
 	mode := ""
 	if !node.cfg.RxOffWhenIdle {

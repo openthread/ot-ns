@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025, The OTNS Authors.
+// Copyright (c) 2020-2026, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -92,6 +92,8 @@ var defaultBrScript = []string{
 	"br enable",
 }
 
+var defaultExtScript = defaultMtdInitScript
+
 // selfGenOmrBrScript is a script for a BR that detects no IPv6 infra and creates its own OMR prefix.
 /*
 var selfGenOmrBrScript = []string{
@@ -156,6 +158,7 @@ func DefaultNodeConfig() NodeConfig {
 		IsRouter:       true,
 		IsMtd:          false,
 		IsBorderRouter: false,
+		IsExternal:     false,
 		RxOffWhenIdle:  false,
 		NodeLogFile:    true,
 		RadioRange:     defaultRadioRange,
@@ -172,6 +175,7 @@ func DefaultNodeScripts() *YamlScriptConfig {
 		Mtd: strings.Join(defaultMtdInitScript, "\n"),
 		Ftd: strings.Join(defaultFtdInitScript, "\n"),
 		Br:  strings.Join(defaultBrScript, "\n"),
+		Ext: strings.Join(defaultExtScript, "\n"),
 		All: strings.Join(defaultAllInitScript, "\n"),
 	}
 }
@@ -198,7 +202,9 @@ func (s *Simulation) NodeConfigFinalize(nodeCfg *NodeConfig) {
 
 	// build node init-script
 	if !nodeCfg.IsRaw {
-		if nodeCfg.IsBorderRouter { // for a BR, do extra init steps to set prefix/routes/etc.
+		if nodeCfg.IsExternal {
+			nodeCfg.InitScript = append(nodeCfg.InitScript, s.cfg.NewNodeScripts.BuildExtScript()...)
+		} else if nodeCfg.IsBorderRouter { // for a BR, do extra init steps to set prefix/routes/etc.
 			nodeCfg.InitScript = append(nodeCfg.InitScript, s.cfg.NewNodeScripts.BuildBrScript()...)
 		} else if nodeCfg.IsMtd {
 			nodeCfg.InitScript = append(nodeCfg.InitScript, s.cfg.NewNodeScripts.BuildMtdScript()...)

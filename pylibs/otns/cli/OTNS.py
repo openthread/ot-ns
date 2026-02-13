@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2020-2024, The OTNS Authors.
+# Copyright (c) 2020-2026, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -55,7 +55,7 @@ class OTNS(object):
     CLI_PROMPT = '> '
     CLI_USER_HINT = 'OTNS command CLI - type \'exit\' to exit, or \'help\' for command overview.'
 
-    def __init__(self, otns_path: Optional[str] = None, otns_args: Optional[List[str]] = None):
+    def __init__(self, sim_id: Optional[int] = 0, otns_path: Optional[str] = None, otns_args: Optional[List[str]] = None):
         self._closed = False
         self._cli_thread = None
         self._lock_interactive_cli = threading.Lock()
@@ -63,7 +63,9 @@ class OTNS(object):
         self.logconfig(logging.WARNING)
 
         self._otns_path = otns_path or self._detect_otns_path()
-        default_args = ['-autogo=false', '-web=false', '-speed', str(OTNS.DEFAULT_SIMULATE_SPEED)]
+        self._sim_id = sim_id
+        listen_port = str(9000 + sim_id * 10)
+        default_args = ['-autogo=false', '-web=false', '-speed', str(OTNS.DEFAULT_SIMULATE_SPEED), '-listen', f'localhost:{listen_port}']
         # Note: given otns_args may override i.e. revert the default_args
         self._otns_args = default_args + list(otns_args or [])
         logging.info("otns found: %s", self._otns_path)
@@ -262,7 +264,7 @@ class OTNS(object):
         logging.basicConfig(level=level, format='%(asctime)s - %(levelname)s - %(message)s')
 
     @property
-    def time(self) -> int:
+    def time(self) -> float:
         """
         Get simulation time.
 
@@ -1343,6 +1345,13 @@ class OTNS(object):
         :param filename: file name to save to
         """
         self._do_command(f'save "{filename}"')
+
+    def get_otns_socket(self) -> str:
+        """
+        Get the full path to the OTNS Unix socket that nodes use to connect to the current simulation.
+        The current simulation is identified by the sim_id constructor argument (default 0).
+        """
+        return f"/tmp/otns/socket_dispatcher_{self._sim_id}"
 
     @staticmethod
     def _expect_int(output: List[str]) -> int:
