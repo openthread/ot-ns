@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025, The OTNS Authors.
+// Copyright (c) 2020-2026, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -340,7 +340,7 @@ func (s *Simulation) Stop() {
 
 	s.ctx.Cancel("simulation-stop")
 
-	// for faster process, signal node exit first in parallel.
+	// for faster processing, send node exit signals first in parallel to all nodes.
 	for _, node := range s.nodes {
 		_ = node.signalExit()
 	}
@@ -421,6 +421,39 @@ func (s *Simulation) OnMsgToHost(nodeid NodeId, evt *event.Event) {
 	}
 }
 
+func (s *Simulation) OnNewNodeDetected(nodeid NodeId) bool {
+	node := s.nodes[nodeid]
+	logger.AssertNil(node)
+
+	cfg := s.GetConfig().NewNodeConfig
+	cfg.ID = nodeid
+	cfg.Type = EXT
+	cfg.ExecutablePath = "(external-node)"
+	s.NodeConfigFinalize(&cfg)
+	_, err := s.AddNode(&cfg)
+	if err == nil {
+		logger.Infof("Added new external node %d to the simulation.", nodeid)
+		return true
+	}
+	logger.Errorf("Failed to add external node %d to the simulation: %v", nodeid, err)
+	return false
+}
+
+func (s *Simulation) OnNodeDisconnected(nodeid NodeId) {
+	node := s.nodes[nodeid]
+	if node == nil {
+		return
+	}
+	node.Logger.Warnf("Node %d process has disconnected.", nodeid)
+	node.S.PostAsync(func() {
+		_, nodeExists := node.S.nodes[node.Id]
+		if node.S.ctx.Err() == nil && nodeExists {
+			logger.Warnf("Deleting node %v due to process disconnection.", node.Id)
+			_ = node.S.DeleteNode(node.Id)
+		}
+	})
+}
+
 // PostAsync will post an asynchronous simulation task in the queue for execution
 // @return true when post was successful, false if not (e.g. when sim exited)
 func (s *Simulation) PostAsync(f func()) bool {
@@ -475,12 +508,13 @@ func (s *Simulation) DeleteNode(nodeid NodeId) error {
 		err := fmt.Errorf("node %d not found", nodeid)
 		return err
 	}
+	s.d.RecvEvents()
+	delete(s.nodes, nodeid)
 	s.d.NotifyCommand(nodeid) // sets node alive: we expect a NodeExit event to come as final one in queue.
 	_ = node.exit()
 	s.d.RecvEvents()
 	s.d.DeleteNode(nodeid)
 	s.kpiMgr.stopNode(nodeid)
-	delete(s.nodes, nodeid)
 	return nil
 }
 

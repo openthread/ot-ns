@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-# Copyright (c) 2023-2025, The OTNS Authors.
+#
+# Copyright (c) 2023-2026, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,6 +27,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
+import subprocess
+import time
 import unittest
 
 from OTNSTestCase import OTNSTestCase
@@ -153,6 +156,52 @@ class ExeVersionTests(OTNSTestCase):
         # Thread nodes form a Partition.
         # The wifi node stays on partition 0 (Thread is disabled)
         self.assertEqual(2, len(ns.partitions()))
+
+    def testExternalNodes(self):
+        ns: OTNS = self.ns
+
+        ns.add('router')
+        ns.add('router')
+        ns.go(20)
+        self.assertFormPartitions(1)
+        self.assertEqual(2, len(ns.nodes()))
+
+        # add a self-launched node process
+        proc_n3 = None
+        try:
+            proc_n3 = subprocess.Popen(['./ot-rfsim/ot-versions/ot-cli-ftd', '32', ns.get_otns_socket()])
+            # wait until node reports to OTNS
+            print(ns.nodes())
+            attempts = 0
+            while len(ns.nodes()) < 3 and attempts < 100:
+                ns.go(0)  # call to go() is required for any actions/event processing that isn't CLI-initiated.
+                time.sleep(0.1)  # assume that in CI, it might take some time to start the node process properly.
+                attempts += 1
+            self.assertEqual(3, len(ns.nodes()))
+
+            # form one partition
+            ns.go(10)
+            self.assertFormPartitions(1)
+            self.assertEqual(3, len(ns.nodes()))
+            self.assertEqual([1, 2, 32], list(ns.nodes().keys()))
+
+        finally:
+            if proc_n3:
+                proc_n3.terminate()
+                try:
+                    proc_n3.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    proc_n3.kill()
+                    proc_n3.wait()
+
+        # check the terminated node went away. Due to wait() the node's socket must be already in closed state
+        # and OTNS will have noticed.
+        ns.go(0)
+        self.assertEqual(2, len(ns.nodes()))
+        ns.go(10)
+        self.assertFormPartitions(1)
+        self.assertEqual(2, len(ns.nodes()))
+        self.assertEqual([1, 2], list(ns.nodes().keys()))
 
 
 if __name__ == '__main__':

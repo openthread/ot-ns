@@ -56,6 +56,13 @@ func (m mockDispatcherCallback) OnRfSimEvent(nodeid NodeId, evt *event.Event) {
 func (m mockDispatcherCallback) OnMsgToHost(nodeid NodeId, evt *event.Event) {
 }
 
+func (m mockDispatcherCallback) OnNodeDisconnected(nodeid NodeId) {
+}
+
+func (m mockDispatcherCallback) OnNewNodeDetected(nodeid NodeId) bool {
+	return false
+}
+
 func mockNode1() *Node {
 	return &Node{
 		Id:     0x1,

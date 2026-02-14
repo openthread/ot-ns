@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2024, The OTNS Authors.
+// Copyright (c) 2020-2026, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -69,6 +69,15 @@ type CallbackHandler interface {
 
 	// OnMsgToHost Notifies that the Dispatcher received a message from a node, to be handled by the node's host.
 	OnMsgToHost(nodeid NodeId, event *Event)
+
+	// OnNewNodeDetected Notifies that the Dispatcher detected a new node process has been started (externally).
+	// The callback handler must return true if the new node was accepted and created in the simulation (and then
+	// the connection to it can remain) or false otherwise, for example if the simulation does not accept externally
+	// started nodes currently (and then the connection to it will be closed by Dispatcher).
+	OnNewNodeDetected(nodeid NodeId) bool
+
+	// OnNodeDisconnected Notifies that the Dispatcher detected disconnection of a node process.
+	OnNodeDisconnected(nodeid NodeId)
 }
 
 // goDuration represents a particular duration of the simulation at a given speed.
@@ -210,6 +219,11 @@ func (d *Dispatcher) Stop() {
 	d.ctx.Cancel("dispatcher-stop")
 	d.GoCancel()        // cancel current simulation period
 	_ = d.udpln.Close() // close socket to stop d.eventsReader accepting new clients.
+
+	for _, node := range d.nodes {
+		node.exit()
+	}
+
 	if d.cfg.PhyTxStats {
 		d.finalizeTimeWindowStats()
 	}
@@ -388,13 +402,33 @@ func (d *Dispatcher) handleRecvEvent(evt *Event) {
 	nodeid := evt.NodeId
 	node := d.nodes[nodeid]
 	if node == nil {
-		logger.Warnf("Event (type %v) received from unknown Node %v, discarding.", evt.Type, evt.NodeId)
-		return
+		// event from an unknown node: if it's an init event, try create a new node on the fly.
+		isAccepted := false
+		if evt.Type == EventTypeNodeInfo {
+			isAccepted = d.cbHandler.OnNewNodeDetected(nodeid)
+			if !isAccepted {
+				_ = evt.Conn.Close()
+				return
+			}
+			node = d.nodes[nodeid]
+			logger.AssertNotNil(node) // by OnNewNodeDetected() contract, simulation MUST have created the node.
+		} else {
+			logger.Warnf("Event (type %v) received from unknown Node %d, discarding.", evt.Type, evt.NodeId)
+			return
+		}
 	}
 
 	if node.conn == nil {
 		node.conn = evt.Conn // store socket connection for this node.
+	} else if node.conn != evt.Conn && evt.Conn != nil {
+		// close Conn for externally started nodes that want to claim an already-used nodeId.
+		err := evt.Conn.Close()
+		if err == nil { // ensure warn message only printed once
+			logger.Warnf("Event (type %v) received from apparent duplicate Node %d, discarding event and closing its connection.", evt.Type, evt.NodeId)
+		}
+		return
 	}
+
 	evt.Timestamp = d.CurTime // timestamp the incoming event
 
 	// TODO document this use (for alarm messages)
@@ -432,9 +466,8 @@ func (d *Dispatcher) handleRecvEvent(evt *Event) {
 		d.Counters.OtherEvents += 1
 	case EventTypeNodeDisconnected:
 		d.Counters.OtherEvents += 1
-		logger.Debugf("%s socket disconnected.", node)
-		d.setSleeping(node.Id)
-		d.alarmMgr.SetTimestamp(node.Id, Ever)
+		d.setDisconnected(node.Id)
+		d.cbHandler.OnNodeDisconnected(node.Id)
 	case EventTypeUdpToHost,
 		EventTypeIp6ToHost:
 		d.Counters.HostEvents += 1
@@ -636,16 +669,17 @@ func (d *Dispatcher) eventsReader() {
 			defer myConn.Close()
 
 			buf := make([]byte, 65536)
-			myNodeId := 0
+			myNodeId := InvalidNodeId
 
+		connLoop:
 			for {
 				n, err := myConn.Read(buf)
 
-				if errors.Is(err, io.EOF) {
-					break
+				if errors.Is(err, io.EOF) || errors.Is(err, net.ErrClosed) {
+					break connLoop
 				} else if err != nil {
 					logger.NodeLogf(myNodeId, logger.ErrorLevel, "closing socket after read error: %+v", err)
-					break
+					break connLoop
 				}
 
 				bufIdx := 0
@@ -653,14 +687,22 @@ func (d *Dispatcher) eventsReader() {
 					evt := &Event{}
 					nextEventOffset := evt.Deserialize(buf[bufIdx:n])
 					if nextEventOffset == 0 { // a complete event wasn't found.
-						logger.Panicf("Node %d - Too many events, or incorrect event data - may increase 'buf' size in Dispatcher.eventsReader()", myNodeId)
+						if myNodeId == InvalidNodeId {
+							logger.Warnf("New node did not send a correct init event EventTypeNodeInfo, closing node connection.")
+						} else {
+							logger.Warnf("Node %d sent incomplete event data, closing node connection.", myNodeId)
+						}
+						break connLoop
 					}
 					bufIdx += nextEventOffset
-					// First event received should be NodeInfo type. From this, we learn nodeId.
-					if myNodeId == 0 && evt.Type == EventTypeNodeInfo {
+					// First event received should be NodeInfo type. From this, we learn nodeId for this GoRoutine.
+					if myNodeId == InvalidNodeId && evt.Type == EventTypeNodeInfo {
 						myNodeId = evt.NodeInfoData.NodeId
-						logger.AssertTrue(myNodeId > 0)
 						logger.Debugf("Init event received from new Node %d", myNodeId)
+					}
+					if myNodeId <= InvalidNodeId {
+						logger.Warnf("New node did not send a correct init event EventTypeNodeInfo, closing node connection.")
+						break connLoop
 					}
 					evt.NodeId = myNodeId
 					evt.Conn = myConn
@@ -673,12 +715,14 @@ func (d *Dispatcher) eventsReader() {
 				}
 			}
 
-			// Once the socket is disconnected, signal one last event.
-			d.eventChan <- &Event{
-				Delay:  0,
-				Type:   EventTypeNodeDisconnected,
-				NodeId: myNodeId,
-				Conn:   nil,
+			if myNodeId > InvalidNodeId {
+				// Once the socket is disconnected, signal one last event to the Dispatcher.
+				d.eventChan <- &Event{
+					Delay:  0,
+					Type:   EventTypeNodeDisconnected,
+					NodeId: myNodeId,
+					Conn:   myConn,
+				}
 			}
 		}(conn)
 	}
@@ -899,9 +943,23 @@ func (d *Dispatcher) isDeleted(nodeid NodeId) bool {
 	return false
 }
 
+func (d *Dispatcher) hasDisconnected(nodeid NodeId) bool {
+	node := d.GetNode(nodeid)
+	logger.AssertNotNil(node)
+	return node.hasDisconnected
+}
+
 func (d *Dispatcher) setSleeping(nodeid NodeId) {
 	logger.AssertFalse(d.isDeleted(nodeid))
 	delete(d.aliveNodes, nodeid)
+}
+
+func (d *Dispatcher) setDisconnected(nodeid NodeId) {
+	logger.AssertFalse(d.isDeleted(nodeid))
+	logger.Debugf("Node %d is set to disconnected and sleeping state.", nodeid)
+	d.alarmMgr.SetTimestamp(nodeid, Ever)
+	d.setSleeping(nodeid)
+	d.GetNode(nodeid).hasDisconnected = true
 }
 
 // syncAliveNodes advances the node's time of alive nodes only to current dispatcher time.
@@ -1275,6 +1333,7 @@ func (d *Dispatcher) DeleteNode(id NodeId) {
 	}
 	d.alarmMgr.DeleteNode(id)
 	d.deletedNodes[id] = struct{}{}
+	node.exit()
 	d.energyAnalyser.DeleteNode(id)
 	d.vis.DeleteNode(id)
 	d.radioModel.DeleteNode(id)
@@ -1373,17 +1432,8 @@ func (d *Dispatcher) SetVisualizationOptions(opts VisualizationOptions) {
 }
 
 func (d *Dispatcher) NotifyCommand(nodeid NodeId) {
-	d.setAlive(nodeid)
-}
-
-// NotifyNodeFailure is called by other goroutines to notify the dispatcher that a node process has
-// failed. From failed nodes, we don't expect further messages and they can't be alive.
-func (d *Dispatcher) NotifyNodeProcessFailure(nodeid NodeId) {
-	d.eventChan <- &Event{
-		Delay:  0,
-		Type:   EventTypeNodeDisconnected,
-		NodeId: nodeid,
-		Conn:   nil,
+	if !d.hasDisconnected(nodeid) {
+		d.setAlive(nodeid)
 	}
 }
 
