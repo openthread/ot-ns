@@ -102,6 +102,7 @@ func newNode(s *Simulation, nodeid NodeId, cfg *NodeConfig, dnode *dispatcher.No
 		seedParam := fmt.Sprintf("%d", cfg.RandomSeed)
 		cmd = exec.CommandContext(context.Background(), cfg.ExecutablePath, strconv.Itoa(nodeid), s.d.GetUnixSocketName(), seedParam)
 	}
+	cmd.Env = append(cmd.Env, fmt.Sprintf("PORT_OFFSET=%d", s.cfg.Id))
 
 	node := &Node{
 		S:             s,
