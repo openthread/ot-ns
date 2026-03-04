@@ -122,6 +122,7 @@ type ExecutableConfig struct {
 	Ftd         string
 	Mtd         string
 	Br          string
+	Matter      string
 	SearchPaths []string
 }
 
@@ -140,6 +141,7 @@ var DefaultExecutableConfig ExecutableConfig = ExecutableConfig{
 	Ftd:         "ot-cli-ftd",
 	Mtd:         "ot-cli-mtd",
 	Br:          "ot-cli-ftd_br",
+	Matter:      "ot-matter-node",
 	SearchPaths: []string{".", "./ot-rfsim/ot-versions", "./build/bin"},
 }
 
@@ -240,9 +242,11 @@ func (cfg *ExecutableConfig) SetVersion(version string, defaultConfig *Executabl
 	if version == versionLatestTag { // latest node version - has no _v<version> suffix
 		cfg.Ftd = defaultConfig.Ftd
 		cfg.Mtd = defaultConfig.Mtd
+		cfg.Matter = defaultConfig.Matter
 	} else {
 		cfg.Ftd = defaultConfig.Ftd + "_" + version
 		cfg.Mtd = defaultConfig.Mtd + "_" + version
+		cfg.Matter = defaultConfig.Matter + "_" + version
 	}
 	cfg.Br = defaultConfig.Br // BR is currently not adapted to versions.
 	cfg.Version = version
@@ -278,6 +282,9 @@ func (cfg *ExecutableConfig) FindExecutable(exeName string) string {
 func (cfg *ExecutableConfig) FindExecutableBasedOnConfig(nodeCfg *NodeConfig) string {
 	if len(nodeCfg.ExecutablePath) > 0 {
 		return nodeCfg.ExecutablePath
+	}
+	if nodeCfg.Type == MATTER {
+		return cfg.FindExecutable(cfg.Matter)
 	}
 	exeName := cfg.Ftd
 	if nodeCfg.IsMtd {
