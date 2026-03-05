@@ -72,6 +72,8 @@ jobs:
         run: |
           ./script/install-deps
           ./script/run-docker-pack-web
+          echo "POST run-docker-pack-web:"
+          npm list --all --json --long
           if ! git diff --quiet; then
             echo "script/pack-web was not properly executed:"
             git diff
