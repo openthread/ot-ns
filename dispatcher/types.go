@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2024, The OTNS Authors.
+// Copyright (c) 2020-2026, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -56,11 +56,4 @@ func defaultTimeWindowStats() TimeWindowStats {
 		PhyStats:      make(map[NodeId]PhyStats),
 		statsWinStart: make(map[NodeId]PhyStats),
 	}
-}
-
-func min(t1 uint64, t2 uint64) uint64 {
-	if t1 <= t2 {
-		return t1
-	}
-	return t2
 }

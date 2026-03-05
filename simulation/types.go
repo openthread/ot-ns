@@ -40,7 +40,7 @@ var (
 )
 
 var (
-	doneOrErrorRegexp = regexp.MustCompile(`(Done|Error \d+: .*)`)
+	doneOrErrorRegexp = regexp.MustCompile(`^\s*(Done|Error \d+: .*)`)
 )
 
 type NodeUartType int
@@ -107,9 +107,9 @@ type YamlNodeConfig struct {
 }
 
 func (yc *YamlConfigFile) MinNodeId() NodeId {
-	var m NodeId = 0
+	m := InvalidNodeId
 	for _, n := range yc.NodesList {
-		if n.ID < m || m == 0 {
+		if n.ID < m || m == InvalidNodeId {
 			m = n.ID
 		}
 	}

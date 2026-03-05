@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2024, The OTNS Authors.
+// Copyright (c) 2020-2026, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -32,6 +32,7 @@ import (
 	. "github.com/openthread/ot-ns/types"
 )
 
+// Thread Active Operational Dataset defaults for the simulated network
 const (
 	DefaultChannel         = 11
 	DefaultExtPanid        = "dead00beef00cafe"
@@ -69,7 +70,7 @@ func DefaultConfig() *Config {
 		ExeConfigDefault: DefaultExecutableConfig,
 		NewNodeConfig:    DefaultNodeConfig(),
 		NewNodeScripts:   DefaultNodeScripts(),
-		Speed:            1,
+		Speed:            1.0,
 		ReadOnly:         false,
 		Realtime:         false,
 		AutoGo:           true,

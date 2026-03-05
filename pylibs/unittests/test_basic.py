@@ -1087,8 +1087,8 @@ class BasicTests(OTNSTestCase):
             ns2.add('router')
             ns2.add('router')
             self.assertEqual(3, len(ns2.nodes()))
-            ns2.go(20)
-            self.assertEqual(20.0, ns2.time)
+            ns2.go(30)
+            self.assertEqual(30.0, ns2.time)
             self.assertEqual(3, len(ns2.nodes()))
 
             # check number of partitions

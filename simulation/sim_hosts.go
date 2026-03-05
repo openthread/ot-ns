@@ -1,4 +1,4 @@
-// Copyright (c) 2024, The OTNS Authors.
+// Copyright (c) 2024-2026, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -249,7 +249,7 @@ func (sh *SimHosts) handleUdpFromSimHost(simConn *SimConn, udpData []byte) {
 			},
 		}
 		sh.sim.Dispatcher().PostEventAsync(ev)
-		logger.Debugf("sh.sim.Dispatcher().PostEventAsync(ev) FIXME %v", ev)
+		logger.Debugf("sh.sim.Dispatcher().PostEventAsync(ev) %v", ev)
 		logger.Debugf("simConn.Nat66State = %v", simConn.Nat66State)
 	}
 }
