@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright (c) 2020-2025, The OTNS Authors.
+# Copyright (c) 2020-2026, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -34,8 +34,12 @@ main()
 {
     readonly sitedir="$OTNSDIR"/web/site
     (
-        cd "$sitedir"
-        npm install
+        cd "$sitedir" || die "cannot cd to directory: $sitedir"
+        if [ -n "$CI" ] && [ "$CI" = "true" ]; then
+            npm ci
+        else
+            npm install
+        fi
         npm version
         npx webpack ./js/visualize.js -o ./static/js/visualize.js
         npx webpack ./js/energyViewer.js -o ./static/js/energyViewer.js

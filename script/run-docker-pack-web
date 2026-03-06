@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright (c) 2020-2025, The OTNS Authors.
+# Copyright (c) 2020-2026, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,10 +26,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 # Runs the pack-web script via a Docker with the right tools environment.
-# Only used during OTNS-web development. The Docker image is created via
-# /.github/workflows/docker.yml . It can also be created using script
-# `./script/docker-build environment`.
+# Only used during OTNS-web development and in CI testing. The Docker image is
+# created via /.github/workflows/docker.yml and is available via Docker Hub.
+# It can also be created locally using `./script/docker-build environment`.
 
 set -euxo pipefail
 
-docker run -t -v"$PWD":/otns openthread/otns-environment -c "./script/pack-web"
+docker run -t -e CI="${CI:-}" -v "$PWD":/otns openthread/otns-environment -c "./script/pack-web"
