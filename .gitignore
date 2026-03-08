@@ -55,6 +55,3 @@ ot-rcp
 /pylibs/dist/
 /pylibs/pyOTNS.egg-info/
 /.venv-otns
-
-# lock files
-package-lock.json
