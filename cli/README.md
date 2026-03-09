@@ -54,7 +54,7 @@ Add a node to the simulation and get the node ID.
 add <type> [x <x>] [y <y>] [rr <radio-range>] [id <node-id>] [restore] [exe <path>] [v11|v12|v13|v14]
 ```
 
-The `<type>` can be `router`, `fed`, `med`, `sed`, `ssed`, `br` (Border Router), `wifi` (for a Wi-Fi interferer node), or `matter`. Node ID can be specified using the `id` parameter, otherwise OTNS assigns the next available one. If the `restore` option is specified, the node restores its network configuration from persistent storage.
+The `<type>` can be `router`, `fed`, `med`, `sed`, `ssed`, `br` (Border Router), `rcp`, `wifi` (for a Wi-Fi interferer node), or `matter`. Node ID can be specified using the `id` parameter, otherwise OTNS assigns the next available one. If the `restore` option is specified, the node restores its network configuration from persistent storage.
 
 The (advanced) `exe` option can be used to specify a node executable for the new node; either a name only which is then located in the default search paths, or a full abs or rel pathname pointing to the executable to use.
 
@@ -254,10 +254,14 @@ The line `Executables search path` lists the paths where the executable of that 
 ftd: ot-cli-ftd
 mtd: ot-cli-mtd
 br : ot-cli-ftd_br
+rcp: ot-rcp
+host: ot-cli
 Executables search path: [".", "./ot-rfsim/ot-versions", "./build/bin"]
 Detected FTD path      : ./ot-rfsim/ot-versions/ot-cli-ftd
 Detected MTD path      : ./ot-rfsim/ot-versions/ot-cli-mtd
 Detected BR path       : ./ot-rfsim/ot-versions/ot-cli-ftd_br
+Detected RCP path      : ./ot-rfsim/ot-versions/ot-rcp
+Detected RCP Host path : ./ot-rfsim/ot-versions/ot-cli
 Done
 >
 ```
@@ -299,10 +303,10 @@ Done
 #### exe: Change OT executable for particular node type
 
 ```shell
-exe ( ftd | mtd | br ) ["<path-or-filename-of-executable>"]
+exe ( ftd | mtd | br | rcp | host) ["<path-or-filename-of-executable>"]
 ```
 
-Change the OpenThread (OT) executable, or shell script, for a particular node types as provided in the first argument (ftd, mtd, or br). The path-or-filename is provided in the second argument and will replace the current default executable for that node type. If only the first argument is given, the current executable for this node type will be listed and no change is made. If only a filename is given, without full path, the executable will be located using the search paths listed under `Executables search path`.
+Change the OpenThread (OT) executable, or shell script, for a particular node types as provided in the first argument (ftd, mtd, br, rcp or host). The path-or-filename is provided in the second argument and will replace the current default executable for that node type. If only the first argument is given, the current executable for this node type will be listed and no change is made. If only a filename is given, without full path, the executable will be located using the search paths listed under `Executables search path`.
 
 Note that the default executable is used when normally adding a node using the GUI or a command such as `add router x 200 y 200` where the executable is not explictly specified. The "exe" argument of the "add" command will however override the default executable always, for example as in the command `add router x 200 y 200 exe "./my-override-ot-cli-ftd"` .
 
@@ -317,10 +321,14 @@ Done
 ftd: ./my-ot-cli-ftd
 mtd: ot-cli-mtd
 br : ./br-script.sh
+rcp: ot-rcp
+host: ot-cli
 Executables search path: [".", "./ot-rfsim/ot-versions", "./build/bin"]
 Detected FTD path      : ./my-ot-cli-ftd
 Detected MTD path      : ./ot-rfsim/ot-versions/ot-cli-mtd
 Detected BR path       : ./br-script.sh
+Detected RCP path      : ./ot-rfsim/ot-versions/ot-rcp
+Detected RCP Host path : ./ot-rfsim/ot-versions/ot-cli
 Done
 > exe mtd
 mtd: ot-cli-mtd
@@ -348,6 +356,8 @@ go <duration> [speed <particular-speed>]
 ```
 
 Simulate for a specified time in seconds or indefinitely (duration=`ever`). It is required in `-autogo=false` mode to advance the simulation. In `-autogo=true` mode, it can be optionally used to advance the simulation quickly by the given time. For example, in a paused simulation to quickly advance 64 us, 1 ms, 10 seconds, or an hour. The optional `speed` argument can be given to do the simulation at that speed e.g. to see the animations and log output better. The `duration` argument can optionally end with a time unit suffix: `us`, `ms`, `s`, `m`, or `h`.
+
+In `-realtime` mode this command is not available and will always return an error.
 
 ```bash
 > go 1

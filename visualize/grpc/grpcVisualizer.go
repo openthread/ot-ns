@@ -27,10 +27,13 @@
 package visualize_grpc
 
 import (
+	"errors"
 	"math"
 	"net"
 	"sync"
 	"time"
+
+	"google.golang.org/grpc"
 
 	"github.com/openthread/ot-ns/energy"
 	"github.com/openthread/ot-ns/logger"
@@ -98,8 +101,9 @@ func (gv *grpcVisualizer) Run() {
 	defer gv.Unlock()
 	gv.server.stop()
 
-	if err != nil {
-		if opErr, ok := err.(*net.OpError); ok {
+	if err != nil && !errors.Is(err, grpc.ErrServerStopped) { // a clean shutdown doesn't trigger an error log msg
+		var opErr *net.OpError
+		if errors.As(err, &opErr) {
 			if opErr.Op == "listen" {
 				logger.Errorf("gRPC server could not listen on %s - port may be in use?", gv.server.address)
 				return
