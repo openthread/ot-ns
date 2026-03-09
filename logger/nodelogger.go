@@ -1,4 +1,4 @@
-// Copyright (c) 2023-2024, The OTNS Authors.
+// Copyright (c) 2023-2026, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -159,13 +159,14 @@ func (nl *NodeLogger) IsLevelVisible(level Level) bool {
 
 // LogOt logs a complete OT format log string, which includes timestamp, log level character, and
 // the log message. The right level to log is automatically determined.
-func (nl *NodeLogger) LogOt(levelAndMsg string) {
-	isOtLogLine, level := ParseOtLogLine(levelAndMsg)
-	levelAndMsg = strings.TrimSpace(levelAndMsg)
+// If alternateMarker is non-empty, it will replace the standard ": " marker of the log message.
+func (nl *NodeLogger) LogOt(levelAndMsg string, alternateMarker string) {
+	isOtLogLine, level, adaptedMsg := ParseOtLogLineAndAdaptMarker(levelAndMsg, alternateMarker)
+	adaptedMsg = strings.TrimSpace(adaptedMsg)
 	if isOtLogLine {
-		NodeLogf(nl.Id, level, levelAndMsg)
+		NodeLogf(nl.Id, level, adaptedMsg)
 	} else {
-		NodeLogf(nl.Id, InfoLevel, levelAndMsg)
+		NodeLogf(nl.Id, InfoLevel, adaptedMsg)
 	}
 }
 

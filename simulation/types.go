@@ -37,6 +37,7 @@ import (
 
 var (
 	CommandInterruptedError = fmt.Errorf("command interrupted due to simulation exit")
+	NodeExitedError         = fmt.Errorf("node process exited")
 )
 
 var (
