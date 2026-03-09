@@ -25,6 +25,7 @@ Note: this is version 2.x of OTNS. It offers additional features compared to ver
 - Reproducible simulations by selection of a seed value for all pseudo-random number generators.
 - See packets in flight: animations in the GUI with a duration scaled to the actual time duration of a packet in flight (works at low simulation speed only).
 - Support for easily adding various Thread node types (1.1, 1.2, 1.3, 1.4, 1.4 Border Router).
+- Support for starting Thread nodes externally; with automatic connection to a running simulation.
 - New graphical displays for overall node type statistics, and energy usage (beta - contribution by [Vinggui](https://github.com/Vinggui)).
 - Extended set of Python scripts for unit testing, examples, and case studies.
 - Key Performance Indicators (KPI) module that tracks counters and statistics for all nodes.
@@ -44,7 +45,7 @@ Note: this is version 2.x of OTNS. It offers additional features compared to ver
 
 # Getting started
 
-See [GUIDE](GUIDE.md) to get started with a local install of OTNS.
+See [GUIDE](GUIDE.md) to get started with a local install of OTNS. The guide also covers basic usage and has a pointer to a tutorial.
 
 See [OTNS CLI Reference](cli/README.md) for the OTNS CLI commands.
 
