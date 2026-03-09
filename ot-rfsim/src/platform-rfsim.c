@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2018-2024, The OpenThread Authors.
+ *  Copyright (c) 2018-2026, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -55,19 +55,11 @@
 
 #define VERIFY_EVENT_SIZE(X) OT_ASSERT((payloadLen >= sizeof(X)) && "received event payload too small");
 
-extern int gSockFd;
-
-uint64_t     gLastMsgId = 0;
-struct Event gLastRecvEvent;
-
-static otIp6Address unspecifiedIp6Address;
+static const otIp6Address kUnspecifiedIp6Address = {.mFields = {.m32 = {0, 0, 0, 0}}};
 
 void platformRfsimInit(void)
 {
-    if (otIp6AddressFromString("::", &unspecifiedIp6Address) != OT_ERROR_NONE)
-    {
-        platformExit(EXIT_FAILURE);
-    }
+    // No actions currently. Global structs are automatically zero-initialized.
 }
 
 void platformExit(int exitCode)
@@ -77,14 +69,11 @@ void platformExit(int exitCode)
     exit(exitCode);
 }
 
-void platformReceiveEvent(otInstance *aInstance)
+void platformReceiveEvent(struct Event *aEvent)
 {
-    struct Event   event;
-    ssize_t        rval;
-    const uint8_t *evData = event.mData;
-    otError        error;
+    ssize_t rval;
 
-    rval = recvfrom(gSockFd, (char *)&event, sizeof(struct EventHeader), 0, NULL, NULL);
+    rval = recvfrom(gSockFd, (char *)aEvent, sizeof(struct EventHeader), 0, NULL, NULL);
     if (rval < 0)
     {
         perror("recvfrom");
@@ -93,12 +82,12 @@ void platformReceiveEvent(otInstance *aInstance)
     OT_ASSERT(rval >= (ssize_t)sizeof(struct EventHeader));
 
     // read the rest of data (payload data - optional).
-    uint16_t payloadLen = event.mDataLength;
+    const uint16_t payloadLen = aEvent->mDataLength;
     if (payloadLen > 0)
     {
         OT_ASSERT(payloadLen <= OT_EVENT_DATA_MAX_SIZE);
 
-        rval = recvfrom(gSockFd, (char *)&event.mData, payloadLen, 0, NULL, NULL);
+        rval = recvfrom(gSockFd, (char *)&aEvent->mData, payloadLen, 0, NULL, NULL);
         if (rval < 0)
         {
             perror("recvfrom");
@@ -106,20 +95,22 @@ void platformReceiveEvent(otInstance *aInstance)
         }
         OT_ASSERT(rval == (ssize_t)payloadLen);
     }
+}
 
-    gLastRecvEvent = event;
-    gLastMsgId     = event.mMsgId;
+void platformHandleEvent(otInstance *aInstance, struct Event *aEvent)
+{
+    const uint8_t *evData     = aEvent->mData;
+    const uint16_t payloadLen = aEvent->mDataLength;
+    otError        error;
 
-    platformAlarmAdvanceNow(event.mDelay);
-
-    switch (event.mEvent)
+    switch (aEvent->mEvent)
     {
     case OT_SIM_EVENT_ALARM_FIRED:
         // Alarm events may be used to wake the node again when some simulated time has passed.
         break;
 
     case OT_SIM_EVENT_UART_WRITE:
-        otPlatUartReceived(event.mData, event.mDataLength);
+        otPlatUartReceived(aEvent->mData, aEvent->mDataLength);
         break;
 
     case OT_SIM_EVENT_RADIO_COMM_START:
@@ -130,7 +121,7 @@ void platformReceiveEvent(otInstance *aInstance)
     case OT_SIM_EVENT_RADIO_RX_DONE:
         VERIFY_EVENT_SIZE(struct RadioCommEventData)
         const size_t sz = sizeof(struct RadioCommEventData);
-        platformRadioRxDone(aInstance, evData + sz, event.mDataLength - sz, (struct RadioCommEventData *)evData);
+        platformRadioRxDone(aInstance, evData + sz, aEvent->mDataLength - sz, (struct RadioCommEventData *)evData);
         break;
 
     case OT_SIM_EVENT_RADIO_TX_DONE:
@@ -159,7 +150,7 @@ void platformReceiveEvent(otInstance *aInstance)
         VERIFY_EVENT_SIZE(struct MsgToHostEventData)
 #if OPENTHREAD_CONFIG_BORDER_ROUTING_ENABLE
         error = platformIp6FromHostToNode(aInstance, (struct MsgToHostEventData *)evData,
-                                          event.mData + sizeof(struct MsgToHostEventData),
+                                          aEvent->mData + sizeof(struct MsgToHostEventData),
                                           payloadLen - sizeof(struct MsgToHostEventData));
 #else
         error = OT_ERROR_NOT_IMPLEMENTED;
@@ -174,7 +165,7 @@ void platformReceiveEvent(otInstance *aInstance)
         VERIFY_EVENT_SIZE(struct MsgToHostEventData)
 #if OPENTHREAD_CONFIG_BORDER_ROUTING_ENABLE
         error = platformUdpFromHostToNode(aInstance, (struct MsgToHostEventData *)evData,
-                                          event.mData + sizeof(struct MsgToHostEventData),
+                                          aEvent->mData + sizeof(struct MsgToHostEventData),
                                           payloadLen - sizeof(struct MsgToHostEventData));
 #else
         error = OT_ERROR_NOT_IMPLEMENTED;
@@ -277,7 +268,7 @@ void handleUdpForwarding(otMessage    *aMessage,
 
     evData.mSrcPort = aSockPort;
     evData.mDstPort = aPeerPort;
-    memcpy(evData.mSrcIp6, &unspecifiedIp6Address, OT_IP6_ADDRESS_SIZE);
+    memcpy(evData.mSrcIp6, &kUnspecifiedIp6Address, OT_IP6_ADDRESS_SIZE);
     memcpy(evData.mDstIp6, aPeerAddr, OT_IP6_ADDRESS_SIZE);
     otMessageRead(aMessage, 0, buf, msgLen);
 
