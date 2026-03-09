@@ -27,6 +27,7 @@
 package simulation
 
 import (
+	"bytes"
 	"fmt"
 	"io/fs"
 	"os"
@@ -49,35 +50,37 @@ type Simulation struct {
 	Started chan struct{}
 	Exited  chan struct{}
 
-	ctx            *progctx.ProgCtx
-	stopped        bool
-	cfg            *Config
-	nodes          map[NodeId]*Node
-	d              *dispatcher.Dispatcher
-	vis            visualize.Visualizer
-	cmdRunner      CmdRunner
-	autoGo         bool
-	autoGoChange   chan bool
-	networkInfo    visualize.NetworkInfo
-	energyAnalyser *energy.EnergyAnalyser
-	nodePlacer     *NodeAutoPlacer
-	kpiMgr         *KpiManager
-	simHosts       *SimHosts
+	ctx              *progctx.ProgCtx
+	stopped          bool
+	cfg              *Config
+	nodes            map[NodeId]*Node
+	isFirstNodeAdded bool
+	d                *dispatcher.Dispatcher
+	vis              visualize.Visualizer
+	cmdRunner        CmdRunner
+	autoGo           bool
+	autoGoChange     chan bool
+	networkInfo      visualize.NetworkInfo
+	energyAnalyser   *energy.EnergyAnalyser
+	nodePlacer       *NodeAutoPlacer
+	kpiMgr           *KpiManager
+	simHosts         *SimHosts
 }
 
 func NewSimulation(ctx *progctx.ProgCtx, cfg *Config, dispatcherCfg *dispatcher.Config) (*Simulation, error) {
 	s := &Simulation{
-		Started:      make(chan struct{}),
-		Exited:       make(chan struct{}),
-		ctx:          ctx,
-		cfg:          cfg,
-		nodes:        map[NodeId]*Node{},
-		autoGo:       cfg.AutoGo || cfg.Realtime,
-		autoGoChange: make(chan bool, 1),
-		networkInfo:  visualize.DefaultNetworkInfo(),
-		nodePlacer:   NewNodeAutoPlacer(),
-		kpiMgr:       NewKpiManager(),
-		simHosts:     NewSimHosts(),
+		Started:          make(chan struct{}),
+		Exited:           make(chan struct{}),
+		ctx:              ctx,
+		cfg:              cfg,
+		nodes:            map[NodeId]*Node{},
+		isFirstNodeAdded: false,
+		autoGo:           cfg.AutoGo || cfg.Realtime,
+		autoGoChange:     make(chan bool, 1),
+		networkInfo:      visualize.DefaultNetworkInfo(),
+		nodePlacer:       NewNodeAutoPlacer(),
+		kpiMgr:           NewKpiManager(),
+		simHosts:         NewSimHosts(),
 	}
 	s.SetLogLevel(cfg.LogLevel)
 	s.networkInfo.Real = cfg.Realtime
@@ -126,6 +129,10 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 		return nil, errors.Errorf("node %d already exists", nodeid)
 	}
 
+	if cfg.IsRcp && !s.cfg.Realtime {
+		return nil, fmt.Errorf("RCP nodes can only be added in real-time simulation (use -realtime flag)")
+	}
+
 	// node position may use the nodePlacer
 	if cfg.IsAutoPlaced {
 		cfg.X, cfg.Y, cfg.Z = s.nodePlacer.NextNodePosition((cfg.IsMtd || !cfg.IsRouter) && !cfg.IsExternal && cfg.Type != WIFI)
@@ -157,9 +164,8 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 	s.nodes[nodeid] = node
 
 	// init of the sim/dispatcher nodes
-	node.uartType = nodeUartTypeVirtualTime
 	logger.AssertTrue(s.d.IsAlive(nodeid))
-	evtCnt := s.d.RecvEvents() // allow new node to connect, and to receive its startup events.
+	evtCnt := s.waitForSimulation(false) // allow new node to connect, and to receive its startup events.
 
 	if s.IsStopping() { // stop early when exiting the simulation.
 		err = CommandInterruptedError
@@ -173,7 +179,10 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 	logger.AssertFalse(s.d.IsAlive(nodeid))
 
 	// run setup and script(s) for the node
-	node.Logger.Debugf("start setup of node (version/commit, rfsim params, mode, init script)")
+	node.Logger.Debugf("start setup of node (CLI, version/commit, rfsim params, mode, init script)")
+	if err = node.setupCli(); err != nil {
+		return nil, fmt.Errorf("node CLI setup error: %w", err)
+	}
 	ver := node.GetVersion()
 	if err = node.CommandResult(); err != nil {
 		return nil, err
@@ -218,6 +227,16 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 	node.DisplayPendingLogEntries()
 	node.DisplayPendingLines()
 
+	// Simulation autogo starts with the first node that is added.
+	if err == nil {
+		if !s.isFirstNodeAdded {
+			if s.autoGo {
+				s.autoGoChange <- true // trigger 'autogo' GoRoutine
+			}
+			s.isFirstNodeAdded = true
+		}
+	}
+
 	return node, err
 }
 
@@ -232,14 +251,14 @@ func (s *Simulation) genNodeId() NodeId {
 func (s *Simulation) Run() {
 	defer logger.Debugf("simulation exit.")
 
-	if s.autoGo {
-		s.autoGoChange <- true
-	}
-
 	// run dispatcher in current thread, until exit.
 	s.ctx.WaitAdd("dispatcher", 1)
 	close(s.Started)
-	s.d.Run()
+	if s.cfg.Realtime {
+		s.d.RunRealtime()
+	} else {
+		s.d.Run()
+	}
 	s.Stop()
 	close(s.Exited)
 	s.d.Stop()
@@ -278,6 +297,7 @@ func (s *Simulation) AutoGo() bool {
 
 func (s *Simulation) SetAutoGo(isAuto bool) {
 	if s.cfg.Realtime {
+		logger.AssertTrue(isAuto) // Required in real-time mode.
 		return
 	}
 	if s.autoGo != isAuto {
@@ -298,13 +318,14 @@ func (s *Simulation) AutoGoRoutine(ctx *progctx.ProgCtx, sim *Simulation) {
 			case <-done:
 				return
 			case isAutoGo := <-sim.autoGoChange:
-				if isAutoGo {
+				// in real-time mode, loop2 is not used. We simply wait on select() until the simulation is done.
+				if isAutoGo && !sim.cfg.Realtime {
 					break loop1
 				}
 			}
 		}
 
-		// Second 'for' block executes sim.Go() until autogo is disabled.
+		// Second 'for' block executes sim.Go() time periods until autogo is disabled.
 	loop2:
 		for {
 			select {
@@ -366,26 +387,22 @@ func (s *Simulation) SetVisualizer(vis visualize.Visualizer) {
 // OnUartWrite implements the dispatcher.CallbackHandler interface.
 func (s *Simulation) OnUartWrite(nodeid NodeId, data []byte) {
 	node := s.nodes[nodeid]
-	if node == nil {
-		return
-	}
-	node.uartReader <- data
+	logger.AssertNotNil(node)
+	node.processUartData(data)
 }
 
 // OnLogWrite implements the dispatcher.CallbackHandler interface.
 func (s *Simulation) OnLogWrite(nodeid NodeId, data []byte) {
 	node := s.nodes[nodeid]
-	if node == nil {
-		return
-	}
-	node.Logger.LogOt(string(data))
+	logger.AssertNotNil(node)
+	str := string(bytes.TrimPrefix(data, OtCliPrompt))
+	node.Logger.LogOt(str)
 }
 
 // OnNextEventTime implements the dispatcher.CallbackHandler interface.
 func (s *Simulation) OnNextEventTime(nextTs uint64) {
 	// display the pending log messages of nodes. Nodes are sorted by id.
 	s.VisitNodesInOrder(func(node *Node) {
-		node.processUartData()
 		node.DisplayPendingLogEntries()
 		node.DisplayPendingLines()
 	})
@@ -394,9 +411,7 @@ func (s *Simulation) OnNextEventTime(nextTs uint64) {
 // OnRfSimEvent implements the dispatcher.CallbackHandler interface.
 func (s *Simulation) OnRfSimEvent(nodeid NodeId, evt *event.Event) {
 	node := s.nodes[nodeid]
-	if node == nil {
-		return
-	}
+	logger.AssertNotNil(node)
 
 	switch evt.Type {
 	case event.EventTypeRadioRfSimParamRsp:
@@ -409,9 +424,7 @@ func (s *Simulation) OnRfSimEvent(nodeid NodeId, evt *event.Event) {
 // OnMsgToHost implements the dispatcher.CallbackHandler interface.
 func (s *Simulation) OnMsgToHost(nodeid NodeId, evt *event.Event) {
 	node := s.nodes[nodeid]
-	if node == nil {
-		return
-	}
+	logger.AssertNotNil(node)
 
 	switch evt.Type {
 	case event.EventTypeIp6ToHost:
@@ -510,11 +523,11 @@ func (s *Simulation) DeleteNode(nodeid NodeId) error {
 		err := fmt.Errorf("node %d not found", nodeid)
 		return err
 	}
-	s.d.RecvEvents()
+	s.waitForSimulation(false)
 	delete(s.nodes, nodeid)
-	s.d.NotifyCommand(nodeid) // sets node alive: we expect a NodeExit event to come as final one in queue.
+	s.d.NotifyCommand(nodeid, true) // sets node alive: we expect a NodeExit event to come as final one in queue.
 	_ = node.exit()
-	s.d.RecvEvents()
+	s.waitForSimulation(false)
 	s.d.DeleteNode(nodeid)
 	s.kpiMgr.stopNode(nodeid)
 	return nil
@@ -545,7 +558,7 @@ func (s *Simulation) CountDown(duration time.Duration, text string) {
 
 // Go runs the simulation for duration at Dispatcher's set speed.
 func (s *Simulation) Go(duration time.Duration) <-chan error {
-	return s.d.Go(duration)
+	return s.d.GoAtSpeed(duration, dispatcher.DefaultDispatcherSpeed)
 }
 
 // GoAtSpeed stops any ongoing (previous) 'go' period and then runs simulation for duration at given speed.
@@ -553,6 +566,17 @@ func (s *Simulation) GoAtSpeed(duration time.Duration, speed float64) <-chan err
 	logger.AssertTrue(speed > 0)
 	s.d.GoCancel()
 	return s.d.GoAtSpeed(duration, speed)
+}
+
+// waitForSimulation is called to wait for the simulation to progress, receiving and handling events as
+// needed until all nodes are asleep. It returns the total number of new events received from nodes.
+// isBusyWaiting must be only true if the caller repeatedly calls this method, waiting for new events.
+func (s *Simulation) waitForSimulation(isBusyWaiting bool) int {
+	eventCount := s.Dispatcher().RecvEvents()
+	if isBusyWaiting && eventCount == 0 {
+		time.Sleep(10 * time.Millisecond)
+	}
+	return eventCount
 }
 
 func (s *Simulation) cleanTmpDir(simulationId int) error {

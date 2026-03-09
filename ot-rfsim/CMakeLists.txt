@@ -27,7 +27,7 @@
 #
 
 cmake_minimum_required(VERSION 3.10.2)
-project(ot-rfsim VERSION 2.0.0)
+project(ot-rfsim VERSION 2.1.0)
 
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_STANDARD 11)
@@ -67,6 +67,11 @@ target_compile_definitions(ot-config INTERFACE
     OPENTHREAD_PROJECT_CORE_CONFIG_FILE="openthread-core-rfsim-config.h"
     OPENTHREAD_CORE_CONFIG_PLATFORM_CHECK_FILE="openthread-core-rfsim-config-check.h"
 )
+
+option(OT_SIMULATION_VIRTUAL_TIME_UART "enable virtual time for UART" ON)
+if(OT_SIMULATION_VIRTUAL_TIME_UART)
+    target_compile_definitions(ot-config INTERFACE OPENTHREAD_SIMULATION_VIRTUAL_TIME_UART=1)
+endif()
 
 target_include_directories(ot-config INTERFACE
     ${PROJECT_SOURCE_DIR}/src
