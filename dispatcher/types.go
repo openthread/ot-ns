@@ -35,10 +35,16 @@ import (
 
 const (
 	// DefaultDispatcherSpeed is used in a speed parameter, to indicate Dispatcher's current default speed.
-	DefaultDispatcherSpeed float64 = -1.0
-	Ever                   uint64  = math.MaxUint64 / 2
-	MaxSimulateSpeed               = 1000000
-	DefaultReadTimeout             = time.Second * 5
+	DefaultDispatcherSpeed  float64 = -1.0
+	Ever                    uint64  = math.MaxUint64 / 2
+	MaxSimulateSpeed                = 1000000
+	DefaultReadTimeout              = time.Second * 5
+	MinReliableSleepTime            = time.Millisecond
+	MaxConsecutiveSleepTime         = time.Millisecond * 10
+	// RealtimeMaxMoveAheadUs is the maximum amount of time (us) the dispatcher can move ahead, when in realtime mode.
+	RealtimeMaxMoveAheadUs uint64 = 1000
+	// RealtimeMaxVizIntervalUs is the maximum amount of time (us) between visualization updates, in realtime mode.
+	RealtimeMaxVizIntervalUs uint64 = 200000
 )
 
 type TimeWindowStats struct {
