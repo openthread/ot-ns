@@ -1,4 +1,4 @@
-// Copyright (c) 2023-2024, The OTNS Authors.
+// Copyright (c) 2023-2026, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -29,7 +29,6 @@ package logger
 import (
 	"fmt"
 	"os"
-	"strings"
 	"sync"
 	"time"
 
@@ -157,15 +156,19 @@ func (nl *NodeLogger) IsLevelVisible(level Level) bool {
 	return nl.displayLevel >= level
 }
 
-// LogOt logs a complete OT format log string, which includes timestamp, log level character, and
-// the log message. The right level to log is automatically determined.
-func (nl *NodeLogger) LogOt(levelAndMsg string) {
+// LogOt logs a complete OT format log string, which includes timestamp, log level character/label,
+// and the log message. The right level to log is automatically determined based on the label.
+// If alternateMarker is true, it will replace the standard marker in the log message by an
+// alternative marker, which provides visual distinction between logging node types.
+func (nl *NodeLogger) LogOt(levelAndMsg string, alternateMarker bool) {
 	isOtLogLine, level := ParseOtLogLine(levelAndMsg)
-	levelAndMsg = strings.TrimSpace(levelAndMsg)
+	if alternateMarker {
+		levelAndMsg = setAlternativeOtLogMarker(levelAndMsg)
+	}
 	if isOtLogLine {
 		NodeLogf(nl.Id, level, levelAndMsg)
 	} else {
-		NodeLogf(nl.Id, InfoLevel, levelAndMsg)
+		NodeLogf(nl.Id, WarnLevel, levelAndMsg) // warn that the level label is missing
 	}
 }
 

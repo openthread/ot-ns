@@ -35,6 +35,7 @@ import readline
 import shutil
 import signal
 import subprocess
+import sys
 import threading
 import time
 from typing import List, Union, Optional, Tuple, Dict, Any, Collection
@@ -55,6 +56,9 @@ class OTNS(object):
     CLI_PROMPT = '> '
     CLI_USER_HINT = 'OTNS command CLI - type \'exit\' to exit, or \'help\' for command overview.'
 
+    # Log levels emitted by the OTNS Go process on stderr (zap-encoded, lowercase).
+    _OTNS_LOG_LEVELS = ('debug', 'info', 'warn', 'error', 'panic', 'fatal')
+
     def __init__(self,
                  sim_id: Optional[int] = 0,
                  otns_path: Optional[str] = None,
@@ -63,6 +67,9 @@ class OTNS(object):
         self._cli_thread = None
         self._lock_interactive_cli = threading.Lock()
         self._lock_otns_do_command = threading.Lock()
+        self._log_entries: List[Tuple[str, str]] = []
+        self._log_entries_lock = threading.Lock()
+        self._stderr_thread: Optional[threading.Thread] = None
         self.logconfig(logging.WARNING)
 
         self._otns_path = otns_path or self._detect_otns_path()
@@ -83,8 +90,64 @@ class OTNS(object):
         self._otns = subprocess.Popen([self._otns_path] + self._otns_args,
                                       bufsize=16384,
                                       stdin=subprocess.PIPE,
-                                      stdout=subprocess.PIPE)
+                                      stdout=subprocess.PIPE,
+                                      stderr=subprocess.PIPE)
         logging.info("otns process launched: %s", self._otns)
+        self._stderr_thread = threading.Thread(target=self._stderr_reader, daemon=True)
+        self._stderr_thread.start()
+
+    def _stderr_reader(self) -> None:
+        """Tees OTNS subprocess stderr to this process's stderr, and captures log
+        entries (level, message) keyed by the zap level prefix at line start."""
+        stderr_buf = getattr(sys.stderr, 'buffer', None)
+        try:
+            for raw in iter(self._otns.stderr.readline, b''):
+                if stderr_buf is not None:
+                    try:
+                        stderr_buf.write(raw)
+                        stderr_buf.flush()
+                    except Exception:
+                        pass
+                else:
+                    try:
+                        sys.stderr.write(raw.decode('utf-8', errors='replace'))
+                        sys.stderr.flush()
+                    except Exception:
+                        pass
+                line = raw.decode('utf-8', errors='replace').rstrip('\r\n')
+                parts = line.split(maxsplit=1)
+                if parts and parts[0] in self._OTNS_LOG_LEVELS:
+                    level = parts[0]
+                    message = parts[1] if len(parts) > 1 else ''
+                    with self._log_entries_lock:
+                        self._log_entries.append((level, message))
+        except Exception as e:
+            logging.debug("OTNS stderr reader exited: %s", e)
+
+    def get_log_entries(self, levels: Optional[Collection[str]] = None) -> List[Tuple[str, str]]:
+        """
+        Get captured OTNS log entries from stderr, in chronological order.
+
+        Each entry is a (level, message) tuple where 'level' is one of 'debug', 'info',
+        'warn', 'error', 'panic', 'fatal'. The 'message' is the rest of the line after
+        the level prefix (timestamp + ' - ' + log message). Multi-line content without
+        a level prefix (e.g. stack traces) is not captured.
+
+        :param levels: optional collection of level strings to include (e.g. {'warn'}).
+                       If None, returns all captured entries.
+        :return: list of (level, message) tuples.
+        """
+        with self._log_entries_lock:
+            entries = list(self._log_entries)
+        if levels is None:
+            return entries
+        selected = {lv for lv in levels}
+        return [(lv, msg) for lv, msg in entries if lv in selected]
+
+    def clear_log_entries(self) -> None:
+        """Clear the captured OTNS log entries list."""
+        with self._log_entries_lock:
+            self._log_entries.clear()
 
     def close(self) -> None:
         """
@@ -108,6 +171,8 @@ class OTNS(object):
             self._otns.__exit__(None, None, None)
         except BrokenPipeError:
             pass
+        if self._stderr_thread is not None:
+            self._stderr_thread.join(timeout=2.0)
 
     def go(self, duration: float = None, speed: float = None) -> List[str]:
         """
@@ -641,9 +706,13 @@ class OTNS(object):
         output = self._do_command(cmd)
         nodes = {}
         for line in output:
+            if not line.startswith('id='):  # for cases where node output mixes with cmd output
+                continue
             nodeinfo = {}
             for kv in line.split():
-                k, v = kv.split('=')
+                if '=' not in kv:
+                    continue
+                k, v = kv.split('=', 1)
                 if k in ('id', 'x', 'y', 'z'):
                     v = int(v)
                 elif k in ('extaddr', 'rloc16'):
