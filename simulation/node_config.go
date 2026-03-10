@@ -265,10 +265,10 @@ func isFile(exePath string) bool {
 	return false
 }
 
-// FindExecutable returns a full path to the named executable, by searching in standard
-// search paths if needed. If the given exeName is already a full path itself, it will be returned itself.
+// FindExecutable returns a full path to the named executable, by searching in standard search paths
+// if needed. If the given exeName is already a full path itself, or empty, it will be returned itself.
 func (cfg *ExecutableConfig) FindExecutable(exeName string) string {
-	if filepath.IsAbs(exeName) || exeName[0] == '.' {
+	if len(exeName) == 0 || filepath.IsAbs(exeName) || exeName[0] == '.' {
 		return exeName
 	}
 	for _, sp := range cfg.SearchPaths {

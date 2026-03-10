@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2024, The OTNS Authors.
+// Copyright (c) 2020-2026, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -90,7 +90,7 @@ func (sq *sendQueue) Add(evt *Event) {
 func (sq *sendQueue) DisableEventsForNode(nodeid NodeId) {
 	for _, evt := range sq.q {
 		if evt.NodeId == nodeid {
-			evt.NodeId = 0 // make the event invalid.
+			evt.NodeId = InvalidNodeId // make the event invalid.
 		}
 	}
 }

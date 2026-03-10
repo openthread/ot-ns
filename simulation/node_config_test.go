@@ -1,4 +1,4 @@
-// Copyright (c) 2023, The OTNS Authors.
+// Copyright (c) 2023-2026, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -36,7 +36,7 @@ func TestDetermineExecutableBasedOnConfig(t *testing.T) {
 	cfg := ExecutableConfig{
 		Ftd:         "my-ftd-fail",
 		Mtd:         "ot-cli-mtd",
-		Br:          "br-script",
+		Br:          "br-script-fail",
 		SearchPaths: []string{".", "./otrfsim/path/not/found", "../ot-rfsim/ot-versions"},
 	}
 
@@ -45,21 +45,30 @@ func TestDetermineExecutableBasedOnConfig(t *testing.T) {
 	exe := cfg.FindExecutableBasedOnConfig(&nodeCfg)
 	assert.Equal(t, "my-ftd-fail", exe)
 
-	// test assumes that ot-rfsim has been built.
+	// test assumes that ot-rfsim MTD has been built.
 	nodeCfg.IsMtd = true
 	nodeCfg.IsRouter = false
 	exe = cfg.FindExecutableBasedOnConfig(&nodeCfg)
 	assert.Equal(t, "../ot-rfsim/ot-versions/ot-cli-mtd", exe)
 
-	// test assumes that ot-rfsim has been built.
+	// test assumes that ot-rfsim MTD has been built.
 	cfg.Mtd = "ot-cli-mtd"
 	exe = cfg.FindExecutableBasedOnConfig(&nodeCfg)
 	assert.Equal(t, "../ot-rfsim/ot-versions/ot-cli-mtd", exe)
 
+	// test assumes that 'br-script-fail' does not exist. In that case, Find returns the plain name
+	// and assumes the OS path will be used later on to locate the exe.
+	nodeCfg.IsMtd = false
+	nodeCfg.IsBorderRouter = true
+	exe = cfg.FindExecutableBasedOnConfig(&nodeCfg)
+	assert.Equal(t, "br-script-fail", exe)
+
 	// Also non-executable files could be supplied. The error comes only later when adding the node type.
+	// This test assumes the source file below exists.
 	cfg.Ftd = "../simulation/node_config.go"
 	nodeCfg.IsMtd = false
 	nodeCfg.IsRouter = true
+	nodeCfg.IsBorderRouter = false
 	exe = cfg.FindExecutableBasedOnConfig(&nodeCfg)
 	assert.Equal(t, "../simulation/node_config.go", exe)
 }

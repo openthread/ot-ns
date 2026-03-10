@@ -51,39 +51,25 @@ type NodeConfig struct {
 
 // UpdateNodeConfigFromType sets NodeConfig flags correctly, based on chosen node type cfg.Type
 func (cfg *NodeConfig) UpdateNodeConfigFromType() {
+	cfg.IsRouter = false
+	cfg.IsMtd = false
+	cfg.IsBorderRouter = false
+	cfg.RxOffWhenIdle = false
+
 	switch cfg.Type {
 	case ROUTER, REED, FTD, MATTER:
 		cfg.IsRouter = true
-		cfg.IsMtd = false
-		cfg.IsBorderRouter = false
-		cfg.RxOffWhenIdle = false
-	case FED:
-		cfg.IsRouter = false
-		cfg.IsMtd = false
-		cfg.IsBorderRouter = false
-		cfg.RxOffWhenIdle = false
+	case FED, WIFI:
+		// all flags false
 	case MED, MTD:
-		cfg.IsRouter = false
 		cfg.IsMtd = true
-		cfg.IsBorderRouter = false
-		cfg.RxOffWhenIdle = false
 	case SED, SSED:
-		cfg.IsRouter = false
 		cfg.IsMtd = true
-		cfg.IsBorderRouter = false
 		cfg.RxOffWhenIdle = true
 	case BR:
 		cfg.IsRouter = true
-		cfg.IsMtd = false
 		cfg.IsBorderRouter = true
-		cfg.RxOffWhenIdle = false
-	case WIFI:
-		cfg.IsRouter = true
-		cfg.IsMtd = false
-		cfg.IsBorderRouter = false
-		cfg.RxOffWhenIdle = false
 	case EXT:
-		cfg.IsRouter = false
 		cfg.IsExternal = true
 	default:
 		panic("unknown node type cfg.Type")

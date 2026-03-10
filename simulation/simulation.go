@@ -128,7 +128,7 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 
 	// node position may use the nodePlacer
 	if cfg.IsAutoPlaced {
-		cfg.X, cfg.Y, cfg.Z = s.nodePlacer.NextNodePosition((cfg.IsMtd || !cfg.IsRouter) && !cfg.IsExternal)
+		cfg.X, cfg.Y, cfg.Z = s.nodePlacer.NextNodePosition((cfg.IsMtd || !cfg.IsRouter) && !cfg.IsExternal && cfg.Type != WIFI)
 	} else {
 		s.nodePlacer.UpdateReference(cfg.X, cfg.Y, cfg.Z)
 	}
@@ -183,7 +183,7 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 		return nil, err
 	}
 	nodeInfo := visualize.NetworkInfo{
-		Real:          s.networkInfo.Real,
+		Real:          s.cfg.Realtime,
 		Version:       ver,
 		Commit:        getCommitFromOtVersion(ver),
 		NodeId:        nodeid,
@@ -288,31 +288,32 @@ func (s *Simulation) SetAutoGo(isAuto bool) {
 
 func (s *Simulation) AutoGoRoutine(ctx *progctx.ProgCtx, sim *Simulation) {
 	defer ctx.WaitDone("autogo")
+	done := ctx.Done()
 
 	for {
-	loop2:
-		// First for block waits until autogo is enabled.
+		// First 'for' block waits until autogo is enabled.
+	loop1:
 		for {
 			select {
+			case <-done:
+				return
 			case isAutoGo := <-sim.autoGoChange:
 				if isAutoGo {
-					break loop2
+					break loop1
 				}
-			case <-ctx.Done():
-				return
 			}
 		}
 
-	loop:
-		// Second for block executes Go() until autogo is disabled.
+		// Second 'for' block executes sim.Go() until autogo is disabled.
+	loop2:
 		for {
 			select {
+			case <-done:
+				return
 			case isAutoGo := <-sim.autoGoChange:
 				if !isAutoGo {
-					break loop
+					break loop2
 				}
-			case <-ctx.Done():
-				return
 			default:
 				<-sim.Go(time.Second)
 			}
@@ -362,8 +363,7 @@ func (s *Simulation) SetVisualizer(vis visualize.Visualizer) {
 	s.vis.SetNetworkInfo(s.GetNetworkInfo())
 }
 
-// OnUartWrite notifies the simulation that a node has received some data from UART.
-// It is part of implementation of dispatcher.CallbackHandler.
+// OnUartWrite implements the dispatcher.CallbackHandler interface.
 func (s *Simulation) OnUartWrite(nodeid NodeId, data []byte) {
 	node := s.nodes[nodeid]
 	if node == nil {
@@ -372,8 +372,7 @@ func (s *Simulation) OnUartWrite(nodeid NodeId, data []byte) {
 	node.uartReader <- data
 }
 
-// OnLogWrite notifies the simulation that a node has generated a new log line/item.
-// It is part of implementation of dispatcher.CallbackHandler.
+// OnLogWrite implements the dispatcher.CallbackHandler interface.
 func (s *Simulation) OnLogWrite(nodeid NodeId, data []byte) {
 	node := s.nodes[nodeid]
 	if node == nil {
@@ -382,6 +381,7 @@ func (s *Simulation) OnLogWrite(nodeid NodeId, data []byte) {
 	node.Logger.LogOt(string(data))
 }
 
+// OnNextEventTime implements the dispatcher.CallbackHandler interface.
 func (s *Simulation) OnNextEventTime(nextTs uint64) {
 	// display the pending log messages of nodes. Nodes are sorted by id.
 	s.VisitNodesInOrder(func(node *Node) {
@@ -391,6 +391,7 @@ func (s *Simulation) OnNextEventTime(nextTs uint64) {
 	})
 }
 
+// OnRfSimEvent implements the dispatcher.CallbackHandler interface.
 func (s *Simulation) OnRfSimEvent(nodeid NodeId, evt *event.Event) {
 	node := s.nodes[nodeid]
 	if node == nil {
@@ -401,10 +402,11 @@ func (s *Simulation) OnRfSimEvent(nodeid NodeId, evt *event.Event) {
 	case event.EventTypeRadioRfSimParamRsp:
 		node.pendingEvents <- evt
 	default:
-		break
+		break // any other event type is not handled here.
 	}
 }
 
+// OnMsgToHost implements the dispatcher.CallbackHandler interface.
 func (s *Simulation) OnMsgToHost(nodeid NodeId, evt *event.Event) {
 	node := s.nodes[nodeid]
 	if node == nil {
