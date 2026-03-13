@@ -31,19 +31,22 @@
 #include <openthread/platform/infra_if.h>
 
 #if OPENTHREAD_CONFIG_BORDER_ROUTING_ENABLE
-bool otPlatInfraIfHasAddress(uint32_t aInfraIfIndex, const otIp6Address *aAddress)
+bool otPlatInfraIfHasAddress(otInstance *aInstance, uint32_t aInfraIfIndex, const otIp6Address *aAddress)
 {
+    OT_UNUSED_VARIABLE(aInstance);
     OT_UNUSED_VARIABLE(aInfraIfIndex);
     OT_UNUSED_VARIABLE(aAddress);
 
     return false;
 }
 
-otError otPlatInfraIfSendIcmp6Nd(uint32_t            aInfraIfIndex,
+otError otPlatInfraIfSendIcmp6Nd(otInstance         *aInstance,
+                                 uint32_t            aInfraIfIndex,
                                  const otIp6Address *aDestAddress,
                                  const uint8_t      *aBuffer,
                                  uint16_t            aBufferLength)
 {
+    OT_UNUSED_VARIABLE(aInstance);
     OT_UNUSED_VARIABLE(aInfraIfIndex);
     OT_UNUSED_VARIABLE(aDestAddress);
     OT_UNUSED_VARIABLE(aBuffer);
@@ -52,8 +55,9 @@ otError otPlatInfraIfSendIcmp6Nd(uint32_t            aInfraIfIndex,
     return OT_ERROR_NONE;
 }
 
-otError otPlatInfraIfDiscoverNat64Prefix(uint32_t aInfraIfIndex)
+otError otPlatInfraIfDiscoverNat64Prefix(otInstance *aInstance, uint32_t aInfraIfIndex)
 {
+    OT_UNUSED_VARIABLE(aInstance);
     OT_UNUSED_VARIABLE(aInfraIfIndex);
 
     return OT_ERROR_NONE;
