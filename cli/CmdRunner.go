@@ -331,6 +331,12 @@ func (rt *CmdRunner) execute(cmd *Command, output io.Writer) {
 }
 
 func (rt *CmdRunner) executeGo(cc *CommandContext, cmd *GoCmd) {
+	// verify that we're not in realtime mode.
+	if rt.sim.GetConfig().Realtime {
+		cc.errorf("cannot use 'go' commands in -realtime mode")
+		return
+	}
+
 	// determine duration and desired speed of the Go simulation period.
 	timeDurToGo, err := time.ParseDuration(cmd.Time)
 	if cmd.Ever == nil && err != nil {
@@ -382,6 +388,10 @@ func (rt *CmdRunner) executeAutoGo(cc *CommandContext, cmd *AutoGoCmd) {
 			}
 			cc.outputf("%d\n", autoGoInt)
 		} else {
+			if rt.sim.GetConfig().Realtime && cmd.Val.Yes == nil {
+				cc.errorf("cannot set 'autogo' to false in -realtime mode")
+				return
+			}
 			sim.SetAutoGo(cmd.Val.Yes != nil)
 		}
 	})
@@ -1288,6 +1298,16 @@ func (rt *CmdRunner) executeExe(cc *CommandContext, cmd *ExeCmd) {
 					ec.Br = cmd.Path
 				}
 				cc.outputf("br : %s\n", ec.Br)
+			case RCP:
+				if isSetPath {
+					ec.Rcp = cmd.Path
+				}
+				cc.outputf("rcp: %s\n", ec.Rcp)
+			case HOST:
+				if isSetPath {
+					ec.RcpHost = cmd.Path
+				}
+				cc.outputf("host: %s\n", ec.RcpHost)
 			}
 			return
 		} else if isSetDefault && !isSetPath && !isSetNodeType && !isSetVersion {
@@ -1307,11 +1327,15 @@ func (rt *CmdRunner) executeExe(cc *CommandContext, cmd *ExeCmd) {
 		cc.outputf("mtd: %s\n", ec.Mtd)
 		cc.outputf("br : %s\n", ec.Br)
 		cc.outputf("matter: %s\n", ec.Matter)
+		cc.outputf("rcp: %s\n", ec.Rcp)
+		cc.outputf("host: %s\n", ec.RcpHost)
 		cc.outputf("Executables search path: %s\n", ec.SearchPathsString())
 		cc.outputf("Detected FTD path      : %s\n", ec.FindExecutable(ec.Ftd))
 		cc.outputf("Detected MTD path      : %s\n", ec.FindExecutable(ec.Mtd))
 		cc.outputf("Detected BR path       : %s\n", ec.FindExecutable(ec.Br))
 		cc.outputf("Detected Matter path   : %s\n", ec.FindExecutable(ec.Matter))
+		cc.outputf("Detected RCP path      : %s\n", ec.FindExecutable(ec.Rcp))
+		cc.outputf("Detected RCP Host path : %s\n", ec.FindExecutable(ec.RcpHost))
 	})
 }
 
