@@ -18,4 +18,6 @@ Versions are listed below. With each version tag, the directory is listed in whi
 
 - br-ccm - `openthread-ccm` - (In development) A Thread CCM Border Router.
 
-Build scripts: the build scripts to build all of the versions are `../script/build_<version-tag>`. Each of these specific build scripts invokes the general `build` script. The `../script/build_all` builds all commonly used versions.
+Build scripts: the build scripts to build all of the versions are `./script/build_<version-tag>`, which are invoked from the `./ot-rfsim` directory. Each of these specific build scripts invokes the general `build` script. The `./script/build_all` builds all commonly used versions.
+
+Note: all build scripts copy the resulting executables to the `./ot-rfsim/ot-versions` directory. Before OTNS will use these executables, they must be copied to the `~/.local/share/otns/bin` directory. This is done by the installation script `./script/install-nodes` which is invoked from the main OTNS repo directory.
