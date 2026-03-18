@@ -150,9 +150,8 @@ func (node *Node) String() string {
 	return GetNodeName(node.Id)
 }
 
-// SendToUART sends any data to virtual time UART of the node.
-func (node *Node) SendToUART(data []byte) error {
-	var err error
+// SendToVirtualUART sends any data to the virtual-time UART of the node.
+func (node *Node) SendToVirtualUART(data []byte) error {
 	evt := &Event{
 		Timestamp: node.D.CurTime,
 		Type:      EventTypeUartWrite,
@@ -162,10 +161,7 @@ func (node *Node) SendToUART(data []byte) error {
 
 	node.logger.Tracef("UART-write: %s", data)
 	node.sendEvent(evt)
-	if node.err != nil {
-		err = node.err
-	}
-	return err
+	return node.err
 }
 
 func (node *Node) SendRfSimEvent(writeValue bool, param RfSimParam, value RfSimParamValue) error {
@@ -220,11 +216,14 @@ func (node *Node) sendEvent(evt *Event) {
 	}
 
 	if err, wasSocketClosed := node.sendRawData(evt.Serialize()); err != nil {
+		socketClosedMsg := ""
 		if wasSocketClosed {
-			node.DisconnectSocket() // just in case peer closed it, also close locally.
+			socketClosedMsg = " (socket was closed)"
 		}
+		err = fmt.Errorf("send event %v failed%s: %w", evt, socketClosedMsg, err)
 		node.logger.Error(err)
 		node.err = err
+		node.DisconnectSocket()
 	} else {
 		node.D.setAlive(node.Id)
 	}
