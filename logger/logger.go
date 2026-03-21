@@ -1,4 +1,4 @@
-// Copyright (c) 2023-2024, The OTNS Authors.
+// Copyright (c) 2023-2026, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -29,6 +29,7 @@ package logger
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"runtime/debug"
 	"time"
@@ -36,6 +37,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"golang.org/x/term"
 
 	. "github.com/openthread/ot-ns/types"
 )
@@ -69,52 +71,104 @@ type StdoutCallback interface {
 	OnStdout()
 }
 
+const (
+	dateTimeFormat = "2006-01-02 15:04:05.000"
+)
+
 var (
-	cfg             zap.Config
-	zaplogger       *zap.Logger
-	currentLevel    Level
-	isLogToTerminal bool
-	cbStdout        StdoutCallback
-	zapLevels       = []zapcore.Level{zapcore.FatalLevel + 1, zapcore.FatalLevel, zapcore.PanicLevel,
+	cfg               zap.Config
+	zaplogger         *zap.Logger
+	currentLevel      Level          = DefaultLevel
+	isLogToTerminal                  = true
+	cbStdout          StdoutCallback = nil
+	logFileHandle     *os.File       = nil
+	logPath                          = ""
+	logFileWriterInst                = &logFileWriter{}
+	zapLevels                        = []zapcore.Level{zapcore.FatalLevel + 1, zapcore.FatalLevel, zapcore.PanicLevel,
 		zapcore.ErrorLevel, zapcore.WarnLevel, zapcore.InfoLevel, zapcore.InfoLevel, zapcore.DebugLevel,
 		zapcore.DebugLevel, zapcore.DebugLevel}
 )
 
 func init() {
-	o, _ := os.Stdout.Stat()
-	if (o.Mode() & os.ModeCharDevice) == os.ModeCharDevice {
-		isLogToTerminal = true
-	}
-
-	var err error
 	cfgJson := []byte(`{
-		"level": "debug",
-	"outputPaths": ["stderr"],
-	"errorOutputPaths": ["stderr"],
-	"encoding": "console",
-		"encoderConfig": {
-		"messageKey": "message",
-			"levelKey": "level",
-			"levelEncoder": "lowercase"
-	}
-}`)
-	currentLevel = DefaultLevel
+        "level": "debug",
+        "outputPaths": ["stderr"],
+        "errorOutputPaths": ["stderr"],
+        "encoding": "console",
+        "encoderConfig": {
+            "messageKey": "message",
+            "levelKey": "level",
+            "levelEncoder": "lowercase",
+            "timeKey": "timestamp",
+			"timeEncoder": "iso8601"
+        }
+    }`)
 
-	if err = json.Unmarshal(cfgJson, &cfg); err != nil {
+	if err := json.Unmarshal(cfgJson, &cfg); err != nil {
 		panic(err)
 	}
-	cfg.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+
+	cfg.EncoderConfig.EncodeTime = func(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
+		enc.AppendString(t.Format(dateTimeFormat))
+	}
+
+	rebuildLoggerFromCfg()
+}
+
+func Init(logToStdout bool, logToFile bool, logFileName string, simId int) {
+	var err error
+	logPath = logFileName
+
+	if logToFile {
+		// Open the log file here (not inside Zap) so we can store the file handle in our package.
+		// os.O_APPEND is used to enable multiple goroutines to write to the same handle.
+		// os.O_TRUNC ensures any prior log file from a previous run is overwritten cleanly.
+		logFileHandle, err = os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+		if err != nil {
+			Errorf("Error: failed to open log file: %v\n", err)
+		} else {
+			header := fmt.Sprintf("#\n# OTNS log for sim-ID %d created %s\n#\n", simId,
+				time.Now().Format(time.RFC3339))
+			_, err = logFileHandle.WriteString(header)
+			if err != nil {
+				Errorf("Error: failed to write log file header: %v\n", err)
+				_ = logFileHandle.Close()
+				logFileHandle = nil
+			}
+		}
+	}
+
+	isLogToTerminal = logToStdout && term.IsTerminal(int(os.Stdout.Fd()))
+
 	rebuildLoggerFromCfg()
 }
 
 // SetLevel sets the log level
 func SetLevel(lv Level) {
-	currentLevel = lv
+	if currentLevel != lv {
+		currentLevel = lv
+		Println(fmt.Sprintf("%s         Log level changed to %s", time.Now().Format(dateTimeFormat), GetLevelString(lv)), false, true)
+	}
 }
 
 // GetLevel get the current log level
 func GetLevel() Level {
 	return currentLevel
+}
+
+// GetLogWriter returns an io.Writer that writes directly to the log file, or to /dev/null in case
+// there is no log file active.
+func GetLogWriter() io.Writer {
+	return logFileWriterInst
+}
+
+type logFileWriter struct{}
+
+func (w *logFileWriter) Write(p []byte) (n int, err error) {
+	if logFileHandle != nil {
+		return logFileHandle.Write(p)
+	}
+	return len(p), nil
 }
 
 // SetStdoutCallback sets a callback, that the logger will call when new log content was written to stdout/stderr.
@@ -128,22 +182,29 @@ func TraceError(format string, args ...interface{}) {
 	Errorf(format, args...)
 }
 
-// SetOutput sets the output writer
-// e.g. logger.SetOutput([]string{"stderr", "otns.log"}) // for @DEBUG: generate a log output file.
-func SetOutput(outputs []string) {
-	cfg.OutputPaths = outputs
-	rebuildLoggerFromCfg()
-}
-
 func rebuildLoggerFromCfg() {
-	if newLogger, err := cfg.Build(); err == nil {
-		if zaplogger != nil {
-			_ = zaplogger.Sync()
-		}
-		zaplogger = newLogger
-	} else {
-		panic(err)
+	if zaplogger != nil {
+		_ = zaplogger.Sync()
 	}
+
+	encoder := zapcore.NewConsoleEncoder(cfg.EncoderConfig)
+	// Accept all levels — Go-level checks in Logf/logAlways gate what actually reaches zap.
+	allLevels := zap.LevelEnablerFunc(func(zapcore.Level) bool { return true })
+
+	var core zapcore.Core
+	switch {
+	case logFileHandle != nil && isLogToTerminal:
+		core = zapcore.NewTee(
+			zapcore.NewCore(encoder, zapcore.AddSync(os.Stderr), allLevels),
+			zapcore.NewCore(encoder, zapcore.AddSync(logFileHandle), allLevels),
+		)
+	case logFileHandle != nil:
+		core = zapcore.NewCore(encoder, zapcore.AddSync(logFileHandle), allLevels)
+	default:
+		core = zapcore.NewCore(encoder, zapcore.AddSync(os.Stderr), allLevels)
+	}
+
+	zaplogger = zap.New(core)
 }
 
 // getMessage formats a string efficiently with Sprint, Sprintf, or neither.
@@ -180,33 +241,36 @@ func Logf(level Level, format string, args []interface{}) {
 	if isLogToTerminal {
 		_, _ = fmt.Fprint(os.Stdout, "\033[2K\r") // ANSI sequence to clear the CLI line
 	}
-	timeStr := time.Now().Format("2006-01-02 15:04:05.000") + " - "
-	zaplogger.Log(zapLevels[level-MinLevel], timeStr+getMessage(format, args))
+	zaplogger.Log(zapLevels[level-MinLevel], getMessage(format, args))
 	if isLogToTerminal && cbStdout != nil {
 		cbStdout.OnStdout()
 	}
 }
 
-// logAlways is a helper func that doesn't check level prior to logging to zaplogger.
+// logAlways is a helper func that doesn't check level and always logs to zaplogger.
 func logAlways(level Level, msg string) {
 	if isLogToTerminal {
 		_, _ = fmt.Fprint(os.Stdout, "\033[2K\r") // ANSI sequence to clear the CLI line
 	}
-	timeStr := time.Now().Format("2006-01-02 15:04:05.000") + " - "
-	zaplogger.Log(zapLevels[level-MinLevel], timeStr+msg)
+	zaplogger.Log(zapLevels[level-MinLevel], msg)
 	if isLogToTerminal && cbStdout != nil {
 		cbStdout.OnStdout()
 	}
 }
 
-// Println prints a message for the user at the current console/CLI, to stdout, without logging fields.
-func Println(msg string) {
-	if isLogToTerminal {
-		_, _ = fmt.Fprint(os.Stdout, "\033[2K\r") // ANSI sequence to clear the CLI line
+// Println prints a message to console and/or log file, without using any log line formatting.
+func Println(msg string, toConsole bool, toLogFile bool) {
+	if toConsole {
+		if isLogToTerminal {
+			_, _ = fmt.Fprint(os.Stdout, "\033[2K\r") // ANSI sequence to clear the CLI line
+		}
+		_, _ = fmt.Fprintln(os.Stdout, msg)
+		if isLogToTerminal && cbStdout != nil {
+			cbStdout.OnStdout()
+		}
 	}
-	_, _ = fmt.Fprint(os.Stdout, msg+"\n")
-	if isLogToTerminal && cbStdout != nil {
-		cbStdout.OnStdout()
+	if toLogFile && logFileHandle != nil {
+		_, _ = logFileHandle.WriteString(msg + "\n")
 	}
 }
 

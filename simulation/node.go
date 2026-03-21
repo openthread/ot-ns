@@ -89,7 +89,7 @@ func newNode(s *Simulation, nodeid NodeId, cfg *NodeConfig, dnode *dispatcher.No
 
 	if !cfg.Restore && !cfg.IsExternal {
 		flashFile := fmt.Sprintf("%s/%d_%d.flash", s.cfg.OutputDir, s.cfg.Id, nodeid)
-		if err = os.RemoveAll(flashFile); err != nil {
+		if err = os.Remove(flashFile); err != nil && !os.IsNotExist(err) {
 			err = fmt.Errorf("remove flash file %s failed: %w", flashFile, err)
 			return nil, err
 		}
@@ -111,7 +111,10 @@ func newNode(s *Simulation, nodeid NodeId, cfg *NodeConfig, dnode *dispatcher.No
 		seedParam := fmt.Sprintf("%d", cfg.RandomSeed)
 		cmd = exec.CommandContext(context.Background(), cfg.ExecutablePath, strconv.Itoa(nodeid), s.d.GetUnixSocketName(), seedParam)
 	}
-	cmd.Env = append(os.Environ(), fmt.Sprintf("%s=%d", OtSimulationIdEnv, s.cfg.Id))
+	cmd.Env = append(os.Environ(),
+		fmt.Sprintf("%s=%d", OtSimulationIdEnv, s.cfg.Id),
+		fmt.Sprintf("%s=%s", OtDataPathEnv, s.cfg.OutputDir),
+	)
 
 	node := &Node{
 		S:             s,
@@ -128,7 +131,7 @@ func newNode(s *Simulation, nodeid NodeId, cfg *NodeConfig, dnode *dispatcher.No
 		sendGroupIds:  make(map[int]struct{}),
 	}
 
-	node.Logger.SetFileLevel(s.cfg.LogFileLevel)
+	node.Logger.SetFileLevel(s.cfg.LogNodeLevel)
 	node.Logger.Debugf("Node config: type=%s IsMtd=%t IsRouter=%t IsBR=%t RxOffWhenIdle=%t", cfg.Type, cfg.IsMtd,
 		cfg.IsRouter, cfg.IsBorderRouter, cfg.RxOffWhenIdle)
 	node.Logger.Debugf("  exe cmd : %v", cmd)
@@ -947,7 +950,7 @@ loop:
 			if len(prefix) == 0 && node.S.cmdRunner.GetNodeContext() != node.Id {
 				prefix = node.String() // lazy init of node-specific prefix
 			}
-			logger.Println(prefix + line)
+			logger.Println(prefix+line, true, true)
 		default:
 			break loop
 		}

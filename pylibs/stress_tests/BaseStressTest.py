@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Copyright (c) 2020-2025, The OTNS Authors.
+# Copyright (c) 2020-2026, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -73,7 +73,7 @@ class BaseStressTest(object, metaclass=StressTestMetaclass):
 
     def __init__(self, name, headers, web=True, raw=False, rand_seed=None):
         self.name = name
-        self._otns_args = ['-log', 'info', '-logfile', 'none']  # change to ['-log', 'debug'] for more messages
+        self._otns_args = ['-log', 'info', '-log-node', 'none']  # change to ['-log', 'debug'] for more messages
 
         if raw:
             self._otns_args.append('-ot-script')

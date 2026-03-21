@@ -1,4 +1,4 @@
-// Copyright (c) 2022-2024, The OTNS Authors.
+// Copyright (c) 2022-2026, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -146,7 +146,7 @@ func (e *EnergyAnalyser) SaveEnergyDataToFile(name string, timestamp uint64) {
 
 func (e *EnergyAnalyser) writeEnergyByNodes(fileNodes *os.File, timestamp uint64) {
 	fmt.Fprintf(fileNodes, "Duration of the simulated network (in milliseconds): %d\n", timestamp/1000)
-	fmt.Fprintf(fileNodes, "ID\tDisabled (mJ)\tIdle (mJ)\tTransmiting (mJ)\tReceiving (mJ)\n")
+	fmt.Fprintln(fileNodes, "ID\tDisabled (mJ)\tIdle (mJ)\tTransmiting (mJ)\tReceiving (mJ)")
 
 	sortedNodes := make([]int, 0, len(e.nodes))
 	for id := range e.nodes {
@@ -168,7 +168,7 @@ func (e *EnergyAnalyser) writeEnergyByNodes(fileNodes *os.File, timestamp uint64
 
 func (e *EnergyAnalyser) writeNetworkEnergy(fileNetwork *os.File, timestamp uint64) {
 	fmt.Fprintf(fileNetwork, "Duration of the simulated network (in milliseconds): %d\n", timestamp/1000)
-	fmt.Fprintf(fileNetwork, "Time (ms)\tDisabled (mJ)\tIdle (mJ)\tTransmiting (mJ)\tReceiving (mJ)\n")
+	fmt.Fprintln(fileNetwork, "Time (ms)\tDisabled (mJ)\tIdle (mJ)\tTransmiting (mJ)\tReceiving (mJ)")
 	for _, snapshot := range e.networkHistory {
 		fmt.Fprintf(fileNetwork, "%d\t%f\t%f\t%f\t%f\n",
 			snapshot.Timestamp/1000,

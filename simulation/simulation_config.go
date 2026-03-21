@@ -59,7 +59,7 @@ type Config struct {
 	Id               int
 	Channel          ChannelId
 	LogLevel         logger.Level
-	LogFileLevel     logger.Level
+	LogNodeLevel     logger.Level
 	RandomSeed       prng.RandomSeed
 	OutputDir        string
 }
@@ -81,8 +81,8 @@ func DefaultConfig() *Config {
 		Id:               0,
 		Channel:          DefaultChannel,
 		LogLevel:         logger.WarnLevel,
-		LogFileLevel:     logger.DebugLevel,
+		LogNodeLevel:     logger.DebugLevel,
 		RandomSeed:       0,
-		OutputDir:        "tmp",
+		OutputDir:        "",
 	}
 }
