@@ -57,6 +57,7 @@ const (
 	ROUTER = "router"
 	REED   = "reed"
 	BR     = "br"
+	OTBR   = "otbr" // OpenThread Border Router (realtime)
 	MTD    = "mtd"
 	FTD    = "ftd"
 	WIFI   = "wifi"   // Wi-Fi interferer node

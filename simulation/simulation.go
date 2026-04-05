@@ -387,7 +387,15 @@ func (s *Simulation) SetVisualizer(vis visualize.Visualizer) {
 // OnUartWrite implements the dispatcher.CallbackHandler interface.
 func (s *Simulation) OnUartWrite(nodeid NodeId, data []byte) {
 	node := s.nodes[nodeid]
-	logger.AssertNotNil(node)
+
+	// The ot-ctl terminal of an OTBR in real-time mode sends a prompt after the OTBR is deleted.
+	if s.cfg.Realtime {
+		if node == nil {
+			return // Ignore this prompt line.
+		}
+	} else {
+		logger.AssertNotNil(node)
+	}
 	node.processUartData(data)
 }
 

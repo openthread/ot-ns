@@ -262,6 +262,7 @@ export default class PixiVisualizer extends VObject {
             "add": true,
             "del": true,
             "radio": true,
+            "otbr": this.real,
         })
     }
 

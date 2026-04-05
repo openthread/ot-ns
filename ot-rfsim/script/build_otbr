@@ -1,0 +1,75 @@
+#!/bin/bash
+#
+#  Copyright (c) 2023-2026, The OpenThread Authors.
+#  All rights reserved.
+#
+#  Redistribution and use in source and binary forms, with or without
+#  modification, are permitted provided that the following conditions are met:
+#  1. Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#  2. Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in the
+#     documentation and/or other materials provided with the distribution.
+#  3. Neither the name of the copyright holder nor the
+#     names of its contributors may be used to endorse or promote products
+#     derived from this software without specific prior written permission.
+#
+#  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+#  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+#  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+#  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+#  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+#  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+#  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+#  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+#  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+#  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+#  POSSIBILITY OF SUCH DAMAGE.
+
+# Build script to build an OTBR, to use in OTNS realtime mode.
+# It requires a manual setup of the 'ot-br-posix' repository in the same directory where
+# the 'ot-ns' repo is checked out.
+
+set -euxo pipefail
+
+# OpenThread Border Router (OTBR) options.
+OTBR_OPTIONS=(
+        "-DOT_THREAD_VERSION=1.4"
+        "-DOT_REFERENCE_DEVICE=OFF"
+        "-DOT_LOG_OUTPUT=PLATFORM_DEFINED"
+        "-DOT_VENDOR_SW_VERSION=2.0.0"
+        "-DOT_OTNS=ON"
+        "-DOT_FULL_LOGS=ON"
+        "-DOT_LOG_LEVEL=DEBG"
+        "-DOTBR_VENDOR_NAME=OpenThread.io"
+        "-DOTBR_PRODUCT_NAME=RFSIM-OTBR-v1.4"
+        "-DOTBR_DBUS=ON"
+        "-DOTBR_FEATURE_FLAGS=ON"
+        "-DOTBR_TELEMETRY_DATA_API=ON"
+        "-DOTBR_WEB=ON"
+        "-DOTBR_UNSECURE_JOIN=ON"
+        "-DOTBR_LINK_METRICS_TELEMETRY=ON"
+)
+readonly OTBR_OPTIONS
+
+main()
+{
+    local options=()
+    options+=("${OTBR_OPTIONS[@]}" "$@")
+
+    (
+      cd ../../ot-br-posix
+      ./script/cmake-build "${options[@]}"
+    )
+
+    echo "Build of 'otbr-agent' done."
+    read -rp "Copy otbr-agent to /usr/local/sbin for use by OTNS? [y/N] " answer || true
+    if [[ "${answer}" == [Yy] ]]; then
+        sudo cp ../../ot-br-posix/build/otbr/src/agent/otbr-agent /usr/local/sbin
+        echo "Copied otbr-agent to /usr/local/sbin"
+    else
+        echo "Skipped. To copy manually: sudo cp ../../ot-br-posix/build/otbr/src/agent/otbr-agent /usr/local/sbin"
+    fi
+}
+
+main "$@"

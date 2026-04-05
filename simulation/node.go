@@ -39,6 +39,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 	"syscall"
@@ -117,19 +118,26 @@ func newNode(s *Simulation, nodeid NodeId, cfg *NodeConfig, dnode *dispatcher.No
 			return nil, fmt.Errorf("target RCP file '%s' is not executable", cfg.ExecutablePath)
 		}
 		if cfg.RandomSeed != 0 {
-			return nil, fmt.Errorf("random seed != 0 not supported for RCP (got %d)", cfg.RandomSeed)
+			return nil, fmt.Errorf("random seed != 0 not supported for RCP/OTBR (got %d)", cfg.RandomSeed)
 		}
 		// The executable and args formed here are for the Posix host process that will fork an RCP.
 		exePath = cfg.HostExePath
-		// Flag -v to send OT log messages also to stderr (and not only syslog)
-		// Flag -d 5 to enable all levels of log messages to be captured in the node's log file.
-		args = append(args, "-d", "5")
+
+		if !cfg.IsBorderRouter {
+			// Flag -d 5 to enable all levels of log messages to be captured in the node's log file.
+			args = append(args, "-d", "5")
+		} else {
+			args = append(args, strconv.Itoa(nodeid))
+			args = append(args, cfg.NetIfName)
+		}
+
 		// Provide the args: node-id, socket name and random seed, through the
 		// SPINEL URL's forkpty-arg query parameter, that can be repeated.
 		// TODO: change to url.URL url.Values query builder, but only after ot-cli accepts percent-encoded URLs.
 		spinelUrl := fmt.Sprintf("spinel+hdlc+forkpty://%s?forkpty-arg=%d&forkpty-arg=%s",
 			cfg.ExecutablePath, nodeid, s.d.GetUnixSocketName())
 		args = append(args, spinelUrl)
+
 	} else if cfg.Type == MATTER {
 		args = append(args, fmt.Sprintf("--thread-args=%d", nodeid))
 		args = append(args, fmt.Sprintf("--thread-args=%s", s.d.GetUnixSocketName()))
@@ -817,22 +825,43 @@ func (node *Node) onStart() {
 	}
 }
 
+// lineReaderStdErr reads the StdErr of any OT nodes and turns each line into a log event.
+// For RCP/OTBR, OTNS status push lines will also be detected.
 func (node *Node) lineReaderStdErr(reader io.Reader) {
-	scanner := bufio.NewScanner(reader) // no filter applied.
+	scanner := bufio.NewScanner(reader)
 	scanner.Split(bufio.ScanLines)
 
 	for scanner.Scan() {
 		line := scanner.Text()
-		errProc := fmt.Errorf("StdErr: %s", line)
-		node.Logger.Error(errProc)
+
+		if node.cfg.IsRcp {
+			if isStatusPush, status := logger.ParseOtnsStatusPush(line); isStatusPush {
+				ev := &event.Event{
+					Delay:  0,
+					Type:   event.EventTypeStatusPush,
+					Data:   []byte(status),
+					NodeId: node.Id,
+				}
+				node.S.Dispatcher().PostEventAsync(ev)
+			}
+		}
+
+		ev := &event.Event{
+			Delay:  0,
+			Type:   event.EventTypeLogWrite,
+			Data:   []byte(line),
+			NodeId: node.Id,
+		}
+
+		node.S.Dispatcher().PostEventAsync(ev)
 	}
 	// if the process exited, we trigger the socket's disconnection.
 	node.DNode.DisconnectSocket()
 }
 
-// lineReaderStdOut is a goroutine to read stdout lines from a Posix host CLI process and turn these into
-// one of 1) UART-write event, 2) Log-write event, or 3) Status-push event + log-write event, depending
-// on line format.
+// lineReaderStdOut is a goroutine to read stdout lines from a Posix host CLI process (i.e. for RCP nodes
+// only) and turn these into one of 1) UART-write event, 2) Log-write event, or 3) Status-push event +
+// log-write event, depending on line format.
 func (node *Node) lineReaderStdOut(reader io.Reader) {
 	logger.AssertTrue(node.cfg.IsRcp)
 	scanner := bufio.NewScanner(reader)
@@ -961,8 +990,14 @@ func (node *Node) isLineMatch(line string, _expectedLine interface{}) bool {
 // first-time CLI command usage.
 func (node *Node) setupCli() error {
 	var testCmdOutput string
+	var expectedTestCmdOutput []string
+
 	testCmd := "ifconfig"
-	expectedTestCmdOutput := "down"
+	if node.cfg.IsRcp && node.cfg.IsBorderRouter { // OTBR sets the interface 'up' by default
+		expectedTestCmdOutput = []string{"down", "up"}
+	} else {
+		expectedTestCmdOutput = []string{"down"}
+	}
 
 	// Sending initial '\n' is required for MacOS terminal setup for the real-time UART. It will trigger
 	// the CLI to write the prompt '> ' as output without a newline character. The prompt gets filtered out by
@@ -993,8 +1028,8 @@ func (node *Node) setupCli() error {
 		return fmt.Errorf("received unexpected (longer) node output: %v", outputLines)
 	}
 
-	if testCmdOutput != expectedTestCmdOutput {
-		return fmt.Errorf("node did not provide expected output for '%s' ('%s'), but: '%s'", testCmd, expectedTestCmdOutput, testCmdOutput)
+	if !slices.Contains(expectedTestCmdOutput, testCmdOutput) {
+		return fmt.Errorf("node did not provide expected output for '%s' (%v), but: '%s'", testCmd, expectedTestCmdOutput, testCmdOutput)
 	}
 	node.Logger.Debugf("setupCli done: uartHasEcho=%t", node.uartHasEcho)
 
