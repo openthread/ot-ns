@@ -26,6 +26,8 @@
 
 package types
 
+import "fmt"
+
 // NodeConfig is a generic config for a new simulated node (used in dispatcher, simulation, radiomodel,
 // ... packages).
 type NodeConfig struct {
@@ -36,6 +38,7 @@ type NodeConfig struct {
 	IsAutoPlaced   bool
 	IsRaw          bool // A raw node skips all initialization CLI commands, including any init-script.
 	IsMtd          bool
+	IsRcp          bool // An RCP node runs in real-time and is driven by a (non-simulated) host process.
 	IsRouter       bool
 	IsBorderRouter bool
 	IsExternal     bool
@@ -43,24 +46,28 @@ type NodeConfig struct {
 	NodeLogFile    bool
 	RadioRange     int
 	ExecutablePath string // executable full path or "" for auto-determined
+	HostExePath    string // for RCP/OTBR nodes, the executable full path for the host process
+	NetIfName      string // for OTBRs/BRs, an external network interface name to use
 	Restore        bool
 	InitScript     []string // a sequence of CLI commands executed at first startup of node
 	RandomSeed     int32
 	RfSimParams    map[RfSimParam]RfSimParamValue // optional modified RF simulation parameters
 }
 
-// UpdateNodeConfigFromType sets NodeConfig flags correctly, based on chosen node type cfg.Type
-func (cfg *NodeConfig) UpdateNodeConfigFromType() {
+// UpdateNodeConfigFromType sets NodeConfig flags correctly, based on the chosen node type cfg.Type.
+// An error is returned if the type is unknown.
+func (cfg *NodeConfig) UpdateNodeConfigFromType() error {
 	cfg.IsRouter = false
 	cfg.IsMtd = false
 	cfg.IsBorderRouter = false
+	cfg.IsRcp = false
 	cfg.RxOffWhenIdle = false
 
 	switch cfg.Type {
 	case ROUTER, REED, FTD, MATTER:
 		cfg.IsRouter = true
 	case FED, WIFI:
-		// all flags false
+		break // all flags false
 	case MED, MTD:
 		cfg.IsMtd = true
 	case SED, SSED:
@@ -69,9 +76,17 @@ func (cfg *NodeConfig) UpdateNodeConfigFromType() {
 	case BR:
 		cfg.IsRouter = true
 		cfg.IsBorderRouter = true
+	case OTBR:
+		cfg.IsRouter = true
+		cfg.IsBorderRouter = true
+		cfg.IsRcp = true
 	case EXT:
 		cfg.IsExternal = true
+	case RCP:
+		cfg.IsRouter = true
+		cfg.IsRcp = true
 	default:
-		panic("unknown node type cfg.Type")
+		return fmt.Errorf("unknown node type cfg.Type: %s", cfg.Type)
 	}
+	return nil
 }

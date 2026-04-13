@@ -262,3 +262,14 @@ Done
 This shows the "ext" type for node 2, and also the string "(external-node)" instead of the actual node's executable name, which is unknown to OTNS.
 
 In case the externally running node process is interrupted (e.g. by pressing Ctrl+C) or killed, the corresponding node automatically gets removed from the simulation and a warning is logged by OTNS.
+
+## Adding an OpenThread Border Router (OTBR) interfacing to a real network (Optional, for Advanced Use Only)
+
+TBD: some text here.
+
+Below is an example how OTNS should be run, with `sudo`, in order to add an OTBR to the simulation.
+The OTNS command to add an OTBR is `add otbr`.
+
+```bash
+sudo env PATH=$PATH otns -realtime -otbr-backbone-if wlp0s20f3
+```

@@ -55,19 +55,16 @@
 
 #define VERIFY_EVENT_SIZE(X) OT_ASSERT((payloadLen >= sizeof(X)) && "received event payload too small");
 
+static const otIp6Address kUnspecifiedIp6Address = {.mFields = {.m32 = {0, 0, 0, 0}}};
+
 extern int gSockFd;
 
 uint64_t     gLastMsgId = 0;
 struct Event gLastRecvEvent;
 
-static otIp6Address unspecifiedIp6Address;
-
 void platformRfsimInit(void)
 {
-    if (otIp6AddressFromString("::", &unspecifiedIp6Address) != OT_ERROR_NONE)
-    {
-        platformExit(EXIT_FAILURE);
-    }
+    // No actions currently.
 }
 
 void platformExit(int exitCode)
@@ -277,7 +274,7 @@ void handleUdpForwarding(otMessage    *aMessage,
 
     evData.mSrcPort = aSockPort;
     evData.mDstPort = aPeerPort;
-    memcpy(evData.mSrcIp6, &unspecifiedIp6Address, OT_IP6_ADDRESS_SIZE);
+    memcpy(evData.mSrcIp6, &kUnspecifiedIp6Address, OT_IP6_ADDRESS_SIZE);
     memcpy(evData.mDstIp6, aPeerAddr, OT_IP6_ADDRESS_SIZE);
     otMessageRead(aMessage, 0, buf, msgLen);
 

@@ -83,11 +83,12 @@ type YamlConfigFile struct {
 
 // YamlScriptConfig defines startup scripts for nodes, depending on node type.
 type YamlScriptConfig struct {
-	Mtd string `yaml:"mtd"`
-	Ftd string `yaml:"ftd"`
-	Br  string `yaml:"br"`
-	Ext string `yaml:"ext"`
-	All string `yaml:"all"`
+	Mtd  string `yaml:"mtd"`
+	Ftd  string `yaml:"ftd"`
+	Br   string `yaml:"br"`
+	OtBr string `yaml:"otbr"`
+	Ext  string `yaml:"ext"`
+	All  string `yaml:"all"`
 }
 
 // YamlNetworkConfig is a global network config that can be loaded/saved in YAML.
@@ -128,6 +129,11 @@ func (ys *YamlScriptConfig) BuildFtdScript() []string {
 
 func (ys *YamlScriptConfig) BuildBrScript() []string {
 	script := ys.Ftd + "\n" + ys.Br + "\n" + ys.All
+	return strings.Split(script, "\n")
+}
+
+func (ys *YamlScriptConfig) BuildOtBrScript() []string {
+	script := ys.OtBr + "\n" + ys.Ftd + "\n" + ys.All
 	return strings.Split(script, "\n")
 }
 

@@ -79,11 +79,9 @@ jobs:
           fi
           ./script/install
       - name: Build custom OT node
-        # FIXME: OT_CMAKE_NINJA_TARGET used to exclude tests, because test_platform.cpp is missing otPlatAssertFail()
         run: |
           cd ot-rfsim
-          OT_CMAKE_NINJA_TARGET="ot-cli-ftd ot-cli-mtd" ./script/build -DOT_HISTORY_TRACKER=ON
-          # ./script/build -DOT_HISTORY_TRACKER=ON # this should be the command above (after the OT fix)
+          ./script/build -DOT_HISTORY_TRACKER=ON
       - name: Setup dev environment
         run: |
           ./script/setup-dev

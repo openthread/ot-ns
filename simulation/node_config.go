@@ -30,6 +30,7 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -92,6 +93,11 @@ var defaultBrScript = []string{
 	"br enable",
 }
 
+// defaultOtBrScript is an array of additional commands, sent to a new OTBR by default (unless changed).
+var defaultOtBrScript = []string{
+	"log level 5",
+}
+
 var defaultExtScript = defaultMtdInitScript
 
 // selfGenOmrBrScript is a script for a BR that detects no IPv6 infra and creates its own OMR prefix.
@@ -124,7 +130,10 @@ type ExecutableConfig struct {
 	Ftd         string
 	Mtd         string
 	Br          string
+	OtBr        string
 	Matter      string
+	Rcp         string
+	RcpHost     string
 	SearchPaths []string
 }
 
@@ -143,7 +152,10 @@ var DefaultExecutableConfig ExecutableConfig = ExecutableConfig{
 	Ftd:         "ot-cli-ftd",
 	Mtd:         "ot-cli-mtd",
 	Br:          "ot-cli-ftd_br",
+	OtBr:        "ot-br.sh",
 	Matter:      "ot-matter-node",
+	Rcp:         "ot-rcp",
+	RcpHost:     "ot-cli",
 	SearchPaths: []string{".", "./ot-rfsim/ot-versions", "./build/bin"},
 }
 
@@ -159,12 +171,14 @@ func DefaultNodeConfig() NodeConfig {
 		IsRaw:          false,
 		IsRouter:       true,
 		IsMtd:          false,
+		IsRcp:          false,
 		IsBorderRouter: false,
 		IsExternal:     false,
 		RxOffWhenIdle:  false,
 		NodeLogFile:    true,
 		RadioRange:     defaultRadioRange,
 		ExecutablePath: "",
+		HostExePath:    "",
 		Restore:        false,
 		InitScript:     []string{},
 		RandomSeed:     0, // 0 means not specified, i.e. truly unpredictable.
@@ -174,11 +188,12 @@ func DefaultNodeConfig() NodeConfig {
 
 func DefaultNodeScripts() *YamlScriptConfig {
 	return &YamlScriptConfig{
-		Mtd: strings.Join(defaultMtdInitScript, "\n"),
-		Ftd: strings.Join(defaultFtdInitScript, "\n"),
-		Br:  strings.Join(defaultBrScript, "\n"),
-		Ext: strings.Join(defaultExtScript, "\n"),
-		All: strings.Join(defaultAllInitScript, "\n"),
+		Mtd:  strings.Join(defaultMtdInitScript, "\n"),
+		Ftd:  strings.Join(defaultFtdInitScript, "\n"),
+		Br:   strings.Join(defaultBrScript, "\n"),
+		OtBr: strings.Join(defaultOtBrScript, "\n"),
+		Ext:  strings.Join(defaultExtScript, "\n"),
+		All:  strings.Join(defaultAllInitScript, "\n"),
 	}
 }
 
@@ -189,8 +204,13 @@ func (s *Simulation) NodeConfigFinalize(nodeCfg *NodeConfig) {
 		nodeCfg.ID = s.genNodeId()
 	}
 
-	nodeCfg.UpdateNodeConfigFromType()
+	if err := nodeCfg.UpdateNodeConfigFromType(); err != nil {
+		logger.Errorf("Node config finalization error: %v", err)
+		nodeCfg.ExecutablePath = "InvalidNodeExecutable"
+		return
+	}
 	nodeCfg.ExecutablePath = s.cfg.ExeConfig.FindExecutableBasedOnConfig(nodeCfg)
+	nodeCfg.HostExePath = s.cfg.ExeConfig.FindHostExecutableBasedOnConfig(nodeCfg)
 
 	// check for an implicit Thread-version setting in the executable-selection.
 	if len(s.cfg.ExeConfig.Version) > 0 && len(nodeCfg.Version) == 0 {
@@ -198,7 +218,8 @@ func (s *Simulation) NodeConfigFinalize(nodeCfg *NodeConfig) {
 	}
 
 	// in case of specified simulation random seed, each node gets a PRNG-predictable random seed assigned.
-	if s.cfg.RandomSeed != 0 {
+	// RCPs and externally started nodes are exceptions.
+	if s.cfg.RandomSeed != 0 && !nodeCfg.IsExternal && !nodeCfg.IsRcp {
 		nodeCfg.RandomSeed = prng.NewNodeRandomSeed()
 	}
 
@@ -206,6 +227,8 @@ func (s *Simulation) NodeConfigFinalize(nodeCfg *NodeConfig) {
 	if !nodeCfg.IsRaw {
 		if nodeCfg.IsExternal {
 			nodeCfg.InitScript = append(nodeCfg.InitScript, s.cfg.NewNodeScripts.BuildExtScript()...)
+		} else if nodeCfg.IsBorderRouter && nodeCfg.IsRcp {
+			nodeCfg.InitScript = append(nodeCfg.InitScript, s.cfg.NewNodeScripts.BuildOtBrScript()...)
 		} else if nodeCfg.IsBorderRouter { // for a BR, do extra init steps to set prefix/routes/etc.
 			nodeCfg.InitScript = append(nodeCfg.InitScript, s.cfg.NewNodeScripts.BuildBrScript()...)
 		} else if nodeCfg.IsMtd {
@@ -254,7 +277,8 @@ func (cfg *ExecutableConfig) SetVersion(version string, defaultConfig *Executabl
 		cfg.Mtd = defaultConfig.Mtd + "_" + version
 		cfg.Matter = defaultConfig.Matter + "_" + version
 	}
-	cfg.Br = defaultConfig.Br // BR is currently not adapted to versions.
+	cfg.Br = defaultConfig.Br   // BR is currently not adapted to versions.
+	cfg.Rcp = defaultConfig.Rcp // RCP is currently not adapted to versions.
 	cfg.Version = version
 }
 
@@ -265,8 +289,13 @@ func isFile(exePath string) bool {
 	return false
 }
 
-// FindExecutable returns a full path to the named executable, by searching in standard search paths
-// if needed. If the given exeName is already a full path itself, or empty, it will be returned itself.
+func isFileExecutable(exePath string) bool {
+	_, err := exec.LookPath(exePath)
+	return err == nil
+}
+
+// FindExecutable returns a full path to the named executable, by searching in standard
+// search paths if needed. If the given exeName is already a full path itself, or empty, it will be returned itself.
 func (cfg *ExecutableConfig) FindExecutable(exeName string) string {
 	if len(exeName) == 0 || filepath.IsAbs(exeName) || exeName[0] == '.' {
 		return exeName
@@ -299,9 +328,29 @@ func (cfg *ExecutableConfig) FindExecutableBasedOnConfig(nodeCfg *NodeConfig) st
 	if nodeCfg.IsBorderRouter {
 		exeName = cfg.Br
 	}
+	if nodeCfg.IsRcp {
+		exeName = cfg.Rcp
+	}
 
 	if len(nodeCfg.Version) > 0 && nodeCfg.Version != versionLatestTag {
 		exeName += "_" + nodeCfg.Version
+	}
+
+	return cfg.FindExecutable(exeName)
+}
+
+// FindHostExecutableBasedOnConfig gets the RCP host executable, if any, based on NodeConfig information.
+func (cfg *ExecutableConfig) FindHostExecutableBasedOnConfig(nodeCfg *NodeConfig) string {
+	if len(nodeCfg.HostExePath) > 0 {
+		return nodeCfg.HostExePath
+	}
+	exeName := ""
+	if nodeCfg.IsRcp {
+		if !nodeCfg.IsBorderRouter {
+			exeName = cfg.RcpHost
+		} else {
+			exeName = cfg.OtBr
+		}
 	}
 
 	return cfg.FindExecutable(exeName)

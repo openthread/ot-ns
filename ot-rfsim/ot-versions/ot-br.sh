@@ -1,6 +1,6 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
-#  Copyright (c) 2023-2026, The OpenThread Authors.
+#  Copyright (c) 2026, The OpenThread Authors.
 #  All rights reserved.
 #
 #  Redistribution and use in source and binary forms, with or without
@@ -27,33 +27,48 @@
 #  POSSIBILITY OF SUCH DAMAGE.
 #
 
-printf "\n./script/build_all  --  builds all OT node versions (that weren't built yet or require an update)\n\n"
+# ot-br.sh - script to start an OTBR node from an OTNS simulation.
+# When a running script is killed, the cleanup() will kill all child processes.
 
-set -euo pipefail
+echo "[DEBG] ot-br.sh started"
 
-build_error()
-{
-    printf '\n****************\n  Failed build script: %s - stopping.\n****************\n\n' "$@"
+cleanup() {
+    echo "[DEBG] ot-br.sh: caught signal, cleaning up child processes"
+    jobs -p | xargs -r kill
+    wait
+    exit 0
+}
+
+trap cleanup SIGINT SIGTERM
+
+NODE_ID=$1
+BACKBONE_IF_NAME=$2
+RADIO_URL=$3
+# TODO: 'wpan1' for node 1 etc doesn't work - needs to be wpan0. Check later if there's a way to use others.
+THREAD_IF_NAME="wpan0"
+
+echo "[DEBG]  NODE_ID=${NODE_ID}"
+echo "[DEBG]  BACKBONE_IF_NAME=${BACKBONE_IF_NAME}"
+echo "[DEBG]  THREAD_IF_NAME=${THREAD_IF_NAME}"
+echo "[DEBG]  RADIO_URL=${RADIO_URL}"
+
+echo "[DEBG] starting otbr-agent with sudo"
+# All otbr-agent output needs to go to stderr, so that ot-ctl CLI interactions are not garbled.
+sudo otbr-agent -s -d 7 -I ${THREAD_IF_NAME} -B ${BACKBONE_IF_NAME} "${RADIO_URL}" 1>&2 &
+OTBR_PID=$!
+
+echo "[DEBG] otbr-agent started in background (PID=${OTBR_PID})"
+sleep 2
+
+# check if the process is still alive without sending any signal
+if ! kill -0 "${OTBR_PID}" 2>/dev/null; then
+    echo "[ERRO] otbr-agent failed to start or exited immediately"
     exit 1
-}
+fi
+echo "[DEBG] otbr-agent is running, starting ot-ctl CLI"
+sudo ot-ctl
 
-main()
-{
-    local options=()
-    options+=("$@")
-
-    for VER in v11 v12 v13 latest br rcp posix; do
-        SCRIPTNAME="./script/build_$VER"
-
-        printf 'Node %s: building with script %s\n' "${VER}" "${SCRIPTNAME}"
-        if ${SCRIPTNAME} "${options[@]}"; then
-            printf 'Node %s: completed build with script %s\n' "${VER}" "${SCRIPTNAME}"
-        else
-            build_error "${SCRIPTNAME}"
-        fi
-    done
-
-    printf '\nSuccessfully completed building all OT node versions.\n'
-}
-
-main "$@"
+echo "[DEBG] ot-br.sh: ot-ctl CLI exited, cleaning up child processes"
+jobs -p | xargs -r kill
+wait
+echo "[DEBG] ot-br.sh: script exit"
