@@ -1,4 +1,4 @@
-// Copyright (c) 2022-2025, The OTNS Authors.
+// Copyright (c) 2022-2026, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -50,7 +50,7 @@ var args struct {
 func parseArgs() {
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: %s <otns_replay_file.replay>\n", os.Args[0])
-		fmt.Fprintf(os.Stderr, "  Replays a prior simulation in the Web GUI based on a .replay file.\n")
+		fmt.Fprintln(os.Stderr, "  Replays a prior simulation in the Web GUI based on a .replay file.")
 	}
 	flag.Parse()
 

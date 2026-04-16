@@ -40,6 +40,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/openthread/ot-ns/dissectpkt"
@@ -152,7 +153,7 @@ type Dispatcher struct {
 func NewDispatcher(ctx *progctx.ProgCtx, cfg *Config, cbHandler CallbackHandler) *Dispatcher {
 	logger.AssertTrue(!cfg.Realtime || cfg.Speed == 1)
 	var err error
-	ln, unixSocketFile := newUnixSocket(cfg.SimulationId)
+	ln, unixSocketFile := newUnixSocket(cfg.OutputDir, cfg.SimulationId)
 	vis := visualize.NewNopVisualizer()
 
 	d := &Dispatcher{
@@ -184,7 +185,7 @@ func NewDispatcher(ctx *progctx.ProgCtx, cfg *Config, cbHandler CallbackHandler)
 	}
 	d.speed = d.normalizeSpeed(d.speed)
 	if d.cfg.PcapEnabled {
-		d.pcap, err = pcap.NewFile("current.pcap", cfg.PcapFrameType, true)
+		d.pcap, err = pcap.NewFile(d.getPcapFileName(), cfg.PcapFrameType, true)
 		logger.PanicIfError(err)
 		d.waitGroup.Add(1)
 		go d.pcapFrameWriter()
@@ -199,15 +200,25 @@ func NewDispatcher(ctx *progctx.ProgCtx, cfg *Config, cbHandler CallbackHandler)
 	return d
 }
 
-func newUnixSocket(socketId int) (net.Listener, string) {
-	err := os.MkdirAll("/tmp/otns", 0777)
-	logger.FatalIfError(err, err)
-	unixSocketFile := fmt.Sprintf("/tmp/otns/socket_dispatcher_%d", socketId) // remove old one
-	err = os.RemoveAll(unixSocketFile)
+func newUnixSocket(socketDir string, socketId int) (net.Listener, string) {
+	unixSocketFile := fmt.Sprintf("%s/socket_%d", socketDir, socketId) // remove old socket
+
+	if !isValidUnixSocketPath(unixSocketFile) {
+		logger.Fatalf("unix socket path too long: %s", unixSocketFile)
+	}
+
+	err := os.Remove(unixSocketFile)
+	if err != nil && errors.Is(err, os.ErrNotExist) {
+		err = nil
+	}
 	logger.FatalIfError(err, err)
 	ln, err := net.Listen("unix", unixSocketFile)
 	logger.FatalIfError(err, err)
 	return ln, unixSocketFile
+}
+
+func isValidUnixSocketPath(path string) bool {
+	return len(path) < len(syscall.RawSockaddrUnix{}.Path)
 }
 
 func (d *Dispatcher) Stop() {
@@ -652,7 +663,7 @@ func (d *Dispatcher) processNextEvents(simSpeed float64) bool {
 func (d *Dispatcher) eventsReader() {
 	defer d.waitGroup.Done()
 	defer logger.Tracef("dispatcher node socket threads stopped.")
-	defer os.RemoveAll(d.socketName) // delete Unix socket file when done.
+	defer os.Remove(d.socketName) // delete Unix socket file when done.
 	defer d.udpln.Close()
 
 	logger.Debugf("dispatcher listening on socket %s ...", d.socketName)
@@ -1455,7 +1466,7 @@ func (d *Dispatcher) dumpPacket(item *Event) {
 		_, _ = fmt.Fprintf(&sb, "%02X", b)
 	}
 
-	logger.Println(sb.String())
+	logger.Println(sb.String(), true, true)
 }
 
 func (d *Dispatcher) setNodeRole(node *Node, role OtDeviceRole) {
@@ -1571,4 +1582,8 @@ func (d *Dispatcher) handleRadioState(node *Node, evt *Event) {
 			Timestamp: d.CurTime + evt.Delay,
 		})
 	}
+}
+
+func (d *Dispatcher) getPcapFileName() string {
+	return fmt.Sprintf("%s/%d_otns.pcap", d.cfg.OutputDir, d.cfg.SimulationId)
 }

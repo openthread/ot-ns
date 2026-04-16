@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2020-2024, The OTNS Authors.
+# Copyright (c) 2020-2026, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -52,7 +52,7 @@ FARM_RECT = [20 * R, 20 * R, 440 * R, 260 * R]  # number in meters
 
 
 def main():
-    ns = OTNS(otns_args=['-logfile', 'none'])
+    ns = OTNS(otns_args=['-log-node', 'none'])
 
     if False:  # Optional forcing of random-seed for OTNS and Python. This gives exact reproducable simulation.
         # The pcap parameter is to select another PCAP type that includes channel info.
