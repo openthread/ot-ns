@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-#  Copyright (c) 2023-2026, The OpenThread Authors.
+#  Copyright (c) 2026, The OpenThread Authors.
 #  All rights reserved.
 #
 #  Redistribution and use in source and binary forms, with or without
@@ -27,33 +27,23 @@
 #  POSSIBILITY OF SUCH DAMAGE.
 #
 
-printf "\n./script/build_all  --  builds all OT node versions (that weren't built yet or require an update)\n\n"
+set -euxo pipefail
 
-set -euo pipefail
-
-build_error()
-{
-    printf '\n****************\n  Failed build script: %s - stopping.\n****************\n\n' "$@"
-    exit 1
-}
+OT_OPTIONS_RCP=(
+    "-DOT_THREAD_VERSION=1.4"
+    "-DOT_VENDOR_MODEL=RFSIM-RCP-v1.4"
+    "-DOT_SIMULATION_VIRTUAL_TIME_UART=OFF"
+    "-DOT_POWER_SUPPLY=EXTERNAL"
+)
+readonly OT_OPTIONS_RCP
 
 main()
 {
     local options=()
-    options+=("$@")
+    options+=("${OT_OPTIONS_RCP[@]}" "$@")
 
-    for VER in v11 v12 v13 latest br rcp posix; do
-        SCRIPTNAME="./script/build_$VER"
-
-        printf 'Node %s: building with script %s\n' "${VER}" "${SCRIPTNAME}"
-        if ${SCRIPTNAME} "${options[@]}"; then
-            printf 'Node %s: completed build with script %s\n' "${VER}" "${SCRIPTNAME}"
-        else
-            build_error "${SCRIPTNAME}"
-        fi
-    done
-
-    printf '\nSuccessfully completed building all OT node versions.\n'
+    OTNS_NODE_TYPE="rcp" OT_CMAKE_NINJA_TARGET="ot-rcp" ./script/build "${options[@]}"
+    cp ./build/rcp/bin/ot-rcp ./ot-versions/
 }
 
 main "$@"

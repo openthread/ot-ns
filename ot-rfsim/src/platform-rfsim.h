@@ -199,6 +199,29 @@ void platformLoggingInit(char *processName);
 void platformUartRestore(void);
 
 /**
+ * Updates the file descriptor sets with file descriptors used by the UART driver.
+ *
+ * @param[in,out]  aReadFdSet   A pointer to the read file descriptors.
+ * @param[in,out]  aWriteFdSet  A pointer to the write file descriptors.
+ * @param[in,out]  aMaxFd       A pointer to the max file descriptor.
+ */
+void platformUartUpdateFdSet(fd_set *aReadFdSet, fd_set *aWriteFdSet, fd_set *aErrorFdSet, int *aMaxFd);
+
+/**
+ * Performs UART driver processing.
+ *
+ * @param[in]  aInstance  The OpenThread instance structure.
+ */
+void platformUartProcess(otInstance *aInstance);
+
+/**
+ * Checks the UART for pending data.
+ *
+ * @return true if UART has pending data, false otherwise.
+ */
+bool platformUartHasPendingData(void);
+
+/**
  * initializes the OT-RFSIM simulator communications.
  *
  */

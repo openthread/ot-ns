@@ -27,6 +27,7 @@
 package simulation
 
 import (
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -37,6 +38,8 @@ func TestDetermineExecutableBasedOnConfig(t *testing.T) {
 		Ftd:         "my-ftd-fail",
 		Mtd:         "ot-cli-mtd",
 		Br:          "br-script-fail",
+		Rcp:         "ot-rcp",
+		RcpHost:     "ot-cli",
 		SearchPaths: []string{".", "./otrfsim/path/not/found", "../ot-rfsim/ot-versions"},
 	}
 
@@ -63,12 +66,30 @@ func TestDetermineExecutableBasedOnConfig(t *testing.T) {
 	exe = cfg.FindExecutableBasedOnConfig(&nodeCfg)
 	assert.Equal(t, "br-script-fail", exe)
 
+	// test assumes that ot-rfsim RCP MAY have been built.
+	nodeCfg.IsBorderRouter = false
+	nodeCfg.IsRcp = true
+	exe = cfg.FindExecutableBasedOnConfig(&nodeCfg)
+	if _, err := os.Stat("../ot-rfsim/ot-versions/ot-rcp"); err == nil {
+		assert.Equal(t, "../ot-rfsim/ot-versions/ot-rcp", exe)
+	} else {
+		assert.Equal(t, "ot-rcp", exe)
+	}
+
+	// test assumes that ot-rfsim NCP MAY have been built.
+	exe = cfg.FindHostExecutableBasedOnConfig(&nodeCfg)
+	if _, err := os.Stat("../ot-rfsim/ot-versions/ot-cli"); err == nil {
+		assert.Equal(t, "../ot-rfsim/ot-versions/ot-cli", exe)
+	} else {
+		assert.Equal(t, "ot-cli", exe)
+	}
+
 	// Also non-executable files could be supplied. The error comes only later when adding the node type.
 	// This test assumes the source file below exists.
 	cfg.Ftd = "../simulation/node_config.go"
 	nodeCfg.IsMtd = false
 	nodeCfg.IsRouter = true
-	nodeCfg.IsBorderRouter = false
+	nodeCfg.IsRcp = false
 	exe = cfg.FindExecutableBasedOnConfig(&nodeCfg)
 	assert.Equal(t, "../simulation/node_config.go", exe)
 }

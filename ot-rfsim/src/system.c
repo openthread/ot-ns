@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016-2024, The OpenThread Authors.
+ *  Copyright (c) 2016-2026, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -144,21 +144,21 @@ void otSysProcessDrivers(otInstance *aInstance)
 
     platformInstanceInit(aInstance);
 
-    FD_ZERO(&read_fds);
-    FD_ZERO(&write_fds);
-    FD_ZERO(&error_fds);
-
-    FD_SET(gSockFd, &read_fds);
-    max_fd = gSockFd;
-
     if (!otTaskletsArePending(aInstance) && platformAlarmGetNext() > 0 &&
-        (!platformRadioIsTransmitPending() || platformRadioIsBusy()))
+        (!platformRadioIsTransmitPending() || platformRadioIsBusy()) && !platformUartHasPendingData())
     {
         // report my final radio state at end of this time instant, then go to sleep.
         platformRadioReportStateToSimulator(false);
         otSimSendSleepEvent();
 
-        // wake up by reception of socket event from simulator.
+        // wake up by reception of socket event from simulator or UART event.
+        FD_ZERO(&read_fds);
+        FD_ZERO(&write_fds);
+        FD_ZERO(&error_fds);
+        FD_SET(gSockFd, &read_fds);
+        max_fd = gSockFd;
+        platformUartUpdateFdSet(&read_fds, &write_fds, &error_fds, &max_fd);
+
         rval = select(max_fd + 1, &read_fds, &write_fds, &error_fds, NULL);
 
         if ((rval < 0) && (errno != EINTR))
@@ -176,6 +176,7 @@ void otSysProcessDrivers(otInstance *aInstance)
     platformAlarmProcess(aInstance);
     platformRadioProcess(aInstance);
     platformRadioInterfererProcess(aInstance);
+    platformUartProcess(aInstance);
 #if OPENTHREAD_CONFIG_BLE_TCAT_ENABLE
     platformBleProcess(aInstance);
 #endif
@@ -243,7 +244,7 @@ void otSysUpdateEvents(otInstance     *aInstance,
     long nextAlarm = platformAlarmGetNext();
 
     if (!otTaskletsArePending(aInstance) && nextAlarm > 0 &&
-        (!platformRadioIsTransmitPending() || platformRadioIsBusy()))
+        (!platformRadioIsTransmitPending() || platformRadioIsBusy()) && !platformUartHasPendingData())
     {
         // report my final radio state at end of this time instant, then go to sleep.
         platformRadioReportStateToSimulator(false);
@@ -281,6 +282,7 @@ void otSysProcessEvents(otInstance   *aInstance,
     platformAlarmProcess(aInstance);
     platformRadioProcess(aInstance);
     platformRadioInterfererProcess(aInstance);
+    platformUartProcess(aInstance);
 #if OPENTHREAD_CONFIG_BLE_TCAT_ENABLE
     platformBleProcess(aInstance);
 #endif
