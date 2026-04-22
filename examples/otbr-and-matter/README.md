@@ -167,3 +167,46 @@ To follow logs:
 # Inside the container
 sudo cat /var/log/syslog | grep ot-matter
 ```
+
+## Going further with OTNS automation
+
+OTNS exposes a Python API that lets you script the full lifecycle of a simulated
+Thread network — spawning nodes, sending node commands, and driving time — all
+from a single Python script.
+
+An example script `otns-automation.py` is provided in this repository. To run it
+inside the container:
+
+1. Copy `otns-automation.py` into your running container:
+   ```bash
+   ./run-docker.sh copy otns-automation.py
+   ```
+2. Inside the container, activate the OTNS Python virtual environment:
+   ```bash
+   source ~/ot-ns/.venv-otns/bin/activate
+   ```
+3. Run the script with root privileges (required to create virtual network interfaces):
+   ```bash
+   cd ~/ot-ns && sudo $(which python3) otns-automation.py
+   ```
+4. Open the OTNS web UI in your browser:
+   `http://localhost:8997/visualize?addr=localhost:8998`
+
+### What the script does
+
+The script automates the following sequence:
+
+1. **Detects the backbone interface** — finds the first non-loopback interface
+   that is up (falls back to `eth0`).
+2. **Starts OTNS** in realtime mode with the web UI enabled and the correct
+   backbone interface set.
+3. **Spawns a Matter lightbulb** node at the center of the canvas.
+4. **Spawns 10 router nodes** arranged in a circle around the Matter node. Each
+   router enables SRP client autostart, sets a hostname (`router-<id>`), and
+   registers a custom SRP service (`_otns-handson._tcp` on port 12345).
+5. **Spawns an OTBR node** on the opposite side of the circle. The OTBR
+   advertises an OMR prefix and runs an SRP server, allowing the Matter node to
+   publish its service and become commissionable from outside the container.
+
+Once the mesh has converged you can commission and control the Matter lightbulb
+exactly as described in the section above.

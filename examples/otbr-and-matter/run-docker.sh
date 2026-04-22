@@ -32,6 +32,7 @@
 # Usage:
 #   ./run-docker.sh build          Build the Docker image
 #   ./run-docker.sh run            Run an interactive container
+#   ./run-docker.sh copy <file>    Copy a file into the running container
 #   ./run-docker.sh build-run      Build then run
 
 set -e
@@ -62,6 +63,16 @@ do_build() {
         --platform "${platform}" \
         -t "${IMAGE_NAME}" \
         "${SCRIPT_DIR}"
+}
+
+do_copy() {
+    local file="${1}"
+    if [ -z "${file}" ]; then
+        echo "Usage: $0 copy <file>" >&2
+        exit 1
+    fi
+    echo "Copying ${file} into ${CONTAINER_NAME}:/home/otns/ot-ns/ ..."
+    docker cp "${file}" "${CONTAINER_NAME}:/home/otns/ot-ns/"
 }
 
 do_run() {
@@ -102,12 +113,15 @@ case "${1}" in
     run)
         do_run
         ;;
+    copy)
+        do_copy "${2}"
+        ;;
     build-run)
         do_build
         do_run
         ;;
     *)
-        echo "Usage: $0 build|run|build-run" >&2
+        echo "Usage: $0 build|run|copy|build-run" >&2
         exit 1
         ;;
 esac
