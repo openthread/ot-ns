@@ -52,7 +52,7 @@ Running this script will also set up a Python 3 virtual environment (venv) in `.
 #### Install OTNS
 
 ```bash
-./script/install
+./script/install-otns
 ```
 
 This installs `otns` in the Go binary directory of the user (typically `~/go/bin`) and makes the command available in the path. Also, it installs the pyOTNS library in the local Python virtual environment `.venv-otns`. The OT nodes required for running a simulation are not yet installed at this point: this is the next step.
