@@ -37,7 +37,7 @@ If you received the image as a TAR archive, you can load it by running:
 docker load < <path_to_docker_image>
 ```
 
-On some Docker versions, the image gets tagged with the `docker.io` prefix. if thqt is the case, remove that prefix by running:
+On some Docker versions, the image gets tagged with the `docker.io` prefix. if that is the case, remove that prefix by running:
 
 ```
 docker tag docker.io/framichel/otns-matter framichel/otns-matter
