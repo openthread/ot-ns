@@ -29,7 +29,7 @@ docker build -t otns-matter .
 
 The build takes a long time (compiling OpenThread, Matter, OT-BR from source).
 
-## Load an existing image
+## Load an existing image (optional)
 
 If you received the image as a TAR archive, you can load it by running:
 
