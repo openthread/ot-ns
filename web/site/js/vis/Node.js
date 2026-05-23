@@ -24,7 +24,7 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-import * as PIXI from "pixi.js-legacy";
+import * as PIXI from "pixi.js";
 import VObject from "./VObject";
 import {NodeMode, OtDeviceRole} from '../proto/visualize_grpc_pb'
 import {Visualizer} from "./PixiVisualizer";
@@ -85,7 +85,7 @@ export default class Node extends VObject {
         this._statusSprite = statusSprite;
 
         let node = this;
-        this._root.interactive = true;
+        this._root.eventMode = 'static';
         this._root.hitArea = new PIXI.Circle(0, 0, radius);
         this.setOnTouchStart((e) => {
             this.vis.setSelectedNode(node.id);

@@ -35,12 +35,10 @@ const {
 const {VisualizeGrpcServiceClient} = require('./proto/visualize_grpc_grpc_web_pb.js');
 
 
-let type = "WebGL";
 if (!PIXI.utils.isWebGLSupported()) {
-    type = "canvas"
+    console.warn("WebGL is not supported by this browser; the visualization may not render.");
 }
 
-PIXI.utils.sayHello(type);
 //Create a Pixi Application
 let resolution = window.devicePixelRatio;
 
@@ -49,7 +47,7 @@ let app = new PIXI.Application({
     width: w,
     height: h,
     // backgroundColor: 0xdddddd,
-    transparent: true,
+    backgroundAlpha: 0,
     autoDensity: true,
     antialias: true,
     resolution: resolution,
@@ -214,23 +212,35 @@ function loadOk() {
     });
 }
 
-app.loader
-    .add('WhiteSolidCircle64', '/static/image/white-shapes/circle-64.png')
-    .add('WhiteSolidTriangle64', '/static/image/white-shapes/triangle-64.png')
-    .add('WhiteSolidHexagon64', '/static/image/white-shapes/hexagon-64.png')
-    .add('WhiteSolidSquare64', '/static/image/white-shapes/square-64.png')
-    .add('WhiteDashed4Circle64', '/static/image/white-shapes/circle-dashed-4-64.png')
-    .add('WhiteDashed6Circle64', '/static/image/white-shapes/circle-dashed-6-64.png')
-    .add('WhiteDashed8Circle64', '/static/image/white-shapes/circle-dashed-8-64.png')
-    .add('WhiteDashed8Circle128', '/static/image/white-shapes/circle-dashed-8-128.png')
-    .add('FailedNodeMark', '/static/image/gua.png')
-    .add('CheckedCheckbox32', '/static/image/checked-checkbox-32.png')
-    .add('UncheckedCheckbox32', '/static/image/unchecked-checkbox-32.png')
-    .add('WhiteRoundedDashedSquare128', '/static/image/white-shapes/square-dashed-rounded-128.png')
-    .add('Play32', '/static/image/play-32.png')
-    .add('Pause32', '/static/image/pause-32.png')
-    .load((loader, res) => {
-        SetResources(res);
-        loadOk()
-    });
+const ASSET_MANIFEST = {
+    WhiteSolidCircle64: '/static/image/white-shapes/circle-64.png',
+    WhiteSolidTriangle64: '/static/image/white-shapes/triangle-64.png',
+    WhiteSolidHexagon64: '/static/image/white-shapes/hexagon-64.png',
+    WhiteSolidSquare64: '/static/image/white-shapes/square-64.png',
+    WhiteDashed4Circle64: '/static/image/white-shapes/circle-dashed-4-64.png',
+    WhiteDashed6Circle64: '/static/image/white-shapes/circle-dashed-6-64.png',
+    WhiteDashed8Circle64: '/static/image/white-shapes/circle-dashed-8-64.png',
+    WhiteDashed8Circle128: '/static/image/white-shapes/circle-dashed-8-128.png',
+    FailedNodeMark: '/static/image/gua.png',
+    CheckedCheckbox32: '/static/image/checked-checkbox-32.png',
+    UncheckedCheckbox32: '/static/image/unchecked-checkbox-32.png',
+    WhiteRoundedDashedSquare128: '/static/image/white-shapes/square-dashed-rounded-128.png',
+    Play32: '/static/image/play-32.png',
+    Pause32: '/static/image/pause-32.png',
+};
+
+for (const [alias, src] of Object.entries(ASSET_MANIFEST)) {
+    PIXI.Assets.add({alias, src});
+}
+
+PIXI.Assets.load(Object.keys(ASSET_MANIFEST)).then((textures) => {
+    // Adapt the Assets result (alias -> Texture) to the {alias: {texture}}
+    // shape the vis code reads via Resources().<alias>.texture.
+    let res = {};
+    for (const alias of Object.keys(ASSET_MANIFEST)) {
+        res[alias] = {texture: textures[alias]};
+    }
+    SetResources(res);
+    loadOk()
+});
 

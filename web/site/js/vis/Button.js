@@ -24,7 +24,7 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-import * as PIXI from "pixi.js-legacy";
+import * as PIXI from "pixi.js";
 import VObject from "./VObject";
 import {BUTTON_LABEL_FONT_FAMILY} from "./consts";
 
@@ -43,7 +43,7 @@ export default class Button extends VObject {
         let graphics = new PIXI.Graphics();
         this.root = graphics;
         this.root.addChild(label);
-        this.root.interactive = true;
+        this.root.eventMode = 'static';
 
         let button = this;
         this.setOnTouchStart((e) => {

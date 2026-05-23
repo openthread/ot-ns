@@ -24,7 +24,7 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-import * as PIXI from "pixi.js-legacy";
+import * as PIXI from "pixi.js";
 import VObject from "./VObject";
 import ActionBar from "./ActionBar";
 import {Text} from "./wrapper";
@@ -73,7 +73,7 @@ export default class PixiVisualizer extends VObject {
         this.root = new PIXI.Container();
         // this.root.width =
         this.root.position.set(0, 20);
-        this.root.interactive = true;
+        this.root.eventMode = 'static';
         this.root.hitArea = new PIXI.Rectangle(0, 0, 3000, 3000);
         app.stage.addChild(this.root);
 
@@ -125,7 +125,7 @@ export default class PixiVisualizer extends VObject {
             fontSize: 12
         });
         this.otCommitIdMsg.position.set(this.statusMsg.x, this.statusMsg.y + this.statusMsg.height + 3);
-        this.otCommitIdMsg.interactive = true;
+        this.otCommitIdMsg.eventMode = 'static';
         this.otCommitIdMsg.setOnTap((e) => {
             if (this.otCommit.length > 0) {
                 window.open('https://github.com/openthread/openthread/tree/' + this.otCommit, '_blank');
