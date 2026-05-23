@@ -30,6 +30,6 @@ import VObject from "./VObject";
 export class Text extends VObject {
     constructor(text, style) {
         super();
-        this._root = new PIXI.Text(text, style)
+        this._root = new PIXI.Text({text, style})
     }
 }

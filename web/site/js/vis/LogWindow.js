@@ -62,9 +62,8 @@ export default class LogWindow extends VObject {
 
         // White highlight bar drawn just below the most recent line.
         this.lastline = new PIXI.Graphics();
-        this.lastline.beginFill(0xFFFFFF);
-        this.lastline.drawRect(0, 0, LOG_WINDOW_WIDTH, LOG_TEXT_LINE_HEIGHT);
-        this.lastline.endFill();
+        this.lastline.rect(0, 0, LOG_WINDOW_WIDTH, LOG_TEXT_LINE_HEIGHT);
+        this.lastline.fill(0xFFFFFF);
 
         this.logContainer = new PIXI.Container();
         this.logContainer.addChild(this.lastline);
@@ -80,13 +79,19 @@ export default class LogWindow extends VObject {
         this._applyBoxSize();
     }
 
+    _disposeLogItem(log) {
+        this.logContainer.removeChild(log);
+        // explicit GPU texture clear: one unique texture per log line
+        log.destroy({ texture: true, textureSource: true });
+    }
+
     addLog(text, color = LOG_WINDOW_FONT_COLOR) {
-        if (this.loglist.length === LOG_WINDOW_MAX_SIZE) {
-            let rm = this.loglist.shift();
-            this.logContainer.removeChild(rm)
+        if (this.loglist.length >= LOG_WINDOW_MAX_SIZE) {
+            let rmLog = this.loglist.shift();
+            this._disposeLogItem(rmLog);
         }
 
-        let log = new PIXI.Text(text, Object.assign({}, LOG_TEXT_STYLE, {fill: color}));
+        let log = new PIXI.Text({text, style: Object.assign({}, LOG_TEXT_STYLE, {fill: color})});
         this.logContainer.addChild(log);
         this.loglist.push(log);
         this._relayout();
@@ -94,7 +99,7 @@ export default class LogWindow extends VObject {
 
     clear() {
         for (const log of this.loglist) {
-            this.logContainer.removeChild(log)
+            this._disposeLogItem(log);
         }
         this.loglist = [];
         this._stickToBottom = true;
@@ -108,9 +113,8 @@ export default class LogWindow extends VObject {
 
     _applyBoxSize() {
         this._mask.clear();
-        this._mask.beginFill(0xFFFFFF);
-        this._mask.drawRect(0, 0, LOG_WINDOW_WIDTH, this.boxHeight);
-        this._mask.endFill();
+        this._mask.rect(0, 0, LOG_WINDOW_WIDTH, this.boxHeight);
+        this._mask.fill(0xFFFFFF);
         this._root.hitArea = new PIXI.Rectangle(0, 0, LOG_WINDOW_WIDTH, this.boxHeight);
         this._relayout();
     }

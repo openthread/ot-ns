@@ -98,11 +98,11 @@ export default class PixiVisualizer extends VObject {
         this._unicastMessagesStage = new PIXI.Container();
         this.addChild(this._unicastMessagesStage);
 
-        this.statusMsg = new PIXI.Text("", {
+        this.statusMsg = new PIXI.Text({text: "", style: {
             fontFamily: STATUS_MSG_FONT_FAMILY,
             fontSize: STATUS_MSG_FONT_SIZE,
             fontWeight: "bold"
-        });
+        }});
         this.statusMsg.position.set(0, -this.statusMsg.height);
         this.addChild(this.statusMsg);
 
@@ -125,7 +125,7 @@ export default class PixiVisualizer extends VObject {
             fontSize: 12
         });
         this.otCommitIdMsg.position.set(this.statusMsg.x, this.statusMsg.y + this.statusMsg.height + 3);
-        this.otCommitIdMsg.eventMode = 'static';
+        this.otCommitIdMsg.interactive = true;
         this.otCommitIdMsg.setOnTap((e) => {
             if (this.otCommit.length > 0) {
                 window.open('https://github.com/openthread/openthread/tree/' + this.otCommit, '_blank');
@@ -134,12 +134,12 @@ export default class PixiVisualizer extends VObject {
         });
         this.addChild(this.otCommitIdMsg);
 
-        this.titleText = new PIXI.Text("", {
+        this.titleText = new PIXI.Text({text: "", style: {
             fill: "#e69900",
             fontFamily: "Verdana",
             fontSize: 20,
             fontWeight: "bolder"
-        });
+        }});
         this.titleText.position.set(0, 20);
         this.addChild(this.titleText);
 
@@ -624,44 +624,55 @@ export default class PixiVisualizer extends VObject {
         this._bgStage.removeChildren().forEach(child => child.destroy());
 
         const graphics = new PIXI.Graphics();
-        graphics.beginFill(0x8bc34a);
+
+        // Pixi v8 strokes the whole current path with a single style, so group
+        // segments by (color, width) and stroke each group as its own path.
+        // Green = parent/child tree links, blue = neighbor links; links touching
+        // the selected node are drawn 3x thicker.
+        const GREEN = 0x8bc34a, BLUE = 0x1976d2;
+        const greenThin = [], greenThick = [], blueThin = [], blueThick = [];
 
         for (let nodeid in this.nodes) {
             let node = this.nodes[nodeid];
             if (node.parent) {
                 let parent = this.findNodeByExtAddr(node.parent);
                 if (parent !== null) {
-                    graphics.moveTo(node.position.x, node.position.y);
-                    graphics.lineTo(parent.position.x, parent.position.y)
+                    let thick = nodeid == this._selectedNodeId || parent.id == this._selectedNodeId;
+                    (thick ? greenThick : greenThin).push([node.position, parent.position]);
                 }
             }
             for (let extaddr in node._children) {
                 let child = this.findNodeByExtAddr(extaddr);
                 if (child) {
-                    graphics.lineStyle(nodeid == this._selectedNodeId || child.id == this._selectedNodeId ? linkLineWidth * 3 : linkLineWidth, 0x8bc34a, 1);
-
-                    graphics.moveTo(node.position.x, node.position.y);
-                    graphics.lineTo(child.position.x, child.position.y)
+                    let thick = nodeid == this._selectedNodeId || child.id == this._selectedNodeId;
+                    (thick ? greenThick : greenThin).push([node.position, child.position]);
                 }
             }
-        }
-        graphics.endFill();
-
-        graphics.beginFill(0x1976d2);
-
-        for (let nodeid in this.nodes) {
-            graphics.lineStyle(nodeid == this._selectedNodeId ? linkLineWidth * 3 : linkLineWidth, 0x1976d2, 1);
-
-            let node = this.nodes[nodeid];
             for (let extaddr in node._neighbors) {
                 let neighbor = this.findNodeByExtAddr(extaddr);
                 if (neighbor) {
-                    graphics.moveTo(node.position.x, node.position.y);
-                    graphics.lineTo(neighbor.position.x, neighbor.position.y)
+                    let thick = nodeid == this._selectedNodeId;
+                    (thick ? blueThick : blueThin).push([node.position, neighbor.position]);
                 }
             }
         }
-        graphics.endFill();
+
+        const strokeGroup = (segments, width, color) => {
+            if (segments.length === 0) {
+                return;
+            }
+            graphics.beginPath();
+            for (let [from, to] of segments) {
+                graphics.moveTo(from.x, from.y).lineTo(to.x, to.y);
+            }
+            graphics.stroke({width: width, color: color, alpha: 1});
+        };
+
+        strokeGroup(greenThin, linkLineWidth, GREEN);
+        strokeGroup(greenThick, linkLineWidth * 3, GREEN);
+        strokeGroup(blueThin, linkLineWidth, BLUE);
+        strokeGroup(blueThick, linkLineWidth * 3, BLUE);
+
         this._bgStage.addChild(graphics)
     }
 

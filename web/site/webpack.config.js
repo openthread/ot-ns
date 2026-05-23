@@ -13,6 +13,10 @@ module.exports = {
     output: {
         path: path.resolve(__dirname, 'static', 'js'),
         filename: '[name].js',
+        // Pixi v8 uses dynamic import() internally; without this webpack would
+        // emit separate async chunk files. The site serves one bundle per entry
+        // (embedded via go-bindata), so inline all async chunks into it.
+        asyncChunks: false,
     },
 
     optimization: {

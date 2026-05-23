@@ -35,26 +35,12 @@ const {
 const {VisualizeGrpcServiceClient} = require('./proto/visualize_grpc_grpc_web_pb.js');
 
 
-if (!PIXI.utils.isWebGLSupported()) {
+if (!PIXI.isWebGLSupported()) {
     console.warn("WebGL is not supported by this browser; the visualization may not render.");
 }
 
-//Create a Pixi Application
-let resolution = window.devicePixelRatio;
-
-let [w, h] = getDesiredFieldSize();
-let app = new PIXI.Application({
-    width: w,
-    height: h,
-    // backgroundColor: 0xdddddd,
-    backgroundAlpha: 0,
-    autoDensity: true,
-    antialias: true,
-    resolution: resolution,
-    sharedTicker: true,
-});
-
-document.body.appendChild(app.view);
+// Pixi v8: Application is created empty and initialized asynchronously.
+let app = new PIXI.Application();
 
 // ensure that double-click outside the nodeWindow does not select text in there.
 document.getElementById('nodeWindow').addEventListener("dblclick", function () {
@@ -71,7 +57,9 @@ function getDesiredFieldSize() {
 
 window.addEventListener("resize", function () {
     let [w, h] = getDesiredFieldSize();
-    app.renderer.resize(w, h);
+    if (app.renderer) {
+        app.renderer.resize(w, h);
+    }
     if (vis !== null) {
         vis.onResize(w, h)
     }
@@ -229,11 +217,24 @@ const ASSET_MANIFEST = {
     Pause32: '/static/image/pause-32.png',
 };
 
-for (const [alias, src] of Object.entries(ASSET_MANIFEST)) {
-    PIXI.Assets.add({alias, src});
-}
+async function init() {
+    let [w, h] = getDesiredFieldSize();
+    await app.init({
+        width: w,
+        height: h,
+        // backgroundColor: 0xdddddd,
+        backgroundAlpha: 0,
+        autoDensity: true,
+        antialias: true,
+        resolution: window.devicePixelRatio,
+        sharedTicker: true,
+    });
+    document.body.appendChild(app.canvas);
 
-PIXI.Assets.load(Object.keys(ASSET_MANIFEST)).then((textures) => {
+    for (const [alias, src] of Object.entries(ASSET_MANIFEST)) {
+        PIXI.Assets.add({alias, src});
+    }
+    const textures = await PIXI.Assets.load(Object.keys(ASSET_MANIFEST));
     // Adapt the Assets result (alias -> Texture) to the {alias: {texture}}
     // shape the vis code reads via Resources().<alias>.texture.
     let res = {};
@@ -242,5 +243,7 @@ PIXI.Assets.load(Object.keys(ASSET_MANIFEST)).then((textures) => {
     }
     SetResources(res);
     loadOk()
-});
+}
+
+init();
 
