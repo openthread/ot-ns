@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2024, The OTNS Authors.
+# Copyright (c) 2024-2026, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -70,7 +70,7 @@ def print_services(srv):
 
 
 def main():
-    ns = OTNS(otns_args=['-seed', '34541', '-logfile', 'info'])
+    ns = OTNS(otns_args=['-seed', '34541', '-log-node', 'info'])
     ns.speed = 200
     ns.radiomodel = 'MutualInterference'
     ns.web()
