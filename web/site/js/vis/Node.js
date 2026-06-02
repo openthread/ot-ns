@@ -24,7 +24,7 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-import * as PIXI from "pixi.js-legacy";
+import * as PIXI from "pixi.js";
 import VObject from "./VObject";
 import {NodeMode, OtDeviceRole} from '../proto/visualize_grpc_pb'
 import {Visualizer} from "./PixiVisualizer";
@@ -85,7 +85,7 @@ export default class Node extends VObject {
         this._statusSprite = statusSprite;
 
         let node = this;
-        this._root.interactive = true;
+        this._root.eventMode = 'static';
         this._root.hitArea = new PIXI.Circle(0, 0, radius);
         this.setOnTouchStart((e) => {
             this.vis.setSelectedNode(node.id);
@@ -107,7 +107,7 @@ export default class Node extends VObject {
 
         this._updateSize();
 
-        let label = new PIXI.Text("", {fontFamily: NODE_LABEL_FONT_FAMILY, fontSize: NODE_LABEL_FONT_SIZE, align: 'left'});
+        let label = new PIXI.Text({text: "", style: {fontFamily: NODE_LABEL_FONT_FAMILY, fontSize: NODE_LABEL_FONT_SIZE, align: 'left'}});
         label.position.set(11, 11);
         this._root.addChild(label);
         this.label = label;
@@ -339,10 +339,9 @@ export default class Node extends VObject {
 
             const rangeCircleSize = this.radioRange;
             let rangeCircle = new PIXI.Graphics();
-            rangeCircle.beginFill(0x98ee99, 0.2);
-            rangeCircle.lineStyle({width: 1, color: 0x338a3e, alpha: 0.7});
-            rangeCircle.drawCircle(0, 0, rangeCircleSize);
-            rangeCircle.endFill();
+            rangeCircle.circle(0, 0, rangeCircleSize);
+            rangeCircle.fill({color: 0x98ee99, alpha: 0.2});
+            rangeCircle.stroke({width: 1, color: 0x338a3e, alpha: 0.7});
             this.root.addChildAt(rangeCircle, 0);
             this._rangeCircle = rangeCircle;
         }
