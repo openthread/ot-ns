@@ -106,14 +106,25 @@ func newNode(s *Simulation, nodeid NodeId, cfg *NodeConfig, dnode *dispatcher.No
 			return nil, fmt.Errorf("target RCP file '%s' is not executable", cfg.ExecutablePath)
 		}
 		if cfg.RandomSeed != 0 {
-			return nil, fmt.Errorf("random seed != 0 not supported for RCP (got %d)", cfg.RandomSeed)
+			return nil, fmt.Errorf("random seed != 0 not supported for RCP/OTBR (got %d)", cfg.RandomSeed)
 		}
 		// The executable and args formed here are for the Posix host process that will fork an RCP.
 		exePath = cfg.HostExePath
 
-		// Flag -d 5 to enable all levels of log messages to be captured in the node's log file.
-		// Flag -v to also send log messages to stderr, so OTNS can capture them.
-		args = append(args, "-d", "5", "-v")
+		if !cfg.IsBorderRouter {
+			// Flag -d 5 to enable all levels of log messages to be captured in the node's log file.
+			// Flag -v to also send log messages to stderr, so OTNS can capture them.
+			args = append(args, "-d", "5", "-v")
+		} else {
+			args = append(args, strconv.Itoa(nodeid))
+			args = append(args, cfg.NetIfName)
+			autoAttach := 0
+			if cfg.Restore {
+				autoAttach = 1
+			}
+			args = append(args, fmt.Sprintf("--auto-attach=%d", autoAttach))
+		}
+
 		// Provide the args: node-id, socket name and random seed, through the
 		// SPINEL URL's forkpty-arg query parameter, that can be repeated.
 		// TODO: change to url.URL url.Values query builder, but only after ot-cli accepts percent-encoded URLs.
@@ -1059,7 +1070,11 @@ func (node *Node) setupCli() error {
 	var expectedTestCmdOutput []string
 
 	testCmd := "ifconfig"
-	expectedTestCmdOutput = []string{"down"}
+	if node.cfg.IsRcp && node.cfg.IsBorderRouter { // OTBR sets the interface 'up' by default
+		expectedTestCmdOutput = []string{"down", "up"}
+	} else {
+		expectedTestCmdOutput = []string{"down"}
+	}
 
 	// Sending initial '\n' is required for MacOS terminal setup for the real-time UART. It will trigger
 	// the CLI to write the prompt '> ' as output without a newline character. The prompt gets filtered out by

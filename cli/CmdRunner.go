@@ -454,6 +454,9 @@ func (rt *CmdRunner) executeAddNode(cc *CommandContext, cmd *AddCmd) {
 	if cmd.Raw != nil {
 		cfg.IsRaw = true
 	}
+	if cmd.BackboneIf != nil {
+		cfg.NetIfName = cmd.BackboneIf.Name
+	}
 
 	rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
 		sim.NodeConfigFinalize(&cfg)
@@ -1297,6 +1300,11 @@ func (rt *CmdRunner) executeExe(cc *CommandContext, cmd *ExeCmd) {
 					ec.Br = cmd.Path
 				}
 				cc.outputf("br : %s\n", ec.Br)
+			case OTBR:
+				if isSetPath {
+					ec.OtBr = cmd.Path
+				}
+				cc.outputf("otbr: %s\n", ec.OtBr)
 			case RCP:
 				if isSetPath {
 					ec.Rcp = cmd.Path
@@ -1325,6 +1333,7 @@ func (rt *CmdRunner) executeExe(cc *CommandContext, cmd *ExeCmd) {
 		cc.outputf("ftd: %s\n", ec.Ftd)
 		cc.outputf("mtd: %s\n", ec.Mtd)
 		cc.outputf("br : %s\n", ec.Br)
+		cc.outputf("otbr: %s\n", ec.OtBr)
 		cc.outputf("matter: %s\n", ec.Matter)
 		cc.outputf("rcp: %s\n", ec.Rcp)
 		cc.outputf("host: %s\n", ec.RcpHost)
@@ -1332,6 +1341,7 @@ func (rt *CmdRunner) executeExe(cc *CommandContext, cmd *ExeCmd) {
 		cc.outputf("Detected FTD path      : %s\n", ec.FindExecutable(ec.Ftd))
 		cc.outputf("Detected MTD path      : %s\n", ec.FindExecutable(ec.Mtd))
 		cc.outputf("Detected BR path       : %s\n", ec.FindExecutable(ec.Br))
+		cc.outputf("Detected OTBR path     : %s\n", ec.FindExecutable(ec.OtBr))
 		cc.outputf("Detected Matter path   : %s\n", ec.FindExecutable(ec.Matter))
 		cc.outputf("Detected RCP path      : %s\n", ec.FindExecutable(ec.Rcp))
 		cc.outputf("Detected RCP Host path : %s\n", ec.FindExecutable(ec.RcpHost))
