@@ -48,10 +48,10 @@
 enum
 {
     OT_SIM_EVENT_ALARM_FIRED       = 0,
-    OT_SIM_EVENT_RADIO_RECEIVED    = 1, // legacy
+    OT_SIM_EVENT_RADIO_RECEIVED    = 1, // not used / legacy
     OT_SIM_EVENT_UART_WRITE        = 2,
     OT_SIM_EVENT_UART_DISCONNECTED = 3, // not used on OT node side
-    OT_SIM_EVENT_POSTCMD           = 4, // not used?
+    OT_SIM_EVENT_POSTCMD           = 4, // not used / legacy
     OT_SIM_EVENT_OTNS_STATUS_PUSH  = 5,
     OT_SIM_EVENT_RADIO_COMM_START  = 6,
     OT_SIM_EVENT_RADIO_TX_DONE     = 7,

@@ -46,7 +46,8 @@ type NodeConfig struct {
 	NodeLogFile    bool
 	RadioRange     int
 	ExecutablePath string // executable full path or "" for auto-determined
-	HostExePath    string // for RCP nodes, the executable full path for the host process
+	HostExePath    string // for RCP/OTBR nodes, the executable full path for the host process
+	NetIfName      string // for OTBRs/BRs, an external network interface name to use
 	Restore        bool
 	InitScript     []string // a sequence of CLI commands executed at first startup of node
 	RandomSeed     int32
@@ -75,6 +76,10 @@ func (cfg *NodeConfig) UpdateNodeConfigFromType() error {
 	case BR:
 		cfg.IsRouter = true
 		cfg.IsBorderRouter = true
+	case OTBR:
+		cfg.IsRouter = true
+		cfg.IsBorderRouter = true
+		cfg.IsRcp = true
 	case EXT:
 		cfg.IsExternal = true
 	case RCP:

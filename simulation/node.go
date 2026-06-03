@@ -39,6 +39,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -104,13 +105,24 @@ func newNode(s *Simulation, nodeid NodeId, cfg *NodeConfig, dnode *dispatcher.No
 			return nil, fmt.Errorf("target RCP file '%s' is not executable", cfg.ExecutablePath)
 		}
 		if cfg.RandomSeed != 0 {
-			return nil, fmt.Errorf("random seed != 0 not supported for RCP (got %d)", cfg.RandomSeed)
+			return nil, fmt.Errorf("random seed != 0 not supported for RCP/OTBR (got %d)", cfg.RandomSeed)
 		}
 		// The executable and args formed here are for the Posix host process that will fork an RCP.
 		exePath = cfg.HostExePath
-		// Flag -v to send OT log messages also to stderr (and not only syslog)
-		// Flag -d 5 to enable all levels of log messages to be captured in the node's log file.
-		args = append(args, "-d", "5")
+
+		if !cfg.IsBorderRouter {
+			// Flag -d 5 to enable all levels of log messages to be captured in the node's log file.
+			args = append(args, "-d", "5")
+		} else {
+			args = append(args, strconv.Itoa(nodeid))
+			args = append(args, cfg.NetIfName)
+			autoAttach := 0
+			if cfg.Restore {
+				autoAttach = 1
+			}
+			args = append(args, fmt.Sprintf("--auto-attach=%d", autoAttach))
+		}
+
 		// Provide the args: node-id, socket name and random seed, through the
 		// SPINEL URL's forkpty-arg query parameter, that can be repeated.
 		// TODO: change to url.URL url.Values query builder, but only after ot-cli accepts percent-encoded URLs.
@@ -1059,8 +1071,14 @@ func (node *Node) isLineMatch(line string, _expectedLine interface{}) bool {
 // first-time CLI command usage.
 func (node *Node) setupCli() error {
 	var testCmdOutput string
+	var expectedTestCmdOutput []string
+
 	testCmd := "ifconfig"
-	expectedTestCmdOutput := "down"
+	if node.cfg.IsRcp && node.cfg.IsBorderRouter { // OTBR sets the interface 'up' by default
+		expectedTestCmdOutput = []string{"down", "up"}
+	} else {
+		expectedTestCmdOutput = []string{"down"}
+	}
 
 	// Sending initial '\n' is required for MacOS terminal setup for the real-time UART. It will trigger
 	// the CLI to write the prompt '> ' as output without a newline character. The prompt gets filtered out by
@@ -1091,8 +1109,8 @@ func (node *Node) setupCli() error {
 		return fmt.Errorf("received unexpected (longer) node output: %v", outputLines)
 	}
 
-	if testCmdOutput != expectedTestCmdOutput {
-		return fmt.Errorf("node did not provide expected output for '%s' ('%s'), but: '%s'", testCmd, expectedTestCmdOutput, testCmdOutput)
+	if !slices.Contains(expectedTestCmdOutput, testCmdOutput) {
+		return fmt.Errorf("node did not provide expected output for '%s' (%v), but: '%s'", testCmd, expectedTestCmdOutput, testCmdOutput)
 	}
 	node.Logger.Debugf("setupCli done: uartHasEcho=%t", node.uartHasEcho)
 
