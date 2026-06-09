@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright (c) 2020-2025, The OTNS Authors.
+# Copyright (c) 2020-2026, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -80,7 +80,7 @@ install_deps()
 
 install_otns()
 {
-    ./script/install
+    ./script/install-otns
 }
 
 py_unittests()

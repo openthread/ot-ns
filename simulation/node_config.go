@@ -144,7 +144,7 @@ var DefaultExecutableConfig ExecutableConfig = ExecutableConfig{
 	Mtd:         "ot-cli-mtd",
 	Br:          "ot-cli-ftd_br",
 	Matter:      "ot-matter-node",
-	SearchPaths: []string{".", "./ot-rfsim/ot-versions", "./build/bin"},
+	SearchPaths: []string{".", filePathInUserHomeDir(".local/share/otns/bin"), "./ot-rfsim/ot-versions"},
 }
 
 func DefaultNodeConfig() NodeConfig {
@@ -280,7 +280,7 @@ func (cfg *ExecutableConfig) FindExecutable(exeName string) string {
 			return "./" + exePath
 		}
 	}
-	// if not found, try to relay on OS $PATH to find the executables.
+	// if not found, try to rely on OS $PATH to find the executables.
 	return exeName
 }
 
