@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2024, The OpenThread Authors.
+ *  Copyright (c) 2022-2026, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -36,9 +36,6 @@
 
 #include "event-sim.h"
 #include "platform-rfsim.h"
-
-// socket communication parameters for events
-extern int gSockFd;
 
 struct Event gLastSentEvent;
 
@@ -200,11 +197,11 @@ void otSimSendEvent(struct Event *aEvent)
 {
     ssize_t rval;
 
-    aEvent->mMsgId = gLastMsgId;
-    gLastSentEvent = *aEvent;
-
     if (gSockFd == 0) // don't send events if socket invalid.
         return;
+
+    aEvent->mMsgId = gLastRecvEvent.mMsgId;
+    gLastSentEvent = *aEvent;
 
     // send header and data.
     rval = write(gSockFd, aEvent, offsetof(struct Event, mData) + aEvent->mDataLength);

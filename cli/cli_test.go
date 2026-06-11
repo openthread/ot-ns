@@ -61,6 +61,10 @@ func TestParseBytes(t *testing.T) {
 	assert.True(t, cmd.Add.RadioRange.Val == 1234)
 	assert.Nil(t, parseBytes([]byte("add router x 1 y 2 id 3 rr 1234"), &cmd))
 	assert.Nil(t, parseBytes([]byte("add router rr 1234 id 3 y 2 x 1"), &cmd))
+	assert.Nil(t, parseBytes([]byte(`add otbr if "eth0"`), &cmd))
+	assert.True(t, cmd.Add.BackboneIf != nil && cmd.Add.BackboneIf.Name == "eth0")
+	assert.Nil(t, parseBytes([]byte("add otbr"), &cmd))
+	assert.True(t, cmd.Add.BackboneIf == nil)
 
 	assert.Nil(t, parseBytes([]byte("autogo"), &cmd))
 	assert.NotNil(t, cmd.AutoGo)
