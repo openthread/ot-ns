@@ -1,4 +1,4 @@
-// Copyright (c) 2022-2024, The OTNS Authors.
+// Copyright (c) 2022-2026, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -29,16 +29,20 @@ package logger
 import (
 	"fmt"
 	"regexp"
+	"strings"
 )
 
 const (
 	OffLevelString     = "off"
 	NoneLevelString    = "none"
 	DefaultLevelString = "default"
+	AltOtLogMarker     = "| "
 )
 
+// Example Posix ot-cli OTNS status push: 00:00:02.233 [-] Otns----------: transmit=11,d841,121,ffff
 var (
-	logPattern = regexp.MustCompile(`\[(-|C|W|N|I|D|CRIT|WARN|NOTE|INFO|DEBG)]`)
+	logPattern               = regexp.MustCompile(`\[(-|C|W|N|I|D|CRIT|WARN|NOTE|INFO|DEBG)]`)
+	otnsStatusPushLogPattern = regexp.MustCompile(`\[-] Otns-+: (.*)$`)
 )
 
 func ParseLevelString(level string) (Level, error) {
@@ -85,7 +89,7 @@ func parseOtLevelChar(level byte) Level {
 	}
 }
 
-// ParseOtLogLine attempts to parse line as an OT generated log line with timestamp/level/message.
+// ParseOtLogLine attempts to parse 'line' as an OT-generated log line with timestamp/level/message.
 // Returns true if successful and also returns the determined log level of the log line.
 func ParseOtLogLine(line string) (bool, Level) {
 	logIdx := logPattern.FindStringSubmatchIndex(line)
@@ -93,6 +97,44 @@ func ParseOtLogLine(line string) (bool, Level) {
 		return false, 0
 	}
 	return true, parseOtLevelChar(line[logIdx[2]])
+}
+
+// ParseOtnsStatusPush parses an OT Posix host log line for OTNS status push events, coming from
+// the OTNS module, and extracts the status message, if present.
+// Returns true and the extracted status if a match is found, else returns false and an empty string.
+func ParseOtnsStatusPush(line string) (bool, string) {
+	match := otnsStatusPushLogPattern.FindStringSubmatch(line)
+	if len(match) < 2 {
+		return false, ""
+	}
+	return true, match[1]
+}
+
+// ParseOtLogLineAndAdaptMarker checks like ParseOtLogLine and if it is a log line, and if so, it replaces
+// the ': ' string that marks the start of the log message (after the log module name) with the provided
+// marker string, unless the marker is empty "".
+func ParseOtLogLineAndAdaptMarker(line string, marker string) (bool, Level, string) {
+	logIdx := logPattern.FindStringSubmatchIndex(line)
+	if logIdx == nil {
+		return false, OffLevel, line
+	}
+
+	// Find the module/message separator colon (first ': ' after the level marker).
+	level := parseOtLevelChar(line[logIdx[2]])
+	if len(marker) > 0 {
+		n := logIdx[1] + 1
+		linePart := line[n:]
+		moduleColonOffset := strings.Index(linePart, ": ")
+		if moduleColonOffset >= 8 && moduleColonOffset <= 28 {
+			// verify that no space exists between module name and colon
+			firstSpaceOffset := strings.Index(linePart, " ")
+			if firstSpaceOffset > moduleColonOffset {
+				msgStart := n + moduleColonOffset + 2
+				line = line[:msgStart-2] + marker + line[msgStart:]
+			}
+		}
+	}
+	return true, level, line
 }
 
 func GetLevelString(level Level) string {

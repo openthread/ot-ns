@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016-2024, The OpenThread Authors.
+ *  Copyright (c) 2016-2026, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -67,20 +67,28 @@
 
 /**
  * Unique node ID.
- *
  */
 extern uint32_t gNodeId;
 
 /**
- * MsgId of last received event from simulator, or 0 if no MsgId yet received.
+ * Last received event from simulator.
  */
-extern uint64_t gLastMsgId;
+extern struct Event gLastRecvEvent;
+
+/**
+ * Last (attempted and/or succeeded) sent event to simulator.
+ */
+extern struct Event gLastSentEvent;
 
 /**
  * State of requested termination of this node process.
- *
  */
 extern volatile bool gTerminate;
+
+/**
+ * Unix socket file descriptor for communication with simulator.
+ */
+extern int gSockFd;
 
 /**
  * initializes the alarm/time service used by OpenThread.
@@ -197,6 +205,29 @@ void platformLoggingInit(char *processName);
  *
  */
 void platformUartRestore(void);
+
+/**
+ * Updates the file descriptor sets with file descriptors used by the UART driver.
+ *
+ * @param[in,out]  aReadFdSet   A pointer to the read file descriptors.
+ * @param[in,out]  aWriteFdSet  A pointer to the write file descriptors.
+ * @param[in,out]  aMaxFd       A pointer to the max file descriptor.
+ */
+void platformUartUpdateFdSet(fd_set *aReadFdSet, fd_set *aWriteFdSet, fd_set *aErrorFdSet, int *aMaxFd);
+
+/**
+ * Performs UART driver processing.
+ *
+ * @param[in]  aInstance  The OpenThread instance structure.
+ */
+void platformUartProcess(otInstance *aInstance);
+
+/**
+ * Checks the UART for pending data.
+ *
+ * @return true if UART has pending data, false otherwise.
+ */
+bool platformUartHasPendingData(void);
 
 /**
  * initializes the OT-RFSIM simulator communications.

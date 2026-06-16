@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright (c) 2024-2025, The OTNS Authors.
+# Copyright (c) 2024-2026, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -82,7 +82,7 @@ install_package git --apt git --brew git || true
 git submodule update --init --recursive
 
 # Do the rest via the test script, automatically
-./script/test py-ver-unittests || die "OTNS Installation/tests failed!"
+./script/test py-quick-tests || die "OTNS Installation/tests failed!"
 
 # Check if 'otns' command is available.
 if [[ -n $(which otns) ]]; then
