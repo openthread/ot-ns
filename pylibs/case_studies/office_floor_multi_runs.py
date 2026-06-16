@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2024, The OTNS Authors.
+# Copyright (c) 2024-2026, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -72,7 +72,7 @@ def run_formation(run_id, sim_time):
     ns.close()
 
     shutil.copy('tmp/0_stats.csv', f'office_runs/{run_id_str}.csv')
-    shutil.copy('current.pcap', f'office_runs/{run_id_str}.pcap')
+    ns.save_pcap('office_runs', f'{run_id_str}.pcap')
 
 
 def main():

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2024, The OTNS Authors.
+# Copyright (c) 2024-2026, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -69,7 +69,7 @@ def expect_count(expected_count, lines):
 
 
 def main():
-    ns = OTNS(otns_args=['-seed', '84541', '-logfile', 'info'])
+    ns = OTNS(otns_args=['-seed', '84541', '-log-node', 'info'])
     ns.speed = 200
     ns.web()
 

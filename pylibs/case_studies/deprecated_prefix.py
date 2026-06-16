@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2023, The OTNS Authors.
+# Copyright (c) 2023-2026, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -25,8 +25,8 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-# Case study on routing when a prefix becomes deprecated. Requires loading current.pcap
-# into Wireshark to see the results.
+# Case study on routing when a prefix becomes deprecated. Requires loading the output
+# PCAP file into Wireshark to see the results.
 
 import logging
 from otns.cli import OTNS

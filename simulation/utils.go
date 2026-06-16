@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2024, The OTNS Authors.
+// Copyright (c) 2020-2026, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -30,25 +30,10 @@ import (
 	"encoding/binary"
 	"math/rand"
 	"net/netip"
-	"os"
-	"path/filepath"
 	"strings"
 
 	"golang.org/x/net/ipv6"
 )
-
-func removeAllFiles(globPath string) error {
-	files, err := filepath.Glob(globPath)
-	if err != nil {
-		return err
-	}
-	for _, f := range files {
-		if err := os.Remove(f); err != nil {
-			return err
-		}
-	}
-	return nil
-}
 
 func getCommitFromOtVersion(ver string) string {
 	if strings.HasPrefix(ver, "OPENTHREAD/") && len(ver) >= 13 {

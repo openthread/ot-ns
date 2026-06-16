@@ -1,4 +1,4 @@
-// Copyright (c) 2023-2024, The OTNS Authors.
+// Copyright (c) 2023-2026, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -91,7 +91,7 @@ func getLogFileName(outputPath string, simId int, nodeId NodeId) string {
 
 func (nl *NodeLogger) createLogFile() {
 	var err error
-	nl.logFile, err = os.OpenFile(nl.logFileName, os.O_CREATE|os.O_WRONLY, 0664)
+	nl.logFile, err = os.OpenFile(nl.logFileName, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0664)
 	if err != nil {
 		nl.Errorf("creating node log file %s failed: %+v", nl.logFileName, err)
 		nl.isFileEnabled = false
@@ -106,7 +106,8 @@ func (nl *NodeLogger) openLogFile() {
 	AssertTrue(nl.logFile == nil)
 
 	var err error
-	nl.logFile, err = os.OpenFile(nl.logFileName, os.O_APPEND|os.O_WRONLY, 0664)
+	// Node restarted with same ID in this simulation: append to the existing log file.
+	nl.logFile, err = os.OpenFile(nl.logFileName, os.O_WRONLY|os.O_APPEND, 0664)
 	if err != nil {
 		nl.Errorf("opening node log file %s failed: %+v", nl.logFileName, err)
 		nl.isFileEnabled = false

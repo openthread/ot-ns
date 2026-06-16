@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2020-2024, The OTNS Authors.
+# Copyright (c) 2020-2026, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -29,7 +29,13 @@ import logging
 import tracemalloc
 import unittest
 
+from pathlib import Path
+
 from otns.cli import OTNS
+
+# Unit tests always run with base OTNS instance with a fixed SimId and output path.
+OTNS_OUTPUT_PATH = 'tmp'
+OTNS_SIM_ID = 0
 
 
 class OTNSTestCase(unittest.TestCase):
@@ -44,11 +50,14 @@ class OTNSTestCase(unittest.TestCase):
 
     def setUp(self) -> None:
         logging.info("Setting up for test: %s", self.name())
+        # Removing all flash files prevents node state carrying over between tests.
+        for f in Path(OTNS_OUTPUT_PATH).glob(f'{OTNS_SIM_ID}_*.flash'):
+            f.unlink(missing_ok=True)
         self.ns = OTNS(otns_args=['-log', 'debug'])  # may add '-watch', 'trace' to see detailed OT node traces.
 
     def tearDown(self) -> None:
         self.ns.close()
-        self.ns.save_pcap("tmp/unittest_pcap", self.name() + ".pcap")
+        self.ns.save_pcap(f"{OTNS_OUTPUT_PATH}/unittest_pcap", self.name() + ".pcap")
 
     def go(self, duration: float) -> None:
         """
