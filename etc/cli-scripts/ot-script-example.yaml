@@ -37,6 +37,11 @@ script:
         br init 1 1
         br enable
 
+    rcp: |
+        # Specific configuration for any Posix+RCP based node. The CLI commands are sent to the
+        # Posix host, never the RCP. This example adapts default log level to 4 ("INFO").
+        log level 4
+
     all: |
         # Some extra settings - differ from usual setup. These are applied to all node types,
         # except for 'raw' added nodes.
