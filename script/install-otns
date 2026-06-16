@@ -1,3 +1,4 @@
+#!/bin/bash
 # Copyright (c) 2020-2026, The OTNS Authors.
 # All rights reserved.
 #
@@ -24,40 +25,31 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-name: Lint
+# Installs OTNS (without any OT node executables) and pyOTNS.
 
-on:
-  push:
-    branches-ignore:
-      - 'dependabot/**'
-  pull_request:
-    branches:
-      - 'main'
+# shellcheck source=script/common.sh
+. "$(dirname "$0")"/common.sh
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || (github.repository == 'openthread/ot-ns' && github.run_id) || github.ref }}
-  cancel-in-progress: true
+install_otns()
+{
+    go mod tidy
+    repeat 3 go_install ./cmd/...
+    echo "otns installed: $(command -v otns)"
+}
 
-permissions:
-  contents: read
+install_pyotns()
+{
+    activate_python_venv
+    cd pylibs || die "required directory 'pylibs' not found"
+    python3 -m pip install .
+    # python3 setup.py install --user --prefix= 2>/dev/null  #  alternative - fails on macos-14
+    cd - || die "cd failed"
+}
 
-jobs:
-  go-lint:
-    name: Go/Shell/Python/C/Markdown Lint
-    runs-on: ubuntu-24.04
-    env:
-      HOMEBREW_NO_AUTO_UPDATE: 1
-    steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
-      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
-        with:
-          go-version: '1.23'
-      - name: Bootstrap
-        run: |
-          sudo apt-get update
-          sudo apt-get --no-install-recommends install -y clang-format-19 clang-tidy-19
-      - name: Check pretty
-        run: |
-          ./script/install-deps
-          ./script/install-otns
-          ./script/make-pretty check
+main()
+{
+    install_pyotns
+    install_otns
+}
+
+main

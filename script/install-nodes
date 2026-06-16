@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright (c) 2024-2025, The OTNS Authors.
+# Copyright (c) 2024-2026, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -31,9 +31,16 @@
 # shellcheck source=script/common.sh
 . "$(dirname "$0")"/common.sh
 
+install_nodes_to_local_share()
+{
+    mkdir -p ~/.local/share/otns/bin
+    cp ./ot-rfsim/ot-versions/* ~/.local/share/otns/bin/
+}
+
 main()
 {
     build_openthread_versions
+    install_nodes_to_local_share
 }
 
 main
