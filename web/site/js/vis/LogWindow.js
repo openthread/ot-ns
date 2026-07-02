@@ -24,9 +24,8 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-import * as PIXI from "pixi.js-legacy";
+import * as PIXI from "pixi.js";
 import VObject from "./VObject";
-import {Scrollbox} from 'pixi-scrollbox'
 import {
     LOG_WINDOW_FONT_FAMILY, LOG_WINDOW_FONT_SIZE, LOG_WINDOW_FONT_COLOR
 } from "./consts";
@@ -44,64 +43,114 @@ const LOG_TEXT_LINE_HEIGHT = 15;
 const LOG_WINDOW_MAX_SIZE = 100;
 export const LOG_WINDOW_WIDTH = 400;
 const LOG_WINDOW_BOTTOM_PADDING = 100;
+const WHEEL_LINES_PER_NOTCH = 3;
 
+// A scrollable, bottom-tailing log view. Replaces the former pixi-scrollbox
+// dependency with a masked container scrolled via the mouse wheel.
 export default class LogWindow extends VObject {
     constructor() {
         super();
 
-        let height = window.innerHeight - LOG_WINDOW_BOTTOM_PADDING;
-        this.logIndex = 0;
-
-        this._root = new Scrollbox({
-            boxWidth: LOG_WINDOW_WIDTH,
-            boxHeight: height,
-            fade: true,
-            overflowX: "auto",
-            overflowY: "auto"
-        });
-        this.logContainer = new PIXI.Container();
-        this.lastline = new PIXI.Graphics();
-        this.lastline.clear();
-        this.lastline.beginFill(0xFFFFFF);
-        // this.lastline.lineStyle(0);
-        this.lastline.drawRect(0, 0, LOG_WINDOW_WIDTH, LOG_TEXT_LINE_HEIGHT);
-        this.lastline.endFill();
-        this.logContainer.addChild(this.lastline);
-
-        this._root.content.addChild(this.logContainer);
-        this._root.update();
+        this.boxHeight = window.innerHeight - LOG_WINDOW_BOTTOM_PADDING;
         this.loglist = [];
+        // While true, new lines keep the view pinned to the bottom (tail mode).
+        // The user scrolling up with the wheel temporarily disables it.
+        this._stickToBottom = true;
+
+        this._root = new PIXI.Container();
+        this._root.eventMode = 'static';
+
+        // White highlight bar drawn just below the most recent line.
+        this.lastline = new PIXI.Graphics();
+        this.lastline.rect(0, 0, LOG_WINDOW_WIDTH, LOG_TEXT_LINE_HEIGHT);
+        this.lastline.fill(0xFFFFFF);
+
+        this.logContainer = new PIXI.Container();
+        this.logContainer.addChild(this.lastline);
+        this._root.addChild(this.logContainer);
+
+        // Clip the log lines to the box bounds.
+        this._mask = new PIXI.Graphics();
+        this._root.addChild(this._mask);
+        this.logContainer.mask = this._mask;
+
+        this._root.on('wheel', (e) => this._onWheel(e));
+
+        this._applyBoxSize();
+    }
+
+    _disposeLogItem(log) {
+        this.logContainer.removeChild(log);
+        // explicit GPU texture clear: one unique texture per log line
+        log.destroy({ texture: true, textureSource: true });
     }
 
     addLog(text, color = LOG_WINDOW_FONT_COLOR) {
-        if (this.loglist.length === LOG_WINDOW_MAX_SIZE) {
-            let rm = this.loglist.shift();
-            this.logContainer.removeChild(rm)
+        if (this.loglist.length >= LOG_WINDOW_MAX_SIZE) {
+            let rmLog = this.loglist.shift();
+            this._disposeLogItem(rmLog);
         }
 
-        LOG_TEXT_STYLE.fill = color;
-        let log = new PIXI.Text(text, LOG_TEXT_STYLE);
-        log.position.set(3, 3 + this.logIndex * LOG_TEXT_LINE_HEIGHT);
-        this.logIndex++;
+        let log = new PIXI.Text({text, style: Object.assign({}, LOG_TEXT_STYLE, {fill: color})});
         this.logContainer.addChild(log);
         this.loglist.push(log);
-
-        this.logContainer.position.set(0, -this.loglist[0].position.y);
-        this.lastline.position.set(0, log.y + LOG_TEXT_LINE_HEIGHT);
-
-        this._root.resize({boxWidth: LOG_WINDOW_WIDTH, boxHeight: this._root.boxHeight});
-        this._root.ensureVisible(0, log.y + this.logContainer.y, LOG_WINDOW_WIDTH, log.height);
+        this._relayout();
     }
 
     clear() {
+        for (const log of this.loglist) {
+            this._disposeLogItem(log);
+        }
         this.loglist = [];
-        this.logContainer.removeChildren();
-        this.logContainer.position.set(0, 0);
-        this.logIndex = 0;
-        this._root.resize({boxWidth: LOG_WINDOW_WIDTH, boxHeight: this._root.boxHeight});
+        this._stickToBottom = true;
+        this._relayout();
     }
 
     resetLayout(width, height) {
-        this._root.resize({boxWidth: LOG_WINDOW_WIDTH, boxHeight: height - LOG_WINDOW_BOTTOM_PADDING})
+        this.boxHeight = height - LOG_WINDOW_BOTTOM_PADDING;
+        this._applyBoxSize();
+    }
+
+    _applyBoxSize() {
+        this._mask.clear();
+        this._mask.rect(0, 0, LOG_WINDOW_WIDTH, this.boxHeight);
+        this._mask.fill(0xFFFFFF);
+        this._root.hitArea = new PIXI.Rectangle(0, 0, LOG_WINDOW_WIDTH, this.boxHeight);
+        this._relayout();
+    }
+
+    _relayout() {
+        for (let i = 0; i < this.loglist.length; i++) {
+            this.loglist[i].position.set(3, 3 + i * LOG_TEXT_LINE_HEIGHT)
+        }
+        this.lastline.position.set(0, 3 + this.loglist.length * LOG_TEXT_LINE_HEIGHT);
+
+        if (this._stickToBottom) {
+            this.logContainer.y = this._minScrollY();
+        } else {
+            this._clampScroll();
+        }
+    }
+
+    _contentHeight() {
+        // log lines + the trailing highlight bar + top padding
+        return (this.loglist.length + 1) * LOG_TEXT_LINE_HEIGHT + 3;
+    }
+
+    // Most-negative allowed logContainer.y (i.e. scrolled fully to the bottom).
+    _minScrollY() {
+        return Math.min(0, this.boxHeight - this._contentHeight());
+    }
+
+    _clampScroll() {
+        this.logContainer.y = Math.max(this._minScrollY(), Math.min(0, this.logContainer.y))
+    }
+
+    _onWheel(e) {
+        let dir = e.deltaY > 0 ? 1 : -1;
+        this.logContainer.y -= dir * WHEEL_LINES_PER_NOTCH * LOG_TEXT_LINE_HEIGHT;
+        this._clampScroll();
+        // Re-enable tailing once the user scrolls back to the bottom.
+        this._stickToBottom = this.logContainer.y <= this._minScrollY() + 1;
     }
 }
