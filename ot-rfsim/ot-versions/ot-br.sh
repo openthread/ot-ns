@@ -29,17 +29,18 @@
 
 # ot-br.sh - script to start an OTBR node from an OTNS simulation.
 
-DEBG="[DEBG]-OTBR.SH-:"
-CRIT="[CRIT]-OTBR.SH-:"
-INFO="[INFO]-OTBR.SH-:"
+# Log helpers - all script logging goes to stderr, keeping stdout clean for the ot-ctl CLI interaction.
+debug() { echo "[DEBG]-OTBR.SH-: $*" 1>&2; }
+info()  { echo "[INFO]-OTBR.SH-: $*" 1>&2; }
+crit()  { echo "[CRIT]-OTBR.SH-: $*" 1>&2; }
 
 # When a running script receives SIGTERM
 cleanup()
 {
-    echo "${DEBG} ot-br.sh: caught signal, cleaning up child processes"
+    debug "caught signal, cleaning up child processes"
     jobs -p | xargs -r kill
     wait
-    echo "${DEBG} ot-br.sh: script exit"
+    debug "script exit"
     exit 0
 }
 
@@ -49,16 +50,16 @@ sudo_command_failed()
 {
     local cmd="$1"
     local cmd_path
-    echo "${CRIT} passwordless sudo failed for '${cmd}'"
-    echo "${CRIT} add below lines to /etc/sudoers (run: sudo visudo):"
+    crit "passwordless sudo failed for '${cmd}'"
+    crit "add below lines to /etc/sudoers (run: sudo visudo):"
 
     cmd="otbr-agent"
     cmd_path=$(command -v "$cmd" 2>/dev/null)
-    echo "[CRIT]           ${USER} ALL=(ALL) NOPASSWD: SETENV: ${cmd_path:-/usr/local/sbin/${cmd}}"
+    crit "    ${USER} ALL=(ALL) NOPASSWD: SETENV: ${cmd_path:-/usr/local/sbin/${cmd}}"
 
     cmd="ot-ctl"
     cmd_path=$(command -v "$cmd" 2>/dev/null)
-    echo "[CRIT]           ${USER} ALL=(ALL) NOPASSWD: ${cmd_path:-/usr/local/bin/${cmd}}"
+    crit "    ${USER} ALL=(ALL) NOPASSWD: ${cmd_path:-/usr/local/bin/${cmd}}"
     exit 1
 }
 
@@ -73,7 +74,7 @@ socket_in_use()
     fi
 }
 
-echo "${DEBG} ot-br.sh started"
+debug "script started"
 
 NODE_ID=$1
 BACKBONE_IF_NAME=$2
@@ -86,58 +87,58 @@ MAX_WAIT_SEC=5
 SOCKET_PATH="/run/openthread-${THREAD_IF_NAME}.sock"
 DATA_PATH="/var/lib/thread"
 
-echo "${DEBG}   PORT_OFFSET     =${PORT_OFFSET}"
-echo "${DEBG}   NODE_ID         =${NODE_ID}"
-echo "${DEBG}   BACKBONE_IF_NAME=${BACKBONE_IF_NAME}"
-echo "${DEBG}   THREAD_IF_NAME  =${THREAD_IF_NAME}"
-echo "${DEBG}   REST_PORT       =${REST_PORT}"
-echo "${DEBG}   RADIO_URL       =${RADIO_URL}"
-echo "${DEBG}   SOCKET_PATH     =${SOCKET_PATH}"
-echo "${DEBG}   DATA_PATH       =${DATA_PATH}"
-echo "${DEBG}   AGENT_PARAM     =${AGENT_PARAM}"
+debug "  PORT_OFFSET     =${PORT_OFFSET}"
+debug "  NODE_ID         =${NODE_ID}"
+debug "  BACKBONE_IF_NAME=${BACKBONE_IF_NAME}"
+debug "  THREAD_IF_NAME  =${THREAD_IF_NAME}"
+debug "  REST_PORT       =${REST_PORT}"
+debug "  RADIO_URL       =${RADIO_URL}"
+debug "  SOCKET_PATH     =${SOCKET_PATH}"
+debug "  DATA_PATH       =${DATA_PATH}"
+debug "  AGENT_PARAM     =${AGENT_PARAM}"
 
 # check for passwordless sudo access to commands
 sudo -n otbr-agent -V >/dev/null 2>&1 || sudo_command_failed otbr-agent
 sudo -n ot-ctl -h >/dev/null 2>&1 || sudo_command_failed ot-ctl
 
-# check for existing socket usage`
+# check for existing socket usage
 if [ -S "${SOCKET_PATH}" ]; then
     if socket_in_use "${SOCKET_PATH}"; then
-        echo "${CRIT} socket ${SOCKET_PATH} is already in use - is otbr-agent already running on ${THREAD_IF_NAME}?"
+        crit "socket ${SOCKET_PATH} is already in use - is otbr-agent already running on ${THREAD_IF_NAME}?"
         exit 1
     fi
-    echo "${DEBG} existing (unused?) file ${SOCKET_PATH} detected - start with extra delay"
+    debug "existing (unused?) file ${SOCKET_PATH} detected - start with extra delay"
     EXTRA_DELAY=3
 fi
 
-echo "${INFO} starting otbr-agent"
+info "starting otbr-agent"
 # All otbr-agent output redirected to stderr, so that ot-ctl CLI interactions are not garbled.
 sudo -n PORT_OFFSET="${PORT_OFFSET}" otbr-agent --data-path "${DATA_PATH}" -s -d 7 -I "${THREAD_IF_NAME}" \
     -B "${BACKBONE_IF_NAME}" --rest-listen-port "${REST_PORT}" "${AGENT_PARAM}" "${RADIO_URL}" 1>&2 &
 SUDO_OTBR_PID=$!
 
-echo "${DEBG} otbr-agent started in background (parent PID=${SUDO_OTBR_PID}) - waiting until ready"
+debug "otbr-agent started in background (parent PID=${SUDO_OTBR_PID}) - waiting until ready"
 
 # wait for otbr-agent to create its Unix socket
 elapsed=0
 while [ ! -S "${SOCKET_PATH}" ]; do
     if ! kill -0 "${SUDO_OTBR_PID}" 2>/dev/null; then
-        echo "[CRIT] otbr-agent exited before socket was ready"
+        crit "otbr-agent exited before socket was ready"
         exit 1
     fi
     if [ "${elapsed}" -ge "$((MAX_WAIT_SEC * 10))" ]; then
-        echo "[CRIT] timed out waiting for otbr-agent socket (${MAX_WAIT_SEC}s)"
+        crit "timed out waiting for otbr-agent socket (${MAX_WAIT_SEC}s)"
         exit 1
     fi
     sleep 0.1
     elapsed=$((elapsed + 1))
 done
-echo "${DEBG} otbr-agent socket ready after $((elapsed / 10)).$((elapsed % 10))s, adding ${EXTRA_DELAY} s delay"
+debug "otbr-agent socket ready after $((elapsed / 10)).$((elapsed % 10))s, adding ${EXTRA_DELAY} s delay"
 sleep ${EXTRA_DELAY}
-echo "${INFO} starting ot-ctl CLI"
+info "starting ot-ctl CLI"
 sudo -n ot-ctl -I "${THREAD_IF_NAME}"
 
-echo "${DEBG} ot-br.sh: ot-ctl CLI exited, cleaning up child processes"
+debug "ot-br.sh: ot-ctl CLI exited, cleaning up child processes"
 jobs -p | xargs -r kill
 wait
-echo "${DEBG} ot-br.sh: script exit"
+debug "ot-br.sh: script exit"
