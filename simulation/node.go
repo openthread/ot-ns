@@ -933,8 +933,9 @@ func (node *Node) lineReaderStdErr(reader io.Reader) {
 }
 
 // lineReaderStdOut is a goroutine to read stdout lines from a Posix host CLI process (i.e. for RCP nodes
-// only) and turn these into one UART-write events. Any log lines are filtered out: these are already
-// handled by lineReaderStdErr, which is a faster path (pipe that is not kernel-buffered).
+// only) and turn these into UART-write events. Note that log lines are not expected here (by design) so
+// we don't check for those. Log lines are handled by lineReaderStdErr, which is a faster path (pipe that
+// is not kernel-buffered).
 func (node *Node) lineReaderStdOut(reader io.Reader) {
 	logger.AssertTrue(node.cfg.IsRcp)
 	scanner := bufio.NewScanner(reader)
@@ -942,9 +943,6 @@ func (node *Node) lineReaderStdOut(reader io.Reader) {
 
 	for scanner.Scan() {
 		line := scanner.Text()
-
-		isOtLogLine, _ := logger.ParseOtLogLine(line)
-		logger.AssertFalse(isOtLogLine)
 
 		ev := &event.Event{
 			Delay:  0,
