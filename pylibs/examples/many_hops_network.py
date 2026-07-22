@@ -1,5 +1,30 @@
 #!/usr/bin/env python3
+# Copyright (c) 2025-2026, The OTNS Authors.
+# All rights reserved.
 #
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+# 3. Neither the name of the copyright holder nor the
+#    names of its contributors may be used to endorse or promote products
+#    derived from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+
 # This script simulates a line topology of Routers with a selected number of hops,
 # for a range of packet-loss percentages. Log files (.csv) are output that show
 # the state of each node over time, to validate that Routers don't lose connectivity
@@ -49,7 +74,7 @@ def simulate(sim_speed: int = SIM_SPEED,
              packet_loss_ratio: float = 0.0,
              output_file: str = 'node_state.csv',
              key_file: str = 'network_info.txt',
-             pcap_file: str = 'current.pcap',
+             pcap_file: str = 'many_hops.pcap',
              router_count: int = ROUTER_COUNT,
              sed_count: int = SED_COUNT,
              sim_period: float = SIM_PERIOD,
@@ -140,8 +165,8 @@ def simulate(sim_speed: int = SIM_SPEED,
             for ip in ips:
                 f.write(f'{s}: {ip}\n')
 
-    os.rename('current.pcap', pcap_file)
     ns.close()
+    ns.save_pcap('.', pcap_file)
 
 
 def main():

@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025, The OTNS Authors.
+// Copyright (c) 2020-2026, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -60,7 +60,8 @@ type MainArgs struct {
 	AutoGo         bool
 	ReadOnly       bool
 	LogLevel       string
-	LogFileLevel   string
+	LogStdout      bool
+	LogNodeLevel   string
 	WatchLevel     string
 	OpenWeb        bool
 	Realtime       bool
@@ -69,9 +70,10 @@ type MainArgs struct {
 	DispatcherPort int
 	DumpPackets    bool
 	PcapType       string
-	NoReplay       bool
+	Replay         bool
 	RandomSeed     int64
 	PhyTxStats     bool
+	OutputDir      string
 }
 
 var (
@@ -97,16 +99,18 @@ func parseArgs() {
 	flag.BoolVar(&args.AutoGo, "autogo", true, "auto go (runs the simulation at given speed, without issuing 'go' commands.)")
 	flag.BoolVar(&args.ReadOnly, "readonly", false, "readonly simulation can not be manipulated")
 	flag.StringVar(&args.LogLevel, "log", "warn", "set OTNS display logging level: trace, debug, info, warn, error.")
-	flag.StringVar(&args.LogFileLevel, "logfile", "debug", "set OTNS + node file logging level: trace, debug, info, warn, error, off.")
+	flag.BoolVar(&args.LogStdout, "log-stdout", true, "write OTNS log output to console stdout/stderr ('false' logs to file only)")
+	flag.StringVar(&args.LogNodeLevel, "log-node", "debug", "set OT node (file) logging level: trace, debug, info, warn, error, off.")
 	flag.StringVar(&args.WatchLevel, "watch", "off", "set default watch (display) level for new nodes: trace, debug, info, note, warn, error, off.")
 	flag.BoolVar(&args.OpenWeb, "web", true, "open web visualization")
 	flag.BoolVar(&args.Realtime, "realtime", false, "use real-time mode (forced speed=1 and autogo)")
 	flag.StringVar(&args.ListenAddr, "listen", fmt.Sprintf("localhost:%d", InitialDispatcherPort), "specify TCP/UDP host and port base value for web-GUI/RPC. Recommended ports are 9000, 9010, 9020, etc.")
 	flag.BoolVar(&args.DumpPackets, "dump-packets", false, "dump packets")
-	flag.StringVar(&args.PcapType, "pcap", pcap.FrameTypeWpanStr, "PCAP file type: 'off', 'wpan', or 'wpan-tap'. PCAP is saved to file 'current.pcap'.")
-	flag.BoolVar(&args.NoReplay, "no-replay", false, "do not generate Replay file (named \"otns_?.replay\")")
+	flag.StringVar(&args.PcapType, "pcap", pcap.FrameTypeWpanStr, "PCAP output file type: 'off', 'wpan', or 'wpan-tap'.")
+	flag.BoolVar(&args.Replay, "replay", false, "generate simulation replay file (named '?_otns.replay')")
 	flag.Int64Var(&args.RandomSeed, "seed", 0, "set specific random-seed value (for reproducability)")
 	flag.BoolVar(&args.PhyTxStats, "phy-tx-stats", false, "generate PHY Tx statistics CSV file")
+	flag.StringVar(&args.OutputDir, "output", "tmp", "specify output directory for simulation results and logs")
 	flag.Parse()
 }
 
@@ -135,21 +139,49 @@ func parseListenAddr() (int, error) {
 	return simId, err
 }
 
+func validateArgs() error {
+	outputExplicit := false
+	flag.Visit(func(f *flag.Flag) {
+		if f.Name == "output" {
+			outputExplicit = true
+		}
+	})
+	if args.Realtime && outputExplicit {
+		return errors.New("-realtime cannot be combined with -output: realtime OT nodes may write flash files to './tmp' regardless of the -output directory")
+	}
+	if args.Realtime && args.RandomSeed != 0 {
+		return errors.New("-realtime cannot be combined with -seed: real-time simulations with external/Posix nodes are not fully reproducible")
+	}
+
+	return nil
+}
+
+func quitOnError(err error) {
+	if err != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+}
+
 func Main(ctx *progctx.ProgCtx, cliOptions *cli.CliOptions) {
 	handleSignals(ctx)
 	parseArgs()
-	simId, err := parseListenAddr()
-	logger.FatalIfError(err)
+	quitOnError(validateArgs())
+	quitOnError(ensureOutputDirExists(args.OutputDir))
 
+	simId, err := parseListenAddr()
+	quitOnError(err)
+
+	logger.Init(args.LogStdout, true, getOtnsLogFileName(simId), simId)
 	prng.Init(args.RandomSeed)
 	sim, err := createSimulation(simId, ctx)
-	logger.FatalIfError(err)
+	logger.FatalIfError(err, err)
 
 	visGrpcServerAddr := fmt.Sprintf("%s:%d", args.DispatcherHost, args.DispatcherPort-1)
 
 	replayFn := ""
-	if !args.NoReplay {
-		replayFn = fmt.Sprintf("otns_%d.replay", simId)
+	if args.Replay {
+		replayFn = getOtnsReplayFileName(simId)
 	}
 
 	chanGrpcClientNotifier := make(chan string, 1)
@@ -253,16 +285,17 @@ func createSimulation(simId int, ctx *progctx.ProgCtx) (*simulation.Simulation, 
 
 	simcfg := simulation.DefaultConfig()
 
+	simcfg.OutputDir = args.OutputDir
 	simcfg.LogLevel, err = logger.ParseLevelString(args.LogLevel)
 	if err != nil {
 		return nil, err
 	}
 	logger.SetLevel(simcfg.LogLevel)
-	simcfg.LogFileLevel, err = logger.ParseLevelString(args.LogFileLevel)
+	simcfg.LogNodeLevel, err = logger.ParseLevelString(args.LogNodeLevel)
 	if err != nil {
 		return nil, err
 	}
-	if args.LogFileLevel == logger.NoneLevelString || args.LogFileLevel == logger.OffLevelString {
+	if args.LogNodeLevel == logger.NoneLevelString || args.LogNodeLevel == logger.OffLevelString {
 		simcfg.NewNodeConfig.NodeLogFile = false
 	}
 	simcfg.ExeConfig.Ftd = args.OtCliPath
@@ -298,10 +331,12 @@ func createSimulation(simId int, ctx *progctx.ProgCtx) (*simulation.Simulation, 
 
 	dispatcherCfg := dispatcher.DefaultConfig()
 	dispatcherCfg.SimulationId = simcfg.Id
+	dispatcherCfg.OutputDir = args.OutputDir
 	dispatcherCfg.PcapEnabled = args.PcapType != pcap.FrameTypeOffStr
 	dispatcherCfg.PcapFrameType = pcap.ParseFrameTypeStr(args.PcapType)
 	if dispatcherCfg.PcapFrameType == pcap.FrameTypeUnknown {
-		logger.Fatalf("Unknown PCAP frame type '%s', use -h flag for an overview.", args.PcapType)
+		err = fmt.Errorf("unknown PCAP frame type '%s', use -h flag for an overview", args.PcapType)
+		quitOnError(err)
 	}
 	dispatcherCfg.DefaultWatchLevel = args.WatchLevel
 	watchLevel, err := logger.ParseLevelString(args.WatchLevel)
@@ -313,4 +348,16 @@ func createSimulation(simId int, ctx *progctx.ProgCtx) (*simulation.Simulation, 
 
 	sim, err := simulation.NewSimulation(ctx, simcfg, dispatcherCfg)
 	return sim, err
+}
+
+func ensureOutputDirExists(outputDir string) error {
+	return os.MkdirAll(outputDir, 0775)
+}
+
+func getOtnsLogFileName(simId int) string {
+	return fmt.Sprintf("%s/%d_otns.log", args.OutputDir, simId)
+}
+
+func getOtnsReplayFileName(simId int) string {
+	return fmt.Sprintf("%s/%d_otns.replay", args.OutputDir, simId)
 }

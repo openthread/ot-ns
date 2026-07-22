@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2023, The OTNS Authors.
+// Copyright (c) 2020-2026, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -175,9 +175,12 @@ func (cli *CliInstance) Run(handler CliHandler, options *CliOptions) error {
 	cli.readlineInstance = l
 	close(cli.Started)
 
+	cliStdoutAndFileWriter := io.MultiWriter(l.Stdout(), logger.GetLogWriter())
+
 	for {
 		// update the prompt and read a line
-		l.SetPrompt(handler.GetPrompt())
+		currentPrompt := handler.GetPrompt()
+		l.SetPrompt(currentPrompt)
 		line, err := l.Readline()
 
 		if len(line) > 0 && line[0] == readline.CharInterrupt {
@@ -203,12 +206,14 @@ func (cli *CliInstance) Run(handler CliHandler, options *CliOptions) error {
 
 		cmd := strings.TrimSpace(line)
 		if len(cmd) == 0 {
-			stdout.WriteString("")
+			_, _ = stdout.WriteString("")
 			_ = stdout.Sync()
 			continue
 		}
 
-		if err = handler.HandleCommand(cmd, l.Stdout()); err != nil {
+		logger.Println(currentPrompt+line, false, true) // echo user cmd to OTNS logfile
+
+		if err = handler.HandleCommand(cmd, cliStdoutAndFileWriter); err != nil {
 			_ = stdout.Sync()
 			return err
 		}

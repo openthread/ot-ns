@@ -30,8 +30,9 @@ package types
 
 const (
 	OtMaxIp6DatagramLength = 1280
-	OtMaxUdpPayloadLength  = 1232          // this can be adapted - currently not a precise maximum.
-	OtSimulationIdEnv      = "PORT_OFFSET" // the environment var used by OT simulation platforms for simulation ID.
+	OtMaxUdpPayloadLength  = 1232             // this can be adapted - currently not a precise maximum.
+	OtSimulationIdEnv      = "PORT_OFFSET"    // environment var used by all OT simulation platforms for simulation ID.
+	OtDataPathEnv          = "OTNS_DATA_PATH" // environment var used by the OT-RFSIM platform for flash file storage and retrieval.
 )
 
 // OT_ERROR_* error codes from OpenThread that can be sent by OT-NS to the OT nodes.
