@@ -1,4 +1,4 @@
-# Copyright (c) 2020-2025, The OTNS Authors.
+# Copyright (c) 2020-2026, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -77,7 +77,7 @@ jobs:
             git diff
             exit 1
           fi
-          ./script/install
+          ./script/install-otns
       - name: Build custom OT node
         # FIXME: OT_CMAKE_NINJA_TARGET used to exclude tests, because test_platform.cpp is missing otPlatAssertFail()
         run: |

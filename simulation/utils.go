@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2024, The OTNS Authors.
+// Copyright (c) 2020-2026, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -36,6 +36,14 @@ import (
 
 	"golang.org/x/net/ipv6"
 )
+
+func filePathInUserHomeDir(relPath string) string {
+	home, err := os.UserHomeDir()
+	if err == nil {
+		return filepath.Join(home, relPath)
+	}
+	return "/tmp/UserHomeDirNotFound"
+}
 
 func removeAllFiles(globPath string) error {
 	files, err := filepath.Glob(globPath)
