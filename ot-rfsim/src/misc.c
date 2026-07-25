@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016-2024, The OpenThread Authors.
+ *  Copyright (c) 2016-2026, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -37,8 +37,7 @@
 
 #include "common/logging.hpp"
 
-extern jmp_buf      gResetJump;
-extern struct Event gLastSentEvent, gLastRecvEvent;
+extern jmp_buf gResetJump;
 
 otPlatResetReason   gPlatResetReason = OT_PLAT_RESET_REASON_POWER_ON;
 bool                gPlatformPseudoResetWasRequested;
