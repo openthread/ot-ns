@@ -30,11 +30,13 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/openthread/ot-ns/simulation"
 	. "github.com/openthread/ot-ns/types"
 )
 
@@ -332,4 +334,37 @@ func TestNodeSelectorUniqueSorted(t *testing.T) {
 	exp = []NodeSelector{{All: &allStr}}
 	outp = getUniqueAndSorted(inp)
 	assert.Equal(t, exp, outp)
+}
+
+func TestCheckSafePath(t *testing.T) {
+	cwd, err := os.Getwd()
+	assert.Nil(t, err)
+	evalCwd, err := filepath.EvalSymlinks(cwd)
+	if err != nil {
+		evalCwd = cwd
+	}
+
+	safe, err := simulation.CheckSafePath("valid_filename.yaml")
+	assert.Nil(t, err)
+	assert.Equal(t, filepath.Join(evalCwd, "valid_filename.yaml"), safe)
+
+	safe, err = simulation.CheckSafePath("sub/dir/test.yaml")
+	assert.Nil(t, err)
+	assert.Equal(t, filepath.Join(evalCwd, "sub/dir/test.yaml"), safe)
+
+	safe, err = simulation.CheckSafePath("..foo.yaml")
+	assert.Nil(t, err)
+	assert.Equal(t, filepath.Join(evalCwd, "..foo.yaml"), safe)
+
+	_, err = simulation.CheckSafePath("../outside.yaml")
+	assert.NotNil(t, err)
+
+	_, err = simulation.CheckSafePath("sub/../../outside.yaml")
+	assert.NotNil(t, err)
+
+	_, err = simulation.CheckSafePath("/etc/passwd")
+	assert.NotNil(t, err)
+
+	_, err = simulation.CheckSafePath("")
+	assert.NotNil(t, err)
 }

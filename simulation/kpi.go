@@ -31,6 +31,8 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/openthread/ot-ns/dispatcher"
@@ -102,8 +104,66 @@ func (km *KpiManager) SaveDefaultFile() {
 	km.SaveFile(km.getDefaultSaveFileName())
 }
 
+// CheckSafePath validates that the given filename is safe and within the current working directory.
+func CheckSafePath(filename string) (string, error) {
+	if len(filename) == 0 {
+		return "", fmt.Errorf("empty file path")
+	}
+	cwd, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+	evalCwd, err := filepath.EvalSymlinks(cwd)
+	if err != nil {
+		evalCwd = cwd
+	}
+
+	abs, err := filepath.Abs(filename)
+	if err != nil {
+		return "", err
+	}
+
+	evalAbs := abs
+	temp := abs
+	var rest []string
+	for {
+		eval, err := filepath.EvalSymlinks(temp)
+		if err == nil {
+			evalAbs = eval
+			for i := len(rest) - 1; i >= 0; i-- {
+				evalAbs = filepath.Join(evalAbs, rest[i])
+			}
+			break
+		}
+		parent := filepath.Dir(temp)
+		if parent == temp {
+			break
+		}
+		rest = append(rest, filepath.Base(temp))
+		temp = parent
+	}
+
+	rel, err := filepath.Rel(evalCwd, evalAbs)
+	if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return "", fmt.Errorf("access outside working directory is not allowed: %s", filename)
+	}
+
+	return evalAbs, nil
+}
+
 func (km *KpiManager) SaveFile(fn string) {
 	logger.AssertNotNil(km.sim)
+	var cleanFn string
+	var err error
+	if fn == km.getDefaultSaveFileName() {
+		cleanFn = fn
+	} else {
+		cleanFn, err = CheckSafePath(fn)
+		if err != nil {
+			logger.Errorf("Invalid KPI JSON file name: %v", err)
+			return
+		}
+	}
 	if km.isRunning {
 		km.curCounters = km.retrieveNodeCounters()
 		km.curRadioStats = km.retrieveRadioModelStats()
@@ -118,9 +178,9 @@ func (km *KpiManager) SaveFile(fn string) {
 		return
 	}
 
-	err = os.WriteFile(fn, jsn, 0644)
+	err = os.WriteFile(cleanFn, jsn, 0644)
 	if err != nil {
-		logger.Errorf("Could not write  KPI JSON file %s: %v", fn, err)
+		logger.Errorf("Could not write  KPI JSON file %s: %v", cleanFn, err)
 		return
 	}
 }

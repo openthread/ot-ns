@@ -30,6 +30,7 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strings"
 
 	"github.com/openthread/ot-ns/logger"
 )
@@ -110,8 +111,17 @@ func (e *EnergyAnalyser) SaveEnergyDataToFile(name string, timestamp uint64) {
 		}
 	}
 
+	if name == "." || name == ".." || strings.ContainsAny(name, "/\\") {
+		logger.Errorf("Invalid energy result file name: %s", name)
+		return
+	}
+
 	//Get current directory and add name to the path
-	dir, _ := os.Getwd()
+	dir, err := os.Getwd()
+	if err != nil {
+		logger.Errorf("Failed to get current working directory: %v", err)
+		return
+	}
 
 	//create "energy_results" directory if it does not exist
 	if _, err := os.Stat(dir + "/energy_results"); os.IsNotExist(err) {
