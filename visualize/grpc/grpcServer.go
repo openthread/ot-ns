@@ -147,7 +147,23 @@ func (gs *grpcServer) Command(ctx context.Context, req *pb.CommandRequest) (*pb.
 }
 
 func (gs *grpcServer) Run() error {
-	lis, err := net.Listen("tcp", gs.address)
+	address := gs.address
+	if address == "" {
+		address = "127.0.0.1:0"
+	} else if host, port, err := net.SplitHostPort(address); err == nil {
+		if ip := net.ParseIP(host); ip != nil {
+			if ip.IsUnspecified() {
+				if ip.To4() != nil {
+					address = net.JoinHostPort("127.0.0.1", port)
+				} else {
+					address = net.JoinHostPort("::1", port)
+				}
+			}
+		} else if host == "" || host == "0" {
+			address = net.JoinHostPort("127.0.0.1", port)
+		}
+	}
+	lis, err := net.Listen("tcp", address)
 	if err != nil {
 		return err
 	}

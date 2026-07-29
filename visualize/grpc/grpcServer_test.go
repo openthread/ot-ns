@@ -75,3 +75,23 @@ func TestStopBeforeStart(t *testing.T) {
 	assert.NotNil(t, err, "expected Run() error but got nil")
 	logger.Infof("Run() err returned: %v", err)
 }
+
+func TestWildcardAddressLoopbackBinding(t *testing.T) {
+	vis := &grpcVisualizer{
+		simctrl: nil,
+		f:       newGrpcField(),
+	}
+	srv := newGrpcServer(vis, "0.0.0.0:0", nil)
+
+	var err error
+	done := make(chan bool)
+	go func() {
+		err = srv.Run()
+		done <- true
+	}()
+	time.Sleep(time.Second * 1)
+	srv.stop()
+
+	<-done
+	assert.Nil(t, err, "expected nil Run() error but got %v", err)
+}

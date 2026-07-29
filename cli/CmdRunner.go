@@ -1353,10 +1353,16 @@ func (rt *CmdRunner) executeKpi(cc *CommandContext, cmd *KpiCmd) {
 func (rt *CmdRunner) executeSave(cc *CommandContext, cmd *SaveCmd) {
 	var rootYaml yaml.Node
 
+	safeFilename, err := simulation.CheckSafePath(cmd.Filename)
+	if err != nil {
+		cc.errorf("Invalid save file name: %v", err)
+		return
+	}
+
 	// test filename if valid
-	_, err := os.Stat(cmd.Filename)
+	_, err = os.Stat(safeFilename)
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
-		cc.errorf("Invalid save file name: %s", cmd.Filename)
+		cc.errorf("Invalid save file name: %s", safeFilename)
 		return
 	}
 
@@ -1368,31 +1374,38 @@ func (rt *CmdRunner) executeSave(cc *CommandContext, cmd *SaveCmd) {
 			NetworkConfig: networkConfig,
 			NodesList:     nodesConfig,
 		}
-		err = rootYaml.Encode(root)
+		err := rootYaml.Encode(root)
 		logger.PanicIfError(err)
 
-		var data []byte
-		data, err = yaml.Marshal(&rootYaml)
-		err = os.WriteFile(cmd.Filename, data, 0644)
+		data, err := yaml.Marshal(&rootYaml)
+		if err != nil {
+			cc.errorf("Error marshaling YAML: %v", err)
+			return
+		}
+		if err := os.WriteFile(safeFilename, data, 0644); err != nil {
+			cc.errorf("Error writing file '%s': %v", safeFilename, err)
+		}
 	})
-
-	if err != nil {
-		cc.errorf("Error writing file '%s': %v", cmd.Filename, err)
-	}
 }
 
 func (rt *CmdRunner) executeLoad(cc *CommandContext, cmd *LoadCmd) {
+	safeFilename, err := simulation.CheckSafePath(cmd.Filename)
+	if err != nil {
+		cc.errorf("Invalid load file name: %v", err)
+		return
+	}
+
 	// test filename if valid
-	fileInfo, err := os.Stat(cmd.Filename)
+	fileInfo, err := os.Stat(safeFilename)
 	if err != nil || fileInfo.IsDir() {
-		cc.errorf("Invalid load file name: %s", cmd.Filename)
+		cc.errorf("Invalid load file name: %s", safeFilename)
 		return
 	}
 
 	rt.postAsyncWait(cc, func(sim *simulation.Simulation) {
-		b, err := os.ReadFile(cmd.Filename)
+		b, err := os.ReadFile(safeFilename)
 		if err != nil {
-			cc.errorf("Could not load file '%s': %v", cmd.Filename, err)
+			cc.errorf("Could not load file '%s': %v", safeFilename, err)
 			return
 		}
 		cfgFile := simulation.YamlConfigFile{}
