@@ -24,12 +24,12 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-import * as PIXI from "pixi.js-legacy";
+import * as PIXI from "pixi.js";
 import VObject from "./VObject";
 
 export class Text extends VObject {
     constructor(text, style) {
         super();
-        this._root = new PIXI.Text(text, style)
+        this._root = new PIXI.Text({text, style})
     }
 }

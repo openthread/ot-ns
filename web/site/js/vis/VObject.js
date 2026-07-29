@@ -24,7 +24,7 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-import * as PIXI from "pixi.js-legacy";
+import * as PIXI from "pixi.js";
 import {Visualizer} from "./PixiVisualizer";
 
 
@@ -69,11 +69,11 @@ export default class VObject {
     }
 
     get interactive() {
-        return this._root.interactive
+        return this._root.eventMode !== 'none'
     }
 
     set interactive(v) {
-        this._root.interactive = v
+        this._root.eventMode = v ? 'static' : 'none'
     }
 
     get text() {
@@ -113,40 +113,33 @@ export default class VObject {
     }
 
     setOnTouchStart(func) {
-        this._root.on("mousedown", func);
-        // this._root.on("pointerdown", func)
-        this._root.on("touchstart", func)
+        this._root.on("pointerdown", func);
     }
 
     setOnTouchEnd(func) {
-        this._root.on("mouseup", func);
-        this._root.on("mouseupoutside", func);
-        // this._root.on("pointerup", func)
-        // this._root.on("pointerupoutside", func)
-        this._root.on("touchend", func);
-        this._root.on("touchendoutside", func)
+        this._root.on("pointerup", func);
+        this._root.on("pointerupoutside", func);
     }
 
     setOnTap(func) {
-        this._root.on("click", func);
-        // this._root.on("pointertap", func)
-        this._root.on("tap", func)
+        this._root.on("pointertap", func);
     }
 
     setOnTouchMove(func) {
-        this._root.on("mousemove", func);
-        this._root.on("touchmove", func)
-        // this._root.on("pointermove", func)
+        // globalpointermove (Pixi v7.2+) fires for pointer moves anywhere, not
+        // only while over the object, so a fast drag keeps tracking after the
+        // pointer leaves the object's bounds.
+        this._root.on("globalpointermove", func);
     }
 
     setDraggable() {
         this.setOnTouchStart((e) => {
             e.stopPropagation();
-            this._draggingMouseDownPos = e.data.getLocalPosition(this.vis._root)
+            this._draggingMouseDownPos = e.getLocalPosition(this.vis._root)
         });
 
         this.setOnTouchMove((e) => {
-            let pos = e.data.getLocalPosition(this.vis._root);
+            let pos = e.getLocalPosition(this.vis._root);
             if (this._draggingMouseDownPos) {
                 if (Math.abs(pos.x - this._draggingMouseDownPos.x) >= 5 || Math.abs(pos.y - this._draggingMouseDownPos.y) >= 5) {
                     this.startDragging(this._draggingMouseDownPos)
@@ -160,7 +153,7 @@ export default class VObject {
         });
 
         this.setOnTouchEnd((e) => {
-            let pos = e.data.getLocalPosition(this.vis._root);
+            let pos = e.getLocalPosition(this.vis._root);
             if (this.isDragging()) {
                 e.stopPropagation();
                 this.stopDragging(pos)
@@ -193,7 +186,7 @@ export default class VObject {
         delete this._draggingMouseDownPos;
 
         if (this.isDragging()) {
-            let pos = e.data.getLocalPosition(this.vis._root);
+            let pos = e.getLocalPosition(this.vis._root);
             this.stopDragging(pos)
         }
     }

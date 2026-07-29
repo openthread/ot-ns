@@ -24,7 +24,7 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-import * as PIXI from "pixi.js-legacy";
+import * as PIXI from "pixi.js";
 import VObject from "./VObject";
 import {BUTTON_LABEL_FONT_FAMILY} from "./consts";
 
@@ -36,14 +36,14 @@ export default class Button extends VObject {
         this._onRefresh = onRefresh;
         this._minWidth = 16;
 
-        let label = new PIXI.Text(text, {fontFamily: BUTTON_LABEL_FONT_FAMILY, fontSize: 16});
+        let label = new PIXI.Text({text, style: {fontFamily: BUTTON_LABEL_FONT_FAMILY, fontSize: 16}});
         this._label = label;
         label.anchor.set(0.5, 0.5);
 
         let graphics = new PIXI.Graphics();
         this.root = graphics;
         this.root.addChild(label);
-        this.root.interactive = true;
+        this.root.eventMode = 'static';
 
         let button = this;
         this.setOnTouchStart((e) => {
@@ -126,10 +126,9 @@ export default class Button extends VObject {
             width = this.minWidth
 
         graphics.clear();
-        graphics.beginFill(0xeeeeee);
-        graphics.lineStyle(2, 0x424242);
-        graphics.drawRoundedRect(-width / 2, -height / 2, width, height, 7);
-        graphics.endFill();
+        graphics.roundRect(-width / 2, -height / 2, width, height, 7);
+        graphics.fill(0xeeeeee);
+        graphics.stroke({width: 2, color: 0x424242});
 
         if (sprite) {
             sprite.position.set(-width / 2 + spriteWidth / 2 + 8, 0)

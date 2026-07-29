@@ -24,7 +24,7 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-import * as PIXI from "pixi.js-legacy";
+import * as PIXI from "pixi.js";
 import VObject from "./VObject";
 import Button from "./Button";
 import {
@@ -44,7 +44,7 @@ export default class ActionBar extends VObject {
         super();
 
         this.root = new PIXI.Container();
-        this.root.interactive = true;
+        this.root.eventMode = 'static';
         this.root.hitArea = new PIXI.Rectangle(0, 0, 0, 0);
 
         this._buttons = [];
