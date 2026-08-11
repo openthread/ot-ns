@@ -99,10 +99,11 @@ jobs:
 
       - name: Export digest
         if: success() && github.repository == 'openthread/ot-ns' && github.event_name != 'pull_request'
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
         run: |
           mkdir -p ${{ runner.temp }}/digests
-          digest="${{ steps.build.outputs.digest }}"
-          touch "${{ runner.temp }}/digests/${digest#sha256:}"
+          touch "${{ runner.temp }}/digests/${DIGEST#sha256:}"
 
       - name: Upload digest
         if: success() && github.repository == 'openthread/ot-ns' && github.event_name != 'pull_request'
@@ -145,7 +146,7 @@ jobs:
 
       - name: Docker meta
         id: meta
-        uses: docker/metadata-action@v6
+        uses: docker/metadata-action@030e881283bb7a6894de51c315a6bfe6a94e05cf # v6.0.0
         with:
           images: |
             openthread/otns-${{ matrix.image }}
@@ -160,5 +161,7 @@ jobs:
             $(printf 'openthread/otns-${{ matrix.image }}@sha256:%s ' *)
 
       - name: Inspect image
+        env:
+          VERSION: ${{ steps.meta.outputs.version }}
         run: |
-          docker buildx imagetools inspect openthread/otns-${{ matrix.image }}:${{ steps.meta.outputs.version }}
+          docker buildx imagetools inspect openthread/otns-${{ matrix.image }}:${VERSION}
