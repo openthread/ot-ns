@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2024, The OTNS Authors.
+// Copyright (c) 2020-2026, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -45,7 +45,7 @@ const (
 	EventTypeAlarmFired         EventType = 0
 	EventTypeRadioReceived      EventType = 1
 	EventTypeUartWrite          EventType = 2
-	EventTypeRadioSpinelWrite   EventType = 3
+	EventTypeUartDisconnected   EventType = 3
 	EventTypePostCmd            EventType = 4
 	EventTypeStatusPush         EventType = 5
 	EventTypeRadioCommStart     EventType = 6
@@ -65,6 +65,7 @@ const (
 	EventTypeIp6ToHost          EventType = 21
 	EventTypeUdpFromHost        EventType = 22
 	EventTypeIp6FromHost        EventType = 23
+	EventTypeLogWriteHost       EventType = 24
 )
 
 const (
@@ -94,8 +95,7 @@ type Event struct {
 	MsgToHostData  MsgToHostEventData
 }
 
-// All ...EventData formats below only used by OT nodes supporting advanced
-// RF simulation.
+// All ...EventData formats below define the type-specific event payloads.
 const radioCommEventDataHeaderLen = 11 // from OT-RFSIM platform, event-sim.h struct
 type RadioCommEventData struct {
 	Channel  uint8
