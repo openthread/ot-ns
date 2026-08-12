@@ -926,7 +926,7 @@ uint8_t otPlatRadioGetCslUncertainty(otInstance *aInstance)
 
 void otPlatRadioSetMacKey(otInstance             *aInstance,
                           uint8_t                 aKeyIdMode,
-                          uint8_t                 aKeyId,
+                          uint8_t                 aKeyIndex,
                           const otMacKeyMaterial *aPrevKey,
                           const otMacKeyMaterial *aCurrKey,
                           const otMacKeyMaterial *aNextKey,
@@ -937,7 +937,7 @@ void otPlatRadioSetMacKey(otInstance             *aInstance,
 
     otEXPECT(aPrevKey != NULL && aCurrKey != NULL && aNextKey != NULL);
 
-    sKeyId   = aKeyId;
+    sKeyId   = aKeyIndex;
     sKeyType = aKeyType;
     memcpy(&sPrevKey, aPrevKey, sizeof(otMacKeyMaterial));
     memcpy(&sCurrKey, aCurrKey, sizeof(otMacKeyMaterial));
