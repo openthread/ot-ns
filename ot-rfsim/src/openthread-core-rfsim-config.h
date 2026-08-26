@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2017-2024, The OpenThread Authors.
+ *  Copyright (c) 2017-2026, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -60,7 +60,7 @@
 #endif
 
 #ifndef RFSIM_SW_VERSION
-#define RFSIM_SW_VERSION "2.0.0"
+#define RFSIM_SW_VERSION "2.1.0"
 #endif
 
 // Helper macros for vendor SW version string

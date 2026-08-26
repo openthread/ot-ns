@@ -164,7 +164,7 @@ export default class Node extends VObject {
     }
 
     _getStatusSpriteTexture() {
-        if (this.type === 'br') {
+        if (this.type === 'br' || this.type === 'otbr') {
             return Resources().WhiteSolidSquare64.texture;
         }
         switch (this.role) {
@@ -185,7 +185,7 @@ export default class Node extends VObject {
     }
 
     _getPartitionSpriteTexture() {
-        if (this.type === 'br') {
+        if (this.type === 'br' || this.type === 'otbr') {
             return Resources().WhiteSolidSquare64.texture;
         }
         switch (this.role) {
@@ -218,7 +218,7 @@ export default class Node extends VObject {
     _updateSize() {
         let radius = CIRCULAR_SHAPE_RADIUS;
         let heightScale = 1.0 + this.z / NODE_Z_SCALER;
-        if (this.type === 'br') {
+        if (this.type === 'br' || this.type === 'otbr') {
             radius = SQUARE_SHAPE_RADIUS;
         }
         switch (this.role) {

@@ -57,11 +57,14 @@ const (
 	ROUTER = "router"
 	REED   = "reed"
 	BR     = "br"
+	OTBR   = "otbr" // OpenThread Border Router (realtime)
 	MTD    = "mtd"
 	FTD    = "ftd"
 	WIFI   = "wifi"   // Wi-Fi interferer node
 	MATTER = "matter" // Matter node
 	EXT    = "ext"    // externally-launched node
+	RCP    = "rcp"    // Thread Router RCP+host node
+	HOST   = "host"   // Host process of the RCP
 )
 
 func GetNodeName(id NodeId) string {
