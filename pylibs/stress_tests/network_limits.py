@@ -66,7 +66,7 @@ class StressTest(BaseStressTest):
     def __init__(self):
         # Use a fixed root PRNG seed for simulation, to avoid random RF coverage white spots
         # in the radio model.
-        super(StressTest, self).__init__("Parent with max Children count", [], rand_seed=PRNG_SEED)
+        super(StressTest, self).__init__("Parent with max Children count", [], rand_seed=PRNG_SEED, web=False)
         self.ns.log = 'debug'
 
     def run(self):
