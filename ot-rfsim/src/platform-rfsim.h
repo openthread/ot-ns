@@ -293,9 +293,9 @@ void handleUdpForwarding(otMessage    *aMessage,
 void platformNetifSetUp(otInstance *aInstance);
 
 /**
- * checks if the radio is busy performing some task such as transmission,
+ * Checks if the radio is busy performing some task such as transmission,
  * actively receiving a frame, returning an ACK, or doing a CCA. Idle listening
- * (Rx) does not count as busy.
+ * (Rx) or idle waiting in an IFS period does not count as busy.
  *
  * @returns Whether radio is busy with a task.
  *

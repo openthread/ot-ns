@@ -41,7 +41,7 @@ enum
     RFSIM_CSL_UNCERTAINTY_DEFAULT_10US = 10,   // units of 10 us (ceiling of true uncertainty)
     RFSIM_TURNAROUND_TIME_US           = 40,   // radio turnaround time (us) between Rx and Tx
     RFSIM_STARTUP_TIME_US              = 140,  // Disabled -> Enabled time (us)
-    RFSIM_RAMPUP_TIME_US               = 40,   // Sleeping -> Ready time (us)
+    RFSIM_RAMPUP_TIME_US               = 40,   // Sleep -> Ready time, and channel-change retune time (us)
 };
 
 #endif // OT_RFSIM_RADIO_PARAMETERS_H
