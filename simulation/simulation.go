@@ -28,8 +28,6 @@ package simulation
 
 import (
 	"fmt"
-	"io/fs"
-	"os"
 	"sort"
 	"time"
 
@@ -83,10 +81,6 @@ func NewSimulation(ctx *progctx.ProgCtx, cfg *Config, dispatcherCfg *dispatcher.
 	s.networkInfo.Real = cfg.Realtime
 
 	// start the dispatcher for virtual time
-	if dispatcherCfg == nil {
-		dispatcherCfg = dispatcher.DefaultConfig()
-	}
-
 	if cfg.Realtime {
 		dispatcherCfg.Speed = 1.0
 	} else {
@@ -98,12 +92,6 @@ func NewSimulation(ctx *progctx.ProgCtx, cfg *Config, dispatcherCfg *dispatcher.
 	s.d = dispatcher.NewDispatcher(s.ctx, dispatcherCfg, s)
 	s.d.SetRadioModel(radiomodel.NewRadioModel(cfg.RadioModel))
 	s.vis = s.d.GetVisualizer()
-	if err := s.createTmpDir(); err != nil {
-		logger.Panicf("creating %s/ directory failed: %+v", cfg.OutputDir, err)
-	}
-	if err := s.cleanTmpDir(cfg.Id); err != nil {
-		logger.Panicf("cleaning %s/ directory files '%d_*.*' failed: %+v", cfg.OutputDir, cfg.Id, err)
-	}
 
 	//TODO add a flag to turn on/off the energy analyzer
 	s.energyAnalyser = energy.NewEnergyAnalyser()
@@ -553,25 +541,6 @@ func (s *Simulation) GoAtSpeed(duration time.Duration, speed float64) <-chan err
 	logger.AssertTrue(speed > 0)
 	s.d.GoCancel()
 	return s.d.GoAtSpeed(duration, speed)
-}
-
-func (s *Simulation) cleanTmpDir(simulationId int) error {
-	// tmp directory is used by nodes for saving *.flash files. Need to be cleaned when simulation started
-	err := removeAllFiles(fmt.Sprintf("%s/%d_*.flash", s.cfg.OutputDir, simulationId))
-	if err != nil {
-		return err
-	}
-	err = removeAllFiles(fmt.Sprintf("%s/%d_*.log", s.cfg.OutputDir, simulationId))
-	return err
-}
-
-func (s *Simulation) createTmpDir() error {
-	// tmp directory is used by nodes for saving *.flash files. Need to be present when simulation started
-	err := os.Mkdir(s.cfg.OutputDir, 0775)
-	if errors.Is(err, fs.ErrExist) {
-		return nil // ok, already present
-	}
-	return err
 }
 
 func (s *Simulation) SetTitleInfo(titleInfo visualize.TitleInfo) {

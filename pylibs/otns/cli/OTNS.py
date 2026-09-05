@@ -67,7 +67,15 @@ class OTNS(object):
 
         self._otns_path = otns_path or self._detect_otns_path()
         self._sim_id = sim_id
+        self._sim_output_path = './tmp'
         listen_port = str(9000 + sim_id * 10)
+        # Check if a custom output directory is specified in otns_args
+        if otns_args:
+            for i, arg in enumerate(otns_args):
+                if arg == '-output' and i + 1 < len(otns_args):
+                    self._sim_output_path = otns_args[i + 1]
+                elif arg.startswith('-output='):
+                    self._sim_output_path = arg.split('=', 1)[1]
         default_args = [
             '-autogo=false', '-web=false', '-speed',
             str(OTNS.DEFAULT_SIMULATE_SPEED), '-listen', f'localhost:{listen_port}'
@@ -140,7 +148,8 @@ class OTNS(object):
         :param fname: the file name of the .pcap file to save to.
         """
         os.makedirs(fpath, exist_ok=True)
-        shutil.copy2("current.pcap", os.path.join(fpath, fname))
+        pcap_src = os.path.join(self._sim_output_path, f"{self._sim_id}_otns.pcap")
+        shutil.copy2(pcap_src, os.path.join(fpath, fname))
 
     @property
     def autogo(self) -> bool:
@@ -1314,10 +1323,10 @@ class OTNS(object):
         Save collected OTNS KPI data to a JSON file.
 
         @:param filename the name of the file to save to or None for no filename provided (This will save to
-        the OTNS default file ?_kpi.json)
+        the OTNS default file in the present output directory, which is <simId>_kpi.json)
         """
         if filename is None:
-            filename = 'tmp/0_kpi.json'  # TODO: 0_ only works for default -listen port 9000.
+            filename = os.path.join(self._sim_output_path, f'{self._sim_id}_kpi.json')
             self._do_command('kpi save')
         else:
             self._do_command(f'kpi save "{filename}"')
@@ -1357,7 +1366,7 @@ class OTNS(object):
         Get the full path to the OTNS Unix socket that nodes use to connect to the current simulation.
         The current simulation is identified by the sim_id constructor argument (default 0).
         """
-        return f"/tmp/otns/socket_dispatcher_{self._sim_id}"
+        return os.path.join(self._sim_output_path, f'socket_{self._sim_id}')
 
     @staticmethod
     def _expect_int(output: List[str]) -> int:

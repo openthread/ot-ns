@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2024, The OTNS Authors.
+// Copyright (c) 2020-2026, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -54,7 +54,7 @@ func DefaultConfig() *Config {
 		DefaultWatchOn:    false,
 		DefaultWatchLevel: logger.OffLevelString,
 		SimulationId:      0,
-		OutputDir:         "tmp",
+		OutputDir:         "",
 		PhyTxStats:        false,
 	}
 }
