@@ -340,9 +340,8 @@ otError otPlatRadioDisable(otInstance *aInstance)
     otError error = OT_ERROR_NONE;
 
     otEXPECT(otPlatRadioIsEnabled(aInstance));
+    applyRadioDelayedSleep(); // a pending sleep is immediately performed
     otEXPECT_ACTION(sState == OT_RADIO_STATE_SLEEP, error = OT_ERROR_INVALID_STATE);
-
-    sDelaySleep = false;
     setRadioState(OT_RADIO_STATE_DISABLED);
 
 exit:
@@ -357,10 +356,14 @@ otError otPlatRadioSleep(otInstance *aInstance)
 
     otError error = OT_ERROR_INVALID_STATE;
 
-    if (sSubState == RFSIM_RADIO_SUBSTATE_RX_FRAME_ONGOING || sSubState == RFSIM_RADIO_SUBSTATE_RX_ACK_TX_ONGOING ||
-        sSubState == RFSIM_RADIO_SUBSTATE_RX_AIFS_WAIT)
+    if (sState == OT_RADIO_STATE_TRANSMIT)
     {
-        error       = OT_ERROR_BUSY;
+        error = OT_ERROR_BUSY;
+    }
+    else if (sSubState == RFSIM_RADIO_SUBSTATE_RX_FRAME_ONGOING ||
+             sSubState == RFSIM_RADIO_SUBSTATE_RX_ACK_TX_ONGOING || sSubState == RFSIM_RADIO_SUBSTATE_RX_AIFS_WAIT)
+    {
+        error       = OT_ERROR_NONE;
         sDelaySleep = true;
     }
     else if (sState == OT_RADIO_STATE_SLEEP || sState == OT_RADIO_STATE_RECEIVE)
@@ -381,10 +384,17 @@ otError otPlatRadioReceive(otInstance *aInstance, uint8_t aChannel)
 
     otError error = OT_ERROR_INVALID_STATE;
 
-    if (sState != OT_RADIO_STATE_DISABLED)
+    if (sState != OT_RADIO_STATE_DISABLED && sState != OT_RADIO_STATE_TRANSMIT)
     {
-        if (sState == OT_RADIO_STATE_SLEEP && sSubState != RFSIM_RADIO_SUBSTATE_STARTUP)
+        // An Ack Tx already on air cannot be recalled from the simulator: let it finish. The channel
+        // change is then applied when the substate machine reaches Ready again.
+        // TODO: consider to fix the Go radio model to detect a radio aborting (due to power/chan change)
+        bool isAckOnAir = (sSubState == RFSIM_RADIO_SUBSTATE_RX_ACK_TX_ONGOING);
+
+        if (!isAckOnAir && ((sState == OT_RADIO_STATE_SLEEP && sSubState != RFSIM_RADIO_SUBSTATE_STARTUP) ||
+                            aChannel != sCurrentChannel))
         {
+            // Going from sleep to receive, or a channel change, incurs the ramp-up time.
             setRadioSubState(RFSIM_RADIO_SUBSTATE_STARTUP, RFSIM_RAMPUP_TIME_US);
         }
         error                  = OT_ERROR_NONE;
@@ -732,6 +742,7 @@ otError otPlatRadioEnergyScan(otInstance *aInstance, uint8_t aScanChannel, uint1
     sEnergyScanResult  = OT_RADIO_RSSI_INVALID;
     sEnergyScanning    = true;
     sEnergyScanEndTime = otPlatAlarmMilliGetNow() + aScanDuration;
+    sDelaySleep        = false;
 
 exit:
     return error;
@@ -1152,8 +1163,8 @@ void setRadioState(otRadioState aState)
         switch (aState)
         {
         case OT_RADIO_STATE_DISABLED:
-            // force the radio to stop, resetting substate. Enabling again would take the startup time.
-            setRadioSubState(RFSIM_RADIO_SUBSTATE_STARTUP, RFSIM_STARTUP_TIME_US);
+            // force the radio to stop, resetting substate to base 'ready'.
+            setRadioSubState(RFSIM_RADIO_SUBSTATE_READY, UNDEFINED_TIME_US);
             break;
         default:
             break;
@@ -1239,6 +1250,8 @@ void platformRadioRxDone(otInstance                *aInstance,
     sReceiveFrame.mInfo.mRxInfo.mRssi = aRxParams->mPower;
     sReceiveFrame.mInfo.mRxInfo.mLqi  = OT_RADIO_LQI_NONE; // No support of LQI reporting.
 
+    radioReceive(aInstance, aRxParams->mError);
+
     bool isAck           = otMacFrameIsAck(&sReceiveFrame);
     bool isAckRequested  = otMacFrameIsAckRequested(&sReceiveFrame);
     bool isAddressedToMe = otMacFrameDoesAddrMatch(&sReceiveFrame, sPanId, sShortAddress, &sExtAddress);
@@ -1263,8 +1276,6 @@ void platformRadioRxDone(otInstance                *aInstance,
             (sTransmitFrame.mLength > OT_RADIO_aMaxSifsFrameSize) ? OT_RADIO_LIFS_TIME_US : OT_RADIO_SIFS_TIME_US;
         setRadioSubState(RFSIM_RADIO_SUBSTATE_IFS_WAIT, ifsTime);
     }
-
-    radioReceive(aInstance, aRxParams->mError);
 
 exit:
     return;
@@ -1307,6 +1318,7 @@ void platformRadioTxDone(otInstance *aInstance, struct RadioCommEventData *aTxDo
     if (sSubState == RFSIM_RADIO_SUBSTATE_RX_ACK_TX_ONGOING)
     {
         // Ack Tx is done now.
+        applyRadioDelayedSleep();
         setRadioSubState(RFSIM_RADIO_SUBSTATE_RX_TX_TO_RX, sTurnaroundTimeUs);
     }
     else if (sSubState == RFSIM_RADIO_SUBSTATE_TX_FRAME_ONGOING)
@@ -1429,7 +1441,8 @@ void platformRadioProcess(otInstance *aInstance)
             (sTransmitFrame.mLength > OT_RADIO_aMaxSifsFrameSize) ? OT_RADIO_LIFS_TIME_US : OT_RADIO_SIFS_TIME_US;
         switch (sSubState)
         {
-        case RFSIM_RADIO_SUBSTATE_STARTUP: // when radio/node starts.
+        case RFSIM_RADIO_SUBSTATE_STARTUP:              // when radio/node starts, or after a channel change.
+            sOngoingOperationChannel = sCurrentChannel; // startup done: radio now listens on the (new) channel.
             setRadioSubState(RFSIM_RADIO_SUBSTATE_READY, UNDEFINED_TIME_US);
             break;
 
@@ -1494,8 +1507,10 @@ void platformRadioProcess(otInstance *aInstance)
             // below is the state machine for Rx states.
         case RFSIM_RADIO_SUBSTATE_RX_FRAME_ONGOING:
             // wait until frame Rx is done. In platformRadioRxDone() the next state is selected.
-            // below is a timer-based failsafe in case the RxDone message from simulator was never received.
+            // this timer-based path is taken when no RxDone is received from the simulator: the normal
+            // case for a frame not addressed to me, and a failsafe if an RxDone was never sent.
             setRadioSubState(RFSIM_RADIO_SUBSTATE_IFS_WAIT, sTurnaroundTimeUs);
+            applyRadioDelayedSleep();
             break;
 
         case RFSIM_RADIO_SUBSTATE_RX_AIFS_WAIT:
