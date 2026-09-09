@@ -37,6 +37,7 @@ import (
 
 var (
 	CommandInterruptedError = fmt.Errorf("command interrupted due to simulation exit")
+	NodeExitedError         = fmt.Errorf("node process exited")
 )
 
 var (
@@ -87,6 +88,7 @@ type YamlScriptConfig struct {
 	Ftd string `yaml:"ftd"`
 	Br  string `yaml:"br"`
 	Ext string `yaml:"ext"`
+	Rcp string `yaml:"rcp"`
 	All string `yaml:"all"`
 }
 
@@ -118,6 +120,11 @@ func (yc *YamlConfigFile) MinNodeId() NodeId {
 
 func (ys *YamlScriptConfig) BuildMtdScript() []string {
 	script := ys.Mtd + "\n" + ys.All
+	return strings.Split(script, "\n")
+}
+
+func (ys *YamlScriptConfig) BuildRcpFtdScript() []string {
+	script := ys.Rcp + "\n" + ys.Ftd + "\n" + ys.All
 	return strings.Split(script, "\n")
 }
 

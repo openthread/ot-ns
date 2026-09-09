@@ -1,4 +1,4 @@
-// Copyright (c) 2022-2024, The OTNS Authors.
+// Copyright (c) 2022-2026, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -250,6 +250,8 @@ func (rm *RadioModelMutualInterference) txStart(node *RadioNode, evt *Event) {
 }
 
 func (rm *RadioModelMutualInterference) txStop(node *RadioNode, evt *Event) {
+	node.SetTxDone()
+
 	ch := evt.RadioCommData.Channel
 	// if channel changed during operation, we need to stop it also at the old channel.
 	isChannelChangedDuringTx := ch != node.RadioChannel

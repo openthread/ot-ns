@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2024, The OTNS Authors.
+// Copyright (c) 2020-2026, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -44,7 +44,10 @@ type mockDispatcherCallback struct {
 func (m mockDispatcherCallback) OnUartWrite(nodeid NodeId, data []byte) {
 }
 
-func (m mockDispatcherCallback) OnLogWrite(nodeid NodeId, data []byte) {
+func (m mockDispatcherCallback) OnUartDisconnected(nodeid NodeId) {
+}
+
+func (m mockDispatcherCallback) OnLogWrite(nodeid NodeId, data []byte, isFromHost bool) {
 }
 
 func (m mockDispatcherCallback) OnNextEventTime(nextTimeUs uint64) {

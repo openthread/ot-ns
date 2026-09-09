@@ -78,11 +78,11 @@ type Node struct {
 	CurTime     uint64
 	Mode        NodeMode
 	Role        OtDeviceRole
-	Type        string
 	RadioNode   *radiomodel.RadioNode
 
+	cfg             *NodeConfig
 	conn            net.Conn
-	hasDisconnected bool // keeps track of whether the node process disconnected
+	hasDisconnected bool // keeps track of whether the node process Unix socket disconnected
 	msgId           uint64
 	err             error
 	failureCtrl     *FailureCtrl // keeps track of radio failures scheduled by OTNS
@@ -117,7 +117,7 @@ func newNode(d *Dispatcher, nodeid NodeId, cfg *NodeConfig) *Node {
 		Rloc16:          InvalidRloc16,
 		Mode:            DefaultNodeMode(),
 		Role:            OtDeviceRoleDisabled,
-		Type:            cfg.Type,
+		cfg:             cfg,
 		conn:            nil, // connection will be set when first event is received from node.
 		hasDisconnected: false,
 		err:             nil, // keep track of connection errors.
@@ -130,17 +130,12 @@ func newNode(d *Dispatcher, nodeid NodeId, cfg *NodeConfig) *Node {
 	return nc
 }
 
-func (node *Node) exit() {
-	node.DisconnectSocket()
-	node.hasDisconnected = true
-	node.logger.Close()
-}
-
 // DisconnectSocket closes the socket connection (if any) with the node process.
 func (node *Node) DisconnectSocket() {
+	node.hasDisconnected = true
 	if node.conn != nil {
 		err := node.conn.Close()
-		if err == nil {
+		if err == nil { // if already closed, don't print the log message.
 			logger.Tracef("Closed dispatcher node %d socket connection.", node.Id)
 		}
 	}
@@ -150,9 +145,8 @@ func (node *Node) String() string {
 	return GetNodeName(node.Id)
 }
 
-// SendToUART sends any data to virtual time UART of the node.
-func (node *Node) SendToUART(data []byte) error {
-	var err error
+// SendToVirtualUART sends any data to the virtual-time UART of the node.
+func (node *Node) SendToVirtualUART(data []byte) error {
 	evt := &Event{
 		Timestamp: node.D.CurTime,
 		Type:      EventTypeUartWrite,
@@ -162,10 +156,7 @@ func (node *Node) SendToUART(data []byte) error {
 
 	node.logger.Tracef("UART-write: %s", data)
 	node.sendEvent(evt)
-	if node.err != nil {
-		err = node.err
-	}
-	return err
+	return node.err
 }
 
 func (node *Node) SendRfSimEvent(writeValue bool, param RfSimParam, value RfSimParamValue) error {
@@ -220,11 +211,14 @@ func (node *Node) sendEvent(evt *Event) {
 	}
 
 	if err, wasSocketClosed := node.sendRawData(evt.Serialize()); err != nil {
+		socketClosedMsg := ""
 		if wasSocketClosed {
-			node.DisconnectSocket() // just in case peer closed it, also close locally.
+			socketClosedMsg = " (socket was closed)"
 		}
+		err = fmt.Errorf("send event %v failed%s: %w", evt, socketClosedMsg, err)
 		node.logger.Error(err)
 		node.err = err
+		node.DisconnectSocket()
 	} else {
 		node.D.setAlive(node.Id)
 	}
@@ -234,6 +228,7 @@ func (node *Node) sendEvent(evt *Event) {
 // a flag indicating whether the socket was closed by either side.
 func (node *Node) sendRawData(msg []byte) (error, bool) {
 	logger.AssertNotNil(node.conn)
+
 	if _, err := node.conn.Write(msg); err != nil {
 		if errors.Is(err, net.ErrClosed) || errors.Is(err, io.EOF) || errors.Is(err, syscall.EPIPE) {
 			return err, true

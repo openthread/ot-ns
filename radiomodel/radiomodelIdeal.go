@@ -1,4 +1,4 @@
-// Copyright (c) 2022-2024, The OTNS Authors.
+// Copyright (c) 2022-2026, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -186,6 +186,8 @@ func (rm *RadioModelIdeal) txStart(srcNode *RadioNode, evt *Event) {
 }
 
 func (rm *RadioModelIdeal) txStop(node *RadioNode, evt *Event) {
+	node.SetTxDone()
+
 	// Dispatch TxDone event back to the source
 	txDoneEvt := evt.Copy()
 	txDoneEvt.Type = EventTypeRadioTxDone
