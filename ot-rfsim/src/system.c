@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016-2024, The OpenThread Authors.
+ *  Copyright (c) 2016-2026, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -49,15 +49,18 @@
 
 #include "common/debug.hpp"
 
-extern void platformReceiveEvent(otInstance *aInstance);
+extern void platformReceiveEvent(struct Event *aEvent);
+extern void platformHandleEvent(otInstance *aInstance, struct Event *aEvent);
 extern bool gPlatformPseudoResetWasRequested;
 
 static void socket_init(char *socketFilePath);
 static void handleSignal(int aSignal);
 
-volatile bool   gTerminate          = false;
-uint32_t        gNodeId             = 0;
-int             gSockFd             = 0;
+volatile bool gTerminate = false;
+uint32_t      gNodeId    = 0;
+int           gSockFd    = 0;
+struct Event  gLastRecvEvent;
+
 static uint16_t sIsInstanceInitDone = false;
 
 void otSysInit(int argc, char *argv[])
@@ -136,6 +139,7 @@ void otSysProcessDrivers(otInstance *aInstance)
     fd_set error_fds;
     int    max_fd;
     int    rval;
+    bool   is_new_event = false;
 
     if (gTerminate)
     {
@@ -144,21 +148,30 @@ void otSysProcessDrivers(otInstance *aInstance)
 
     platformInstanceInit(aInstance);
 
-    FD_ZERO(&read_fds);
-    FD_ZERO(&write_fds);
-    FD_ZERO(&error_fds);
+    // Quick poll for OTNS socket events
+    struct pollfd pfd = {gSockFd, POLLIN, 0};
+    if (poll(&pfd, 1, 0) > 0 && (pfd.revents & POLLIN))
+    {
+        platformReceiveEvent(&gLastRecvEvent);
+        is_new_event = true;
+    }
 
-    FD_SET(gSockFd, &read_fds);
-    max_fd = gSockFd;
-
-    if (!otTaskletsArePending(aInstance) && platformAlarmGetNext() > 0 &&
-        (!platformRadioIsTransmitPending() || platformRadioIsBusy()))
+    // Sleep if nothing more to do
+    if (!is_new_event && !otTaskletsArePending(aInstance) && platformAlarmGetNext() > 0 &&
+        (!platformRadioIsTransmitPending() || platformRadioIsBusy()) && !platformUartHasPendingData())
     {
         // report my final radio state at end of this time instant, then go to sleep.
         platformRadioReportStateToSimulator(false);
         otSimSendSleepEvent();
 
-        // wake up by reception of socket event from simulator.
+        // wake up by reception of socket event from simulator or UART event.
+        FD_ZERO(&read_fds);
+        FD_ZERO(&write_fds);
+        FD_ZERO(&error_fds);
+        FD_SET(gSockFd, &read_fds);
+        max_fd = gSockFd;
+        platformUartUpdateFdSet(&read_fds, &write_fds, &error_fds, &max_fd);
+
         rval = select(max_fd + 1, &read_fds, &write_fds, &error_fds, NULL);
 
         if ((rval < 0) && (errno != EINTR))
@@ -169,13 +182,22 @@ void otSysProcessDrivers(otInstance *aInstance)
 
         if (rval > 0 && FD_ISSET(gSockFd, &read_fds))
         {
-            platformReceiveEvent(aInstance);
+            platformReceiveEvent(&gLastRecvEvent);
+            is_new_event = true;
         }
+    }
+
+    if (is_new_event)
+    {
+        platformAlarmAdvanceNow(gLastRecvEvent.mDelay);
+        platformRadioProcess(aInstance); // move radio to an up-to-date (sub)state, before handling event
+        platformHandleEvent(aInstance, &gLastRecvEvent);
     }
 
     platformAlarmProcess(aInstance);
     platformRadioProcess(aInstance);
     platformRadioInterfererProcess(aInstance);
+    platformUartProcess(aInstance);
 #if OPENTHREAD_CONFIG_BLE_TCAT_ENABLE
     platformBleProcess(aInstance);
 #endif
@@ -243,7 +265,7 @@ void otSysUpdateEvents(otInstance     *aInstance,
     long nextAlarm = platformAlarmGetNext();
 
     if (!otTaskletsArePending(aInstance) && nextAlarm > 0 &&
-        (!platformRadioIsTransmitPending() || platformRadioIsBusy()))
+        (!platformRadioIsTransmitPending() || platformRadioIsBusy()) && !platformUartHasPendingData())
     {
         // report my final radio state at end of this time instant, then go to sleep.
         platformRadioReportStateToSimulator(false);
@@ -275,12 +297,16 @@ void otSysProcessEvents(otInstance   *aInstance,
 {
     if (FD_ISSET(gSockFd, aReadFdSet))
     {
-        platformReceiveEvent(aInstance);
+        platformReceiveEvent(&gLastRecvEvent);
+        platformAlarmAdvanceNow(gLastRecvEvent.mDelay);
+        platformRadioProcess(aInstance); // move radio to an up-to-date (sub)state, before handling event
+        platformHandleEvent(aInstance, &gLastRecvEvent);
     }
 
     platformAlarmProcess(aInstance);
     platformRadioProcess(aInstance);
     platformRadioInterfererProcess(aInstance);
+    platformUartProcess(aInstance);
 #if OPENTHREAD_CONFIG_BLE_TCAT_ENABLE
     platformBleProcess(aInstance);
 #endif

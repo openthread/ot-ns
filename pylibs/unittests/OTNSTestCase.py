@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2020-2024, The OTNS Authors.
+# Copyright (c) 2020-2026, The OTNS Authors.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -34,6 +34,20 @@ from otns.cli import OTNS
 
 class OTNSTestCase(unittest.TestCase):
 
+    # Default substrings of OTNS warn/error log messages that fail the test in tearDown.
+    # Subclasses may rebind this at the class level. Inside an individual test,
+    # mutate self.logFailureSignatures (a per-instance copy made in setUp) to add or
+    # remove signatures without affecting other OTNS unit tests.
+    logFailureSignatures = {
+        'received unexpected event', 'RfSimEvent with unexpected param', 'received unexpected (longer) node output',
+        'received from unknown Node', 'gRPC server could not listen', 'gRPC server quit with error',
+        'visualization error: ', 'RecvEvents timeout: alive nodes are', 'processEvent() detects unknown node',
+        'New node did not send a correct init event EventTypeNodeInfo',
+        'sent incomplete event data, closing node connection', 'received unknown status push: ',
+        ' received from apparent duplicate Node ', 'Node did not exit in time, sending SIGKILL',
+        'Kill existing grpcwebproxy process failed'
+    }
+
     @classmethod
     def setUpClass(cls) -> None:
         tracemalloc.start()
@@ -45,10 +59,30 @@ class OTNSTestCase(unittest.TestCase):
     def setUp(self) -> None:
         logging.info("Setting up for test: %s", self.name())
         self.ns = OTNS(otns_args=['-log', 'debug'])  # may add '-watch', 'trace' to see detailed OT node traces.
+        # Per-instance mutable copy: tests may add/remove from self.logFailureSignatures
+        # without bleeding into other tests via the shared class-level set.
+        self.logFailureSignatures = set(type(self).logFailureSignatures)
 
     def tearDown(self) -> None:
         self.ns.close()
         self.ns.save_pcap("tmp/unittest_pcap", self.name() + ".pcap")
+
+        # Fail test if any panic/fatal log entries were recorded
+        log_entries = self.ns.get_log_entries(levels={'panic', 'fatal'})
+        if log_entries:
+            msg = "OTNS emitted %d panic/fatal log entries during the test:" % len(log_entries)
+            for level, message in log_entries:
+                msg += f"\n  [{level}] {message}"
+            self.fail(msg)
+
+        # Fail test for specific warnings/errors we never want to see
+        log_entries = self.ns.get_log_entries(levels={'warn', 'error'})
+        matched = [(lv, msg) for lv, msg in log_entries if any(sig in msg for sig in self.logFailureSignatures)]
+        if matched:
+            msg = "OTNS emitted %d warning/error log entries matching a failure signature:" % len(matched)
+            for level, message in matched:
+                msg += f"\n  [{level}] {message}"
+            self.fail(msg)
 
     def go(self, duration: float) -> None:
         """

@@ -49,6 +49,7 @@ coverage.txt
 ot-cli-ftd*
 ot-cli-mtd*
 ot-rcp
+ot-cli
 
 # pylibs installation files
 /pylibs/build/
