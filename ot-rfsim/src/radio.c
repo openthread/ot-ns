@@ -139,7 +139,6 @@ static uint8_t          sKeyId;
 static otMacKeyMaterial sPrevKey;
 static otMacKeyMaterial sCurrKey;
 static otMacKeyMaterial sNextKey;
-static otRadioKeyType   sKeyType;
 
 static bool IsTimeAfterOrEqual(uint32_t aTimeA, uint32_t aTimeB) { return (aTimeA - aTimeB) < (1U << 31); }
 
@@ -934,11 +933,11 @@ void otPlatRadioSetMacKey(otInstance             *aInstance,
 {
     OT_UNUSED_VARIABLE(aInstance);
     OT_UNUSED_VARIABLE(aKeyIdMode);
+    OT_UNUSED_VARIABLE(aKeyType);
 
     otEXPECT(aPrevKey != NULL && aCurrKey != NULL && aNextKey != NULL);
 
-    sKeyId   = aKeyIndex;
-    sKeyType = aKeyType;
+    sKeyId = aKeyIndex;
     memcpy(&sPrevKey, aPrevKey, sizeof(otMacKeyMaterial));
     memcpy(&sCurrKey, aCurrKey, sizeof(otMacKeyMaterial));
     memcpy(&sNextKey, aNextKey, sizeof(otMacKeyMaterial));
