@@ -348,4 +348,16 @@
 #define OPENTHREAD_SIMULATION_VIRTUAL_TIME 1
 #endif
 
+/**
+ * @def OPENTHREAD_RFSIM_CONFIG_LIBRARY_MODE_ENABLE
+ *
+ * Set to 1 when the RFSIM platform is linked into a host application (e.g. a Matter node) that owns the
+ * process-wide state. In library mode, `otSysInit()` does not install the SIGTERM/SIGHUP handlers and does
+ * not configure syslog (`openlog()` / `setlogmask()`); the host application is responsible for both.
+ *
+ */
+#ifndef OPENTHREAD_RFSIM_CONFIG_LIBRARY_MODE_ENABLE
+#define OPENTHREAD_RFSIM_CONFIG_LIBRARY_MODE_ENABLE 0
+#endif
+
 #endif // OPENTHREAD_CORE_RFSIM_CONFIG_H_

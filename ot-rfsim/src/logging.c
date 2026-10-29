@@ -62,6 +62,7 @@ OT_TOOL_WEAK void otPlatLog(otLogLevel aLogLevel, otLogRegion aLogRegion, const 
 
     char    logString[512];
     int     strLen;
+    int     syslogLevel = convertOtLogLevelToSyslogLevel(aLogLevel);
     va_list args;
 
     va_start(args, aFormat);
@@ -69,7 +70,11 @@ OT_TOOL_WEAK void otPlatLog(otLogLevel aLogLevel, otLogRegion aLogRegion, const 
     va_end(args);
     OT_ASSERT(strLen >= 0);
 
-    syslog(convertOtLogLevelToSyslogLevel(aLogLevel), "%s", logString);
+    // Filter here as well, since setlogmask() is not called in library mode.
+    if (syslogLevel <= SYSLOG_LEVEL)
+    {
+        syslog(syslogLevel, "%s", logString);
+    }
 
     // extend logString with newline, and then log this string in an event.
     if (!gTerminate)
