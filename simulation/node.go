@@ -98,11 +98,11 @@ func newNode(s *Simulation, nodeid NodeId, cfg *NodeConfig, dnode *dispatcher.No
 	var cmd *exec.Cmd
 	if cfg.Type == MATTER {
 		args := []string{
-			fmt.Sprintf("--thread-args=%d", nodeid),
-			fmt.Sprintf("--thread-args=%s", s.d.GetUnixSocketName()),
+			fmt.Sprintf("--thread-arg=%d", nodeid),
+			fmt.Sprintf("--thread-arg=%s", s.d.GetUnixSocketName()),
 		}
 		if cfg.RandomSeed != 0 {
-			args = append(args, fmt.Sprintf("--thread-args=%d", cfg.RandomSeed))
+			args = append(args, fmt.Sprintf("--thread-arg=%d", cfg.RandomSeed))
 		}
 		cmd = exec.CommandContext(context.Background(), cfg.ExecutablePath, args...)
 	} else if cfg.RandomSeed == 0 {
