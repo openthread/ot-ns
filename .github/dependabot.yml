@@ -26,10 +26,13 @@
 
 version: 2
 updates:
-  - package-ecosystem: "gitsubmodule" # zizmor: ignore[dependabot-cooldown]
+  - package-ecosystem: "gitsubmodule"
     directory: "/"
     schedule:
       interval: "daily"
+    cooldown: # zizmor: ignore[dependabot-cooldown]
+      exclude:
+        - "openthread"
     allow:
       - dependency-name: "openthread"
     ignore:
