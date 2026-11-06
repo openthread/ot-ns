@@ -161,8 +161,9 @@ class ExeVersionTests(OTNSTestCase):
         ns: OTNS = self.ns
 
         ns.add('router')
+        ns.go(10)
         ns.add('router')
-        ns.go(20)
+        ns.go(15)
         self.assertFormPartitions(1)
         self.assertEqual(2, len(ns.nodes()))
 
