@@ -106,8 +106,9 @@ class BasicTests(OTNSTestCase):
         nid = ns.add("router", script="# No CLI commands send in this node-script.")
         self.assertEqual(1, nid)
         ns.add("router")
+        self.go(10)
         ns.add("router")
-        self.go(20)
+        self.go(15)
         pars = self.ns.partitions()
         self.assertEqual(2, len(pars))
         self.assertEqual([1], pars[0])  # Node 1 is expected to be unconnected
@@ -141,20 +142,21 @@ class BasicTests(OTNSTestCase):
     def testMoveNode(self):
         ns = self.ns
         ns.add("router", x=100, y=200)
-        ns.add("router", x=200, y=200)
-        ns.go(25)
+        ns.go(10)
+        ns.add("router", x=150, y=200)
+        ns.go(15)
         self.assertFormPartitions(1)
         ns.move(2, 132000, 132000)
         ns.go(180)
         self.assertFormPartitions(2)
-        ns.move(2, 200, 200, 50)  # move in 3D
+        ns.move(2, 110, 200, 50)  # move in 3D
         ns.go(250)
         self.assertFormPartitions(1)
-        ns.move(2, 198, 199)  # move in 2D plane only. Z stays as it was.
+        ns.move(2, 108, 199)  # move in 2D plane only. Z stays as it was.
         ns.go(180)
         node_info = ns.nodes()[2]
         print(node_info)
-        self.assertEqual(198, node_info['x'])
+        self.assertEqual(108, node_info['x'])
         self.assertEqual(199, node_info['y'])
         self.assertEqual(50, node_info['z'])
         self.assertFormPartitions(1)
@@ -162,8 +164,9 @@ class BasicTests(OTNSTestCase):
     def testDelNode(self):
         ns = self.ns
         ns.add("router")
+        self.go(10)
         ns.add("router")
-        self.go(25)
+        self.go(15)
         self.assertFormPartitions(1)
         ns.delete(1)
         self.go(10)
@@ -223,8 +226,9 @@ class BasicTests(OTNSTestCase):
     def testDelNonExistingNodes(self):
         ns = self.ns
         ns.add("router")
+        self.go(10)
         ns.add("router")
-        self.go(25)
+        self.go(15)
         self.assertFormPartitions(1)
         ns.delete(1, 3, 4, 5)
         self.go(10)
@@ -260,9 +264,10 @@ class BasicTests(OTNSTestCase):
 
     def testNodeFailRecover(self):
         ns = self.ns
-        ns.add("router")
-        fid = ns.add("router")
-        self.go(20)
+        ns.add("router", x=100, y=100)
+        self.go(10)
+        fid = ns.add("router", x=150, y=100)
+        self.go(15)
         self.assertFormPartitions(1)
 
         ns.radio_off(fid)
@@ -434,10 +439,11 @@ class BasicTests(OTNSTestCase):
         ns = self.ns
         # create a Thread network at default channel (11)
         ns.add("router", 100, 100)
-        ns.add("router", 100, 200)
-        ns.add("router", 200, 100)
-        ns.add("router", 200, 200)
-        self.go(130)
+        self.go(10)
+        ns.add("router", 100, 150)
+        ns.add("router", 150, 100)
+        ns.add("router", 150, 150)
+        self.go(120)
         self.assertFormPartitions(1)
 
         for n in [1, 2]:
@@ -647,8 +653,9 @@ class BasicTests(OTNSTestCase):
 
     def testBitrate(self):
         ns: OTNS = self.ns
-        ns.add('router')
-        ns.add('router')
+        ns.add('router', x=100, y=100)
+        ns.go(10)
+        ns.add('router', x=150, y=100)
         self.assertEqual(['250000'], ns.cmd('rfsim 1 bitrate'))
         self.assertEqual(['250000'], ns.cmd('rfsim 2 bitrate'))
 
@@ -659,7 +666,7 @@ class BasicTests(OTNSTestCase):
         ns.cmd('rfsim 2 bitrate 100000')
         self.assertEqual(['100000'], ns.cmd('rfsim 2 bitrate'))
 
-        ns.go(20)
+        ns.go(15)
         self.assertFormPartitions(1)
 
     def testCcaThreshold(self):
@@ -939,9 +946,10 @@ class BasicTests(OTNSTestCase):
     def testUdpTcp(self):
         ns: OTNS = self.ns
 
-        n1 = ns.add('router')
-        n2 = ns.add('router')
-        ns.go(20)
+        n1 = ns.add('router', x=100, y=100)
+        ns.go(10)
+        n2 = ns.add('router', x=150, y=100)
+        ns.go(15)
         self.assertFormPartitions(1)
         n1_ipaddr = ns.get_ipaddrs(n1, 'mleid')[0]
 
