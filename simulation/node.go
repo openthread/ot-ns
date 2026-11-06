@@ -53,6 +53,7 @@ import (
 
 const (
 	DefaultCommandTimeout = time.Second * 10
+	NodeStartTimeout      = time.Second * 15
 	NodeExitTimeout       = time.Second * 3
 	SendCoapResourceName  = "t"
 	SendMcastPrefix       = "ff13::deed"
@@ -78,6 +79,7 @@ type Node struct {
 	pipeIn        io.WriteCloser
 	pipeOut       io.ReadCloser
 	pipeErr       io.ReadCloser
+	errReaderDone chan struct{}
 	uartReader    chan []byte
 	uartType      NodeUartType
 }
@@ -151,6 +153,7 @@ func newNode(s *Simulation, nodeid NodeId, cfg *NodeConfig, dnode *dispatcher.No
 			return node, err
 		}
 
+		node.errReaderDone = make(chan struct{})
 		go node.lineReaderStdErr(node.pipeErr) // reads StdErr output from OT node exe and acts on failures
 	}
 
@@ -237,6 +240,10 @@ func (node *Node) exit() error {
 		// The node process is external, so we cannot control it here. Disconnecting the DNode socket
 		// is used instead. It triggers the Unix socket server GoRoutine to emit a final exit event.
 		node.DNode.DisconnectSocket()
+	}
+
+	if node.errReaderDone != nil {
+		<-node.errReaderDone
 	}
 
 	// finalize the log file/printing.
@@ -794,6 +801,7 @@ func (node *Node) onStart() {
 }
 
 func (node *Node) lineReaderStdErr(reader io.Reader) {
+	defer close(node.errReaderDone)
 	scanner := bufio.NewScanner(reader) // no filter applied.
 	scanner.Split(bufio.ScanLines)
 
