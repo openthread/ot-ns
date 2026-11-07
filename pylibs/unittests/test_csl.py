@@ -141,8 +141,9 @@ class CslTests(OTNSTestCase):
 
     def testCslParameters(self):
         ns: OTNS = self.ns
-        ns.add('router')
-        ns.add('router')
+        ns.add('router', x=100, y=100)
+        ns.go(10)
+        ns.add('router', x=150, y=100)
         self.assertEqual(['20'], ns.cmd('rfsim 1 cslacc'))
         self.assertEqual(['10'], ns.cmd('rfsim 2 cslunc'))
 
@@ -153,10 +154,10 @@ class CslTests(OTNSTestCase):
         ns.cmd('rfsim 2 cslunc 223')
         self.assertEqual(['223'], ns.cmd('rfsim 2 cslunc'))
 
-        ns.go(20)
+        ns.go(15)
         self.assertFormPartitions(1)
 
-        ns.add('ssed')
+        ns.add('ssed', x=125, y=150)
         ns.go(10)
         self.assertFormPartitions(1)
 

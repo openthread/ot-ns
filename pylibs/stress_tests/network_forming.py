@@ -49,7 +49,10 @@ MAX_N = 6
 
 REPEAT = max(int(os.getenv('STRESS_LEVEL', '1')), 5)
 
-EXPECTED_MERGE_TIME_MAX = [None, 10, 14, 40, 60, 130, 190]
+# In 2x2 under MutualInterference, a single faded diagonal below kPartitionMergeMinMargin can require
+# a neighbor REED to upgrade via kRouterSelectionJitter (up to 120s) before merging; avg_except_max
+# drops a single outlier, while 30s provides headroom for normal trickle merges (~14s) and rare dual hits.
+EXPECTED_MERGE_TIME_MAX = [None, 10, 30, 40, 60, 130, 190]
 
 
 class StressTest(BaseStressTest):
@@ -64,8 +67,6 @@ class StressTest(BaseStressTest):
 
     def run(self):
         # self.ns.config_visualization(broadcast_message=False)
-        self.ns.radiomodel = 'MutualInterference'
-
         for n in range(MIN_N, MAX_N + 1):
             durations = []
             for i in range(REPEAT):
@@ -88,6 +89,7 @@ class StressTest(BaseStressTest):
 
     def test_n(self, n):
         self.reset()
+        self.ns.radiomodel = 'MutualInterference'  # reset the radiomodel with new static random deviations.
 
         for r in range(n):
             for c in range(n):
