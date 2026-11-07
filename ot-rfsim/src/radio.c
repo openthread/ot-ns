@@ -45,6 +45,11 @@
 #include "utils/mac_frame.h"
 #include "utils/soft_source_match_table.h"
 
+// OT_RADIO_BROADCAST_SHORT_ADDR was added in version 461.
+#if OPENTHREAD_API_VERSION < 461
+#define OT_RADIO_BROADCAST_SHORT_ADDR 0xffff
+#endif
+
 #define US_PER_S 1000000
 
 // Compile-time checks on timing constants. The radio state machine subtracts these values from each other
@@ -195,6 +200,26 @@ exit:
 static uint64_t calcIfsTimeUs(const otRadioFrame *aFrame)
 {
     return aFrame->mLength > OT_RADIO_aMaxSifsFrameSize ? OT_RADIO_LIFS_TIME_US : OT_RADIO_SIFS_TIME_US;
+}
+
+// Check if aFrame is Ack'able, based on the destination address.
+static bool isDstAddrAckable(const otRadioFrame *aFrame)
+{
+    otMacAddress dst;
+
+    if (otMacFrameGetDstAddr(aFrame, &dst) != OT_ERROR_NONE)
+    {
+        return false;
+    }
+    if (dst.mType == OT_MAC_ADDRESS_TYPE_NONE)
+    {
+        return false;
+    }
+    if (dst.mType == OT_MAC_ADDRESS_TYPE_SHORT && dst.mAddress.mShortAddress == OT_RADIO_BROADCAST_SHORT_ADDR)
+    {
+        return false;
+    }
+    return true;
 }
 
 static uint16_t crc16_citt(uint16_t aFcs, uint8_t aByte)
@@ -726,8 +751,8 @@ void radioProcessFrame(otInstance *aInstance, otError aError)
     otEXPECT_ACTION(otMacFrameGetSrcAddr(&sReceiveFrame, &macAddress) == OT_ERROR_NONE, error = OT_ERROR_PARSE);
 #endif
 
-    // generate acknowledgment (TODO: exclude broadcast frame with AckRequested=1)
-    if (otMacFrameIsAckRequested(&sReceiveFrame) && error == OT_ERROR_NONE)
+    // generate acknowledgment (if applicable)
+    if (otMacFrameIsAckRequested(&sReceiveFrame) && isDstAddrAckable(&sReceiveFrame) && error == OT_ERROR_NONE)
     {
         radioPrepareAck();
 #if OPENTHREAD_CONFIG_THREAD_VERSION >= OT_THREAD_VERSION_1_2
@@ -1336,9 +1361,8 @@ void platformRadioRxDone(otInstance                *aInstance,
     bool isAckRequested  = otMacFrameIsAckRequested(&sReceiveFrame);
     bool isAddressedToMe = otMacFrameDoesAddrMatch(&sReceiveFrame, sPanId, sShortAddress, &sExtAddress);
 
-    // TODO: an 802.15.4 broadcast frame with AckRequested must not be ACK'ed. Also in radioProcessFrame()
     if (sSubState == RFSIM_RADIO_SUBSTATE_RX_FRAME_ONGOING && isAckRequested && !isAck && isAddressedToMe &&
-        !sPromiscuous && aRxParams->mError == OT_ERROR_NONE)
+        isDstAddrAckable(&sReceiveFrame) && !sPromiscuous && aRxParams->mError == OT_ERROR_NONE)
     {
         // Rx done ok, need to send Ack. Wait exactly time AIFS before sending out the Ack.
         setRadioSubState(RFSIM_RADIO_SUBSTATE_RX_AIFS_WAIT, OT_RADIO_AIFS_TIME_US);
