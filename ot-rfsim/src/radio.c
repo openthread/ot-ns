@@ -61,8 +61,7 @@ _Static_assert((uint64_t)RFSIM_TURNAROUND_TIME_US < (uint64_t)OT_RADIO_SIFS_TIME
 // A channel change that is pending at the end of an Ack Tx is done within the Ack-Tx->Rx turnaround.
 _Static_assert(RFSIM_RAMPUP_TIME_US <= RFSIM_TURNAROUND_TIME_US,
                "RFSIM_RAMPUP_TIME_US must not exceed RFSIM_TURNAROUND_TIME_US");
-_Static_assert(FAILSAFE_TIME_US < RFSIM_RAMPUP_TIME_US,
-               "FAILSAFE_TIME_US must be shorter than RFSIM_RAMPUP_TIME_US");
+_Static_assert(FAILSAFE_TIME_US < RFSIM_RAMPUP_TIME_US, "FAILSAFE_TIME_US must be shorter than RFSIM_RAMPUP_TIME_US");
 _Static_assert(FAILSAFE_TIME_US < OT_RADIO_WIFI_SLOT_TIME_US,
                "FAILSAFE_TIME_US must be shorter than OT_RADIO_WIFI_SLOT_TIME_US");
 
