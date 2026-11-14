@@ -313,7 +313,7 @@ loop:
 			d.currentGoDuration = duration
 			if len(d.nodes) == 0 || duration.duration < 0 {
 				// no nodes or no sim progress, sleep for a small duration to avoid high cpu
-				d.RecvEvents()
+				d.RecvEvents(DefaultReadTimeout)
 				time.Sleep(time.Millisecond * 10)
 			} else {
 				logger.AssertTrue(d.CurTime == d.pauseTime)
@@ -374,7 +374,7 @@ func (d *Dispatcher) goSimulateForDuration(duration goDuration) {
 		}
 
 		// keep receiving events from OT nodes until all are asleep i.e. will not produce more events.
-		d.RecvEvents()
+		d.RecvEvents(DefaultReadTimeout)
 		d.syncAliveNodes() // normally there should not be any alive nodes anymore.
 
 		if len(d.aliveNodes) == 0 {
@@ -489,12 +489,16 @@ func (d *Dispatcher) handleRecvEvent(evt *Event) {
 	}
 }
 
-// RecvEvents receives events from any nodes, and handles these, until there is no more alive node.
-func (d *Dispatcher) RecvEvents() int {
+// RecvEvents receives events from any nodes, and handles these, until there is no more alive node
+// or timeout expires.
+func (d *Dispatcher) RecvEvents(timeout time.Duration) int {
 	done := d.ctx.Done()
 	count := 0
 	isExiting := false
-	deadline := time.After(DefaultReadTimeout)
+	if timeout <= 0 {
+		timeout = DefaultReadTimeout
+	}
+	deadline := time.After(timeout)
 
 loop:
 	for {
@@ -987,7 +991,7 @@ func (d *Dispatcher) syncAllNodes() {
 	for _, node := range d.nodesArray {
 		d.advanceNodeTime(node, d.CurTime, false)
 	}
-	d.RecvEvents() // blocks until all nodes asleep again.
+	d.RecvEvents(DefaultReadTimeout) // blocks until all nodes asleep again.
 }
 
 func (d *Dispatcher) pcapFrameWriter() {
