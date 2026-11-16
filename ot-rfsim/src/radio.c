@@ -61,6 +61,13 @@ _Static_assert((uint64_t)RFSIM_TURNAROUND_TIME_US < (uint64_t)OT_RADIO_SIFS_TIME
 // A channel change that is pending at the end of an Ack Tx is done within the Ack-Tx->Rx turnaround.
 _Static_assert(RFSIM_RAMPUP_TIME_US <= RFSIM_TURNAROUND_TIME_US,
                "RFSIM_RAMPUP_TIME_US must not exceed RFSIM_TURNAROUND_TIME_US");
+// The Ack wait margin ('aMargin' of macAckWaitDuration) MUST be within the range allowed by the Thread spec.
+_Static_assert((uint64_t)RFSIM_ACK_WAIT_MARGIN_SYMBOLS >= (uint64_t)OT_RADIO_ACK_WAIT_MARGIN_MIN,
+               "RFSIM_ACK_WAIT_MARGIN_SYMBOLS must be at least OT_RADIO_ACK_WAIT_MARGIN_MIN");
+_Static_assert((uint64_t)RFSIM_ACK_WAIT_MARGIN_SYMBOLS <= (uint64_t)OT_RADIO_ACK_WAIT_MARGIN_MAX,
+               "RFSIM_ACK_WAIT_MARGIN_SYMBOLS must be at most aUnitBackoffPeriod (OT_RADIO_ACK_WAIT_MARGIN_MAX)");
+_Static_assert((uint64_t)RFSIM_TURNAROUND_TIME_US < (uint64_t)OT_RADIO_MAX_ACK_WAIT_US,
+               "RFSIM_TURNAROUND_TIME_US must be shorter than OT_RADIO_MAX_ACK_WAIT_US");
 _Static_assert(FAILSAFE_TIME_US < RFSIM_RAMPUP_TIME_US, "FAILSAFE_TIME_US must be shorter than RFSIM_RAMPUP_TIME_US");
 _Static_assert(FAILSAFE_TIME_US < OT_RADIO_WIFI_SLOT_TIME_US,
                "FAILSAFE_TIME_US must be shorter than OT_RADIO_WIFI_SLOT_TIME_US");
@@ -1599,8 +1606,9 @@ void platformRadioProcess(otInstance *aInstance)
             break;
 
         case RFSIM_RADIO_SUBSTATE_TX_TX_TO_AIFS:
-            // Set a max wait time for start of Ack frame to be received.
-            setRadioSubState(RFSIM_RADIO_SUBSTATE_TX_AIFS_WAIT, OT_RADIO_MAX_ACK_WAIT_US);
+            // Set a max wait time for start of Ack frame to be received. OT_RADIO_MAX_ACK_WAIT_US counts from
+            // the end of the transmitted frame, so the turnaround time that already passed is subtracted.
+            setRadioSubState(RFSIM_RADIO_SUBSTATE_TX_AIFS_WAIT, OT_RADIO_MAX_ACK_WAIT_US - sTurnaroundTimeUs);
             break;
 
         case RFSIM_RADIO_SUBSTATE_TX_AIFS_WAIT:
