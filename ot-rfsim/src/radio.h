@@ -38,6 +38,9 @@
 #define OT_TX_TYPE_INTF 192
 
 // IEEE 802.15.4 related parameters. See radio-parameters.h for radio-model-specific parameters.
+//
+// The ACK_WAIT constants are derived from Thread spec Section 3.2.3, IEEE 802.15.4-2006 MAC Layer, row 7.4.2 for
+// Imm-ACKs, and Section 3.2.5, IEEE 802.15.4-2015 MAC Layer, row 6.7 for Enh-ACKs.
 enum
 {
     kMinChannel                     = OT_RADIO_2P4GHZ_OQPSK_CHANNEL_MIN,
@@ -50,7 +53,10 @@ enum
     OT_RADIO_SHR_PHR_LENGTH_BYTES   = 6, // SHR + PHY header (PHR) length in bytes
     OT_RADIO_SHR_PHR_DURATION_US    = OT_RADIO_SHR_PHR_LENGTH_BYTES * OT_RADIO_SYMBOLS_PER_OCTET * OT_RADIO_SYMBOL_TIME,
     OT_RADIO_MAX_TURNAROUND_TIME_US = 12 * OT_RADIO_SYMBOL_TIME, // specified max turnaround time
-    OT_RADIO_MAX_ACK_WAIT_US        = (OT_RADIO_AIFS_TIME_US + (10 * OT_RADIO_SYMBOL_TIME)),
+    OT_RADIO_ACK_WAIT_MARGIN_MIN    = 10,                        // From Thread spec, min aMargin in symbols
+    OT_RADIO_ACK_WAIT_MARGIN_MAX    = 20,                        // From Thread spec, max aMargin in symbols
+    OT_RADIO_ACK_WAIT_MARGIN_US     = RFSIM_ACK_WAIT_MARGIN_SYMBOLS * OT_RADIO_SYMBOL_TIME,
+    OT_RADIO_MAX_ACK_WAIT_US        = OT_RADIO_AIFS_TIME_US + OT_RADIO_ACK_WAIT_MARGIN_US, // until Ack frame start
     OT_RADIO_aMaxSifsFrameSize      = 18, // From 802.15.4 spec - max frame size considered 'short'
 };
 

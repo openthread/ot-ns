@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2023, The OpenThread Authors.
+ *  Copyright (c) 2023-2026, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -40,6 +40,7 @@ enum
     RFSIM_CSL_ACCURACY_DEFAULT_PPM     = 20,   // ppm (both in + or - direction)
     RFSIM_CSL_UNCERTAINTY_DEFAULT_10US = 10,   // units of 10 us (ceiling of true uncertainty)
     RFSIM_TURNAROUND_TIME_US           = 40,   // radio turnaround time (us) between Rx and Tx
+    RFSIM_ACK_WAIT_MARGIN_SYMBOLS      = 12,   // 'aMargin' of macAckWaitDuration (symbols), 10-20 per Thread spec
     RFSIM_STARTUP_TIME_US              = 140,  // Disabled -> Enabled time (us)
     RFSIM_RAMPUP_TIME_US               = 40,   // Sleep -> Ready time, and channel-change retune time (us)
 };
