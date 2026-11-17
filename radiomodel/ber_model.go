@@ -47,14 +47,15 @@ func applyBerModel(sirDb DbValue, srcNodeId NodeId, evt *Event) (bool, string) {
 	pSuccess := 1.0
 	rnd := 0.5
 	logMsg := ""
-	var nbits int
+	// Duration includes the PHY header, not just the PSDU.
+	nbits := int(evt.RadioCommData.Duration / TimeUsPerBit)
 	// if sirDb >= 6.0, then ratio SIR>=~3.98, and pSuccess for any regular 15.4 frame is =~ 1.0 always.
 	// if sirDb <= -10.0, then ratio SIR<=~0.1, and pSuccess for shortest frame is < 10e-8 always.
 	// Save time (?) by not doing the calculation in these cases.
 	if sirDb < -10.0 {
 		pSuccess = 0.0
 	} else if sirDb < 6.0 {
-		pSuccess, nbits = computePacketSuccessRate(sirDb, evt.RadioCommData.Duration)
+		pSuccess = computePacketSuccessRate(sirDb, nbits)
 		rnd = prng.NewUnitRandom()
 	}
 
@@ -62,7 +63,7 @@ func applyBerModel(sirDb DbValue, srcNodeId NodeId, evt *Event) (bool, string) {
 		if rnd > pSuccess { // failure case
 			evt.Data = interferePsduData(evt.Data)
 			evt.RadioCommData.Error = OT_ERROR_FCS
-			logMsg = fmt.Sprintf("applied OT_ERROR_FCS sirDb=%f src=%d dst=%d Psuc=%f FrLen=%dB",
+			logMsg = fmt.Sprintf("applied OT_ERROR_FCS sirDb=%f src=%d dst=%d Psuc=%f PhyLen=%dB",
 				sirDb, srcNodeId, evt.NodeId, pSuccess, nbits/8) // TODO not format this if trace logging is off.
 			return true, logMsg
 		}
@@ -70,8 +71,7 @@ func applyBerModel(sirDb DbValue, srcNodeId NodeId, evt *Event) (bool, string) {
 	return false, logMsg
 }
 
-func computePacketSuccessRate(sirDb DbValue, frameDurationUs uint64) (float64, int) {
-	nbits := float64(frameDurationUs / TimeUsPerBit)
+func computePacketSuccessRate(sirDb DbValue, nbits int) float64 {
 	ber := 0.0
 	snr := math.Pow(10, sirDb/10.0)
 	for idx, coeff := range binomialCoeff {
@@ -82,9 +82,9 @@ func computePacketSuccessRate(sirDb DbValue, frameDurationUs uint64) (float64, i
 	ber = ber * 8.0 / 15.0 / 16.0
 
 	ber = math.Min(ber, 1.0)
-	psuc := math.Pow(1.0-ber, nbits)
+	psuc := math.Pow(1.0-ber, float64(nbits))
 
-	return psuc, int(nbits)
+	return psuc
 }
 
 // interferePsduData simulates bit-error(s) on PSDU data
