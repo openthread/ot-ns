@@ -306,10 +306,15 @@ bool platformRadioIsBusy(void);
  * signals the start of a received radio frame.
  *
  * @param[in]  aInstance   A pointer to the OpenThread instance.
+ * @param[in]  aBuf        A pointer to the radio frame being received (struct RadioMessage).
+ * @param[in]  aBufLength  The size of the radio frame being received (struct RadioMessage).
  * @param[in]  aRxParams   A pointer to parameters related to the reception event.
  *
  */
-void platformRadioRxStart(otInstance *aInstance, struct RadioCommEventData *aRxParams);
+void platformRadioRxStart(otInstance                *aInstance,
+                          const uint8_t             *aBuf,
+                          uint16_t                   aBufLength,
+                          struct RadioCommEventData *aRxParams);
 
 /**
  * signals the end of a received radio frame and inputs the frame data.
