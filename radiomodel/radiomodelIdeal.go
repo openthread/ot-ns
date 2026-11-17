@@ -1,4 +1,4 @@
-// Copyright (c) 2022-2024, The OTNS Authors.
+// Copyright (c) 2022-2026, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -221,7 +221,7 @@ func (rm *RadioModelIdeal) statsTxStart(node *RadioNode, evt *Event) {
 	chStats.NumFrames++
 
 	// node stats
-	node.stats.TxBytes += uint64(len(evt.Data) - 1 + PhyHeaderLenBytes)
+	node.stats.TxBytes += uint64(len(evt.Data) - RadioMessagePsduOffset + PhyHeaderLenBytes)
 	node.stats.TxTimeUs += evt.RadioCommData.Duration
 }
 
