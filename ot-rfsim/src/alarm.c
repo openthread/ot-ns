@@ -118,14 +118,15 @@ uint64_t platformAlarmGetNext(void)
     {
         int32_t milli = (int32_t)(sMsAlarm - otPlatAlarmMilliGetNow());
 
-        if (milli < 0)
+        if (milli <= 0)
         {
             remaining = 0;
         }
         else
         {
-            remaining = (uint64_t)milli;
-            remaining *= US_PER_MS;
+            // the alarm fires when the ms clock reaches sMsAlarm, i.e. at the start of that millisecond
+            // (as in platformAlarmUpdateTimeout()), not a whole number of ms after the current time.
+            remaining = (uint64_t)milli * US_PER_MS - (platformAlarmGetNow() % US_PER_MS);
         }
     }
 
