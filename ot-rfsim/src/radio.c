@@ -1327,7 +1327,7 @@ void platformRadioRxStart(otInstance                *aInstance,
                           struct RadioCommEventData *aRxParams)
 {
     OT_UNUSED_VARIABLE(aInstance);
-    OT_ASSERT(sizeof(sReceiveStartMessage) >= aBufLength);
+    otEXPECT(sizeof(sReceiveStartMessage) >= aBufLength);
 
     otEXPECT(sActiveChannel == aRxParams->mChannel);                                 // must be on my listening channel.
     otEXPECT(sState == OT_RADIO_STATE_RECEIVE || sState == OT_RADIO_STATE_TRANSMIT); // and in valid states.
