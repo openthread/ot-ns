@@ -1327,7 +1327,8 @@ void platformRadioRxStart(otInstance                *aInstance,
                           struct RadioCommEventData *aRxParams)
 {
     OT_UNUSED_VARIABLE(aInstance);
-    otEXPECT(sizeof(sReceiveStartMessage) >= aBufLength);
+    otEXPECT(aBufLength >= offsetof(struct RadioMessage, mPsdu) + OT_RADIO_FRAME_MIN_SIZE &&
+             aBufLength <= sizeof(sReceiveStartMessage));
 
     otEXPECT(sActiveChannel == aRxParams->mChannel);                                 // must be on my listening channel.
     otEXPECT(sState == OT_RADIO_STATE_RECEIVE || sState == OT_RADIO_STATE_TRANSMIT); // and in valid states.
@@ -1372,7 +1373,8 @@ void platformRadioRxDone(otInstance                *aInstance,
     // (e.g. receiving an Ack) was never locked onto: its RxDone must not complete the reception of the frame the
     // radio is locked onto and take over that frame's timestamp. The FCS is left out of the comparison: the
     // simulator changes it in the RxDone of a frame hit by interference, which is then received with an FCS error.
-    otEXPECT(aBufLength == sReceiveStartLength && aBufLength >= sizeof(uint16_t) &&
+    otEXPECT(aBufLength == sReceiveStartLength &&
+             aBufLength >= offsetof(struct RadioMessage, mPsdu) + OT_RADIO_FRAME_MIN_SIZE &&
              memcmp(&sReceiveStartMessage, aBuf, aBufLength - sizeof(uint16_t)) == 0);
 
     memcpy(&sReceiveMessage, aBuf, aBufLength);
