@@ -26,6 +26,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 import logging
+import math
+import random
 import unittest
 from typing import Dict
 
@@ -160,6 +162,77 @@ class CslTests(OTNSTestCase):
         ns.add('ssed', x=125, y=150)
         ns.go(10)
         self.assertFormPartitions(1)
+
+
+class CslRxPairingTests(OTNSTestCase):
+
+    def setUp(self) -> None:
+        self.ns = OTNS(otns_args=['-log', 'debug', '-seed', '102'])
+
+    def testConcurrentSsedTraffic(self):
+        """Overlapping receptions must not stop delivery to a CSL child (#870)."""
+        ns = self.ns
+        # Ten SSEDs fit the default parent child table. Distinct periods and a
+        # fixed traffic seed exercise overlapping receptions reproducibly.
+        periods_ms = [400, 200, 100, 500, 100, 300, 100, 500, 300, 200]
+        parent = ns.add('router', 300, 300)
+        ns.go(15)
+        children = []
+        for index, period_ms in enumerate(periods_ms):
+            angle = 2 * math.pi * index / len(periods_ms)
+            child = ns.add('ssed', int(300 + 120 * math.cos(angle)), int(300 + 120 * math.sin(angle)))
+            ns.node_cmd(child, f'csl period {period_ms * 1000}')
+            children.append(child)
+            ns.go(1.5)
+        ns.go(10)
+        self.assertFormPartitions(1)
+        for child in children:
+            self.assertNodeState(child, 'child')
+
+        # Schedule concurrent downlink CoAP traffic for 60 s, averaging 0.3
+        # arrivals per CSL period per child. Use simulated time throughout.
+        rng = random.Random(990498)
+        arrivals = []
+        for child, period_ms in zip(children, periods_ms):
+            when_us = 0.0
+            while True:
+                when_us += rng.expovariate(0.3 / (period_ms * 1000))
+                if when_us >= 60000000:
+                    break
+                arrivals.append((round(when_us), child))
+        arrivals.sort()
+
+        ns.coaps_enable()
+        start_time = ns.time
+        now_us = 0
+        accepted = {child: 0 for child in children}
+        no_bufs = 0
+        for when_us, child in arrivals:
+            if when_us > now_us:
+                ns.cmd(f'go {when_us - now_us}us')
+                now_us = when_us
+            try:
+                ns.cmd(f'send coap con {parent} {child}')
+                accepted[child] += 1
+            except errors.OTNSCliError as exc:
+                if 'NoBufs' not in str(exc):
+                    raise
+                no_bufs += 1
+        ns.go(10)
+
+        # Individual losses or transient NoBufs are not failures by themselves.
+        # Every child must still receive traffic in the final 20 s or drain
+        # interval; a stale receive timestamp can otherwise leave a child stuck.
+        progressed = set()
+        for message in ns.coaps() or []:
+            if message.get('src') != parent or message.get('type') != 0:
+                continue
+            for receiver in message.get('receivers') or []:
+                if receiver['time'] / 1e6 - start_time >= 40:
+                    progressed.add(receiver['dst'])
+        self.assertTrue(all(accepted.values()), f'No accepted sends to some children: {accepted}')
+        missing = set(children) - progressed
+        self.assertFalse(missing, f'No late delivery to children {sorted(missing)}; NoBufs={no_bufs}')
 
 
 if __name__ == '__main__':

@@ -108,6 +108,8 @@ static uint32_t sEnergyScanEndTime = 0;
 
 static otRadioState        sState = OT_RADIO_STATE_DISABLED;
 static struct RadioMessage sReceiveMessage;
+static struct RadioMessage sReceiveStartMessage; // frame whose RxStart was accepted, i.e. the one being received
+static uint16_t            sReceiveStartLength = 0;
 static struct RadioMessage sTransmitMessage;
 static struct RadioMessage sAckMessage;
 static otRadioFrame        sReceiveFrame;
@@ -1319,9 +1321,14 @@ static void startCcaForTransmission(otInstance *aInstance, uint64_t ccaDurationU
     otSimSendRadioChanSampleEvent(&chanSampleData);
 }
 
-void platformRadioRxStart(otInstance *aInstance, struct RadioCommEventData *aRxParams)
+void platformRadioRxStart(otInstance                *aInstance,
+                          const uint8_t             *aBuf,
+                          uint16_t                   aBufLength,
+                          struct RadioCommEventData *aRxParams)
 {
     OT_UNUSED_VARIABLE(aInstance);
+    otEXPECT(aBufLength >= offsetof(struct RadioMessage, mPsdu) + OT_RADIO_FRAME_MIN_SIZE &&
+             aBufLength <= sizeof(sReceiveStartMessage));
 
     otEXPECT(sActiveChannel == aRxParams->mChannel);                                 // must be on my listening channel.
     otEXPECT(sState == OT_RADIO_STATE_RECEIVE || sState == OT_RADIO_STATE_TRANSMIT); // and in valid states.
@@ -1343,6 +1350,11 @@ void platformRadioRxStart(otInstance *aInstance, struct RadioCommEventData *aRxP
     // preamble is "now" so we need to adapt to "when SFD was received" (end of last symbol of SFD = start of PHY hdr)
     sReceiveTimestamp = otPlatTimeGet() + OT_RADIO_SHR_DURATION_US;
 
+    // Remember which frame is being received, so that its RxDone can be told apart from the RxDone of a frame
+    // that started while the radio was busy.
+    memcpy(&sReceiveStartMessage, aBuf, aBufLength);
+    sReceiveStartLength = aBufLength;
+
 exit:
     return;
 }
@@ -1357,6 +1369,13 @@ void platformRadioRxDone(otInstance                *aInstance,
 
     // only process in valid substates:
     otEXPECT(sSubState == RFSIM_RADIO_SUBSTATE_RX_FRAME_ONGOING || sSubState == RFSIM_RADIO_SUBSTATE_TX_ACK_RX_ONGOING);
+    // only the frame whose RxStart was accepted can be received. A frame that started while the radio was busy
+    // (e.g. receiving an Ack) was never locked onto: its RxDone must not complete the reception of the frame the
+    // radio is locked onto and take over that frame's timestamp. The FCS is left out of the comparison: the
+    // simulator changes it in the RxDone of a frame hit by interference, which is then received with an FCS error.
+    otEXPECT(aBufLength == sReceiveStartLength &&
+             aBufLength >= offsetof(struct RadioMessage, mPsdu) + OT_RADIO_FRAME_MIN_SIZE &&
+             memcmp(&sReceiveStartMessage, aBuf, aBufLength - sizeof(uint16_t)) == 0);
 
     memcpy(&sReceiveMessage, aBuf, aBufLength);
     sReceiveFrame.mLength             = (uint8_t)aBufLength - offsetof(struct RadioMessage, mPsdu);
