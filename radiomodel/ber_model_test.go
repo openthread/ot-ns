@@ -51,12 +51,10 @@ func TestApplyBerModelTraceLength(t *testing.T) {
 		{"high SIR boundary", 6, 87, false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			// Includes the channel byte before the PSDU, as in radio events.
-			data := make([]byte, 1+tc.psduBytes)
+			data := make([]byte, event.RadioMessagePsduOffset+tc.psduBytes)
 			data[0] = 11
 			original := append([]byte(nil), data...)
-			// Duration covers the PSDU and the six PHY-header bytes.
-			phyBytes := tc.psduBytes + 6
+			phyBytes := tc.psduBytes + types.PhyHeaderLenBytes
 			evt := event.Event{
 				NodeId: 12,
 				Data:   data,
