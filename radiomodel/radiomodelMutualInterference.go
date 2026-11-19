@@ -27,7 +27,9 @@
 package radiomodel
 
 import (
+	"maps"
 	"math"
+	"slices"
 
 	. "github.com/openthread/ot-ns/event"
 	"github.com/openthread/ot-ns/logger"
@@ -191,8 +193,9 @@ func (rm *RadioModelMutualInterference) getRssiAmbientNoise() DbValue {
 func (rm *RadioModelMutualInterference) getRssiOnChannel(node *RadioNode, channel ChannelId) DbValue {
 	rssiMax := rm.getRssiAmbientNoise()
 	// loop all active transmitters
-	for _, v := range rm.activeTransmitters[channel] {
-		rssi := rm.GetTxRssi(v, node)
+	transmitters := rm.activeTransmitters[channel]
+	for _, id := range slices.Sorted(maps.Keys(transmitters)) {
+		rssi := rm.GetTxRssi(transmitters[id], node)
 		if rssi == RssiInvalid {
 			continue
 		}
@@ -282,7 +285,9 @@ func (rm *RadioModelMutualInterference) txStop(node *RadioNode, evt *Event) {
 func (rm *RadioModelMutualInterference) applyInterference(src *RadioNode, dst *RadioNode, evt *Event) {
 	// Apply interference. Loop all interferers that were active during Tx by 'src' and add their signal powers.
 	powIntfMax := rm.getRssiAmbientNoise()
-	for _, interferer := range rm.interferedBy[src.Id] {
+	interferers := rm.interferedBy[src.Id]
+	for _, id := range slices.Sorted(maps.Keys(interferers)) {
+		interferer := interferers[id]
 		if interferer == dst { // if dst node was at some point transmitting itself, fail the Rx
 			rm.log(evt.Timestamp, dst.Id, "Detected self-transmission of Node, set Rx OT_ERROR_ABORT")
 			evt.RadioCommData.Error = OT_ERROR_ABORT
@@ -306,7 +311,9 @@ func (rm *RadioModelMutualInterference) applyInterference(src *RadioNode, dst *R
 func (rm *RadioModelMutualInterference) updateChannelSamplingNodes(src *RadioNode, evt *Event) {
 	logger.AssertTrue(evt.Type == EventTypeRadioCommStart)
 	ch := evt.RadioCommData.Channel
-	for _, samplingNode := range rm.activeChannelSamplers[ch] {
+	samplers := rm.activeChannelSamplers[ch]
+	for _, id := range slices.Sorted(maps.Keys(samplers)) {
+		samplingNode := samplers[id]
 		r := rm.GetTxRssi(src, samplingNode)
 		if r != RssiInvalid {
 			samplingNode.rssiSampleMax = addSignalPowersDbm(r, samplingNode.rssiSampleMax)
