@@ -1,4 +1,4 @@
-// Copyright (c) 2023-2024, The OTNS Authors.
+// Copyright (c) 2023-2026, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -37,54 +37,62 @@ import (
 	. "github.com/openthread/ot-ns/types"
 )
 
-// reference: IEEE 802.15.4-2006,E.4.1.8 Bit Error Rate (BER) calculations
-// see also NS-3 LR-WPAN error model where this is used.
+// Reference: IEEE 802.15.4-2006,E.4.1.8 Bit Error Rate (BER) calculations.
+// See also NS-3 LR-WPAN error model where this is used.
 var (
 	binomialCoeff = []float64{120, -560, 1820, -4368, 8008, -11440, 12870, -11440, 8008, -4368, 1820, -560, 120, -16, 1}
 )
 
 func applyBerModel(sirDb DbValue, srcNodeId NodeId, evt *Event) (bool, string) {
-	pSuccess := 1.0
-	rnd := 0.5
 	logMsg := ""
-	// Duration includes the PHY header, not just the PSDU.
-	nbits := int(evt.RadioCommData.Duration / TimeUsPerBit)
-	// if sirDb >= 6.0, then ratio SIR>=~3.98, and pSuccess for any regular 15.4 frame is =~ 1.0 always.
-	// if sirDb <= -10.0, then ratio SIR<=~0.1, and pSuccess for shortest frame is < 10e-8 always.
-	// Save time (?) by not doing the calculation in these cases.
-	if sirDb < -10.0 {
-		pSuccess = 0.0
-	} else if sirDb < 6.0 {
-		pSuccess = computePacketSuccessRate(sirDb, nbits)
-		rnd = prng.NewUnitRandom()
-	}
 
-	if pSuccess < 1.0 {
-		if rnd > pSuccess { // failure case
-			evt.Data = interferePsduData(evt.Data)
-			evt.RadioCommData.Error = OT_ERROR_FCS
-			logMsg = fmt.Sprintf("applied OT_ERROR_FCS sirDb=%f src=%d dst=%d Psuc=%f PhyLen=%dB",
-				sirDb, srcNodeId, evt.NodeId, pSuccess, nbits/8) // TODO not format this if trace logging is off.
-			return true, logMsg
+	// if sirDb >= 6.0, then ratio SIR>=~3.98, and pSuccess for any 15.4 frame size is =~ 1.0 always.
+	if sirDb < 6.0 {
+		var pSuccess float64
+		var rnd float64
+
+		// only frame bits after the preamble are considered for the BER model. Some symbol detection error(s) in
+		// the preamble do not hamper the frame reception:  this is a radio engineering assumption.
+		psduLen := len(evt.Data) - RadioMessagePsduOffset
+		berLen := PhySfdLenBytes + PhyPhrLenBytes + psduLen
+
+		// if sirDb <= -10.0, then ratio SIR<=~0.1, and pSuccess for shortest (Imm-Ack) frame is < 1e-9,
+		// so always fail frame Rx.
+		if sirDb < -10.0 {
+			pSuccess = 0.0
+			rnd = 1.0
+		} else {
+			pSuccess = computePacketSuccessRate(sirDb, berLen*8)
+			rnd = prng.NewUnitRandom()
+		}
+
+		if pSuccess < 1.0 {
+			if rnd > pSuccess { // failure case
+				evt.Data = interferePsduData(evt.Data)
+				evt.RadioCommData.Error = OT_ERROR_FCS
+				logMsg = fmt.Sprintf("applied OT_ERROR_FCS sirDb=%f src=%d dst=%d Psuc=%f PsduLen=%dB",
+					sirDb, srcNodeId, evt.NodeId, pSuccess, psduLen) // TODO not format this if trace logging is off.
+				return true, logMsg
+			}
 		}
 	}
+
 	return false, logMsg
 }
 
-func computePacketSuccessRate(sirDb DbValue, nbits int) float64 {
+func computePacketSuccessRate(sirDb DbValue, frameBits int) float64 {
 	ber := 0.0
 	snr := math.Pow(10, sirDb/10.0)
 	for idx, coeff := range binomialCoeff {
 		k := float64(idx + 2)
-		ber += coeff * math.Exp(20.0*snr*(1.0/(k+1)-1.0))
+		ber += coeff * math.Exp(20.0*snr*((1.0/k)-1.0))
 	}
 
 	ber = ber * 8.0 / 15.0 / 16.0
-
 	ber = math.Min(ber, 1.0)
-	psuc := math.Pow(1.0-ber, float64(nbits))
+	pSuc := math.Pow(1.0-ber, float64(frameBits))
 
-	return psuc
+	return pSuc
 }
 
 // interferePsduData simulates bit-error(s) on PSDU data

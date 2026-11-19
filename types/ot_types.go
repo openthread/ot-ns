@@ -1,4 +1,4 @@
-// Copyright (c) 2023-2024, The OTNS Authors.
+// Copyright (c) 2023-2026, The OTNS Authors.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -89,11 +89,13 @@ const (
 // IEEE 802.15.4-2015 and other PHY related parameters, includes 2.4 GHz O-QPSK PHY
 // these assumptions are hardcoded into the OT node stack and reproduced here.
 const (
-	MinChannelNumber  ChannelId = 0  // below 11 are sub-Ghz channels for 802.15.4-2015
-	MaxChannelNumber  ChannelId = 39 // above 26 are currently used as pseudo-BLE-adv-channels
-	TimeUsPerBit                = 4
-	PhyHeaderLenBytes           = 6
-	MacFrameLenBytes            = 127
+	MinChannelNumber    ChannelId = 0  // below 11 are sub-Ghz channels for 802.15.4-2015
+	MaxChannelNumber    ChannelId = 39 // above 26 are currently used as pseudo-BLE-adv-channels
+	PhyPreambleLenBytes           = 4
+	PhySfdLenBytes                = 1
+	PhyPhrLenBytes                = 1
+	PhyHeaderLenBytes             = PhyPreambleLenBytes + PhySfdLenBytes + PhyPhrLenBytes
+	MacFrameLenBytes              = 127
 )
 
 type RadioStates byte
