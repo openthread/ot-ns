@@ -40,8 +40,9 @@ import (
 )
 
 const (
-	maxPingResultCount = 1000
-	maxJoinResultCount = 1000
+	maxPingResultCount        = 1000
+	maxPingDelayUs     uint64 = 10 * 1000000
+	maxJoinResultCount        = 1000
 )
 
 type pingRequest struct {
@@ -295,8 +296,8 @@ func (node *Node) onPingReply(timestamp uint64, dstaddr string, datasize int, ho
 		node.logger.Warnf("onPingReply(): ignoring ping reply with datasize=%d < 4", datasize)
 		return
 	}
-	const maxPingDelayUs uint64 = 10 * 1000000
-	var leftPingRequests []*pingRequest
+
+	n := 0
 	for _, req := range node.pendingPings {
 		if req.Timestamp == timestamp && req.Dst == dstaddr {
 			// ping replied
@@ -305,11 +306,32 @@ func (node *Node) onPingReply(timestamp uint64, dstaddr string, datasize int, ho
 			// ping timeout
 			node.addPingResult(req.Dst, req.DataSize, maxPingDelayUs)
 		} else {
-			leftPingRequests = append(leftPingRequests, req)
+			node.pendingPings[n] = req
+			n++
 		}
 	}
 
-	node.pendingPings = leftPingRequests
+	clear(node.pendingPings[n:])
+	node.pendingPings = node.pendingPings[:n]
+}
+
+func (node *Node) flushTimedOutPings() {
+	if node.D == nil || len(node.pendingPings) == 0 {
+		return
+	}
+
+	n := 0
+	for _, req := range node.pendingPings {
+		if req.Timestamp+maxPingDelayUs < node.D.CurTime {
+			node.addPingResult(req.Dst, req.DataSize, maxPingDelayUs)
+		} else {
+			node.pendingPings[n] = req
+			n++
+		}
+	}
+
+	clear(node.pendingPings[n:])
+	node.pendingPings = node.pendingPings[:n]
 }
 
 func (node *Node) addPingResult(dst string, datasize int, delay uint64) {
@@ -325,6 +347,7 @@ func (node *Node) addPingResult(dst string, datasize int, delay uint64) {
 }
 
 func (node *Node) CollectPings() []*PingResult {
+	node.flushTimedOutPings()
 	ret := node.pingResults
 	node.pingResults = nil
 	return ret
