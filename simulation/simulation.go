@@ -49,35 +49,37 @@ type Simulation struct {
 	Started chan struct{}
 	Exited  chan struct{}
 
-	ctx            *progctx.ProgCtx
-	stopped        bool
-	cfg            *Config
-	nodes          map[NodeId]*Node
-	d              *dispatcher.Dispatcher
-	vis            visualize.Visualizer
-	cmdRunner      CmdRunner
-	autoGo         bool
-	autoGoChange   chan bool
-	networkInfo    visualize.NetworkInfo
-	energyAnalyser *energy.EnergyAnalyser
-	nodePlacer     *NodeAutoPlacer
-	kpiMgr         *KpiManager
-	simHosts       *SimHosts
+	ctx              *progctx.ProgCtx
+	stopped          bool
+	cfg              *Config
+	nodes            map[NodeId]*Node
+	d                *dispatcher.Dispatcher
+	vis              visualize.Visualizer
+	cmdRunner        CmdRunner
+	autoGo           bool
+	autoGoChange     chan bool
+	networkInfo      visualize.NetworkInfo
+	energyAnalyser   *energy.EnergyAnalyser
+	nodePlacer       *NodeAutoPlacer
+	kpiMgr           *KpiManager
+	simHosts         *SimHosts
+	nodeStartTimeout time.Duration
 }
 
 func NewSimulation(ctx *progctx.ProgCtx, cfg *Config, dispatcherCfg *dispatcher.Config) (*Simulation, error) {
 	s := &Simulation{
-		Started:      make(chan struct{}),
-		Exited:       make(chan struct{}),
-		ctx:          ctx,
-		cfg:          cfg,
-		nodes:        map[NodeId]*Node{},
-		autoGo:       cfg.AutoGo || cfg.Realtime,
-		autoGoChange: make(chan bool, 1),
-		networkInfo:  visualize.DefaultNetworkInfo(),
-		nodePlacer:   NewNodeAutoPlacer(),
-		kpiMgr:       NewKpiManager(),
-		simHosts:     NewSimHosts(),
+		Started:          make(chan struct{}),
+		Exited:           make(chan struct{}),
+		ctx:              ctx,
+		cfg:              cfg,
+		nodes:            map[NodeId]*Node{},
+		autoGo:           cfg.AutoGo || cfg.Realtime,
+		autoGoChange:     make(chan bool, 1),
+		networkInfo:      visualize.DefaultNetworkInfo(),
+		nodePlacer:       NewNodeAutoPlacer(),
+		kpiMgr:           NewKpiManager(),
+		simHosts:         NewSimHosts(),
+		nodeStartTimeout: NodeStartTimeout,
 	}
 	s.SetLogLevel(cfg.LogLevel)
 	s.networkInfo.Real = cfg.Realtime
@@ -137,10 +139,17 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 	defer func() {
 		if err != nil {
 			logger.Errorf("simulation add node %d failed: %v", nodeid, err)
-			if node != nil {
-				_ = node.exit()
-			}
 			delete(s.nodes, nodeid)
+			if node != nil {
+				if dnode != nil && dnode.IsConnected() && !s.IsStopping() {
+					s.d.NotifyCommand(nodeid)
+					_ = node.exit()
+					dnode.DisconnectSocket()
+					s.d.RecvEvents(dispatcher.DefaultReadTimeout)
+				} else {
+					_ = node.exit()
+				}
+			}
 			if dnode != nil {
 				s.d.DeleteNode(nodeid)
 			}
@@ -159,7 +168,11 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 	// init of the sim/dispatcher nodes
 	node.uartType = nodeUartTypeVirtualTime
 	logger.AssertTrue(s.d.IsAlive(nodeid))
-	evtCnt := s.d.RecvEvents() // allow new node to connect, and to receive its startup events.
+	startTimeout := s.nodeStartTimeout
+	if startTimeout <= 0 {
+		startTimeout = NodeStartTimeout
+	}
+	evtCnt := s.d.RecvEvents(startTimeout) // allow new node to connect, and to receive its startup events.
 
 	if s.IsStopping() { // stop early when exiting the simulation.
 		err = CommandInterruptedError
@@ -170,7 +183,10 @@ func (s *Simulation) AddNode(cfg *NodeConfig) (*Node, error) {
 		err = errors.Errorf("simulation AddNode: new node %d did not respond (evtCnt=%d)", nodeid, evtCnt)
 		return nil, err
 	}
-	logger.AssertFalse(s.d.IsAlive(nodeid))
+	if s.d.IsAlive(nodeid) {
+		err = errors.Errorf("simulation AddNode: new node %d did not finish startup (evtCnt=%d)", nodeid, evtCnt)
+		return nil, err
+	}
 
 	// run setup and script(s) for the node
 	node.Logger.Debugf("start setup of node (version/commit, rfsim params, mode, init script)")
@@ -510,11 +526,11 @@ func (s *Simulation) DeleteNode(nodeid NodeId) error {
 		err := fmt.Errorf("node %d not found", nodeid)
 		return err
 	}
-	s.d.RecvEvents()
+	s.d.RecvEvents(dispatcher.DefaultReadTimeout)
 	delete(s.nodes, nodeid)
 	s.d.NotifyCommand(nodeid) // sets node alive: we expect a NodeExit event to come as final one in queue.
 	_ = node.exit()
-	s.d.RecvEvents()
+	s.d.RecvEvents(dispatcher.DefaultReadTimeout)
 	s.d.DeleteNode(nodeid)
 	s.kpiMgr.stopNode(nodeid)
 	return nil
