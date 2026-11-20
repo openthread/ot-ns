@@ -54,3 +54,12 @@ updates:
       prefix: "github-actions"
     rebase-strategy: "disabled"
     open-pull-requests-limit: 1
+  - package-ecosystem: "npm"
+    directory: "/web/site"
+    schedule:
+      interval: "monthly"
+    cooldown:
+      default-days: 7
+    ignore:
+      - dependency-name: "*"
+    open-pull-requests-limit: 0
