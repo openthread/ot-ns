@@ -55,8 +55,9 @@ jobs:
         with:
           go-version: '1.23'
       - name: Bootstrap
-        run: |
-          sudo bash openthread/script/install-llvm.sh
+        timeout-minutes: 25
+        shell: bash ./openthread/script/retry {0}
+        run: ./openthread/script/install-pretty-tools.sh --no-python
       - name: Check pretty
         run: |
           ./script/install-deps
