@@ -53,6 +53,7 @@ import (
 
 const (
 	DefaultCommandTimeout = time.Second * 10
+	NodeStartTimeout      = time.Second * 15
 	NodeExitTimeout       = time.Second * 3
 	SendCoapResourceName  = "t"
 	SendMcastPrefix       = "ff13::deed"
@@ -78,6 +79,7 @@ type Node struct {
 	pipeIn        io.WriteCloser
 	pipeOut       io.ReadCloser
 	pipeErr       io.ReadCloser
+	errReaderDone chan struct{}
 	uartReader    chan []byte
 	uartType      NodeUartType
 }
@@ -151,6 +153,7 @@ func newNode(s *Simulation, nodeid NodeId, cfg *NodeConfig, dnode *dispatcher.No
 			return node, err
 		}
 
+		node.errReaderDone = make(chan struct{})
 		go node.lineReaderStdErr(node.pipeErr) // reads StdErr output from OT node exe and acts on failures
 	}
 
@@ -237,6 +240,10 @@ func (node *Node) exit() error {
 		// The node process is external, so we cannot control it here. Disconnecting the DNode socket
 		// is used instead. It triggers the Unix socket server GoRoutine to emit a final exit event.
 		node.DNode.DisconnectSocket()
+	}
+
+	if node.errReaderDone != nil {
+		<-node.errReaderDone
 	}
 
 	// finalize the log file/printing.
@@ -794,6 +801,7 @@ func (node *Node) onStart() {
 }
 
 func (node *Node) lineReaderStdErr(reader io.Reader) {
+	defer close(node.errReaderDone)
 	scanner := bufio.NewScanner(reader) // no filter applied.
 	scanner.Split(bufio.ScanLines)
 
@@ -828,7 +836,7 @@ func (node *Node) expectEvent(evtType event.EventType, timeout time.Duration) (*
 			if !node.S.Dispatcher().IsAlive(node.Id) {
 				time.Sleep(time.Millisecond * 10) // in case of a node connection error, this becomes a busy-loop.
 			}
-			node.S.Dispatcher().RecvEvents() // keep virtual-UART events coming.
+			node.S.Dispatcher().RecvEvents(dispatcher.DefaultReadTimeout) // keep virtual-UART events coming.
 		}
 	}
 }
@@ -849,8 +857,8 @@ func (node *Node) readLine() (string, bool) {
 			}
 			return readLine, true
 		default:
-			node.S.Dispatcher().RecvEvents() // keep virtual-UART events coming.
-			node.processUartData()           // forge data from UART-events into lines (fills up node.pendingLines)
+			node.S.Dispatcher().RecvEvents(dispatcher.DefaultReadTimeout) // keep virtual-UART events coming.
+			node.processUartData()                                        // forge data from UART-events into lines (fills up node.pendingLines)
 			if pendingLinesReceived && !node.S.Dispatcher().IsAlive(node.Id) {
 				return "", false
 			}
@@ -876,15 +884,15 @@ func (node *Node) expectLine(line interface{}, timeout time.Duration) ([]string,
 			node.Logger.Tracef("UART: %s", readLine)
 			output = append(output, readLine)
 			if node.isLineMatch(readLine, line) { // found the matching line
-				node.S.Dispatcher().RecvEvents() // this blocks until node is asleep.
+				node.S.Dispatcher().RecvEvents(dispatcher.DefaultReadTimeout) // this blocks until node is asleep.
 				return output, nil
 			}
 		default:
 			if !node.S.Dispatcher().IsAlive(node.Id) {
 				time.Sleep(time.Millisecond * 10) // in case of a node connection error, this becomes a busy-loop.
 			}
-			node.S.Dispatcher().RecvEvents() // keep virtual-UART events coming.
-			node.processUartData()           // forge data from UART-events into lines (fills up node.pendingLines)
+			node.S.Dispatcher().RecvEvents(dispatcher.DefaultReadTimeout) // keep virtual-UART events coming.
+			node.processUartData()                                        // forge data from UART-events into lines (fills up node.pendingLines)
 		}
 	}
 }
