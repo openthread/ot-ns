@@ -823,6 +823,21 @@ class BasicTests(OTNSTestCase):
 
     def testSaveYamlTopology(self):
         ns: OTNS = self.ns
+
+        # Under MutualInterference, the 4-router chain (30m end-to-end) can split into
+        # two partitions requiring up to two sequential REED-to-router upgrades
+        # (kRouterSelectionJitter = 120s each) plus MLE Advertisement/merge exchanges.
+        def wait_for_single_partition(max_duration: int = 600, step: int = 10) -> None:
+            pars = {}
+            for _ in range(max_duration // step):
+                ns.go(step)
+                pars = ns.partitions()
+                if len(pars) == 1 and 0 not in pars:
+                    break
+            else:
+                self.fail(
+                    f"Timed out waiting for a single partition to form after {max_duration}s (partitions: {pars})")
+
         self.assertEqual(0, len(ns.nodes()))
         ns.add('router', x=100, y=100)
         ns.go(10)
@@ -830,7 +845,7 @@ class BasicTests(OTNSTestCase):
         ns.add('router', version='', x=300, y=100)
         ns.add('router', x=400, y=100)
         ns.add('med', x=400, y=160)
-        ns.go(25)
+        wait_for_single_partition()
         self.assertEqual(5, len(ns.nodes()))
         self.assertFormPartitions(1)
 
@@ -851,7 +866,7 @@ class BasicTests(OTNSTestCase):
         self.assertEqual(160, nodes_info[5]['y'])
         self.assertEqual('med', nodes_info[5]['type'])
         self.assertFormPartitionsIgnoreOrphans(0)
-        ns.go(125)
+        wait_for_single_partition()
         self.assertFormPartitions(1)
         self.assertFormPartitionsIgnoreOrphans(1)
 
